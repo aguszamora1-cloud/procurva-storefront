@@ -10,6 +10,8 @@ import { ProductDetail } from '@/pages/ProductDetail';
 import { CategoriesIndex } from '@/pages/CategoriesIndex';
 import { Category } from '@/pages/Category';
 import { Cart } from '@/pages/Cart';
+import { Checkout } from '@/pages/Checkout';
+import { CheckoutSuccess, CheckoutFailure, CheckoutPending } from '@/pages/CheckoutResult';
 
 function StoreRoutes() {
   return (
@@ -23,6 +25,10 @@ function StoreRoutes() {
             <Route path="/categorias" element={<CategoriesIndex />} />
             <Route path="/categoria/:name" element={<Category />} />
             <Route path="/carrito" element={<Cart />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/checkout/success" element={<CheckoutSuccess />} />
+            <Route path="/checkout/failure" element={<CheckoutFailure />} />
+            <Route path="/checkout/pending" element={<CheckoutPending />} />
             <Route path="*" element={<RouteNotFound />} />
           </Routes>
         </Layout>

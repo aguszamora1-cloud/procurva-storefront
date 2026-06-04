@@ -2,13 +2,10 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { useStore } from '@/context/StoreProvider';
 import { formatPrice } from '@/lib/utils';
-import { buildWhatsappOrder } from '@/lib/checkout';
 
 export function CartDrawer() {
   const { items, isOpen, close, updateQty, removeItem, subtotal, itemCount } = useCart();
-  const config = useStore();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -22,8 +19,6 @@ export function CartDrawer() {
       document.body.style.overflow = '';
     };
   }, [isOpen, close]);
-
-  const checkoutHref = buildWhatsappOrder(config, items, subtotal);
 
   return (
     <>
@@ -105,16 +100,13 @@ export function CartDrawer() {
             >
               Ver carrito
             </Link>
-            {checkoutHref && (
-              <a
-                href={checkoutHref}
-                target="_blank"
-                rel="noreferrer"
-                className="block w-full rounded-[10px] bg-accent py-4 text-center text-[14px] font-bold uppercase tracking-[0.5px] text-on-accent transition-all hover:scale-[1.01]"
-              >
-                Finalizar por WhatsApp
-              </a>
-            )}
+            <Link
+              to="/checkout"
+              onClick={close}
+              className="block w-full rounded-[10px] bg-accent py-4 text-center text-[14px] font-bold uppercase tracking-[0.5px] text-on-accent transition-all hover:scale-[1.01]"
+            >
+              Finalizar compra
+            </Link>
           </div>
         )}
       </aside>

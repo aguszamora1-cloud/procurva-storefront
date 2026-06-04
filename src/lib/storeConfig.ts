@@ -118,6 +118,7 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
     footerText: str(s.footer_text),
     showPoweredBy: bool(s.show_powered_by, true),
     paymentMethods: Array.isArray(s.payment_methods_icons) ? s.payment_methods_icons : [],
+    mercadopagoEnabled: bool(s.mercadopago_enabled, false),
 
     metaTitle: firstStr(s.meta_title, company.name),
     metaDescription: str(s.meta_description),

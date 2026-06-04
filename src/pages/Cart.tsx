@@ -1,14 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { useStore } from '@/context/StoreProvider';
 import { formatPrice } from '@/lib/utils';
-import { buildWhatsappOrder } from '@/lib/checkout';
 
 export function Cart() {
   const { items, updateQty, removeItem, subtotal, clear } = useCart();
-  const config = useStore();
-  const checkoutHref = buildWhatsappOrder(config, items, subtotal);
 
   if (items.length === 0) {
     return (
@@ -72,18 +68,12 @@ export function Cart() {
             <span className="text-[20px] font-extrabold text-text">{formatPrice(subtotal)}</span>
           </div>
           <p className="py-4 text-[12px] text-subtle">El envío se coordina al finalizar la compra.</p>
-          {checkoutHref ? (
-            <a
-              href={checkoutHref}
-              target="_blank"
-              rel="noreferrer"
-              className="block w-full rounded-[10px] bg-accent py-4 text-center text-[14px] font-bold uppercase tracking-[0.5px] text-on-accent transition-all hover:scale-[1.01]"
-            >
-              Finalizar por WhatsApp
-            </a>
-          ) : (
-            <p className="text-[13px] text-subtle">Esta tienda no tiene WhatsApp configurado.</p>
-          )}
+          <Link
+            to="/checkout"
+            className="block w-full rounded-[10px] bg-accent py-4 text-center text-[14px] font-bold uppercase tracking-[0.5px] text-on-accent transition-all hover:scale-[1.01]"
+          >
+            Finalizar compra
+          </Link>
           <Link to="/productos" className="mt-3 block text-center text-[12px] uppercase tracking-wide text-subtle hover:text-accent">
             Seguir comprando
           </Link>

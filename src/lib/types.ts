@@ -191,6 +191,8 @@ export interface StoreConfig {
   footerText: string;
   showPoweredBy: boolean;
   paymentMethods: string[];
+  // Pagos online (MercadoPago Checkout Pro). true si el comercio conectó su MP.
+  mercadopagoEnabled: boolean;
   // SEO
   metaTitle: string;
   metaDescription: string;
