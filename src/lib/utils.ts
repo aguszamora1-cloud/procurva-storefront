@@ -57,19 +57,17 @@ export interface PriceInfo {
 
 /**
  * Jerarquía de precios leída de los campos reales de ProCurva:
- *   retail_price_card     = precio con tarjeta (más caro; 0 si no se cargó)
- *   retail_price_transfer = precio efectivo/transferencia (más barato; 0 si no se cargó)
- *   retail_price          = precio base (fallback cuando no hay card/transfer)
+ *   retail_price_card     = precio con tarjeta (más caro; 0/null si no se cargó)
+ *   retail_price_transfer = precio efectivo/transferencia (más barato)
+ *   retail_price          = precio base (fallback cuando no hay transfer)
  *
- * Reglas (no se inventa descuento ni precio "anterior" tachado):
- *  1. Sólo transferencia (card 0/null): un único precio = transfer, sin badge.
- *  2. Card y transfer cargados y DISTINTOS: principal = el más alto (tarjeta),
- *     línea de efectivo = el más bajo + badge con % calculado de esos dos precios.
- *     ProCurva no expone un campo de descuento configurable en catalog_settings
- *     (el surchargePercent vive en companies.settings, que contiene secretos y no
- *     se lee desde el storefront público), así que el % sale de los dos precios
- *     reales del producto — igual que rosariosportwearweb.
- *  3. Card === transfer (o sólo uno cargado): un único precio, sin badge.
+ * Regla simple:
+ *  - HAY precio tarjeta (retail_price_card > 0):
+ *      principal = retail_price_card, cuotas sobre ese precio, y línea
+ *      "$X efectivo/transferencia" (= retail_price_transfer) con badge "% OFF".
+ *      El descuento se muestra siempre que haya precio tarjeta.
+ *  - NO hay precio tarjeta (0/null): precio único = retail_price_transfer
+ *      (o retail_price). Sin cuotas, sin línea de efectivo, sin badge.
  */
 export function getPriceInfo(
   product: Pick<Product, 'retail_price' | 'retail_price_card' | 'retail_price_transfer'>,
@@ -78,18 +76,17 @@ export function getPriceInfo(
   const cardRaw = Number(product.retail_price_card ?? 0);
   const transferRaw = Number(product.retail_price_transfer ?? 0);
 
-  // Regla 2: dos precios reales y distintos → muestra descuento por efectivo.
-  if (cardRaw > 0 && transferRaw > 0 && cardRaw !== transferRaw) {
-    const cardPrice = Math.max(cardRaw, transferRaw);
-    const cashPrice = Math.min(cardRaw, transferRaw);
-    const cashDiscountPct = Math.round(((cardPrice - cashPrice) / cardPrice) * 100);
+  if (cardRaw > 0) {
+    const cardPrice = cardRaw;
+    const cash = transferRaw > 0 ? transferRaw : base;
+    const cashPrice = cash > 0 && cash < cardPrice ? cash : null;
+    const cashDiscountPct = cashPrice ? Math.round(((cardPrice - cashPrice) / cardPrice) * 100) : 0;
     return { cardPrice, cashPrice, cashDiscountPct, hasCard: true };
   }
 
-  // Reglas 1 y 3: precio único. Tarjeta si está, si no transferencia, si no base.
-  // Sin línea de efectivo ni badge. Las cuotas sólo aplican si hay precio tarjeta.
-  const single = cardRaw > 0 ? cardRaw : transferRaw > 0 ? transferRaw : base;
-  return { cardPrice: single, cashPrice: null, cashDiscountPct: 0, hasCard: cardRaw > 0 };
+  // Sin precio tarjeta: precio único (transferencia, o base como fallback).
+  const single = transferRaw > 0 ? transferRaw : base;
+  return { cardPrice: single, cashPrice: null, cashDiscountPct: 0, hasCard: false };
 }
 
 /** Talles y colores disponibles (con stock) de un producto. */
