@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
 import { hasStock } from '@/lib/utils';
@@ -8,6 +8,7 @@ interface ProductsState {
   products: Product[];
   isLoading: boolean;
   error: string | null;
+  reload: () => void;
 }
 
 const PRODUCT_COLUMNS = `
@@ -25,16 +26,18 @@ const PRODUCT_COLUMNS = `
  */
 export function useProducts(): ProductsState {
   const { companyId } = useStoreStatus();
-  const [state, setState] = useState<ProductsState>({
-    products: [],
-    isLoading: true,
-    error: null,
-  });
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
     if (!companyId) return;
     let cancelled = false;
-    setState((s) => ({ ...s, isLoading: true, error: null }));
+    setIsLoading(true);
+    setError(null);
 
     (async () => {
       const { data, error } = await supabase
@@ -47,17 +50,21 @@ export function useProducts(): ProductsState {
 
       if (cancelled) return;
       if (error) {
-        setState({ products: [], isLoading: false, error: error.message });
+        setProducts([]);
+        setError(error.message);
+        setIsLoading(false);
         return;
       }
-      const products = ((data ?? []) as unknown as Product[]).filter((p) => hasStock(p));
-      setState({ products, isLoading: false, error: null });
+      const next = ((data ?? []) as unknown as Product[]).filter((p) => hasStock(p));
+      setProducts(next);
+      setError(null);
+      setIsLoading(false);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [companyId]);
+  }, [companyId, reloadKey]);
 
-  return state;
+  return { products, isLoading, error, reload };
 }

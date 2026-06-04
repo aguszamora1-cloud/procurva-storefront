@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/context/CartContext';
 import type { Product } from '@/lib/types';
 import { PriceDisplay } from './PriceDisplay';
+import { StoreImage } from './StoreImage';
 import {
   badgeColor,
   colorToHex,
@@ -12,7 +13,7 @@ import {
   totalStock,
 } from '@/lib/utils';
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
   const image = mainImage(product);
   const { mainPrice, comparePrice, compareDiscountPct } = getPriceInfo(product);
   const displayPrice = mainPrice; // precio prominente (tarjeta, o transferencia si no hay tarjeta)
@@ -86,10 +87,13 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="relative aspect-[4/5] overflow-hidden bg-secondary">
         <Link to={`/producto/${product.id}`} className="block h-full w-full">
           {image ? (
-            <img
+            <StoreImage
               src={image}
               alt={product.name}
-              loading="lazy"
+              transformWidth={500}
+              width={400}
+              height={500}
+              loading={priority ? 'eager' : 'lazy'}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
             />
           ) : (

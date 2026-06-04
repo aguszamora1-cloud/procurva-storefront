@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useStore } from '@/context/StoreProvider';
+import { Seo } from '@/components/Seo';
 
 type Variant = 'success' | 'failure' | 'pending';
 
@@ -28,6 +30,7 @@ const CONTENT: Record<Variant, { icon: typeof CheckCircle2; color: string; title
 
 function CheckoutStatus({ variant }: { variant: Variant }) {
   const { clear } = useCart();
+  const config = useStore();
   const [params] = useSearchParams();
   const orderId = params.get('order');
   const { icon: Icon, color, title, text } = CONTENT[variant];
@@ -39,6 +42,7 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
 
   return (
     <div className="mx-auto flex max-w-[640px] flex-col items-center gap-5 px-6 py-24 text-center">
+      <Seo title={`${title} · ${config.name}`} slug={config.slug} noindex />
       <Icon size={64} className={color} strokeWidth={1.5} />
       <h1 className="font-heading text-[28px] font-semibold uppercase tracking-[1px] text-text md:text-[34px]">{title}</h1>
       <p className="max-w-[440px] text-[15px] leading-relaxed text-muted">{text}</p>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
 import type { Product } from '@/lib/types';
@@ -7,6 +7,7 @@ interface ProductState {
   product: Product | null;
   isLoading: boolean;
   error: string | null;
+  reload: () => void;
 }
 
 const PRODUCT_COLUMNS = `
@@ -21,16 +22,19 @@ const PRODUCT_COLUMNS = `
 /** Un producto por id, scoped al tenant actual. */
 export function useProduct(productId: string | undefined): ProductState {
   const { companyId } = useStoreStatus();
-  const [state, setState] = useState<ProductState>({
-    product: null,
-    isLoading: true,
-    error: null,
-  });
+  const [product, setProduct] = useState<Product | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
     if (!companyId || !productId) return;
     let cancelled = false;
-    setState({ product: null, isLoading: true, error: null });
+    setProduct(null);
+    setIsLoading(true);
+    setError(null);
 
     (async () => {
       const { data, error } = await supabase
@@ -42,16 +46,20 @@ export function useProduct(productId: string | undefined): ProductState {
 
       if (cancelled) return;
       if (error) {
-        setState({ product: null, isLoading: false, error: error.message });
+        setProduct(null);
+        setError(error.message);
+        setIsLoading(false);
         return;
       }
-      setState({ product: (data as unknown as Product) ?? null, isLoading: false, error: null });
+      setProduct((data as unknown as Product) ?? null);
+      setError(null);
+      setIsLoading(false);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [companyId, productId]);
+  }, [companyId, productId, reloadKey]);
 
-  return state;
+  return { product, isLoading, error, reload };
 }

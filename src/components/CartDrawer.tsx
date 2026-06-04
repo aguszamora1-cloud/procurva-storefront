@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { StoreImage } from './StoreImage';
 import { formatPrice } from '@/lib/utils';
 
 export function CartDrawer() {
@@ -57,7 +58,9 @@ export function CartDrawer() {
             items.map((item) => (
               <div key={item.variant_id} className="flex gap-3 border-b border-line py-4">
                 <div className="h-24 w-20 shrink-0 overflow-hidden bg-secondary">
-                  {item.image_url && <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />}
+                  {item.image_url && (
+                    <StoreImage src={item.image_url} alt={item.name} transformWidth={160} width={80} height={96} className="h-full w-full object-cover" />
+                  )}
                 </div>
                 <div className="flex flex-1 flex-col">
                   <div className="flex items-start justify-between gap-2">

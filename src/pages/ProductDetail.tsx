@@ -4,6 +4,7 @@ import { Eye, Ruler, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
+import { Seo } from '@/components/Seo';
 import { ProductGallery } from '@/components/ProductGallery';
 import { ColorSelector } from '@/components/ColorSelector';
 import { SizeSelector } from '@/components/SizeSelector';
@@ -90,6 +91,7 @@ export function ProductDetail() {
   if (error || !product) {
     return (
       <div className="mx-auto max-w-[1200px] px-6 py-24 text-center">
+        <Seo title={`Producto no encontrado · ${config.name}`} slug={config.slug} noindex />
         <h1 className="font-heading text-[32px] font-extrabold uppercase tracking-tight text-text">Producto no encontrado</h1>
         <p className="mt-4 text-muted">
           Volvé al{' '}
@@ -137,6 +139,15 @@ export function ProductDetail() {
 
   return (
     <>
+      <Seo
+        title={`${product.name} · ${config.name}`}
+        description={product.description?.trim() || config.metaDescription || `${product.name} — ${config.name}.`}
+        image={images[0] || config.ogImageUrl}
+        type="product"
+        slug={config.slug}
+        siteName={config.name}
+      />
+
       {/* Breadcrumbs */}
       <div className="mx-auto max-w-[1200px] px-6 pb-2 pt-6">
         <nav aria-label="Breadcrumb" className="text-[13px] text-subtle">

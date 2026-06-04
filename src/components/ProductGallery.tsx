@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { StoreImage } from './StoreImage';
 
 interface Props {
   images: string[];
@@ -42,7 +43,7 @@ export function ProductGallery({ images, alt, activeIndex }: Props) {
         i === safeIdx ? 'border-2 border-text opacity-100' : 'border border-line opacity-70 hover:opacity-100'
       }`}
     >
-      <img src={src} alt="" className="h-full w-full object-cover" />
+      <StoreImage src={src} alt="" transformWidth={160} width={80} height={96} className="h-full w-full object-cover" />
     </button>
   );
 
@@ -61,9 +62,11 @@ export function ProductGallery({ images, alt, activeIndex }: Props) {
           onMouseLeave={() => setZoom(null)}
         >
           {active ? (
-            <img
+            <StoreImage
               src={active}
               alt={alt}
+              transformWidth={1000}
+              loading="eager"
               className="h-full w-full object-cover transition-transform duration-200"
               style={zoom ? { transform: 'scale(1.6)', transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
             />

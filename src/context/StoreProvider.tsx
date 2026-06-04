@@ -26,6 +26,44 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 const COMPANY_COLUMNS =
   'id, name, plan, catalog_enabled, catalog_slug, catalog_settings, catalog_shipping_message, catalog_template_id';
 
+// Cache de config del tenant (stale-while-revalidate). Sirve la config cacheada
+// para el primer paint instantáneo y revalida en segundo plano. TTL 5 min:
+// dentro de la ventana no se vuelve a pedir; pasada, se revalida.
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const cacheKey = (slug: string) => `procurva_store_config_v1:${slug}`;
+
+interface CacheEntry {
+  ts: number;
+  config: StoreConfig;
+}
+
+function readCache(slug: string): CacheEntry | null {
+  try {
+    const raw = sessionStorage.getItem(cacheKey(slug));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CacheEntry;
+    if (!parsed?.config || typeof parsed.ts !== 'number') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(slug: string, config: StoreConfig): void {
+  try {
+    sessionStorage.setItem(cacheKey(slug), JSON.stringify({ ts: Date.now(), config }));
+  } catch {
+    /* sessionStorage lleno o no disponible: ignorar */
+  }
+}
+
+/** Aplica tema, fuentes y meta de una config. */
+function applyConfig(config: StoreConfig): void {
+  applyTheme(config);
+  loadFonts(config);
+  applyDocumentMeta(config);
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<StoreConfig | null>(null);
   const [status, setStatus] = useState<StoreStatus>('loading');
@@ -33,18 +71,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
-      const tenant = resolveTenant();
-      if (tenant.kind === 'generic') {
-        if (!cancelled) setStatus('not-found');
-        return;
-      }
+    const tenant = resolveTenant();
+    if (tenant.kind === 'generic') {
+      setStatus('not-found');
+      return;
+    }
+    const slug = tenant.slug.toLowerCase();
 
+    // 1) Servir desde cache para el primer paint (stale-while-revalidate).
+    const cached = readCache(slug);
+    if (cached) {
+      applyConfig(cached.config);
+      setConfig(cached.config);
+      setStatus('ready');
+      // Dentro del TTL: confiamos en la cache, no revalidamos.
+      if (Date.now() - cached.ts < CACHE_TTL_MS) return;
+    }
+
+    // 2) Fetch / revalidación contra Supabase.
+    async function load() {
       try {
         const { data, error } = await supabase
           .from('companies')
           .select(COMPANY_COLUMNS)
-          .eq('catalog_slug', tenant.slug.toLowerCase())
+          .eq('catalog_slug', slug)
           .eq('catalog_enabled', true)
           .maybeSingle();
 
@@ -52,7 +102,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.error('[StoreProvider] error', error);
-          setStatus('error');
+          // Si ya teníamos config cacheada, la mantenemos (no rompemos la tienda).
+          if (!cached) setStatus('error');
           return;
         }
         if (!data) {
@@ -61,15 +112,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
 
         const normalized = normalizeStoreConfig(data as unknown as CompanyRow);
-        applyTheme(normalized);
-        loadFonts(normalized);
-        applyDocumentMeta(normalized);
+        applyConfig(normalized);
+        writeCache(slug, normalized);
         setConfig(normalized);
         setStatus('ready');
       } catch (e) {
         if (cancelled) return;
         console.error('[StoreProvider] unexpected', e);
-        setStatus('error');
+        if (!cached) setStatus('error');
       }
     }
 

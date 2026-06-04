@@ -1,5 +1,6 @@
 import { useStore } from '@/context/StoreProvider';
 import { useProducts } from '@/hooks/useProducts';
+import { Seo } from '@/components/Seo';
 import { Hero } from '@/components/Hero';
 import { TrustBadges } from '@/components/TrustBadges';
 import { CategoriesSection } from '@/components/home/CategoriesSection';
@@ -16,6 +17,14 @@ export function Home() {
 
   return (
     <div>
+      <Seo
+        title={config.metaTitle || config.name}
+        description={config.metaDescription || config.tagline || `Tienda online de ${config.name}.`}
+        image={config.ogImageUrl}
+        slug={config.slug}
+        siteName={config.name}
+        path="/"
+      />
       {config.heroEnabled && <Hero />}
 
       {config.sections.trustBadges && (

@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStore } from '@/context/StoreProvider';
+import { Seo } from '@/components/Seo';
+import { Spinner } from '@/components/Spinner';
 import { formatPrice } from '@/lib/utils';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, type CustomerInfo } from '@/lib/orders';
@@ -28,9 +30,12 @@ export function Checkout() {
   const [loading, setLoading] = useState<null | 'mp' | 'wa'>(null);
   const [error, setError] = useState('');
 
+  const seo = <Seo title={`Finalizar compra · ${config.name}`} slug={config.slug} noindex />;
+
   if (items.length === 0) {
     return (
       <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-5 px-6 py-24 text-center">
+        {seo}
         <ShoppingBag size={56} className="text-subtle" />
         <h1 className="font-heading text-[28px] font-semibold uppercase tracking-[1px] text-text">Tu carrito está vacío</h1>
         <Link to="/productos" className="rounded-[10px] bg-primary px-8 py-3.5 text-[14px] font-bold uppercase tracking-[0.5px] text-on-primary transition-all hover:bg-accent hover:text-on-accent">
@@ -91,11 +96,13 @@ export function Checkout() {
     setLoading(null);
   }
 
+  // text-[16px] evita el zoom automático de iOS al enfocar un input (<16px).
   const inputCls =
-    'w-full rounded-[8px] border border-line bg-background px-3.5 py-2.5 text-[14px] text-text outline-none transition-colors focus:border-accent';
+    'w-full rounded-[8px] border border-line bg-background px-3.5 py-2.5 text-[16px] text-text outline-none transition-colors focus:border-accent';
 
   return (
     <div className="mx-auto max-w-[1200px] px-6 py-10 md:py-14">
+      {seo}
       <h1 className="mb-8 font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[40px]">Finalizar compra</h1>
 
       <div className="grid gap-10 lg:grid-cols-[1fr_360px]">
@@ -199,7 +206,7 @@ export function Checkout() {
               disabled={loading !== null}
               className="mb-3 flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#009ee3] py-4 text-[14px] font-bold uppercase tracking-[0.5px] text-white transition-all hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
             >
-              {loading === 'mp' ? 'Redirigiendo…' : 'Pagar con MercadoPago'}
+              {loading === 'mp' ? <><Spinner size={16} /> Redirigiendo…</> : 'Pagar con MercadoPago'}
             </button>
           )}
 
@@ -213,7 +220,7 @@ export function Checkout() {
               <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M19.4 4.6A10 10 0 0 0 4.1 17.3L3 21l3.8-1.1A10 10 0 1 0 19.4 4.6Zm-7.4 15.3a8 8 0 0 1-4.1-1.1l-.3-.2-2.3.7.7-2.3-.2-.3a8 8 0 1 1 6.2 3.2Zm4.4-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.3.2-.3.6-1 .1-.1 0-.3 0-.4l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.4 0-.6.3l-.6.7a3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.7 2.6 4.2 3.6 1.5.6 2.1.7 2.9.5.5-.1 1.4-.6 1.6-1.2.2-.5.2-1 .2-1.1-.1-.1-.2-.1-.4-.2Z" />
               </svg>
-              {loading === 'wa' ? 'Abriendo WhatsApp…' : 'Pagar por WhatsApp'}
+              {loading === 'wa' ? <><Spinner size={16} /> Abriendo WhatsApp…</> : 'Pagar por WhatsApp'}
             </button>
           )}
 

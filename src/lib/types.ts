@@ -111,6 +111,9 @@ export interface RawCatalogSettings {
   meta_title?: string;
   meta_description?: string;
   og_image_url?: string;
+  // Analytics (slots: si están, se inyectan los scripts)
+  ga_id?: string;
+  meta_pixel_id?: string;
   // Pagos
   payment_methods_icons?: string[];
   mercadopago_enabled?: boolean;
@@ -198,6 +201,9 @@ export interface StoreConfig {
   metaTitle: string;
   metaDescription: string;
   ogImageUrl: string;
+  // Analytics (vacío = no inyectar nada)
+  gaId: string;
+  metaPixelId: string;
 }
 
 /** Item del carrito (persistido en localStorage). */

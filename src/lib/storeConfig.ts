@@ -131,6 +131,9 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
     metaTitle: firstStr(s.meta_title, company.name),
     metaDescription: str(s.meta_description),
     ogImageUrl: firstStr(s.og_image_url, s.banner_url),
+
+    gaId: str(s.ga_id),
+    metaPixelId: str(s.meta_pixel_id),
   };
 }
 

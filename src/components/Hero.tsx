@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
 import { useBanners } from '@/hooks/useBanners';
+import { transformedSrc } from '@/lib/images';
 
 const ROTATE_MS = 6000;
 
@@ -78,8 +79,17 @@ export function Hero() {
           }`}
         >
           <picture>
-            {s.imageMobile && <source media="(max-width: 767px)" srcSet={s.imageMobile} />}
-            <img src={s.image} alt={config.name} loading={i === 0 ? 'eager' : 'lazy'} className="absolute inset-0 h-full w-full object-cover" />
+            {s.imageMobile && (
+              <source media="(max-width: 767px)" srcSet={transformedSrc(s.imageMobile, { width: 768 })} />
+            )}
+            <img
+              src={transformedSrc(s.image, { width: 1600 })}
+              alt={config.name}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              decoding={i === 0 ? 'sync' : 'async'}
+              fetchPriority={i === 0 ? 'high' : 'auto'}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
           </picture>
         </div>
       ))}
