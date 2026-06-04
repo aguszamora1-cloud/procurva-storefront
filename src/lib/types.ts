@@ -121,7 +121,6 @@ export interface CompanyRow {
   catalog_settings: RawCatalogSettings | null;
   catalog_shipping_message: string | null;
   catalog_template_id: string | null;
-  settings: Record<string, unknown> | null;
 }
 
 /** Config normalizada que consume toda la UI. */

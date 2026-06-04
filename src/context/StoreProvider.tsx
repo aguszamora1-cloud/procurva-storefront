@@ -21,8 +21,10 @@ interface StoreContextValue {
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
+// NOTA SEGURIDAD: NO incluir la columna `settings` — contiene secretos (claves
+// AFIP, tokens Tiendanube) y anon ya no tiene acceso. El storefront no la usa.
 const COMPANY_COLUMNS =
-  'id, name, plan, catalog_enabled, catalog_slug, catalog_settings, catalog_shipping_message, catalog_template_id, settings';
+  'id, name, plan, catalog_enabled, catalog_slug, catalog_settings, catalog_shipping_message, catalog_template_id';
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<StoreConfig | null>(null);
