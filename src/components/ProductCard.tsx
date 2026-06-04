@@ -14,9 +14,9 @@ import {
 
 export function ProductCard({ product }: { product: Product }) {
   const image = mainImage(product);
-  const { cardPrice, cashPrice, cashDiscountPct } = getPriceInfo(product);
-  const displayPrice = cashPrice ?? cardPrice; // precio prominente (efectivo si hay descuento)
-  const hasDiscount = Boolean(cashPrice && cashDiscountPct > 0);
+  const { mainPrice, comparePrice, compareDiscountPct } = getPriceInfo(product);
+  const displayPrice = mainPrice; // precio prominente (tarjeta, o transferencia si no hay tarjeta)
+  const onSale = Boolean(comparePrice && compareDiscountPct > 0); // oferta vs precio de lista
   const { addItem } = useCart();
   const navigate = useNavigate();
 
@@ -53,7 +53,7 @@ export function ProductCard({ product }: { product: Product }) {
 
   const needsSize = sizes.length > 0 && !selectedSize;
   const needsColor = colors.length > 0 && !selectedColor;
-  const canAddDirect = !needsSize && !needsColor && variant && (variant.stock ?? 0) > 0 && cardPrice > 0;
+  const canAddDirect = !needsSize && !needsColor && variant && (variant.stock ?? 0) > 0 && mainPrice > 0;
   const outOfStock = !needsSize && !needsColor && variant && (variant.stock ?? 0) <= 0;
   const ctaLabel = outOfStock ? 'SIN STOCK' : 'AGREGAR AL CARRITO';
 
@@ -101,9 +101,9 @@ export function ProductCard({ product }: { product: Product }) {
 
         {/* Badges */}
         <div className="pointer-events-none absolute left-2 top-2 flex flex-col items-start gap-1 md:left-3 md:top-3 md:gap-1.5">
-          {hasDiscount && (
+          {onSale && (
             <span className="bg-primary px-2 py-[3px] text-[11px] font-bold uppercase leading-none text-on-primary md:px-3 md:py-1 md:text-[12px]">
-              -{cashDiscountPct}%
+              -{compareDiscountPct}%
             </span>
           )}
           {showBadge && (

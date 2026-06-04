@@ -25,6 +25,7 @@ export interface Product {
   retail_price: number | null;
   retail_price_transfer: number | null;
   retail_price_card: number | null;
+  compare_at_price: number | null;
   image_url: string | null;
   images: ProductImage[] | null;
   categories: string[] | null;

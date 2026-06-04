@@ -3,32 +3,29 @@ import { formatPrice, getPriceInfo } from '@/lib/utils';
 import type { Product } from '@/lib/types';
 
 interface Props {
-  product: Pick<Product, 'retail_price' | 'retail_price_card' | 'retail_price_transfer'>;
+  product: Pick<Product, 'retail_price' | 'retail_price_card' | 'retail_price_transfer' | 'compare_at_price'>;
   /** 'card' = grilla. 'detail' = ficha (precio accent grande + badge inline). */
   variant?: 'card' | 'detail';
 }
 
 /**
  * Jerarquía de precios:
- *   - Si hay precio tarjeta (descuento): precio principal = efectivo/transferencia
- *     (el más barato), con el precio tarjeta tachado al lado y el % de descuento.
- *     Debajo, las cuotas sin interés sobre el precio tarjeta.
- *   - Si no hay precio tarjeta: un solo precio, sin tachado ni cuotas.
- * El badge "-X%" sobre la imagen lo pone ProductCard; en la ficha (detail) se
- * muestra inline al lado del precio.
+ *   - Precio principal (grande, bold) = tarjeta (o transferencia si no hay tarjeta).
+ *   - Tachado al lado = precio de lista anterior (compare_at_price), sólo si es mayor.
+ *   - Debajo: "$X efectivo/transferencia" + badge "% OFF" si hay tarjeta y el de
+ *     transferencia es más barato. Luego, cuotas sin interés sobre el precio de tarjeta.
+ * El badge "-X%" sobre la imagen lo pone ProductCard (descuento del precio de lista).
  */
 export function PriceDisplay({ product, variant = 'card' }: Props) {
   const config = useStore();
-  const { cardPrice, cashPrice, cashDiscountPct, hasCard } = getPriceInfo(product);
+  const { mainPrice, cardPrice, cashPrice, cashDiscountPct, comparePrice, hasCard } = getPriceInfo(product);
 
-  if (cardPrice <= 0) {
+  if (mainPrice <= 0) {
     return <p className="text-[16px] font-semibold text-subtle">Consultar precio</p>;
   }
 
   const detail = variant === 'detail';
-  const hasDiscount = Boolean(cashPrice && cashDiscountPct > 0);
-  const mainPrice = cashPrice ?? cardPrice; // el precio prominente (efectivo si hay descuento)
-  const strikePrice = hasDiscount ? cardPrice : null;
+  const hasCashDiscount = Boolean(cashPrice && cashDiscountPct > 0);
 
   const mainCls = detail
     ? 'text-[30px] md:text-[34px] font-extrabold leading-none text-accent'
@@ -47,19 +44,18 @@ export function PriceDisplay({ product, variant = 'card' }: Props) {
     <div>
       <div className="flex flex-wrap items-baseline gap-2">
         <span className={mainCls}>{formatPrice(mainPrice)}</span>
-        {strikePrice && (
-          <span className={`font-medium text-subtle line-through ${strikeCls}`}>{formatPrice(strikePrice)}</span>
-        )}
-        {detail && hasDiscount && (
-          <span className="bg-accent px-1.5 py-0.5 text-[11px] font-bold leading-none text-on-accent">
-            -{cashDiscountPct}%
-          </span>
+        {comparePrice && (
+          <span className={`font-medium text-subtle line-through ${strikeCls}`}>{formatPrice(comparePrice)}</span>
         )}
       </div>
 
-      {hasDiscount && (
-        <p className={`mt-0.5 text-subtle ${detail ? 'text-[13px]' : 'text-[11px] md:text-[12px]'}`}>
-          Efectivo o transferencia
+      {hasCashDiscount && (
+        <p className={`mt-1 flex items-center gap-1.5 text-muted ${detail ? 'text-[13px]' : 'text-[11px] md:text-[12px]'}`}>
+          <span className="font-semibold text-text">{formatPrice(cashPrice as number)}</span>
+          <span>efectivo o transferencia</span>
+          <span className="bg-accent px-1.5 py-0.5 text-[10px] font-bold leading-none text-on-accent">
+            -{cashDiscountPct}%
+          </span>
         </p>
       )}
 

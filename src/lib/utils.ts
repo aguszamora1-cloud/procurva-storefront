@@ -45,48 +45,59 @@ export function retailPrice(product: Pick<Product, 'retail_price'>): number {
 }
 
 export interface PriceInfo {
-  /** Precio principal (tarjeta). Es lo que se muestra grande y va al carrito. */
+  /** Precio principal (grande, bold). = tarjeta; o transferencia/base si no hay tarjeta. Va al carrito. */
+  mainPrice: number;
+  /** Precio de tarjeta real (para calcular cuotas). 0 si no hay. */
   cardPrice: number;
-  /** Precio efectivo/transferencia, sólo si es más barato que el de tarjeta. */
+  /** Precio efectivo/transferencia, si hay tarjeta y difiere (más barato). null si no aplica. */
   cashPrice: number | null;
   /** % de descuento de efectivo/transferencia vs tarjeta. */
   cashDiscountPct: number;
-  /** Hay un precio de tarjeta real cargado (no es el fallback a retail_price). */
+  /** Precio de lista anterior (compare_at_price), tachado. null si no aplica (>0 y > principal). */
+  comparePrice: number | null;
+  /** % de descuento del precio de lista (compare_at) vs principal. */
+  compareDiscountPct: number;
+  /** Hay un precio de tarjeta real cargado (no es el fallback a transferencia/base). */
   hasCard: boolean;
 }
 
 /**
  * Jerarquía de precios leída de los campos reales de ProCurva:
- *   retail_price_card     = precio con tarjeta (más caro; 0/null si no se cargó)
+ *   retail_price_card     = precio con tarjeta (el principal; 0/null si no se cargó)
  *   retail_price_transfer = precio efectivo/transferencia (más barato)
  *   retail_price          = precio base (fallback cuando no hay transfer)
+ *   compare_at_price      = precio de lista / anterior (tachado en oferta; opcional)
  *
- * Regla simple:
- *  - HAY precio tarjeta (retail_price_card > 0):
- *      principal = retail_price_card, cuotas sobre ese precio, y línea
- *      "$X efectivo/transferencia" (= retail_price_transfer) con badge "% OFF".
- *      El descuento se muestra siempre que haya precio tarjeta.
- *  - NO hay precio tarjeta (0/null): precio único = retail_price_transfer
- *      (o retail_price). Sin cuotas, sin línea de efectivo, sin badge.
+ * Reglas:
+ *  - Principal (grande, bold) = retail_price_card. Si no hay tarjeta, retail_price_transfer
+ *    (o retail_price como último fallback). Las cuotas se calculan sobre el de tarjeta.
+ *  - Tachado = compare_at_price, SOLO si existe, es > 0 y es mayor al precio principal.
+ *    Si no existe el campo o es 0/null → sin tachado.
+ *  - Línea "$X efectivo/transferencia" + badge "% OFF" = retail_price_transfer, SOLO si
+ *    hay tarjeta (retail_price_card > 0) y el de transferencia difiere (es más barato).
  */
 export function getPriceInfo(
-  product: Pick<Product, 'retail_price' | 'retail_price_card' | 'retail_price_transfer'>,
+  product: Pick<Product, 'retail_price' | 'retail_price_card' | 'retail_price_transfer' | 'compare_at_price'>,
 ): PriceInfo {
   const base = Number(product.retail_price ?? 0);
   const cardRaw = Number(product.retail_price_card ?? 0);
   const transferRaw = Number(product.retail_price_transfer ?? 0);
+  const compareRaw = Number(product.compare_at_price ?? 0);
 
-  if (cardRaw > 0) {
-    const cardPrice = cardRaw;
-    const cash = transferRaw > 0 ? transferRaw : base;
-    const cashPrice = cash > 0 && cash < cardPrice ? cash : null;
-    const cashDiscountPct = cashPrice ? Math.round(((cardPrice - cashPrice) / cardPrice) * 100) : 0;
-    return { cardPrice, cashPrice, cashDiscountPct, hasCard: true };
-  }
+  const hasCard = cardRaw > 0;
+  // Principal = tarjeta; si no hay tarjeta, transferencia; si no, base.
+  const mainPrice = hasCard ? cardRaw : transferRaw > 0 ? transferRaw : base;
+  const cardPrice = hasCard ? cardRaw : 0;
 
-  // Sin precio tarjeta: precio único (transferencia, o base como fallback).
-  const single = transferRaw > 0 ? transferRaw : base;
-  return { cardPrice: single, cashPrice: null, cashDiscountPct: 0, hasCard: false };
+  // Línea efectivo/transferencia: sólo si hay tarjeta y el de transferencia es más barato.
+  const cashPrice = hasCard && transferRaw > 0 && transferRaw < cardRaw ? transferRaw : null;
+  const cashDiscountPct = cashPrice ? Math.round(((cardRaw - cashPrice) / cardRaw) * 100) : 0;
+
+  // Tachado: precio de lista anterior, sólo si es mayor al principal.
+  const comparePrice = compareRaw > 0 && compareRaw > mainPrice ? compareRaw : null;
+  const compareDiscountPct = comparePrice ? Math.round(((comparePrice - mainPrice) / comparePrice) * 100) : 0;
+
+  return { mainPrice, cardPrice, cashPrice, cashDiscountPct, comparePrice, compareDiscountPct, hasCard };
 }
 
 /** Talles y colores disponibles (con stock) de un producto. */

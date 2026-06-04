@@ -102,8 +102,8 @@ export function ProductDetail() {
     );
   }
 
-  const { cardPrice, cashPrice } = getPriceInfo(product);
-  const displayPrice = cashPrice ?? cardPrice; // precio prominente (efectivo si hay descuento)
+  const { mainPrice } = getPriceInfo(product);
+  const displayPrice = mainPrice; // precio prominente (tarjeta, o transferencia si no hay tarjeta)
   const needColor = colors.length > 0;
   const needSize = sizes.length > 0;
   const canAdd = Boolean(variant && (variant.stock ?? 0) > 0 && displayPrice > 0);
