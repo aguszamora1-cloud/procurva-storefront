@@ -12,7 +12,7 @@ interface ProductsState {
 
 const PRODUCT_COLUMNS = `
   id, company_id, name, description,
-  retail_price, retail_price_transfer, retail_price_card,
+  retail_price, retail_price_transfer, retail_price_card, compare_at_price,
   image_url, images, categories,
   catalog_visible, catalog_badge_text, catalog_badge_color, catalog_badge_visible,
   pack_only_sale, created_at,
