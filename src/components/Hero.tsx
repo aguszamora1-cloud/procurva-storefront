@@ -12,17 +12,35 @@ interface Slide {
   link: string | null;
 }
 
+/** ¿URL renderizable? (no vacía, http(s) o ruta absoluta). */
+function isRenderable(url: string | null | undefined): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const u = url.trim();
+  return u.startsWith('http://') || u.startsWith('https://') || u.startsWith('/');
+}
+
 export function Hero() {
   const config = useStore();
   const { banners, isLoading } = useBanners();
   const [idx, setIdx] = useState(0);
+  // Si la transformación de Supabase (render/image) falla, caemos a la URL
+  // original. Las imágenes nunca quedan rotas.
+  const [transformFailed, setTransformFailed] = useState(false);
 
+  // Sólo banners con URL válida; descartamos image_url vacío/roto.
+  const validBanners = banners.filter((b) => isRenderable(b.image_url));
   const slides: Slide[] =
-    banners.length > 0
-      ? banners.map((b) => ({ image: b.image_url, imageMobile: b.image_url_mobile, link: b.link_url }))
-      : config.heroImageUrl
+    validBanners.length > 0
+      ? validBanners.map((b) => ({
+          image: b.image_url,
+          imageMobile: isRenderable(b.image_url_mobile) ? b.image_url_mobile : null,
+          link: b.link_url,
+        }))
+      : isRenderable(config.heroImageUrl)
         ? [{ image: config.heroImageUrl, imageMobile: null, link: null }]
         : [];
+
+  const srcFor = (url: string, width: number) => (transformFailed ? url : transformedSrc(url, { width }));
 
   useEffect(() => {
     if (slides.length <= 1) return;
@@ -30,10 +48,18 @@ export function Hero() {
     return () => clearInterval(t);
   }, [slides.length]);
 
-  const hasText = Boolean(config.heroTitle); // hero_title o banner_text
+  // Debug: qué URL está usando el hero (transformada vs original).
+  const activeImage = slides[idx]?.image;
+  useEffect(() => {
+    if (activeImage) {
+      console.log('[Hero] imagen usada:', transformFailed ? activeImage : transformedSrc(activeImage, { width: 1600 }), '| original:', activeImage);
+    }
+  }, [activeImage, transformFailed]);
+
+  const hasText = Boolean(config.heroTitle); // sólo hero_title (no banner_text)
   const hasCta = Boolean(config.heroCtaText); // sólo si el comercio cargó el texto
 
-  if (isLoading && banners.length === 0 && !config.heroImageUrl) {
+  if (isLoading && slides.length === 0) {
     return <section className="h-[60vh] w-full bg-secondary md:h-[70vh]" />;
   }
 
@@ -80,14 +106,20 @@ export function Hero() {
         >
           <picture>
             {s.imageMobile && (
-              <source media="(max-width: 767px)" srcSet={transformedSrc(s.imageMobile, { width: 768 })} />
+              <source media="(max-width: 767px)" srcSet={srcFor(s.imageMobile, 768)} />
             )}
             <img
-              src={transformedSrc(s.image, { width: 1600 })}
+              src={srcFor(s.image, 1600)}
               alt={config.name}
               loading={i === 0 ? 'eager' : 'lazy'}
               decoding={i === 0 ? 'sync' : 'async'}
               fetchPriority={i === 0 ? 'high' : 'auto'}
+              onError={() => {
+                if (!transformFailed) {
+                  console.warn('[Hero] imagen transformada falló, usando original:', s.image);
+                  setTransformFailed(true);
+                }
+              }}
               className="absolute inset-0 h-full w-full object-cover"
             />
           </picture>

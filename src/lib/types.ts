@@ -72,6 +72,9 @@ export interface RawCatalogSettings {
   card_installments?: number;
   banner_url?: string;
   banner_text?: string;
+  // Texto de la barra superior EXCLUSIVO del storefront minorista. Si no está,
+  // no se muestra la barra (no usamos top_bar_text, que es del catálogo mayorista).
+  storefront_announcement?: string;
   // Hero (nuevas claves del storefront)
   hero_enabled?: boolean;
   hero_image_url?: string;
@@ -155,6 +158,8 @@ export interface StoreConfig {
   topBarText: string;
   topBarAnimated: boolean;
   tagline: string;
+  // Barra de anuncio del storefront (storefront_announcement). '' = no mostrar.
+  announcement: string;
   // Pagos / cuotas
   cardPaymentText: string;
   installmentsCount: number;

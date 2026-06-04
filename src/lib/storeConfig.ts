@@ -72,15 +72,21 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
     topBarText: str(s.top_bar_text),
     topBarAnimated: bool(s.top_bar_animated, false),
     tagline: str(s.tagline),
+    // Barra de anuncio: SÓLO desde storefront_announcement. Si no está, queda ''
+    // y la AnnouncementBar no se renderiza (no usamos top_bar_text mayorista).
+    announcement: str(s.storefront_announcement),
 
     cardPaymentText: str(s.card_payment_text),
     installmentsCount: typeof s.card_installments === 'number' && s.card_installments > 0 ? s.card_installments : 3,
 
-    // Hero: claves nuevas hero_* con fallback a banner_* (lo que ya existe).
+    // Hero: la IMAGEN puede reusar banner_url (es sólo una imagen), pero el
+    // TEXTO sale SÓLO de las claves del storefront (hero_title/hero_subtitle).
+    // No caemos a banner_text/tagline del catálogo mayorista: traen textos
+    // legacy como "COLECCIÓN 2026" que no deben aparecer en la tienda minorista.
     heroEnabled: bool(s.hero_enabled, true),
     heroImageUrl: firstStr(s.hero_image_url, s.banner_url),
-    heroTitle: firstStr(s.hero_title, s.banner_text),
-    heroSubtitle: firstStr(s.hero_subtitle, s.tagline),
+    heroTitle: firstStr(s.hero_title),
+    heroSubtitle: firstStr(s.hero_subtitle),
     // Sin default: el botón del hero sólo aparece si el comercio cargó el texto.
     heroCtaText: firstStr(s.hero_cta_text),
     heroCtaLink: firstStr(s.hero_cta_link) || DEFAULTS.heroCtaLink,
