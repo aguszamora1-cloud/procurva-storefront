@@ -8,8 +8,9 @@ const DEFAULTS = {
   colorAccent: '#16a34a',
   colorBackground: '#ffffff',
   colorText: '#111111',
-  fontHeading: 'Montserrat',
-  fontBody: 'Inter',
+  // RSW usa Urbanist como fuente única; la dejamos de default (editable por tenant).
+  fontHeading: 'Urbanist',
+  fontBody: 'Urbanist',
   heroCtaText: 'Ver productos',
   heroCtaLink: '/productos',
   shippingPromiseTitle: 'Envío rápido',
@@ -71,6 +72,9 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
     topBarText: str(s.top_bar_text),
     topBarAnimated: bool(s.top_bar_animated, false),
     tagline: str(s.tagline),
+
+    cardPaymentText: str(s.card_payment_text),
+    installmentsCount: typeof s.card_installments === 'number' && s.card_installments > 0 ? s.card_installments : 3,
 
     // Hero: claves nuevas hero_* con fallback a banner_* (lo que ya existe).
     heroEnabled: bool(s.hero_enabled, true),

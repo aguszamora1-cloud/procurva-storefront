@@ -4,12 +4,6 @@ import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { instagramHref } from '@/lib/storeConfig';
 
-const NAV_ITEMS = [
-  { label: 'INICIO', to: '/', end: true },
-  { label: 'PRODUCTOS', to: '/productos', end: false },
-  { label: 'CATEGORÍAS', to: '/categorias', end: false },
-];
-
 const navLink = ({ isActive }: { isActive: boolean }) =>
   `text-[14px] tracking-[0.5px] font-semibold uppercase transition-colors ${
     isActive ? 'text-text' : 'text-muted hover:text-accent'
@@ -27,6 +21,16 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const ig = instagramHref(config.instagramUrl);
+
+  // Los links PRO (Outfits, Probador) sólo se muestran si la sección está
+  // habilitada en la config del tenant.
+  const navItems = [
+    { label: 'INICIO', to: '/', end: true },
+    { label: 'PRODUCTOS', to: '/productos', end: false },
+    { label: 'CATEGORÍAS', to: '/categorias', end: false },
+    ...(config.isPro && config.sections.outfits ? [{ label: 'OUTFITS', to: '/outfits', end: false }] : []),
+    ...(config.isPro && config.sections.probador ? [{ label: 'PROBADOR', to: '/probador', end: false }] : []),
+  ];
 
   useEffect(() => {
     setMobileOpen(false);
@@ -48,7 +52,7 @@ export function Navbar() {
             </svg>
           </button>
           <nav className="hidden items-center gap-7 md:flex">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <NavLink key={item.to} to={item.to} end={item.end} className={navLink}>
                 {item.label}
               </NavLink>
@@ -110,7 +114,7 @@ export function Navbar() {
       {mobileOpen && (
         <div className="border-t border-line bg-background md:hidden">
           <nav className="mx-auto max-w-[1400px] px-6 py-4">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <NavLink key={item.to} to={item.to} end={item.end} className={mobileNavLink}>
                 {item.label}
               </NavLink>

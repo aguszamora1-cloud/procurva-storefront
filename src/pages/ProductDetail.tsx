@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Eye } from 'lucide-react';
+import { Eye, Ruler, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
@@ -8,7 +8,8 @@ import { ProductGallery } from '@/components/ProductGallery';
 import { ColorSelector } from '@/components/ColorSelector';
 import { SizeSelector } from '@/components/SizeSelector';
 import { TrustBadges } from '@/components/TrustBadges';
-import { formatPrice, productImages, retailPrice, sortSizes } from '@/lib/utils';
+import { PriceDisplay } from '@/components/PriceDisplay';
+import { formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
 import type { Variant } from '@/lib/types';
 
@@ -62,7 +63,6 @@ export function ProductDetail() {
     return i >= 0 ? i : undefined;
   }, [selectedColor, variants, images]);
 
-  // Sticky bar mobile cuando el CTA sale del viewport.
   useEffect(() => {
     const el = addBtnRef.current;
     if (!el) return;
@@ -90,7 +90,7 @@ export function ProductDetail() {
   if (error || !product) {
     return (
       <div className="mx-auto max-w-[1200px] px-6 py-24 text-center">
-        <h1 className="font-heading text-[32px] uppercase tracking-tight text-text">Producto no encontrado</h1>
+        <h1 className="font-heading text-[32px] font-extrabold uppercase tracking-tight text-text">Producto no encontrado</h1>
         <p className="mt-4 text-muted">
           Volvé al{' '}
           <Link to="/productos" className="text-accent underline">
@@ -102,10 +102,10 @@ export function ProductDetail() {
     );
   }
 
-  const price = retailPrice(product);
+  const { cardPrice } = getPriceInfo(product);
   const needColor = colors.length > 0;
   const needSize = sizes.length > 0;
-  const canAdd = Boolean(variant && (variant.stock ?? 0) > 0 && price > 0);
+  const canAdd = Boolean(variant && (variant.stock ?? 0) > 0 && cardPrice > 0);
   const ctaLabel = !variant
     ? needColor && needSize
       ? 'ELEGÍ COLOR Y TALLE'
@@ -124,7 +124,7 @@ export function ProductDetail() {
       name: product.name,
       size: variant.size,
       color: variant.color,
-      unit_price: variant.price && variant.price > 0 ? variant.price : price,
+      unit_price: cardPrice,
       qty: 1,
       image_url: variant.image_url ?? images[0] ?? null,
     });
@@ -166,21 +166,53 @@ export function ProductDetail() {
         </div>
 
         <div className="space-y-6">
-          {cats[0] && (
-            <p className="text-[11px] font-semibold uppercase tracking-[2px] text-accent">{cats[0]}</p>
+          {cats[0] && <p className="text-[11px] font-semibold uppercase tracking-[2px] text-accent">{cats[0]}</p>}
+          <h1 className="font-heading text-[26px] font-bold uppercase leading-[1.15] tracking-[-0.3px] text-text md:text-[32px]">
+            {product.name}
+          </h1>
+
+          <PriceDisplay product={product} variant="detail" />
+
+          {needSize && <SizeSelector sizes={sizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />}
+
+          {/* Probador virtual — plan PRO, sólo si section_probador */}
+          {config.isPro && config.sections.probador && (
+            <button
+              type="button"
+              className="flex w-full items-center justify-between rounded-lg border border-line px-4 py-3 text-left transition-colors hover:border-text"
+            >
+              <span className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-text">
+                <Ruler size={16} /> ¿No sabés tu talle?
+              </span>
+              <span className="text-[12px] font-semibold text-accent">Probador virtual ›</span>
+            </button>
           )}
-          <h1 className="text-[26px] font-bold leading-[1.2] tracking-[-0.3px] text-text">{product.name}</h1>
 
-          <p className="text-[32px] font-extrabold leading-none text-accent">{formatPrice(price)}</p>
+          {needColor && (
+            <ColorSelector
+              colors={colors}
+              selected={selectedColor}
+              onSelect={(c) => {
+                setSelectedColor(c);
+                setSelectedSize(null);
+              }}
+            />
+          )}
 
-          {config.sections.socialProof && (
-            <p className="flex animate-fade-in items-center gap-2 text-[14px] text-subtle">
-              <Eye size={15} /> {viewersFromId(product.id)} personas viendo este producto
+          {/* Promesa de envío */}
+          {config.shippingPromiseEnabled && (
+            <p className="flex items-center gap-2 text-[14px] text-text">
+              <Truck size={17} className="text-accent" />
+              <span className="font-semibold">{config.shippingPromiseTitle}</span>
+              {config.shippingPromiseSubtitle && <span className="text-muted">· {config.shippingPromiseSubtitle}</span>}
             </p>
           )}
 
-          {needColor && <ColorSelector colors={colors} selected={selectedColor} onSelect={(c) => { setSelectedColor(c); setSelectedSize(null); }} />}
-          {needSize && <SizeSelector sizes={sizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />}
+          {config.sections.socialProof && (
+            <p className="flex animate-fade-in items-center gap-2 text-[14px] text-subtle">
+              <Eye size={15} /> {viewersFromId(product.id)} personas están viendo este producto
+            </p>
+          )}
 
           {stock !== null && stock > 0 && stock <= 5 && (
             <p className="animate-fade-in text-[14px] font-semibold text-accent">¡Últimas {stock} unidades!</p>
@@ -194,6 +226,11 @@ export function ProductDetail() {
               disabled={!canAdd}
               className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-primary py-[18px] text-[16px] font-bold uppercase tracking-[0.5px] text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent hover:scale-[1.01] active:scale-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:text-on-primary"
             >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="9" cy="21" r="1" />
+                <circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+              </svg>
               {ctaLabel}
             </button>
 
@@ -204,6 +241,9 @@ export function ProductDetail() {
                 rel="noreferrer"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] border-2 border-[#25D366] py-[14px] text-[14px] font-bold uppercase tracking-[0.5px] text-[#25D366] transition-colors hover:bg-[#25D366] hover:text-white"
               >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M19.4 4.6A10 10 0 0 0 4.1 17.3L3 21l3.8-1.1A10 10 0 1 0 19.4 4.6Zm-7.4 15.3a8 8 0 0 1-4.1-1.1l-.3-.2-2.3.7.7-2.3-.2-.3a8 8 0 1 1 6.2 3.2Zm4.4-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.3.2-.3.6-1 .1-.1 0-.3 0-.4l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.4 0-.6.3l-.6.7a3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.7 2.6 4.2 3.6 1.5.6 2.1.7 2.9.5.5-.1 1.4-.6 1.6-1.2.2-.5.2-1 .2-1.1-.1-.1-.2-.1-.4-.2Z" />
+                </svg>
                 Consultar por WhatsApp
               </a>
             )}
@@ -227,7 +267,7 @@ export function ProductDetail() {
           style={{ boxShadow: '0 -2px 10px rgba(0,0,0,0.08)' }}
         >
           <div className="min-w-0 flex-1">
-            <p className="text-[18px] font-extrabold leading-none text-accent">{formatPrice(price)}</p>
+            <p className="text-[18px] font-extrabold leading-none text-accent">{formatPrice(cardPrice)}</p>
             {(selectedColor || selectedSize) && (
               <p className="mt-0.5 truncate text-[11px] text-subtle">{[selectedColor, selectedSize].filter(Boolean).join(' · ')}</p>
             )}

@@ -39,9 +39,44 @@ export function mainImage(product: Pick<Product, 'images' | 'image_url'>): strin
   return productImages(product)[0] ?? product.image_url ?? null;
 }
 
-/** Precio de venta minorista efectivo. */
+/** Precio de venta minorista (efectivo/base). */
 export function retailPrice(product: Pick<Product, 'retail_price'>): number {
   return Number(product.retail_price ?? 0);
+}
+
+export interface PriceInfo {
+  /** Precio principal (tarjeta). Es lo que se muestra grande y va al carrito. */
+  cardPrice: number;
+  /** Precio efectivo/transferencia, sólo si es más barato que el de tarjeta. */
+  cashPrice: number | null;
+  /** % de descuento de efectivo/transferencia vs tarjeta. */
+  cashDiscountPct: number;
+  /** Hay un precio de tarjeta real cargado (no es el fallback a retail_price). */
+  hasCard: boolean;
+}
+
+/**
+ * Jerarquía de precios igual que RSW, leída de los campos reales de ProCurva:
+ *   retail_price / retail_price_transfer = precio efectivo (base, más barato)
+ *   retail_price_card                    = precio tarjeta (más caro; 0 si no se cargó)
+ * Si no hay precio de tarjeta, el principal es retail_price y no hay línea de
+ * efectivo ni cuotas. No se inventan precios "anteriores" tachados (no existe
+ * un campo compare_at en la DB).
+ */
+export function getPriceInfo(
+  product: Pick<Product, 'retail_price' | 'retail_price_card' | 'retail_price_transfer'>,
+): PriceInfo {
+  const base = Number(product.retail_price ?? 0);
+  const cardRaw = Number(product.retail_price_card ?? 0);
+  const transferRaw = Number(product.retail_price_transfer ?? 0);
+
+  const hasCard = cardRaw > 0;
+  const cardPrice = hasCard ? cardRaw : base;
+  const cash = transferRaw > 0 ? transferRaw : base;
+  const cashPrice = cash > 0 && cash < cardPrice ? cash : null;
+  const cashDiscountPct = cashPrice ? Math.round(((cardPrice - cashPrice) / cardPrice) * 100) : 0;
+
+  return { cardPrice, cashPrice, cashDiscountPct, hasCard };
 }
 
 /** Talles y colores disponibles (con stock) de un producto. */

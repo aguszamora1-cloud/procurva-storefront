@@ -1,12 +1,10 @@
-import { colorToHex } from '@/lib/utils';
-
 interface Props {
   colors: string[];
   selected: string | null;
   onSelect: (color: string) => void;
 }
 
-/** Selector de color con swatches circulares (estilo RSW quick-add). */
+/** Selector de color con botones de texto (estilo ficha de RSW: NEGRO, GRIS...). */
 export function ColorSelector({ colors, selected, onSelect }: Props) {
   if (colors.length === 0) return null;
   return (
@@ -14,21 +12,20 @@ export function ColorSelector({ colors, selected, onSelect }: Props) {
       <p className="mb-3 text-[11px] font-semibold uppercase tracking-[1.5px] text-muted">
         Color{selected && <span className="text-text">: {selected}</span>}
       </p>
-      <div className="flex flex-wrap gap-2.5">
-        {colors.map((c) => {
-          const active = selected === c;
+      <div className="flex flex-wrap gap-2">
+        {colors.map((color) => {
+          const active = selected === color;
           return (
             <button
-              key={c}
+              key={color}
               type="button"
-              title={c}
-              aria-label={`Color ${c}`}
-              onClick={() => onSelect(c)}
-              className={`shape-circle h-9 w-9 border transition-all ${
-                active ? 'border-text ring-2 ring-text ring-offset-2' : 'border-line hover:border-subtle'
+              onClick={() => onSelect(color)}
+              className={`h-11 rounded-lg border-2 px-4 text-[13px] font-semibold uppercase tracking-wide transition-all duration-150 ${
+                active ? 'border-text bg-primary text-on-primary' : 'border-line bg-background text-text hover:border-text'
               }`}
-              style={{ backgroundColor: colorToHex(c) }}
-            />
+            >
+              {color}
+            </button>
           );
         })}
       </div>

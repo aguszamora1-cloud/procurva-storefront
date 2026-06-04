@@ -32,8 +32,8 @@ ALTER TABLE public.companies
     "color_text": "#111111",
     "accent_color": "#16a34a",
 
-    "font_heading": "Montserrat",
-    "font_body": "Inter",
+    "font_heading": "Urbanist",
+    "font_body": "Urbanist",
 
     "theme": "light",
     "tagline": "",
@@ -96,8 +96,8 @@ FROM (
     "color_background": "#ffffff",
     "color_text": "#111111",
     "accent_color": "#16a34a",
-    "font_heading": "Montserrat",
-    "font_body": "Inter",
+    "font_heading": "Urbanist",
+    "font_body": "Urbanist",
     "theme": "light",
     "tagline": "",
     "whatsapp": "",

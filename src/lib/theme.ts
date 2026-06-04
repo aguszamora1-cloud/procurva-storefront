@@ -61,7 +61,7 @@ const FONT_LINK_ID = 'tenant-google-fonts';
 export function loadFonts(config: StoreConfig): void {
   const families = Array.from(new Set([config.fontHeading, config.fontBody]))
     .filter(Boolean)
-    .map((f) => `family=${encodeURIComponent(f)}:wght@400;500;600;700;800`)
+    .map((f) => `family=${encodeURIComponent(f)}:wght@400;500;600;700;800;900`)
     .join('&');
   if (!families) return;
 

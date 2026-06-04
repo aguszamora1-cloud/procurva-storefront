@@ -2,25 +2,24 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/context/CartContext';
 import type { Product } from '@/lib/types';
+import { PriceDisplay } from './PriceDisplay';
 import {
   badgeColor,
   colorToHex,
-  formatPrice,
+  getPriceInfo,
   mainImage,
-  retailPrice,
   sortSizes,
   totalStock,
 } from '@/lib/utils';
 
 export function ProductCard({ product }: { product: Product }) {
   const image = mainImage(product);
-  const price = retailPrice(product);
+  const { cardPrice } = getPriceInfo(product);
   const { addItem } = useCart();
   const navigate = useNavigate();
 
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const [favorited, setFavorited] = useState(false);
 
   const variants = product.product_variants ?? [];
   const sizes = useMemo(
@@ -52,7 +51,7 @@ export function ProductCard({ product }: { product: Product }) {
 
   const needsSize = sizes.length > 0 && !selectedSize;
   const needsColor = colors.length > 0 && !selectedColor;
-  const canAddDirect = !needsSize && !needsColor && variant && (variant.stock ?? 0) > 0 && price > 0;
+  const canAddDirect = !needsSize && !needsColor && variant && (variant.stock ?? 0) > 0 && cardPrice > 0;
   const outOfStock = !needsSize && !needsColor && variant && (variant.stock ?? 0) <= 0;
   const ctaLabel = outOfStock ? 'SIN STOCK' : 'AGREGAR AL CARRITO';
 
@@ -70,7 +69,7 @@ export function ProductCard({ product }: { product: Product }) {
         name: product.name,
         size: variant.size,
         color: variant.color,
-        unit_price: variant.price && variant.price > 0 ? variant.price : price,
+        unit_price: cardPrice,
         qty: 1,
         image_url: image ?? null,
       });
@@ -114,54 +113,19 @@ export function ProductCard({ product }: { product: Product }) {
             </span>
           )}
         </div>
-
-        {/* Wishlist */}
-        <button
-          type="button"
-          aria-label={favorited ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-          onClick={(e) => {
-            stop(e);
-            setFavorited((v) => !v);
-          }}
-          className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center bg-background transition-transform hover:scale-110 md:right-3 md:top-3 md:h-9 md:w-9"
-          style={{ boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}
-        >
-          <svg
-            className="h-[14px] w-[14px] md:h-[18px] md:w-[18px]"
-            viewBox="0 0 24 24"
-            fill={favorited ? 'var(--color-accent)' : 'none'}
-            stroke={favorited ? 'var(--color-accent)' : 'currentColor'}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 5a5.5 5.5 0 0 1 9.5 7c-2.5 4.5-9.5 9-9.5 9z" />
-          </svg>
-        </button>
       </div>
 
       {/* Contenido */}
       <div className="flex flex-1 flex-col p-2.5 md:p-4">
         <Link to={`/producto/${product.id}`} className="block">
-          <h3 className="mb-1 text-[14px] font-semibold leading-[1.3] text-text transition-colors group-hover:text-accent md:text-[15px]">
+          <h3 className="mb-1.5 text-[14px] font-semibold leading-[1.3] text-text transition-colors group-hover:text-accent md:text-[15px]">
             {product.name}
           </h3>
-          <div className="mt-1 flex items-center justify-between">
-            <span className="text-[16px] font-extrabold leading-none text-text md:text-[20px]">
-              {formatPrice(price)}
-            </span>
-            {colors.length > 0 && (
-              <div className="flex items-center gap-1 md:hidden">
-                {colors.slice(0, 4).map((c) => (
-                  <span key={c} title={c} className="shape-circle h-3 w-3 border border-line" style={{ backgroundColor: colorToHex(c) }} />
-                ))}
-              </div>
-            )}
-          </div>
+          <PriceDisplay product={product} variant="card" />
         </Link>
 
-        {/* Quick-add — sólo desktop */}
-        <div className="mt-2.5 hidden md:flex md:flex-col">
+        {/* Quick-add — sólo desktop (igual que RSW) */}
+        <div className="mt-3 hidden md:flex md:flex-col">
           {colors.length > 0 && (
             <div className="mb-2.5">
               <p className="mb-1.5 text-[12px] font-medium text-subtle">Colores</p>
@@ -228,6 +192,11 @@ export function ProductCard({ product }: { product: Product }) {
               disabled={Boolean(outOfStock)}
               className="inline-flex w-full items-center justify-center gap-2 bg-primary py-[14px] text-[14px] font-bold uppercase tracking-[0.5px] text-on-primary transition-colors duration-200 hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary disabled:hover:text-on-primary"
             >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="9" cy="21" r="1" />
+                <circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+              </svg>
               {ctaLabel}
             </button>
           </div>

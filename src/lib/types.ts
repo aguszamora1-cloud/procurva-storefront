@@ -66,6 +66,9 @@ export interface RawCatalogSettings {
   whatsapp?: string;
   top_bar_text?: string;
   top_bar_animated?: boolean;
+  // Pagos / cuotas
+  card_payment_text?: string;
+  card_installments?: number;
   banner_url?: string;
   banner_text?: string;
   // Hero (nuevas claves del storefront)
@@ -145,6 +148,9 @@ export interface StoreConfig {
   topBarText: string;
   topBarAnimated: boolean;
   tagline: string;
+  // Pagos / cuotas
+  cardPaymentText: string;
+  installmentsCount: number;
   // Hero
   heroEnabled: boolean;
   heroImageUrl: string;
