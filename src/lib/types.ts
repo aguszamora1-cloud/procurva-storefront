@@ -94,8 +94,9 @@ export interface RawCatalogSettings {
   shipping_promise_enabled?: boolean;
   shipping_promise_title?: string;
   shipping_promise_subtitle?: string;
-  // Trust badges (etiquetas configurables; 4 textos)
-  trust_badges?: string[];
+  // Trust badges (etiquetas configurables; 4 textos).
+  // Legacy: string[]. Nuevo (panel ProCurva): [{icon, text}].
+  trust_badges?: Array<string | { icon?: string; text?: string }>;
   // Social
   social_instagram?: string;
   instagram_url?: string;

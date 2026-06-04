@@ -104,10 +104,18 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
       firstStr(s.shipping_promise_subtitle, company.catalog_shipping_message) ||
       DEFAULTS.shippingPromiseSubtitle,
     shippingMessage: str(company.catalog_shipping_message),
-    trustBadgeLabels:
-      Array.isArray(s.trust_badges) && s.trust_badges.length > 0
-        ? s.trust_badges.map((t) => String(t))
-        : [shippingTitle, 'Abonás al recibir', 'Pagás como quieras', 'Compra protegida'],
+    // trust_badges puede venir legacy (string[]) o nuevo ([{icon, text}]).
+    // Extraemos el texto de cada badge y descartamos vacíos.
+    trustBadgeLabels: (() => {
+      const labels = Array.isArray(s.trust_badges)
+        ? s.trust_badges
+            .map((t) => (typeof t === 'string' ? t : str(t?.text)))
+            .filter((t) => t)
+        : [];
+      return labels.length > 0
+        ? labels
+        : [shippingTitle, 'Abonás al recibir', 'Pagás como quieras', 'Compra protegida'];
+    })(),
 
     whatsapp: str(s.whatsapp),
     instagramUrl: instagram,
