@@ -17,36 +17,28 @@ export function Home() {
   return (
     <div>
       {config.heroEnabled && <Hero />}
-      <ShippingPromise />
+
+      <div className="pt-12 md:pt-16">
+        <ShippingPromise />
+      </div>
 
       {config.sections.categories && <CategoriesSection products={products} />}
 
       {isLoading ? (
-        <div className="mx-auto max-w-7xl px-4 py-12">
+        <div className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
           <ProductGridSkeleton />
         </div>
       ) : (
         <>
           {config.sections.featured && (
-            <ProductsSection
-              label="Lo más buscado"
-              title="Destacados"
-              products={featured}
-              linkTo="/productos"
-            />
+            <ProductsSection label="Lo más buscado" title="Destacados" products={featured} linkTo="/productos" />
           )}
           {config.sections.newArrivals && (
-            <ProductsSection
-              label="Recién llegados"
-              title="Nuevos ingresos"
-              products={newArrivals}
-              linkTo="/productos"
-            />
+            <ProductsSection label="Recién llegados" title="Nuevos ingresos" products={newArrivals} linkTo="/productos" />
           )}
         </>
       )}
 
-      {/* Secciones PRO (sólo si están habilitadas) */}
       {config.isPro && config.sections.newsletter && <NewsletterSection />}
     </div>
   );

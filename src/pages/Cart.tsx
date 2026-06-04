@@ -12,10 +12,10 @@ export function Cart() {
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 px-4 py-24 text-center">
-        <ShoppingBag size={56} className="text-muted" />
-        <h1 className="text-2xl">Tu carrito está vacío</h1>
-        <Link to="/productos" className="btn-primary px-8 py-3.5 text-sm">
+      <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-5 px-6 py-24 text-center">
+        <ShoppingBag size={56} className="text-subtle" />
+        <h1 className="font-heading text-[28px] font-semibold uppercase tracking-[1px] text-text">Tu carrito está vacío</h1>
+        <Link to="/productos" className="rounded-[10px] bg-primary px-8 py-3.5 text-[14px] font-bold uppercase tracking-[0.5px] text-on-primary transition-all hover:bg-accent hover:text-on-accent">
           Ver productos
         </Link>
       </div>
@@ -23,69 +23,68 @@ export function Cart() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="mb-8 text-3xl">Tu carrito</h1>
+    <div className="mx-auto max-w-[1200px] px-6 py-10 md:py-14">
+      <h1 className="mb-8 font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[40px]">Tu carrito</h1>
 
-      <div className="grid gap-10 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-10 lg:grid-cols-[1fr_340px]">
         <div>
           {items.map((item) => (
             <div key={item.variant_id} className="flex gap-4 border-b border-line py-5">
               <div className="h-28 w-24 shrink-0 overflow-hidden bg-secondary">
-                {item.image_url && (
-                  <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
-                )}
+                {item.image_url && <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />}
               </div>
               <div className="flex flex-1 flex-col">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-semibold">{item.name}</p>
-                    <p className="text-xs text-muted">
-                      {[item.color, item.size].filter(Boolean).join(' · ')}
-                    </p>
+                    <p className="text-[15px] font-semibold text-text">{item.name}</p>
+                    {(item.color || item.size) && (
+                      <p className="text-[12px] text-subtle">{[item.color, item.size].filter(Boolean).join(' · ')}</p>
+                    )}
                   </div>
-                  <button
-                    aria-label="Eliminar"
-                    onClick={() => removeItem(item.variant_id)}
-                    className="text-muted hover:text-accent"
-                  >
+                  <button aria-label="Eliminar" onClick={() => removeItem(item.variant_id)} className="text-subtle hover:text-accent">
                     <Trash2 size={18} />
                   </button>
                 </div>
-                <div className="mt-auto flex items-center justify-between">
+                <div className="mt-auto flex items-center justify-between pt-2">
                   <div className="flex items-center border border-line">
-                    <button aria-label="Restar" className="px-3 py-1.5" onClick={() => updateQty(item.variant_id, item.qty - 1)}>
+                    <button aria-label="Restar" className="px-3 py-1.5 hover:text-accent" onClick={() => updateQty(item.variant_id, item.qty - 1)}>
                       <Minus size={14} />
                     </button>
-                    <span className="min-w-[2.5rem] text-center text-sm">{item.qty}</span>
-                    <button aria-label="Sumar" className="px-3 py-1.5" onClick={() => updateQty(item.variant_id, item.qty + 1)}>
+                    <span className="min-w-[2.5rem] text-center text-[14px]">{item.qty}</span>
+                    <button aria-label="Sumar" className="px-3 py-1.5 hover:text-accent" onClick={() => updateQty(item.variant_id, item.qty + 1)}>
                       <Plus size={14} />
                     </button>
                   </div>
-                  <span className="price">{formatPrice(item.unit_price * item.qty)}</span>
+                  <span className="text-[16px] font-bold text-text">{formatPrice(item.unit_price * item.qty)}</span>
                 </div>
               </div>
             </div>
           ))}
-          <button onClick={clear} className="mt-4 text-xs uppercase tracking-wide text-muted hover:text-accent">
+          <button onClick={clear} className="mt-4 text-[12px] uppercase tracking-wide text-subtle hover:text-accent">
             Vaciar carrito
           </button>
         </div>
 
         <aside className="h-fit border border-line p-6">
-          <h2 className="mb-4 text-lg">Resumen</h2>
+          <h2 className="mb-4 font-heading text-[18px] font-bold uppercase tracking-[0.5px] text-text">Resumen</h2>
           <div className="flex items-center justify-between border-b border-line pb-4">
-            <span className="text-sm text-muted">Subtotal</span>
-            <span className="price">{formatPrice(subtotal)}</span>
+            <span className="text-[14px] text-muted">Subtotal</span>
+            <span className="text-[20px] font-extrabold text-text">{formatPrice(subtotal)}</span>
           </div>
-          <p className="py-4 text-xs text-muted">El envío se coordina al finalizar la compra.</p>
+          <p className="py-4 text-[12px] text-subtle">El envío se coordina al finalizar la compra.</p>
           {checkoutHref ? (
-            <a href={checkoutHref} target="_blank" rel="noreferrer" className="btn-accent block w-full py-4 text-center text-sm">
+            <a
+              href={checkoutHref}
+              target="_blank"
+              rel="noreferrer"
+              className="block w-full rounded-[10px] bg-accent py-4 text-center text-[14px] font-bold uppercase tracking-[0.5px] text-on-accent transition-all hover:scale-[1.01]"
+            >
               Finalizar por WhatsApp
             </a>
           ) : (
-            <p className="text-sm text-muted">Esta tienda no tiene WhatsApp configurado.</p>
+            <p className="text-[13px] text-subtle">Esta tienda no tiene WhatsApp configurado.</p>
           )}
-          <Link to="/productos" className="mt-3 block text-center text-xs uppercase tracking-wide text-muted hover:text-accent">
+          <Link to="/productos" className="mt-3 block text-center text-[12px] uppercase tracking-wide text-subtle hover:text-accent">
             Seguir comprando
           </Link>
         </aside>

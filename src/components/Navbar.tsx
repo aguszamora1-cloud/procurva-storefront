@@ -1,147 +1,133 @@
-import { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import { Instagram, Menu, ShoppingBag, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { instagramHref } from '@/lib/storeConfig';
 
 const NAV_ITEMS = [
-  { label: 'Inicio', to: '/' },
-  { label: 'Productos', to: '/productos' },
-  { label: 'Categorías', to: '/categorias' },
+  { label: 'INICIO', to: '/', end: true },
+  { label: 'PRODUCTOS', to: '/productos', end: false },
+  { label: 'CATEGORÍAS', to: '/categorias', end: false },
 ];
+
+const navLink = ({ isActive }: { isActive: boolean }) =>
+  `text-[14px] tracking-[0.5px] font-semibold uppercase transition-colors ${
+    isActive ? 'text-text' : 'text-muted hover:text-accent'
+  }`;
+
+const mobileNavLink = ({ isActive }: { isActive: boolean }) =>
+  `block py-3 text-[14px] tracking-[1px] font-semibold uppercase transition-colors ${
+    isActive ? 'text-text' : 'text-muted hover:text-accent'
+  }`;
 
 export function Navbar() {
   const config = useStore();
   const { itemCount, open } = useCart();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const ig = instagramHref(config.instagramUrl);
 
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
   return (
-    <>
-      {config.topBarText && (
-        <div className="bg-primary text-[var(--color-on-primary)]">
-          <div className="mx-auto max-w-7xl overflow-hidden px-4 py-2 text-center">
-            <span
-              className={`subtitle-label inline-block whitespace-nowrap ${
-                config.topBarAnimated ? 'animate-marquee' : ''
-              }`}
-            >
-              {config.topBarText}
-            </span>
-          </div>
+    <header className="sticky top-0 z-40 border-b border-line bg-background/90 backdrop-blur-md">
+      <div className="mx-auto grid max-w-[1400px] grid-cols-3 items-center gap-2 px-4 py-3 md:px-6">
+        {/* Izquierda: hamburguesa (mobile) + nav (desktop) */}
+        <div className="flex items-center justify-start">
+          <button
+            type="button"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
+            className="flex h-9 w-9 items-center justify-center text-text hover:text-accent md:hidden"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              {mobileOpen ? <path d="M6 6l12 12M6 18L18 6" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+            </svg>
+          </button>
+          <nav className="hidden items-center gap-7 md:flex">
+            {NAV_ITEMS.map((item) => (
+              <NavLink key={item.to} to={item.to} end={item.end} className={navLink}>
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
-      )}
 
-      <header className="sticky top-0 z-40 border-b border-line bg-background/90 backdrop-blur-md">
-        <nav className="mx-auto grid max-w-7xl grid-cols-3 items-center px-4 py-3 md:py-4">
-          {/* Izquierda: hamburguesa (mobile) + nav (desktop) */}
-          <div className="flex items-center justify-start gap-6">
-            <button
-              type="button"
-              aria-label="Abrir menú"
-              className="md:hidden"
-              onClick={() => setMenuOpen((v) => !v)}
+        {/* Centro: logo */}
+        <Link to="/" className="flex min-w-0 items-center justify-center" aria-label={config.name}>
+          {config.logoUrl ? (
+            <img
+              src={config.logoUrl}
+              alt={config.name}
+              style={{ height: config.logoHeight }}
+              className="w-auto max-w-full object-contain"
+              loading="eager"
+            />
+          ) : (
+            <span className="truncate font-heading text-[18px] font-extrabold uppercase tracking-[1px] text-text md:text-[22px]">
+              {config.name}
+            </span>
+          )}
+        </Link>
+
+        {/* Derecha: instagram (desktop) + carrito */}
+        <div className="flex items-center justify-end gap-3 md:gap-6">
+          {ig && (
+            <a
+              href={ig}
+              target="_blank"
+              rel="noreferrer"
+              className="hidden text-[14px] font-semibold uppercase tracking-[0.5px] text-muted transition-colors hover:text-accent md:inline"
             >
-              {menuOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
-            <div className="hidden items-center gap-6 md:flex">
-              {NAV_ITEMS.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === '/'}
-                  className={({ isActive }) =>
-                    `nav-link transition-colors hover:text-accent ${
-                      isActive ? 'text-accent' : 'text-text'
-                    }`
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </div>
-          </div>
+              INSTAGRAM
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={open}
+            aria-label="Abrir carrito"
+            className="relative inline-flex items-center gap-2 text-[14px] font-semibold uppercase tracking-[0.5px] text-text transition-colors hover:text-accent"
+          >
+            <svg className="sm:hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+              <path d="M3 6h18" />
+              <path d="M16 10a4 4 0 0 1-8 0" />
+            </svg>
+            <span className="hidden sm:inline">CARRITO</span>
+            {itemCount > 0 && (
+              <span className="shape-circle absolute -right-3 -top-2 inline-flex h-[18px] min-w-[18px] items-center justify-center bg-accent px-1.5 py-0.5 text-[10px] font-bold leading-none text-on-accent sm:static sm:translate-y-0">
+                {itemCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
 
-          {/* Centro: logo */}
-          <div className="flex items-center justify-center">
-            <Link to="/" className="flex items-center justify-center">
-              {config.logoUrl ? (
-                <img
-                  src={config.logoUrl}
-                  alt={config.name}
-                  style={{ height: config.logoHeight }}
-                  className="w-auto object-contain"
-                />
-              ) : (
-                <span className="font-heading text-lg font-extrabold uppercase tracking-tight">
-                  {config.name}
-                </span>
-              )}
-            </Link>
-          </div>
-
-          {/* Derecha: instagram + carrito */}
-          <div className="flex items-center justify-end gap-4">
+      {/* Menú mobile */}
+      {mobileOpen && (
+        <div className="border-t border-line bg-background md:hidden">
+          <nav className="mx-auto max-w-[1400px] px-6 py-4">
+            {NAV_ITEMS.map((item) => (
+              <NavLink key={item.to} to={item.to} end={item.end} className={mobileNavLink}>
+                {item.label}
+              </NavLink>
+            ))}
             {ig && (
               <a
                 href={ig}
                 target="_blank"
                 rel="noreferrer"
-                aria-label="Instagram"
-                className="hidden text-text transition-colors hover:text-accent md:block"
+                className="block border-t border-line py-3 text-[14px] font-semibold uppercase tracking-[1px] text-muted hover:text-accent"
               >
-                <Instagram size={20} />
+                INSTAGRAM
               </a>
             )}
-            <button
-              type="button"
-              aria-label="Abrir carrito"
-              onClick={open}
-              className="relative text-text transition-colors hover:text-accent"
-            >
-              <ShoppingBag size={22} />
-              {itemCount > 0 && (
-                <span className="shape-circle absolute -right-2 -top-2 flex h-5 min-w-[1.25rem] items-center justify-center bg-accent px-1 text-[0.65rem] font-bold text-[var(--color-on-accent)]">
-                  {itemCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </nav>
-
-        {/* Menú mobile */}
-        {menuOpen && (
-          <div className="animate-fade-in border-t border-line bg-background md:hidden">
-            <div className="flex flex-col px-4 py-2">
-              {NAV_ITEMS.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === '/'}
-                  onClick={() => setMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `nav-link py-3 ${isActive ? 'text-accent' : 'text-text'}`
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-              {ig && (
-                <a
-                  href={ig}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="nav-link flex items-center gap-2 py-3 text-text"
-                >
-                  <Instagram size={18} /> Instagram
-                </a>
-              )}
-            </div>
-          </div>
-        )}
-      </header>
-    </>
+          </nav>
+        </div>
+      )}
+    </header>
   );
 }

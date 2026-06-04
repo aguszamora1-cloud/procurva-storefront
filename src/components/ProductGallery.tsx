@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface Props {
   images: string[];
@@ -8,58 +7,79 @@ interface Props {
   activeIndex?: number;
 }
 
+/**
+ * Galería con hover-zoom en desktop. Thumbnails: columna vertical 80px a la
+ * izquierda en desktop, fila horizontal con scroll debajo en mobile. Réplica
+ * del ProductGallery de RSW.
+ */
 export function ProductGallery({ images, alt, activeIndex }: Props) {
   const [idx, setIdx] = useState(0);
-  const current = activeIndex ?? idx;
-  const safeIdx = images.length > 0 ? Math.min(current, images.length - 1) : 0;
+  const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
 
-  if (images.length === 0) {
-    return <div className="aspect-square w-full bg-secondary" />;
-  }
+  useEffect(() => {
+    if (typeof activeIndex === 'number') setIdx(activeIndex);
+  }, [activeIndex]);
 
-  const go = (next: number) => setIdx((next + images.length) % images.length);
+  const hasMany = images.length > 1;
+  const safeIdx = images.length > 0 ? Math.min(idx, images.length - 1) : 0;
+  const active = images[safeIdx] ?? null;
+
+  const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setZoom({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    });
+  };
+
+  const thumb = (src: string, i: number, sizeCls: string) => (
+    <button
+      key={`${src}-${i}`}
+      type="button"
+      onClick={() => setIdx(i)}
+      aria-label={`Imagen ${i + 1}`}
+      className={`${sizeCls} flex-shrink-0 overflow-hidden transition-opacity ${
+        i === safeIdx ? 'border-2 border-text opacity-100' : 'border border-line opacity-70 hover:opacity-100'
+      }`}
+    >
+      <img src={src} alt="" className="h-full w-full object-cover" />
+    </button>
+  );
 
   return (
-    <div className="flex flex-col-reverse gap-3 md:flex-row">
-      {/* Thumbnails */}
-      {images.length > 1 && (
-        <div className="no-scrollbar flex gap-2 overflow-x-auto md:max-h-[560px] md:flex-col md:overflow-y-auto">
-          {images.map((img, i) => (
-            <button
-              key={i}
-              onClick={() => setIdx(i)}
-              className={`h-20 w-16 shrink-0 overflow-hidden border ${
-                i === safeIdx ? 'border-accent' : 'border-line'
-              }`}
-            >
-              <img src={img} alt={`${alt} ${i + 1}`} className="h-full w-full object-cover" />
-            </button>
-          ))}
+    <>
+      <div className={hasMany ? 'md:grid md:grid-cols-[80px_1fr] md:gap-3' : ''}>
+        {hasMany && (
+          <div className="no-scrollbar hidden md:flex md:max-h-[600px] md:flex-col md:gap-2 md:overflow-y-auto">
+            {images.map((src, i) => thumb(src, i, 'w-20 h-20'))}
+          </div>
+        )}
+
+        <div
+          className="relative aspect-[3/4] cursor-zoom-in overflow-hidden rounded-[12px] bg-secondary"
+          onMouseMove={handleMove}
+          onMouseLeave={() => setZoom(null)}
+        >
+          {active ? (
+            <img
+              src={active}
+              alt={alt}
+              className="h-full w-full object-cover transition-transform duration-200"
+              style={zoom ? { transform: 'scale(1.6)', transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-[12px] font-semibold uppercase tracking-[1px] text-subtle">
+              Sin imagen
+            </div>
+          )}
+        </div>
+      </div>
+
+      {hasMany && (
+        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto md:hidden">
+          {images.map((src, i) => thumb(src, i, 'w-20 h-24'))}
         </div>
       )}
-
-      {/* Imagen principal */}
-      <div className="relative aspect-square flex-1 overflow-hidden bg-secondary">
-        <img src={images[safeIdx]} alt={alt} className="h-full w-full object-cover" />
-        {images.length > 1 && (
-          <>
-            <button
-              aria-label="Anterior"
-              onClick={() => go(safeIdx - 1)}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 p-1.5 shadow"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              aria-label="Siguiente"
-              onClick={() => go(safeIdx + 1)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 p-1.5 shadow"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+    </>
   );
 }

@@ -9,18 +9,18 @@ export function CategoriesIndex() {
   const { categories } = useCategories(products);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10">
+    <div className="mx-auto max-w-[1400px] px-6 py-10 md:py-14">
       <header className="mb-8">
-        <p className="subtitle-label text-muted">Explorá</p>
-        <h1 className="text-3xl md:text-4xl">Categorías</h1>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[2px] text-accent">Explorá</p>
+        <h1 className="font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[44px]">Categorías</h1>
       </header>
 
       {isLoading ? (
         <ProductGridSkeleton />
       ) : categories.length === 0 ? (
-        <p className="py-16 text-center text-muted">No hay categorías para mostrar.</p>
+        <p className="py-16 text-center text-[14px] text-subtle">No hay categorías para mostrar.</p>
       ) : (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
           {categories.map((cat) => {
             const p = products.find((prod) => productCategories(prod).includes(cat.name));
             const img = p ? mainImage(p) : null;
@@ -38,11 +38,11 @@ export function CategoriesIndex() {
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 )}
-                <div className="absolute inset-0 flex flex-col items-start justify-end bg-gradient-to-t from-black/55 to-transparent p-4">
-                  <span className="font-heading text-sm font-bold uppercase tracking-wide text-white">
+                <div className="absolute inset-0 flex flex-col items-start justify-end bg-gradient-to-t from-black/65 via-black/10 to-transparent p-4">
+                  <span className="font-heading text-[15px] font-bold uppercase tracking-[0.5px] text-white md:text-[17px]">
                     {cat.name}
                   </span>
-                  <span className="text-xs text-white/70">{cat.count} productos</span>
+                  <span className="text-[12px] text-white/70">{cat.count} productos</span>
                 </div>
               </Link>
             );

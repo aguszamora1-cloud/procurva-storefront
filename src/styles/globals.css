@@ -15,8 +15,10 @@
   --color-text: #111111;
 
   /* Derivados (calculados en useTheme a partir de los de arriba). */
-  --color-muted: #6b7280;
+  --color-muted: #555555;
+  --color-subtle: #999999;
   --color-border: #e5e5e5;
+  --color-border-soft: #f0f0f0;
   --color-on-accent: #ffffff;
   --color-on-primary: #ffffff;
 

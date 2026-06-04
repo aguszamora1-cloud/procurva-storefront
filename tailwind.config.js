@@ -12,7 +12,11 @@ export default {
         background: 'var(--color-background)',
         text: 'var(--color-text)',
         muted: 'var(--color-muted)',
+        subtle: 'var(--color-subtle)',
         line: 'var(--color-border)',
+        'line-soft': 'var(--color-border-soft)',
+        'on-primary': 'var(--color-on-primary)',
+        'on-accent': 'var(--color-on-accent)',
       },
       fontFamily: {
         heading: ['var(--font-heading)', 'system-ui', 'sans-serif'],

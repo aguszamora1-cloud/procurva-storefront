@@ -5,19 +5,20 @@ import { useBanners } from '@/hooks/useBanners';
 
 const ROTATE_MS = 6000;
 
+interface Slide {
+  image: string;
+  imageMobile: string | null;
+  link: string | null;
+}
+
 export function Hero() {
   const config = useStore();
-  const { banners } = useBanners();
+  const { banners, isLoading } = useBanners();
   const [idx, setIdx] = useState(0);
 
-  // Slides: banners del catálogo o, si no hay, el hero de la config.
-  const slides =
+  const slides: Slide[] =
     banners.length > 0
-      ? banners.map((b) => ({
-          image: b.image_url,
-          imageMobile: b.image_url_mobile,
-          link: b.link_url,
-        }))
+      ? banners.map((b) => ({ image: b.image_url, imageMobile: b.image_url_mobile, link: b.link_url }))
       : config.heroImageUrl
         ? [{ image: config.heroImageUrl, imageMobile: null, link: null }]
         : [];
@@ -28,57 +29,94 @@ export function Hero() {
     return () => clearInterval(t);
   }, [slides.length]);
 
-  // Hero sólo-texto cuando no hay imágenes.
+  if (isLoading && banners.length === 0 && !config.heroImageUrl) {
+    return <section className="h-[85vh] w-full bg-primary/90 md:h-screen" />;
+  }
+
+  // Hero editorial sólo-texto cuando no hay imágenes.
   if (slides.length === 0) {
     return (
-      <section className="bg-primary text-[var(--color-on-primary)]">
-        <div className="mx-auto flex min-h-[55vh] max-w-7xl flex-col items-start justify-center gap-4 px-4 py-20">
-          <h1 className="max-w-2xl">{config.heroTitle || config.name}</h1>
-          {(config.heroSubtitle || config.tagline) && (
-            <p className="max-w-xl text-base opacity-80 md:text-lg">
-              {config.heroSubtitle || config.tagline}
+      <section className="relative bg-primary text-[var(--color-on-primary)]">
+        <div className="mx-auto max-w-[1400px] px-6 py-24 md:px-12 md:py-40">
+          {config.tagline && (
+            <p className="mb-6 text-[11px] font-semibold tracking-[2px] text-[var(--color-on-primary)]/60">
+              {config.tagline.toUpperCase()}
             </p>
           )}
-          <Link to={config.heroCtaLink} className="btn-accent mt-2 px-8 py-3.5 text-sm">
-            {config.heroCtaText}
-          </Link>
+          <h1 className="max-w-3xl font-heading text-[44px] font-extrabold uppercase leading-[1] tracking-[-0.5px] md:text-[88px]">
+            {config.heroTitle || config.name}
+          </h1>
+          {config.heroSubtitle && (
+            <p className="mt-6 max-w-md text-[15px] text-[var(--color-on-primary)]/75 md:text-[17px]">
+              {config.heroSubtitle}
+            </p>
+          )}
+          <div className="mt-10">
+            <Link
+              to={config.heroCtaLink}
+              className="inline-flex items-center justify-center rounded-lg bg-accent px-10 py-4 text-[13px] font-bold uppercase tracking-[1px] text-on-accent shadow-lg transition-all duration-200 hover:scale-[1.02]"
+            >
+              {config.heroCtaText}
+            </Link>
+          </div>
         </div>
       </section>
     );
   }
 
-  const current = slides[idx];
-  const inner = (
-    <div className="relative h-[60vh] min-h-[380px] w-full overflow-hidden md:h-[78vh]">
-      <picture>
-        {current.imageMobile && <source media="(max-width: 768px)" srcSet={current.imageMobile} />}
-        <img src={current.image} alt={config.name} className="h-full w-full object-cover" />
-      </picture>
+  const slide = slides[idx];
+  const showText = Boolean(config.heroTitle || config.heroSubtitle);
 
-      {/* Overlay + texto sólo si la config lo pide. */}
-      {(config.heroTitle || config.heroSubtitle) && (
-        <div className="absolute inset-0 flex flex-col items-start justify-end bg-gradient-to-t from-black/55 to-transparent p-6 md:p-12">
-          <div className="text-white">
-            {config.heroTitle && <h1 className="max-w-2xl drop-shadow">{config.heroTitle}</h1>}
-            {config.heroSubtitle && (
-              <p className="mt-2 max-w-xl text-sm opacity-90 md:text-lg">{config.heroSubtitle}</p>
-            )}
-            <Link to={config.heroCtaLink} className="btn-accent mt-4 inline-block px-8 py-3 text-sm">
-              {config.heroCtaText}
-            </Link>
-          </div>
+  const media = (
+    <div className="relative h-[72vh] min-h-[420px] w-full overflow-hidden bg-primary md:h-screen">
+      {slides.map((s, i) => (
+        <div
+          key={i}
+          className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+            i === idx ? 'z-10 opacity-100' : 'z-0 opacity-0'
+          }`}
+        >
+          <picture>
+            {s.imageMobile && <source media="(max-width: 767px)" srcSet={s.imageMobile} />}
+            <img src={s.image} alt={config.name} loading={i === 0 ? 'eager' : 'lazy'} className="absolute inset-0 h-full w-full object-cover" />
+          </picture>
         </div>
-      )}
+      ))}
 
-      {/* Indicadores */}
+      {/* Gradiente + texto/CTA al pie (estilo RSW). */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-1/2 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 z-20">
+        <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-12 md:py-16">
+          {showText && (
+            <div className="mb-5 max-w-2xl text-white">
+              {config.heroTitle && (
+                <h1 className="font-heading text-[36px] font-extrabold uppercase leading-[1.02] tracking-[-0.5px] drop-shadow md:text-[64px]">
+                  {config.heroTitle}
+                </h1>
+              )}
+              {config.heroSubtitle && (
+                <p className="mt-3 max-w-xl text-[14px] text-white/85 md:text-[17px]">{config.heroSubtitle}</p>
+              )}
+            </div>
+          )}
+          <Link
+            to={config.heroCtaLink}
+            className="inline-flex items-center justify-center rounded-lg bg-accent px-8 py-4 text-[12px] font-bold uppercase tracking-[1px] text-on-accent shadow-lg transition-all duration-200 hover:scale-[1.02] md:px-10 md:text-[13px]"
+          >
+            {config.heroCtaText}
+          </Link>
+        </div>
+      </div>
+
       {slides.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
+        <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 gap-2">
           {slides.map((_, i) => (
             <button
               key={i}
-              aria-label={`Ir al slide ${i + 1}`}
+              type="button"
               onClick={() => setIdx(i)}
-              className={`h-2 transition-all ${i === idx ? 'w-6 bg-white' : 'w-2 bg-white/50'}`}
+              aria-label={`Ir al slide ${i + 1}`}
+              className={`h-1 rounded-full transition-all ${i === idx ? 'w-8 bg-white' : 'w-4 bg-white/40 hover:bg-white/70'}`}
             />
           ))}
         </div>
@@ -87,13 +125,13 @@ export function Hero() {
   );
 
   return (
-    <section>
-      {current.link ? (
-        <a href={current.link} target="_blank" rel="noreferrer">
-          {inner}
+    <section className="relative">
+      {slide.link ? (
+        <a href={slide.link} target="_blank" rel="noreferrer">
+          {media}
         </a>
       ) : (
-        inner
+        media
       )}
     </section>
   );

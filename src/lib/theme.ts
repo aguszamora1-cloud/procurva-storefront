@@ -46,8 +46,10 @@ export function applyTheme(config: StoreConfig): void {
   // Derivados.
   set('--color-on-accent', contrastColor(config.colorAccent));
   set('--color-on-primary', contrastColor(config.colorPrimary));
-  set('--color-muted', rgba(config.colorText, 0.6));
-  set('--color-border', rgba(config.colorText, 0.12));
+  set('--color-muted', rgba(config.colorText, 0.62)); // texto secundario (ink-800)
+  set('--color-subtle', rgba(config.colorText, 0.42)); // texto terciario (ink-500/700)
+  set('--color-border', rgba(config.colorText, 0.12)); // bordes (ink-200)
+  set('--color-border-soft', rgba(config.colorText, 0.07)); // bordes suaves (ink-100)
 
   set('--font-heading', `'${config.fontHeading}', system-ui, sans-serif`);
   set('--font-body', `'${config.fontBody}', system-ui, sans-serif`);

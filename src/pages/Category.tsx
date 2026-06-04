@@ -15,12 +15,14 @@ export function Category() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10">
+    <div className="mx-auto max-w-[1400px] px-6 py-10 md:py-14">
       <header className="mb-8">
-        <Link to="/categorias" className="subtitle-label text-muted hover:text-accent">
+        <Link to="/categorias" className="text-[11px] font-semibold uppercase tracking-[2px] text-subtle hover:text-accent">
           ← Categorías
         </Link>
-        <h1 className="mt-1 text-3xl md:text-4xl">{category}</h1>
+        <h1 className="mt-2 font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[44px]">
+          {category}
+        </h1>
       </header>
       {isLoading ? <ProductGridSkeleton /> : <ProductGrid products={filtered} />}
     </div>

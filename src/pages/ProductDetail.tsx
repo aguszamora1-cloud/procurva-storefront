@@ -1,22 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Eye, MessageCircle, ShoppingBag } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { ProductGallery } from '@/components/ProductGallery';
-import { ShippingPromise } from '@/components/ShippingPromise';
-import {
-  colorToHex,
-  formatPrice,
-  productImages,
-  retailPrice,
-  sortSizes,
-} from '@/lib/utils';
+import { ColorSelector } from '@/components/ColorSelector';
+import { SizeSelector } from '@/components/SizeSelector';
+import { TrustBadges } from '@/components/TrustBadges';
+import { formatPrice, productImages, retailPrice, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
 import type { Variant } from '@/lib/types';
 
-// "X personas viendo" determinístico (sin Math.random para estabilidad).
+// "X personas viendo" determinístico (sin Math.random, para estabilidad).
 function viewersFromId(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
@@ -31,7 +27,8 @@ export function ProductDetail() {
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [showSticky, setShowSticky] = useState(false);
+  const addBtnRef = useRef<HTMLButtonElement>(null);
 
   const variants: Variant[] = product?.product_variants ?? [];
   const colors = useMemo(
@@ -43,39 +40,48 @@ export function ProductDetail() {
     [variants],
   );
 
-  const stockFor = (color: string | null, size: string | null): number =>
-    variants
-      .filter((v) => (!colors.length || v.color === color) && (!sizes.length || v.size === size))
-      .reduce((sum, v) => sum + Math.max(0, v.stock ?? 0), 0);
+  const variant = useMemo(
+    () =>
+      variants.find(
+        (v) => (colors.length === 0 || v.color === selectedColor) && (sizes.length === 0 || v.size === selectedSize),
+      ) ?? null,
+    [variants, colors.length, sizes.length, selectedColor, selectedSize],
+  );
 
-  const sizeAvailable = (size: string): boolean =>
-    variants.some(
-      (v) =>
-        v.size === size &&
-        (!colors.length || !selectedColor || v.color === selectedColor) &&
-        (v.stock ?? 0) > 0,
+  const sizeDisabled = (size: string) =>
+    !variants.some(
+      (v) => v.size === size && (colors.length === 0 || !selectedColor || v.color === selectedColor) && (v.stock ?? 0) > 0,
     );
 
-  // Galería: si hay color elegido con imagen propia, saltar a ella.
   const images = product ? productImages(product) : [];
   const activeImageIndex = useMemo(() => {
     if (!selectedColor) return undefined;
     const variantImg = variants.find((v) => v.color === selectedColor && v.image_url)?.image_url;
     if (!variantImg) return undefined;
-    const idx = images.indexOf(variantImg);
-    return idx >= 0 ? idx : undefined;
+    const i = images.indexOf(variantImg);
+    return i >= 0 ? i : undefined;
   }, [selectedColor, variants, images]);
+
+  // Sticky bar mobile cuando el CTA sale del viewport.
+  useEffect(() => {
+    const el = addBtnRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => setShowSticky(!entry.isIntersecting), {
+      rootMargin: '0px 0px -64px 0px',
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [product?.id]);
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-10">
-        <div className="grid gap-8 md:grid-cols-2">
-          <div className="aspect-square animate-pulse bg-secondary" />
-          <div className="space-y-4">
-            <div className="h-8 w-2/3 animate-pulse bg-secondary" />
-            <div className="h-6 w-1/3 animate-pulse bg-secondary" />
-            <div className="h-24 animate-pulse bg-secondary" />
-          </div>
+      <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 px-6 py-10 md:grid-cols-[1.2fr_1fr] md:gap-12">
+        <div className="aspect-[3/4] animate-pulse rounded-[12px] bg-secondary" />
+        <div className="space-y-4">
+          <div className="h-4 w-1/2 animate-pulse bg-secondary" />
+          <div className="h-10 w-4/5 animate-pulse bg-secondary" />
+          <div className="h-12 w-1/3 animate-pulse bg-secondary" />
+          <div className="h-12 w-full animate-pulse bg-secondary" />
         </div>
       </div>
     );
@@ -83,11 +89,15 @@ export function ProductDetail() {
 
   if (error || !product) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-24 text-center">
-        <h1 className="text-2xl">Producto no encontrado</h1>
-        <Link to="/productos" className="btn-outline mt-6 inline-block px-6 py-3 text-sm">
-          Volver al catálogo
-        </Link>
+      <div className="mx-auto max-w-[1200px] px-6 py-24 text-center">
+        <h1 className="font-heading text-[32px] uppercase tracking-tight text-text">Producto no encontrado</h1>
+        <p className="mt-4 text-muted">
+          Volvé al{' '}
+          <Link to="/productos" className="text-accent underline">
+            catálogo
+          </Link>
+          .
+        </p>
       </div>
     );
   }
@@ -95,25 +105,19 @@ export function ProductDetail() {
   const price = retailPrice(product);
   const needColor = colors.length > 0;
   const needSize = sizes.length > 0;
+  const canAdd = Boolean(variant && (variant.stock ?? 0) > 0 && price > 0);
+  const ctaLabel = !variant
+    ? needColor && needSize
+      ? 'ELEGÍ COLOR Y TALLE'
+      : needColor
+        ? 'ELEGÍ UN COLOR'
+        : 'ELEGÍ UN TALLE'
+    : (variant.stock ?? 0) <= 0
+      ? 'SIN STOCK'
+      : 'AGREGAR AL CARRITO';
 
   const handleAdd = () => {
-    if (needColor && !selectedColor) {
-      setFeedback('Elegí un color');
-      return;
-    }
-    if (needSize && !selectedSize) {
-      setFeedback('Elegí un talle');
-      return;
-    }
-    const variant = variants.find(
-      (v) =>
-        (!needColor || v.color === selectedColor) &&
-        (!needSize || v.size === selectedSize),
-    );
-    if (!variant || (variant.stock ?? 0) <= 0) {
-      setFeedback('Sin stock para esa combinación');
-      return;
-    }
+    if (!variant || !canAdd) return;
     addItem({
       product_id: product.id,
       variant_id: variant.id,
@@ -124,115 +128,120 @@ export function ProductDetail() {
       qty: 1,
       image_url: variant.image_url ?? images[0] ?? null,
     });
-    setFeedback(null);
   };
 
   const inquiry = buildWhatsappInquiry(config, product.name);
-  const currentStock = stockFor(selectedColor, selectedSize);
+  const cats = Array.isArray(product.categories) ? product.categories.filter(Boolean) : [];
+  const stock = variant?.stock ?? null;
 
   return (
-    <div>
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <Link to="/productos" className="subtitle-label text-muted hover:text-accent">
-          ← Volver
-        </Link>
+    <>
+      {/* Breadcrumbs */}
+      <div className="mx-auto max-w-[1200px] px-6 pb-2 pt-6">
+        <nav aria-label="Breadcrumb" className="text-[13px] text-subtle">
+          <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            <li><Link to="/" className="transition-colors hover:text-accent">Inicio</Link></li>
+            <li aria-hidden="true">›</li>
+            <li><Link to="/productos" className="transition-colors hover:text-accent">Productos</Link></li>
+            {cats[0] && (
+              <>
+                <li aria-hidden="true">›</li>
+                <li>
+                  <Link to={`/categoria/${encodeURIComponent(cats[0])}`} className="capitalize transition-colors hover:text-accent">
+                    {cats[0]}
+                  </Link>
+                </li>
+              </>
+            )}
+            <li aria-hidden="true">›</li>
+            <li className="max-w-[60vw] truncate text-text">{product.name}</li>
+          </ol>
+        </nav>
+      </div>
 
-        <div className="mt-4 grid gap-10 md:grid-cols-2">
+      {/* Detalle 2 columnas */}
+      <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-8 px-6 pb-8 md:grid-cols-[1.2fr_1fr] md:gap-12">
+        <div className="md:sticky md:top-24">
           <ProductGallery images={images} alt={product.name} activeIndex={activeImageIndex} />
+        </div>
 
-          <div>
-            <h1 className="text-2xl md:text-3xl">{product.name}</h1>
-            <p className="price mt-3 text-2xl">{formatPrice(price)}</p>
+        <div className="space-y-6">
+          {cats[0] && (
+            <p className="text-[11px] font-semibold uppercase tracking-[2px] text-accent">{cats[0]}</p>
+          )}
+          <h1 className="text-[26px] font-bold leading-[1.2] tracking-[-0.3px] text-text">{product.name}</h1>
 
-            {config.sections.socialProof && (
-              <p className="mt-3 flex items-center gap-2 text-sm text-muted animate-fade-in">
-                <Eye size={15} /> {viewersFromId(product.id)} personas viendo este producto
-              </p>
+          <p className="text-[32px] font-extrabold leading-none text-accent">{formatPrice(price)}</p>
+
+          {config.sections.socialProof && (
+            <p className="flex animate-fade-in items-center gap-2 text-[14px] text-subtle">
+              <Eye size={15} /> {viewersFromId(product.id)} personas viendo este producto
+            </p>
+          )}
+
+          {needColor && <ColorSelector colors={colors} selected={selectedColor} onSelect={(c) => { setSelectedColor(c); setSelectedSize(null); }} />}
+          {needSize && <SizeSelector sizes={sizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />}
+
+          {stock !== null && stock > 0 && stock <= 5 && (
+            <p className="animate-fade-in text-[14px] font-semibold text-accent">¡Últimas {stock} unidades!</p>
+          )}
+
+          <div className="space-y-3 pt-1">
+            <button
+              ref={addBtnRef}
+              type="button"
+              onClick={handleAdd}
+              disabled={!canAdd}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-primary py-[18px] text-[16px] font-bold uppercase tracking-[0.5px] text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent hover:scale-[1.01] active:scale-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:text-on-primary"
+            >
+              {ctaLabel}
+            </button>
+
+            {inquiry && (
+              <a
+                href={inquiry}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] border-2 border-[#25D366] py-[14px] text-[14px] font-bold uppercase tracking-[0.5px] text-[#25D366] transition-colors hover:bg-[#25D366] hover:text-white"
+              >
+                Consultar por WhatsApp
+              </a>
             )}
-
-            {product.description && (
-              <p className="mt-5 whitespace-pre-line text-sm leading-relaxed text-muted">
-                {product.description}
-              </p>
-            )}
-
-            {/* Colores */}
-            {needColor && (
-              <div className="mt-6">
-                <p className="subtitle-label mb-2">Color{selectedColor ? `: ${selectedColor}` : ''}</p>
-                <div className="flex flex-wrap gap-2">
-                  {colors.map((c) => (
-                    <button
-                      key={c}
-                      title={c}
-                      onClick={() => {
-                        setSelectedColor(c);
-                        setSelectedSize(null);
-                      }}
-                      className={`shape-circle h-8 w-8 border-2 transition ${
-                        selectedColor === c ? 'border-accent' : 'border-line'
-                      }`}
-                      style={{ backgroundColor: colorToHex(c) }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Talles */}
-            {needSize && (
-              <div className="mt-6">
-                <p className="subtitle-label mb-2">Talle</p>
-                <div className="flex flex-wrap gap-2">
-                  {sizes.map((s) => {
-                    const avail = sizeAvailable(s);
-                    return (
-                      <button
-                        key={s}
-                        disabled={!avail}
-                        onClick={() => setSelectedSize(s)}
-                        className={`min-w-[3rem] border px-3 py-2 text-sm font-semibold transition ${
-                          selectedSize === s
-                            ? 'border-accent bg-accent text-[var(--color-on-accent)]'
-                            : 'border-line hover:border-accent'
-                        } ${!avail ? 'cursor-not-allowed opacity-40 line-through' : ''}`}
-                      >
-                        {s}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {currentStock > 0 && currentStock <= 5 && (selectedSize || !needSize) && (
-              <p className="mt-3 text-sm font-semibold text-accent animate-fade-in">
-                ¡Últimas {currentStock} unidades!
-              </p>
-            )}
-
-            {feedback && <p className="mt-4 text-sm text-accent">{feedback}</p>}
-
-            <div className="mt-6 flex flex-col gap-3">
-              <button onClick={handleAdd} className="btn-primary flex items-center justify-center gap-2 py-4 text-sm">
-                <ShoppingBag size={18} /> Agregar al carrito
-              </button>
-              {inquiry && (
-                <a
-                  href={inquiry}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-outline flex items-center justify-center gap-2 py-4 text-sm"
-                >
-                  <MessageCircle size={18} /> Consultar por WhatsApp
-                </a>
-              )}
-            </div>
           </div>
+
+          <TrustBadges />
+
+          {product.description && (
+            <div className="border-t border-line pt-6">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[1.5px] text-subtle">Descripción</p>
+              <p className="whitespace-pre-line text-[14px] leading-relaxed text-muted">{product.description}</p>
+            </div>
+          )}
         </div>
       </div>
 
-      <ShippingPromise />
-    </div>
+      {/* Sticky bar mobile */}
+      {showSticky && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-50 flex items-center gap-3 border-t border-line bg-background px-4 py-3 md:hidden"
+          style={{ boxShadow: '0 -2px 10px rgba(0,0,0,0.08)' }}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-[18px] font-extrabold leading-none text-accent">{formatPrice(price)}</p>
+            {(selectedColor || selectedSize) && (
+              <p className="mt-0.5 truncate text-[11px] text-subtle">{[selectedColor, selectedSize].filter(Boolean).join(' · ')}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={!canAdd}
+            className="inline-flex flex-shrink-0 items-center justify-center rounded-lg bg-primary px-5 py-3 text-[13px] font-bold uppercase tracking-[0.5px] text-on-primary disabled:opacity-40"
+          >
+            {!variant ? 'Elegí opción' : (variant.stock ?? 0) <= 0 ? 'Sin stock' : 'Agregar'}
+          </button>
+        </div>
+      )}
+    </>
   );
 }
