@@ -11,7 +11,9 @@ interface ProductsState {
   reload: () => void;
 }
 
-const PRODUCT_COLUMNS = `
+// is_featured va aparte: si la migración que agrega la columna todavía no se
+// aplicó, la query falla y caemos a COLS_BASE (sin romper el home).
+const COLS_BASE = `
   id, company_id, name, description,
   retail_price, retail_price_transfer, retail_price_card, compare_at_price,
   image_url, images, categories,
@@ -19,6 +21,7 @@ const PRODUCT_COLUMNS = `
   pack_only_sale, created_at,
   product_variants ( id, product_id, company_id, size, color, stock, price, sku, image_url )
 `;
+const PRODUCT_COLUMNS = `${COLS_BASE}, is_featured`;
 
 /**
  * Productos visibles del tenant con sus variantes. Filtra por company_id,
@@ -40,13 +43,21 @@ export function useProducts(): ProductsState {
     setError(null);
 
     (async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select(PRODUCT_COLUMNS)
-        .eq('company_id', companyId)
-        .eq('catalog_visible', true)
-        .gt('retail_price', 0)
-        .order('created_at', { ascending: false });
+      const runQuery = (columns: string) =>
+        supabase
+          .from('products')
+          .select(columns)
+          .eq('company_id', companyId)
+          .eq('catalog_visible', true)
+          .gt('retail_price', 0)
+          .order('created_at', { ascending: false });
+
+      let { data, error } = await runQuery(PRODUCT_COLUMNS);
+      // Si la columna is_featured todavía no existe (migración sin aplicar),
+      // reintentamos sin ella para no dejar el home sin productos.
+      if (error && /is_featured/i.test(error.message)) {
+        ({ data, error } = await runQuery(COLS_BASE));
+      }
 
       if (cancelled) return;
       if (error) {

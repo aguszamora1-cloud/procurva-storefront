@@ -34,6 +34,8 @@ export interface Product {
   catalog_badge_color: string | null;
   catalog_badge_visible: boolean | null;
   pack_only_sale: boolean | null;
+  // Marca de producto destacado (sección "Destacados" del home).
+  is_featured: boolean | null;
   created_at: string | null;
   product_variants: Variant[];
 }

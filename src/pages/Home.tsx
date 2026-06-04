@@ -12,8 +12,12 @@ export function Home() {
   const config = useStore();
   const { products, isLoading } = useProducts();
 
-  const featured = products.slice(0, 8);
-  const newArrivals = products.slice(0, 8); // ya vienen ordenados por created_at desc
+  // Destacados: sólo los marcados is_featured en ProCurva (máx 8).
+  const featured = products.filter((p) => p.is_featured).slice(0, 8);
+  // Nuevos ingresos: más recientes (ya vienen ordenados por created_at desc),
+  // excluyendo los que ya están en Destacados para que no se repitan (máx 8).
+  const featuredIds = new Set(featured.map((p) => p.id));
+  const newArrivals = products.filter((p) => !featuredIds.has(p.id)).slice(0, 8);
 
   return (
     <div>
