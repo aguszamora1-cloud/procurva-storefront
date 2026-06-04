@@ -88,10 +88,13 @@ export interface RawCatalogSettings {
   section_stories?: boolean;
   section_social_proof?: boolean;
   section_newsletter?: boolean;
+  section_trust_badges?: boolean;
   // Shipping promise
   shipping_promise_enabled?: boolean;
   shipping_promise_title?: string;
   shipping_promise_subtitle?: string;
+  // Trust badges (etiquetas configurables; 4 textos)
+  trust_badges?: string[];
   // Social
   social_instagram?: string;
   instagram_url?: string;
@@ -168,12 +171,15 @@ export interface StoreConfig {
     stories: boolean;
     socialProof: boolean;
     newsletter: boolean;
+    trustBadges: boolean;
   };
   // Shipping
   shippingPromiseEnabled: boolean;
   shippingPromiseTitle: string;
   shippingPromiseSubtitle: string;
   shippingMessage: string;
+  // Trust badges (4 etiquetas)
+  trustBadgeLabels: string[];
   // Social / contacto
   whatsapp: string;
   instagramUrl: string;

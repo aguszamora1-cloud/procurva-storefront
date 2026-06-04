@@ -102,10 +102,11 @@ export function ProductDetail() {
     );
   }
 
-  const { cardPrice } = getPriceInfo(product);
+  const { cardPrice, cashPrice } = getPriceInfo(product);
+  const displayPrice = cashPrice ?? cardPrice; // precio prominente (efectivo si hay descuento)
   const needColor = colors.length > 0;
   const needSize = sizes.length > 0;
-  const canAdd = Boolean(variant && (variant.stock ?? 0) > 0 && cardPrice > 0);
+  const canAdd = Boolean(variant && (variant.stock ?? 0) > 0 && displayPrice > 0);
   const ctaLabel = !variant
     ? needColor && needSize
       ? 'ELEGÍ COLOR Y TALLE'
@@ -124,7 +125,7 @@ export function ProductDetail() {
       name: product.name,
       size: variant.size,
       color: variant.color,
-      unit_price: cardPrice,
+      unit_price: displayPrice,
       qty: 1,
       image_url: variant.image_url ?? images[0] ?? null,
     });
@@ -249,7 +250,7 @@ export function ProductDetail() {
             )}
           </div>
 
-          <TrustBadges />
+          {config.sections.trustBadges && <TrustBadges />}
 
           {product.description && (
             <div className="border-t border-line pt-6">
@@ -267,7 +268,7 @@ export function ProductDetail() {
           style={{ boxShadow: '0 -2px 10px rgba(0,0,0,0.08)' }}
         >
           <div className="min-w-0 flex-1">
-            <p className="text-[18px] font-extrabold leading-none text-accent">{formatPrice(cardPrice)}</p>
+            <p className="text-[18px] font-extrabold leading-none text-accent">{formatPrice(displayPrice)}</p>
             {(selectedColor || selectedSize) && (
               <p className="mt-0.5 truncate text-[11px] text-subtle">{[selectedColor, selectedSize].filter(Boolean).join(' · ')}</p>
             )}

@@ -169,6 +169,18 @@ export function badgeColor(name: string | null | undefined): string {
   return BADGE_HEX[(name ?? 'black').toLowerCase()] ?? '#111111';
 }
 
+/**
+ * Columnas de la grilla de categorías según la cantidad, para que pocas
+ * categorías ocupen el ancho y no queden pegadas a la izquierda. Clases
+ * literales (Tailwind las detecta en build).
+ */
+export function categoryGridCols(count: number): string {
+  if (count <= 1) return 'grid-cols-1';
+  if (count === 2) return 'grid-cols-2';
+  if (count === 3) return 'grid-cols-2 md:grid-cols-3';
+  return 'grid-cols-2 md:grid-cols-4';
+}
+
 /** Construye el link de WhatsApp con mensaje prellenado. */
 export function whatsappLink(phone: string, message: string): string {
   const digits = (phone || '').replace(/\D/g, '');

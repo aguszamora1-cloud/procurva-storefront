@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Product } from '@/lib/types';
-import { mainImage, productCategories } from '@/lib/utils';
+import { categoryGridCols, mainImage, productCategories } from '@/lib/utils';
 import { useCategories } from '@/hooks/useCategories';
 import { SectionHeader } from '@/components/SectionHeader';
 
@@ -13,11 +13,13 @@ export function CategoriesSection({ products }: { products: Product[] }) {
   const { categories } = useCategories(products);
   if (categories.length === 0) return null;
 
+  const shown = categories.slice(0, 8);
+
   return (
     <section className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
       <SectionHeader label="Explorá" title="Categorías" linkTo="/categorias" linkText="Ver todas" />
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
-        {categories.slice(0, 8).map((cat) => {
+      <div className={`grid gap-2 lg:gap-5 ${categoryGridCols(shown.length)}`}>
+        {shown.map((cat) => {
           const img = categoryImage(products, cat.name);
           return (
             <Link

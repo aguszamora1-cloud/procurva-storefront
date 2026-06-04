@@ -1,7 +1,7 @@
 import { useStore } from '@/context/StoreProvider';
 import { useProducts } from '@/hooks/useProducts';
 import { Hero } from '@/components/Hero';
-import { ShippingPromise } from '@/components/ShippingPromise';
+import { TrustBadges } from '@/components/TrustBadges';
 import { CategoriesSection } from '@/components/home/CategoriesSection';
 import { ProductsSection } from '@/components/home/ProductsSection';
 import { NewsletterSection } from '@/components/home/NewsletterSection';
@@ -18,9 +18,11 @@ export function Home() {
     <div>
       {config.heroEnabled && <Hero />}
 
-      <div className="pt-12 md:pt-16">
-        <ShippingPromise />
-      </div>
+      {config.sections.trustBadges && (
+        <div className="mx-auto max-w-[1400px] px-6 pt-12 md:pt-16">
+          <TrustBadges />
+        </div>
+      )}
 
       {config.sections.categories && <CategoriesSection products={products} />}
 

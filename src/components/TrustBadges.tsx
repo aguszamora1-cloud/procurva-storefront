@@ -3,8 +3,8 @@ import { useStore } from '@/context/StoreProvider';
 
 // Íconos line-art (mismo viewBox/stroke que lucide para mantener el look RSW).
 const ICON = {
-  width: 28,
-  height: 28,
+  width: 24,
+  height: 24,
   viewBox: '0 0 24 24',
   fill: 'none',
   stroke: 'currentColor',
@@ -46,26 +46,26 @@ const HandCoinsIcon = () => (
 
 /**
  * Trust badges (4 columnas desktop, 2x2 mobile) con separadores verticales.
- * El primero usa la promesa de envío configurable del tenant.
+ * Las etiquetas vienen de la config del tenant (trust_badges) con defaults.
+ * El gate (section_trust_badges) lo hace el caller.
  */
+const ICONS: ReactNode[] = [<TruckIcon />, <HandCoinsIcon />, <CreditCardIcon />, <ShieldCheckIcon />];
+
 export function TrustBadges() {
   const config = useStore();
-  const badges: { icon: ReactNode; label: string }[] = [
-    { icon: <TruckIcon />, label: config.shippingPromiseTitle || 'Envío rápido' },
-    { icon: <HandCoinsIcon />, label: 'Abonás al recibir' },
-    { icon: <CreditCardIcon />, label: 'Pagás como quieras' },
-    { icon: <ShieldCheckIcon />, label: 'Compra protegida' },
-  ];
+  const labels = config.trustBadgeLabels;
 
   return (
-    <div className="grid grid-cols-2 border-b border-t border-line py-5 md:grid-cols-4">
-      {badges.map((b) => (
+    <div className="grid grid-cols-2 gap-y-5 border-b border-t border-line py-6 md:grid-cols-4 md:gap-y-0">
+      {ICONS.map((icon, i) => (
         <div
-          key={b.label}
-          className="flex flex-col items-center border-line px-2 text-center odd:border-r md:border-r md:last:border-r-0"
+          key={i}
+          className="flex flex-col items-center border-line px-3 text-center odd:border-r md:border-r md:last:border-r-0"
         >
-          <span className="mb-2 text-text">{b.icon}</span>
-          <span className="text-[12px] font-medium leading-[1.3] text-muted">{b.label}</span>
+          <span className="mb-2 text-text">{icon}</span>
+          <span className="text-[11px] font-medium uppercase leading-[1.35] tracking-[0.3px] text-muted md:text-[12px]">
+            {labels[i] ?? ''}
+          </span>
         </div>
       ))}
     </div>

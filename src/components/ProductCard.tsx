@@ -14,7 +14,9 @@ import {
 
 export function ProductCard({ product }: { product: Product }) {
   const image = mainImage(product);
-  const { cardPrice } = getPriceInfo(product);
+  const { cardPrice, cashPrice, cashDiscountPct } = getPriceInfo(product);
+  const displayPrice = cashPrice ?? cardPrice; // precio prominente (efectivo si hay descuento)
+  const hasDiscount = Boolean(cashPrice && cashDiscountPct > 0);
   const { addItem } = useCart();
   const navigate = useNavigate();
 
@@ -69,7 +71,7 @@ export function ProductCard({ product }: { product: Product }) {
         name: product.name,
         size: variant.size,
         color: variant.color,
-        unit_price: cardPrice,
+        unit_price: displayPrice,
         qty: 1,
         image_url: image ?? null,
       });
@@ -99,6 +101,11 @@ export function ProductCard({ product }: { product: Product }) {
 
         {/* Badges */}
         <div className="pointer-events-none absolute left-2 top-2 flex flex-col items-start gap-1 md:left-3 md:top-3 md:gap-1.5">
+          {hasDiscount && (
+            <span className="bg-primary px-2 py-[3px] text-[11px] font-bold uppercase leading-none text-on-primary md:px-3 md:py-1 md:text-[12px]">
+              -{cashDiscountPct}%
+            </span>
+          )}
           {showBadge && (
             <span
               className="px-2 py-[3px] text-[11px] font-bold uppercase leading-none text-white md:px-3 md:py-1 md:text-[12px]"

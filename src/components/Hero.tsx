@@ -29,43 +29,44 @@ export function Hero() {
     return () => clearInterval(t);
   }, [slides.length]);
 
+  const hasText = Boolean(config.heroTitle); // hero_title o banner_text
+  const hasCta = Boolean(config.heroCtaText); // sólo si el comercio cargó el texto
+
   if (isLoading && banners.length === 0 && !config.heroImageUrl) {
-    return <section className="h-[85vh] w-full bg-primary/90 md:h-screen" />;
+    return <section className="h-[60vh] w-full bg-secondary md:h-[70vh]" />;
   }
 
-  // Hero editorial sólo-texto cuando no hay imágenes.
+  // Sin imágenes: hero editorial sólo si hay texto configurado. Si no, no hay hero.
   if (slides.length === 0) {
+    if (!hasText) return null;
     return (
       <section className="relative bg-primary text-[var(--color-on-primary)]">
         <div className="mx-auto max-w-[1400px] px-6 py-24 md:px-12 md:py-40">
-          {config.tagline && (
-            <p className="mb-6 text-[11px] font-semibold tracking-[2px] text-[var(--color-on-primary)]/60">
-              {config.tagline.toUpperCase()}
-            </p>
-          )}
           <h1 className="max-w-3xl font-heading text-[44px] font-extrabold uppercase leading-[1] tracking-[-0.5px] md:text-[88px]">
-            {config.heroTitle || config.name}
+            {config.heroTitle}
           </h1>
           {config.heroSubtitle && (
             <p className="mt-6 max-w-md text-[15px] text-[var(--color-on-primary)]/75 md:text-[17px]">
               {config.heroSubtitle}
             </p>
           )}
-          <div className="mt-10">
-            <Link
-              to={config.heroCtaLink}
-              className="inline-flex items-center justify-center rounded-lg bg-accent px-10 py-4 text-[13px] font-bold uppercase tracking-[1px] text-on-accent shadow-lg transition-all duration-200 hover:scale-[1.02]"
-            >
-              {config.heroCtaText}
-            </Link>
-          </div>
+          {hasCta && (
+            <div className="mt-10">
+              <Link
+                to={config.heroCtaLink}
+                className="inline-flex items-center justify-center rounded-lg bg-accent px-10 py-4 text-[13px] font-bold uppercase tracking-[1px] text-on-accent shadow-lg transition-all duration-200 hover:scale-[1.02]"
+              >
+                {config.heroCtaText}
+              </Link>
+            </div>
+          )}
         </div>
       </section>
     );
   }
 
   const slide = slides[idx];
-  const showText = Boolean(config.heroTitle || config.heroSubtitle);
+  const showText = hasText;
 
   const media = (
     <div className="relative h-[72vh] min-h-[420px] w-full overflow-hidden bg-primary md:h-screen">
@@ -83,30 +84,36 @@ export function Hero() {
         </div>
       ))}
 
-      {/* Gradiente + texto/CTA al pie (estilo RSW). */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-1/2 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 z-20">
-        <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-12 md:py-16">
-          {showText && (
-            <div className="mb-5 max-w-2xl text-white">
-              {config.heroTitle && (
-                <h1 className="font-heading text-[36px] font-extrabold uppercase leading-[1.02] tracking-[-0.5px] drop-shadow md:text-[64px]">
-                  {config.heroTitle}
-                </h1>
+      {/* Gradiente + texto/CTA al pie (estilo RSW). Sólo si hay algo que mostrar. */}
+      {(showText || hasCta) && (
+        <>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-1/2 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 z-20">
+            <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-12 md:py-16">
+              {showText && (
+                <div className="mb-5 max-w-2xl text-white">
+                  {config.heroTitle && (
+                    <h1 className="font-heading text-[36px] font-extrabold uppercase leading-[1.02] tracking-[-0.5px] drop-shadow md:text-[64px]">
+                      {config.heroTitle}
+                    </h1>
+                  )}
+                  {config.heroSubtitle && (
+                    <p className="mt-3 max-w-xl text-[14px] text-white/85 md:text-[17px]">{config.heroSubtitle}</p>
+                  )}
+                </div>
               )}
-              {config.heroSubtitle && (
-                <p className="mt-3 max-w-xl text-[14px] text-white/85 md:text-[17px]">{config.heroSubtitle}</p>
+              {hasCta && (
+                <Link
+                  to={config.heroCtaLink}
+                  className="inline-flex items-center justify-center rounded-lg bg-accent px-8 py-4 text-[12px] font-bold uppercase tracking-[1px] text-on-accent shadow-lg transition-all duration-200 hover:scale-[1.02] md:px-10 md:text-[13px]"
+                >
+                  {config.heroCtaText}
+                </Link>
               )}
             </div>
-          )}
-          <Link
-            to={config.heroCtaLink}
-            className="inline-flex items-center justify-center rounded-lg bg-accent px-8 py-4 text-[12px] font-bold uppercase tracking-[1px] text-on-accent shadow-lg transition-all duration-200 hover:scale-[1.02] md:px-10 md:text-[13px]"
-          >
-            {config.heroCtaText}
-          </Link>
-        </div>
-      </div>
+          </div>
+        </>
+      )}
 
       {slides.length > 1 && (
         <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 gap-2">

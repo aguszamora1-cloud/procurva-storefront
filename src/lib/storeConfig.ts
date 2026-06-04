@@ -11,7 +11,6 @@ const DEFAULTS = {
   // RSW usa Urbanist como fuente única; la dejamos de default (editable por tenant).
   fontHeading: 'Urbanist',
   fontBody: 'Urbanist',
-  heroCtaText: 'Ver productos',
   heroCtaLink: '/productos',
   shippingPromiseTitle: 'Envío rápido',
   shippingPromiseSubtitle: 'Envíos a todo el país',
@@ -47,6 +46,7 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
   // instagram_url completo en las claves nuevas.
   const instagram = firstStr(s.instagram_url, s.social_instagram);
   const tiktok = firstStr(s.tiktok_url, s.social_tiktok);
+  const shippingTitle = firstStr(s.shipping_promise_title) || DEFAULTS.shippingPromiseTitle;
 
   return {
     companyId: company.id,
@@ -81,7 +81,8 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
     heroImageUrl: firstStr(s.hero_image_url, s.banner_url),
     heroTitle: firstStr(s.hero_title, s.banner_text),
     heroSubtitle: firstStr(s.hero_subtitle, s.tagline),
-    heroCtaText: firstStr(s.hero_cta_text) || DEFAULTS.heroCtaText,
+    // Sin default: el botón del hero sólo aparece si el comercio cargó el texto.
+    heroCtaText: firstStr(s.hero_cta_text),
     heroCtaLink: firstStr(s.hero_cta_link) || DEFAULTS.heroCtaLink,
 
     sections: {
@@ -94,14 +95,19 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
       stories: bool(s.section_stories, false),
       socialProof: bool(s.section_social_proof, false),
       newsletter: bool(s.section_newsletter, false),
+      trustBadges: bool(s.section_trust_badges, true),
     },
 
     shippingPromiseEnabled: bool(s.shipping_promise_enabled, true),
-    shippingPromiseTitle: firstStr(s.shipping_promise_title) || DEFAULTS.shippingPromiseTitle,
+    shippingPromiseTitle: shippingTitle,
     shippingPromiseSubtitle:
       firstStr(s.shipping_promise_subtitle, company.catalog_shipping_message) ||
       DEFAULTS.shippingPromiseSubtitle,
     shippingMessage: str(company.catalog_shipping_message),
+    trustBadgeLabels:
+      Array.isArray(s.trust_badges) && s.trust_badges.length > 0
+        ? s.trust_badges.map((t) => String(t))
+        : [shippingTitle, 'Abonás al recibir', 'Pagás como quieras', 'Compra protegida'],
 
     whatsapp: str(s.whatsapp),
     instagramUrl: instagram,

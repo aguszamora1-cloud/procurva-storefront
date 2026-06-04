@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
-import { mainImage, productCategories } from '@/lib/utils';
+import { categoryGridCols, mainImage, productCategories } from '@/lib/utils';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
 
 export function CategoriesIndex() {
@@ -20,7 +20,7 @@ export function CategoriesIndex() {
       ) : categories.length === 0 ? (
         <p className="py-16 text-center text-[14px] text-subtle">No hay categorías para mostrar.</p>
       ) : (
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+        <div className={`grid gap-2 lg:gap-5 ${categoryGridCols(categories.length)}`}>
           {categories.map((cat) => {
             const p = products.find((prod) => productCategories(prod).includes(cat.name));
             const img = p ? mainImage(p) : null;
