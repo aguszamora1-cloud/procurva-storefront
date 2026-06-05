@@ -19,6 +19,7 @@ export function Navbar() {
   const { itemCount, open } = useCart();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   const ig = instagramHref(config.instagramUrl);
 
@@ -34,8 +35,20 @@ export function Navbar() {
     setMobileOpen(false);
   }, [location.pathname]);
 
+  // Sombra del navbar sólo cuando el usuario ya scrolleó (en el top, sin sombra).
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-background/90 backdrop-blur-md">
+    <header
+      className={`sticky top-0 z-50 border-b border-line bg-background transition-shadow duration-200 ${
+        scrolled ? 'shadow-md' : ''
+      }`}
+    >
       <div className="mx-auto grid max-w-none grid-cols-3 items-center gap-2 px-4 py-3 md:px-6">
         {/* Izquierda: hamburguesa (mobile) + nav (desktop) */}
         <div className="flex items-center justify-start">
