@@ -74,6 +74,24 @@ export interface Testimonial {
   active: boolean | null;
 }
 
+/** Item de un outfit (referencia a un producto). */
+export interface OutfitItem {
+  product_id: string;
+  order: number | null;
+}
+
+/** Outfit / look (Extra PRO): combinación de productos. */
+export interface Outfit {
+  id: string;
+  company_id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  order: number | null;
+  active: boolean | null;
+  items: OutfitItem[];
+}
+
 /** catalog_settings crudo (JSONB). Todas las claves son opcionales. */
 export interface RawCatalogSettings {
   logo_url?: string;

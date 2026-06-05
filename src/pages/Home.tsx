@@ -8,6 +8,7 @@ import { ProductsSection } from '@/components/home/ProductsSection';
 import { NewsletterSection } from '@/components/home/NewsletterSection';
 import { StoriesSection } from '@/components/home/StoriesSection';
 import { SocialProofSection } from '@/components/home/SocialProofSection';
+import { OutfitsSection } from '@/components/home/OutfitsSection';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
 
 export function Home() {
@@ -42,6 +43,8 @@ export function Home() {
       {config.isPro && config.sections.stories && <StoriesSection />}
 
       {config.sections.categories && <CategoriesSection products={products} />}
+
+      {config.isPro && config.sections.outfits && <OutfitsSection />}
 
       {isLoading ? (
         <div className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
