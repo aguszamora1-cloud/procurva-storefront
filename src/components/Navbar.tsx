@@ -1,39 +1,78 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { ChevronDown } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
+import { supabase } from '@/lib/supabase';
 import { instagramHref } from '@/lib/storeConfig';
 
-const navLink = ({ isActive }: { isActive: boolean }) =>
-  `text-[14px] tracking-[0.5px] font-semibold uppercase transition-colors ${
-    isActive ? 'text-on-surface' : 'text-on-surface-muted hover:text-accent'
+const drawerLink = ({ isActive }: { isActive: boolean }) =>
+  `block py-3 text-[15px] tracking-[1px] font-semibold uppercase transition-colors ${
+    isActive ? 'text-accent' : 'text-on-surface hover:text-accent'
   }`;
 
-const mobileNavLink = ({ isActive }: { isActive: boolean }) =>
-  `block py-3 text-[14px] tracking-[1px] font-semibold uppercase transition-colors ${
-    isActive ? 'text-on-surface' : 'text-on-surface-muted hover:text-accent'
-  }`;
+interface CategoryOrderRow {
+  category_name: string;
+  visible: boolean | null;
+}
 
 export function Navbar() {
   const config = useStore();
   const { itemCount, open } = useCart();
   const location = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [catOpen, setCatOpen] = useState(true);
+  const [categories, setCategories] = useState<string[]>([]);
   const [scrolled, setScrolled] = useState(false);
 
   const ig = instagramHref(config.instagramUrl);
 
-  // Nota: los outfits se muestran como sección en el home; no hay página /outfits
-  // dedicada (la ruta no existe), por eso no se agrega al nav para evitar un 404.
+  // Links principales del menú. (Outfits se muestra como sección del home, no
+  // tiene página propia, así que no se agrega para evitar un 404.)
   const navItems = [
     { label: 'INICIO', to: '/', end: true },
     { label: 'PRODUCTOS', to: '/productos', end: false },
-    { label: 'CATEGORÍAS', to: '/categorias', end: false },
   ];
 
+  // Subcategorías del menú: categorías activas del comercio (tabla liviana,
+  // un solo fetch mientras el navbar está montado).
   useEffect(() => {
-    setMobileOpen(false);
+    const cid = config.companyId;
+    if (!cid) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('catalog_category_order')
+        .select('category_name, sort_order, visible')
+        .eq('company_id', cid)
+        .order('sort_order', { ascending: true });
+      if (cancelled) return;
+      const rows = (data as CategoryOrderRow[] | null) ?? [];
+      setCategories(rows.filter((r) => r.visible !== false).map((r) => r.category_name));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [config.companyId]);
+
+  // Cerrar el menú al cambiar de ruta (anima la salida porque queda montado).
+  useEffect(() => {
+    setMenuOpen(false);
   }, [location.pathname]);
+
+  // Mientras el menú está abierto: bloquear scroll del body y cerrar con Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [menuOpen]);
 
   // Sombra del navbar sólo cuando el usuario ya scrolleó (en el top, sin sombra).
   useEffect(() => {
@@ -50,25 +89,19 @@ export function Navbar() {
       }`}
     >
       <div className="mx-auto grid max-w-none grid-cols-3 items-center gap-2 px-4 py-3 md:px-6">
-        {/* Izquierda: hamburguesa (mobile) + nav (desktop) */}
+        {/* Izquierda: hamburguesa (desktop + mobile) */}
         <div className="flex items-center justify-start">
           <button
             type="button"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
-            className="flex h-9 w-9 items-center justify-center text-on-surface hover:text-accent md:hidden"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Abrir menú"
+            aria-expanded={menuOpen}
+            className="flex h-9 w-9 items-center justify-center text-on-surface hover:text-accent"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              {mobileOpen ? <path d="M6 6l12 12M6 18L18 6" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M4 7h16M4 12h16M4 17h16" />
             </svg>
           </button>
-          <nav className="hidden items-center gap-7 md:flex">
-            {navItems.map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.end} className={navLink}>
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
         </div>
 
         {/* Centro: logo */}
@@ -121,28 +154,93 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Menú mobile */}
-      {mobileOpen && (
-        <div className="border-t border-line bg-background md:hidden">
-          <nav className="mx-auto max-w-none px-6 py-4">
-            {navItems.map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.end} className={mobileNavLink}>
-                {item.label}
-              </NavLink>
-            ))}
-            {ig && (
-              <a
-                href={ig}
-                target="_blank"
-                rel="noreferrer"
-                className="block border-t border-line py-3 text-[14px] font-semibold uppercase tracking-[1px] text-on-surface-muted hover:text-accent"
-              >
-                INSTAGRAM
-              </a>
-            )}
-          </nav>
+      {/* Overlay del menú (cierra al tocar fuera) */}
+      <div
+        onClick={() => setMenuOpen(false)}
+        aria-hidden="true"
+        className={`fixed inset-0 z-40 bg-black/60 transition-opacity duration-300 ${
+          menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+      />
+
+      {/* Drawer de navegación (slide in desde la izquierda) */}
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menú de navegación"
+        className={`fixed left-0 top-0 z-50 flex h-full w-[300px] max-w-[82vw] flex-col bg-background transition-transform duration-300 ${
+          menuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-line px-6 py-5">
+          <span className="font-heading text-[18px] font-extrabold uppercase tracking-[1px] text-on-surface">Menú</span>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Cerrar menú"
+            className="flex h-8 w-8 items-center justify-center text-on-surface hover:text-accent"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M6 6l12 12M6 18L18 6" />
+            </svg>
+          </button>
         </div>
-      )}
+
+        <nav className="flex-1 overflow-y-auto px-6 py-4">
+          {navItems.map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setMenuOpen(false)} className={drawerLink}>
+              {item.label}
+            </NavLink>
+          ))}
+
+          {/* Categorías (con subcategorías expandibles si las hay) */}
+          <div>
+            <div className="flex items-center justify-between">
+              <NavLink to="/categorias" onClick={() => setMenuOpen(false)} className={drawerLink}>
+                CATEGORÍAS
+              </NavLink>
+              {categories.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCatOpen((v) => !v)}
+                  aria-label={catOpen ? 'Colapsar categorías' : 'Expandir categorías'}
+                  aria-expanded={catOpen}
+                  className="p-2 text-on-surface-muted hover:text-accent"
+                >
+                  <ChevronDown className={`h-4 w-4 transition-transform ${catOpen ? 'rotate-180' : ''}`} />
+                </button>
+              )}
+            </div>
+            {categories.length > 0 && catOpen && (
+              <div className="mb-1 ml-1.5 border-l border-line-soft pl-3">
+                {categories.map((c) => (
+                  <Link
+                    key={c}
+                    to={`/categoria/${encodeURIComponent(c)}`}
+                    onClick={() => setMenuOpen(false)}
+                    className="block py-2 text-[13px] font-medium uppercase tracking-[0.5px] text-on-surface-muted transition-colors hover:text-accent"
+                  >
+                    {c}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Instagram dentro del menú (también accesible en mobile) */}
+          {ig && (
+            <a
+              href={ig}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setMenuOpen(false)}
+              className="mt-2 block border-t border-line py-3 text-[14px] font-semibold uppercase tracking-[1px] text-on-surface-muted hover:text-accent"
+            >
+              INSTAGRAM
+            </a>
+          )}
+        </nav>
+      </aside>
     </header>
   );
 }
