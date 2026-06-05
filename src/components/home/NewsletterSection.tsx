@@ -24,6 +24,7 @@ export function NewsletterSection() {
       company_id: config.companyId,
       email: email.trim().toLowerCase(),
       name: name.trim() || null,
+      source: 'section',
     });
 
     if (error) {

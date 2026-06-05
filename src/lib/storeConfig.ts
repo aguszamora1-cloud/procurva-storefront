@@ -155,6 +155,23 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
       successMessage: firstStr(s.newsletter_config?.success_message) || '¡Gracias por suscribirte!',
     },
 
+    newsletterPopup: (() => {
+      const p = s.newsletter_popup ?? {};
+      return {
+        enabled: bool(p.enabled, false),
+        title: firstStr(p.title) || '10% OFF EN TU PRIMERA COMPRA',
+        subtitle: firstStr(p.subtitle) || 'Sumate a la comunidad',
+        buttonText: firstStr(p.button_text) || 'QUIERO MI 10% OFF',
+        successMessage: firstStr(p.success_message) || '¡Listo! Revisá tu email',
+        askName: bool(p.ask_name, true),
+        delaySeconds: typeof p.delay_seconds === 'number' && p.delay_seconds >= 0 ? p.delay_seconds : 5,
+        once: bool(p.once, true),
+        bgColor: firstStr(p.bg_color) || '#FFFFFF',
+        buttonColor: firstStr(p.button_color) || '#000000',
+        footerText: firstStr(p.footer_text) || 'Vas a recibir un correo para validar tu email',
+      };
+    })(),
+
     promoBanner: {
       enabled: bool(s.promo_banner?.enabled, false),
       text: str(s.promo_banner?.text),

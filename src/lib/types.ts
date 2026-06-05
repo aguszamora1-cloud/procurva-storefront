@@ -174,6 +174,20 @@ export interface RawCatalogSettings {
     button_text?: string;
     success_message?: string;
   };
+  // Newsletter — popup de captura (Extra PRO).
+  newsletter_popup?: {
+    enabled?: boolean;
+    title?: string;
+    subtitle?: string;
+    button_text?: string;
+    success_message?: string;
+    ask_name?: boolean;
+    delay_seconds?: number;
+    once?: boolean;
+    bg_color?: string;
+    button_color?: string;
+    footer_text?: string;
+  };
   // Franja promocional (PRO) con countdown.
   promo_banner?: {
     enabled?: boolean;
@@ -284,6 +298,20 @@ export interface StoreConfig {
     subtitle: string;
     buttonText: string;
     successMessage: string;
+  };
+  // Newsletter — popup de captura (Extra PRO), con defaults aplicados.
+  newsletterPopup: {
+    enabled: boolean;
+    title: string;
+    subtitle: string;
+    buttonText: string;
+    successMessage: string;
+    askName: boolean;
+    delaySeconds: number;
+    once: boolean;
+    bgColor: string;
+    buttonColor: string;
+    footerText: string;
   };
   // Franja promocional (PRO) con countdown.
   promoBanner: {

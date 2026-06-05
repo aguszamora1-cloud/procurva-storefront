@@ -3,6 +3,7 @@ import { useStore } from '@/context/StoreProvider';
 import { AnnouncementBar } from './AnnouncementBar';
 import { Navbar } from './Navbar';
 import { PromoBanner } from './PromoBanner';
+import { NewsletterPopup } from './NewsletterPopup';
 import { Footer } from './Footer';
 import { CartDrawer } from './CartDrawer';
 
@@ -26,6 +27,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
       <Footer />
       <CartDrawer />
+      <NewsletterPopup />
     </div>
   );
 }
