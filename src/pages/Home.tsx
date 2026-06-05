@@ -6,6 +6,7 @@ import { TrustBadges } from '@/components/TrustBadges';
 import { CategoriesSection } from '@/components/home/CategoriesSection';
 import { ProductsSection } from '@/components/home/ProductsSection';
 import { NewsletterSection } from '@/components/home/NewsletterSection';
+import { StoriesSection } from '@/components/home/StoriesSection';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
 
 export function Home() {
@@ -36,6 +37,8 @@ export function Home() {
           <TrustBadges />
         </div>
       )}
+
+      {config.isPro && config.sections.stories && <StoriesSection />}
 
       {config.sections.categories && <CategoriesSection products={products} />}
 

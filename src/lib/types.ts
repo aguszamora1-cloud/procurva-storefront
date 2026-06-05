@@ -51,6 +51,17 @@ export interface Banner {
   active: boolean | null;
 }
 
+/** Story destacada del home (Extra PRO). */
+export interface Story {
+  id: string;
+  company_id: string;
+  title: string;
+  image_url: string;
+  link_url: string | null;
+  order: number | null;
+  active: boolean | null;
+}
+
 /** catalog_settings crudo (JSONB). Todas las claves son opcionales. */
 export interface RawCatalogSettings {
   logo_url?: string;
