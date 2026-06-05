@@ -139,6 +139,7 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
         : [shippingTitle, 'Abonás al recibir', 'Pagás como quieras', 'Compra protegida'];
     })(),
     trustBadgesBgColor: firstStr(s.trust_badges_bg_color),
+    trustBadgesTextColor: firstStr(s.trust_badges_text_color) || '#000000',
 
     whatsapp: str(s.whatsapp),
     instagramUrl: instagram,

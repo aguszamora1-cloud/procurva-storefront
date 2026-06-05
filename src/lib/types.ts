@@ -153,6 +153,8 @@ export interface RawCatalogSettings {
   trust_badges?: Array<string | { icon?: string; text?: string }>;
   // Color de fondo de la barra de trust badges. Vacío = transparente.
   trust_badges_bg_color?: string;
+  // Color del texto e íconos de la barra de trust badges. Default #000000.
+  trust_badges_text_color?: string;
   // Social
   social_instagram?: string;
   instagram_url?: string;
@@ -284,6 +286,8 @@ export interface StoreConfig {
   trustBadgeLabels: string[];
   // Color de fondo de la barra de trust badges ('' = transparente).
   trustBadgesBgColor: string;
+  // Color del texto e íconos de la barra de trust badges (independiente de --color-text).
+  trustBadgesTextColor: string;
   // Social / contacto
   whatsapp: string;
   instagramUrl: string;

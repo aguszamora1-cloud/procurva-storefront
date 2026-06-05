@@ -62,6 +62,10 @@ interface Props {
 export function TrustBadges({ attached = false, background }: Props = {}) {
   const config = useStore();
   const labels = config.trustBadgeLabels;
+  // Color propio de la barra de confianza, independiente de --color-text. Se
+  // aplica vía style sólo a estos íconos/labels, así no afecta a ProductDetail
+  // ni al resto del storefront.
+  const textColor = config.trustBadgesTextColor;
 
   const grid = (
     <div
@@ -72,10 +76,11 @@ export function TrustBadges({ attached = false, background }: Props = {}) {
       {ICONS.map((icon, i) => (
         <div
           key={i}
+          style={{ color: textColor }}
           className="flex flex-col items-center border-line px-3 text-center odd:border-r md:border-r md:last:border-r-0"
         >
-          <span className="mb-2 text-text">{icon}</span>
-          <span className="text-[11px] font-medium uppercase leading-[1.35] tracking-[0.3px] text-muted md:text-[12px]">
+          <span className="mb-2">{icon}</span>
+          <span className="text-[11px] font-medium uppercase leading-[1.35] tracking-[0.3px] opacity-80 md:text-[12px]">
             {labels[i] ?? ''}
           </span>
         </div>
