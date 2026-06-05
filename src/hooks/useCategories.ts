@@ -56,10 +56,13 @@ export function useCategories(products: Product[]): {
     }
 
     if (order.length > 0) {
+      // Mostramos TODAS las categorías activas (visible !== false), tengan o no
+      // productos con stock. Las inactivas (visible === false) sí quedan ocultas.
+      // El count puede ser 0: la categoría se muestra igual (con mensaje de vacía
+      // en su página).
       return order
         .filter((o) => o.visible !== false)
-        .map((o) => ({ name: o.category_name, count: counts.get(o.category_name) ?? 0 }))
-        .filter((c) => c.count > 0);
+        .map((o) => ({ name: o.category_name, count: counts.get(o.category_name) ?? 0 }));
     }
 
     // Fallback: derivadas de productos, alfabético.

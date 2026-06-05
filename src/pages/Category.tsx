@@ -39,6 +39,10 @@ export function Category() {
         <ProductGridSkeleton />
       ) : error ? (
         <InlineError message="No pudimos cargar los productos." onRetry={reload} />
+      ) : filtered.length === 0 ? (
+        <p className="py-16 text-center text-[14px] text-subtle">
+          No hay productos disponibles en esta categoría.
+        </p>
       ) : (
         <ProductGrid products={filtered} />
       )}
