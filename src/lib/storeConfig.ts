@@ -39,7 +39,10 @@ const firstStr = (...vals: unknown[]): string => {
  */
 export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
   const s: RawCatalogSettings = company.catalog_settings ?? {};
-  const plan = (company.plan ?? 'starter').toString();
+  // Normalizamos el plan: trim + uppercase. El valor en la DB puede venir como
+  // 'PROFESIONAL', 'profesional' o con espacios/saltos ocultos; cualquiera de esos
+  // debe contar como PRO.
+  const plan = (company.plan ?? 'starter').toString().trim();
   const isPro = plan.toUpperCase() === 'PROFESIONAL';
 
   // Instagram puede venir como handle o URL en social_instagram, o como
