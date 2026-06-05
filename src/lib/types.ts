@@ -170,6 +170,17 @@ export interface RawCatalogSettings {
     button_text?: string;
     success_message?: string;
   };
+  // Franja promocional (PRO) con countdown.
+  promo_banner?: {
+    enabled?: boolean;
+    text?: string;
+    bg_color?: string;
+    text_color?: string;
+    countdown_enabled?: boolean;
+    countdown_end?: string;
+    ended_text?: string;
+    position?: 'top' | 'below_navbar';
+  };
 }
 
 /** Fila cruda de companies (campos que leemos). */
@@ -265,6 +276,17 @@ export interface StoreConfig {
     subtitle: string;
     buttonText: string;
     successMessage: string;
+  };
+  // Franja promocional (PRO) con countdown.
+  promoBanner: {
+    enabled: boolean;
+    text: string;
+    bgColor: string;
+    textColor: string;
+    countdownEnabled: boolean;
+    countdownEnd: string;
+    endedText: string;
+    position: 'top' | 'below_navbar';
   };
 }
 

@@ -150,6 +150,17 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
       buttonText: firstStr(s.newsletter_config?.button_text) || 'Suscribirme',
       successMessage: firstStr(s.newsletter_config?.success_message) || '¡Gracias por suscribirte!',
     },
+
+    promoBanner: {
+      enabled: bool(s.promo_banner?.enabled, false),
+      text: str(s.promo_banner?.text),
+      bgColor: firstStr(s.promo_banner?.bg_color) || '#E53E3E',
+      textColor: firstStr(s.promo_banner?.text_color) || '#FFFFFF',
+      countdownEnabled: bool(s.promo_banner?.countdown_enabled, false),
+      countdownEnd: str(s.promo_banner?.countdown_end),
+      endedText: str(s.promo_banner?.ended_text),
+      position: s.promo_banner?.position === 'below_navbar' ? 'below_navbar' : 'top',
+    },
   };
 }
 
