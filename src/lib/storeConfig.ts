@@ -140,6 +140,13 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
 
     gaId: str(s.ga_id),
     metaPixelId: str(s.meta_pixel_id),
+
+    newsletterConfig: {
+      title: firstStr(s.newsletter_config?.title) || 'Suscribite a nuestras novedades',
+      subtitle: firstStr(s.newsletter_config?.subtitle) || 'Recibí ofertas exclusivas y nuevos ingresos',
+      buttonText: firstStr(s.newsletter_config?.button_text) || 'Suscribirme',
+      successMessage: firstStr(s.newsletter_config?.success_message) || '¡Gracias por suscribirte!',
+    },
   };
 }
 

@@ -122,6 +122,13 @@ export interface RawCatalogSettings {
   // Pagos
   payment_methods_icons?: string[];
   mercadopago_enabled?: boolean;
+  // Newsletter (Extra PRO): textos del formulario.
+  newsletter_config?: {
+    title?: string;
+    subtitle?: string;
+    button_text?: string;
+    success_message?: string;
+  };
 }
 
 /** Fila cruda de companies (campos que leemos). */
@@ -211,6 +218,13 @@ export interface StoreConfig {
   // Analytics (vacío = no inyectar nada)
   gaId: string;
   metaPixelId: string;
+  // Newsletter (Extra PRO): textos del formulario, con defaults aplicados.
+  newsletterConfig: {
+    title: string;
+    subtitle: string;
+    buttonText: string;
+    successMessage: string;
+  };
 }
 
 /** Item del carrito (persistido en localStorage). */
