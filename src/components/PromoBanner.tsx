@@ -15,6 +15,13 @@ function TimeUnit({ value, label }: { value: number; label: string }) {
 
 const Sep = () => <span className="self-start pt-1 text-[15px] font-bold opacity-60 md:text-[17px]">:</span>;
 
+/** Clases del texto principal según el tamaño elegido en el admin. */
+const TEXT_SIZE_CLASSES: Record<'sm' | 'md' | 'lg', string> = {
+  sm: 'text-sm font-semibold',
+  md: 'text-base md:text-lg font-semibold',
+  lg: 'text-lg md:text-2xl font-bold',
+};
+
 /**
  * Franja promocional (PRO) para eventos de venta. Color de fondo/texto
  * configurables y countdown opcional en tiempo real. Al llegar a 0 muestra el
@@ -56,7 +63,7 @@ export function PromoBanner() {
     <div style={{ backgroundColor: promo.bgColor, color: promo.textColor }} className="w-full">
       <div className="mx-auto flex flex-col items-center justify-center gap-2 px-4 py-2 text-center md:flex-row md:gap-6">
         {displayText && (
-          <span className="text-[12px] font-semibold uppercase tracking-[0.5px] md:text-[14px]">{displayText}</span>
+          <span className={`uppercase tracking-[0.5px] ${TEXT_SIZE_CLASSES[promo.textSize]}`}>{displayText}</span>
         )}
         {showTimer && (
           <div className="flex items-start gap-1.5">

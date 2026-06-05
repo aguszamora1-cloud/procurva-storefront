@@ -198,6 +198,7 @@ export interface RawCatalogSettings {
     countdown_end?: string;
     ended_text?: string;
     position?: 'top' | 'below_navbar';
+    text_size?: 'sm' | 'md' | 'lg';
   };
 }
 
@@ -323,6 +324,7 @@ export interface StoreConfig {
     countdownEnd: string;
     endedText: string;
     position: 'top' | 'below_navbar';
+    textSize: 'sm' | 'md' | 'lg';
   };
 }
 

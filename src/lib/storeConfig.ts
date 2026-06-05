@@ -181,6 +181,10 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
       countdownEnd: str(s.promo_banner?.countdown_end),
       endedText: str(s.promo_banner?.ended_text),
       position: s.promo_banner?.position === 'below_navbar' ? 'below_navbar' : 'top',
+      textSize:
+        s.promo_banner?.text_size === 'sm' || s.promo_banner?.text_size === 'lg'
+          ? s.promo_banner.text_size
+          : 'md',
     },
   };
 }
