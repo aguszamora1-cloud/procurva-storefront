@@ -6,12 +6,12 @@ import { instagramHref } from '@/lib/storeConfig';
 
 const navLink = ({ isActive }: { isActive: boolean }) =>
   `text-[14px] tracking-[0.5px] font-semibold uppercase transition-colors ${
-    isActive ? 'text-text' : 'text-muted hover:text-accent'
+    isActive ? 'text-on-surface' : 'text-on-surface-muted hover:text-accent'
   }`;
 
 const mobileNavLink = ({ isActive }: { isActive: boolean }) =>
   `block py-3 text-[14px] tracking-[1px] font-semibold uppercase transition-colors ${
-    isActive ? 'text-text' : 'text-muted hover:text-accent'
+    isActive ? 'text-on-surface' : 'text-on-surface-muted hover:text-accent'
   }`;
 
 export function Navbar() {
@@ -56,7 +56,7 @@ export function Navbar() {
             type="button"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
-            className="flex h-9 w-9 items-center justify-center text-text hover:text-accent md:hidden"
+            className="flex h-9 w-9 items-center justify-center text-on-surface hover:text-accent md:hidden"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               {mobileOpen ? <path d="M6 6l12 12M6 18L18 6" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
@@ -82,7 +82,7 @@ export function Navbar() {
               loading="eager"
             />
           ) : (
-            <span className="truncate font-heading text-[18px] font-extrabold uppercase tracking-[1px] text-text md:text-[22px]">
+            <span className="truncate font-heading text-[18px] font-extrabold uppercase tracking-[1px] text-on-surface md:text-[22px]">
               {config.name}
             </span>
           )}
@@ -95,7 +95,7 @@ export function Navbar() {
               href={ig}
               target="_blank"
               rel="noreferrer"
-              className="hidden text-[14px] font-semibold uppercase tracking-[0.5px] text-muted transition-colors hover:text-accent md:inline"
+              className="hidden text-[14px] font-semibold uppercase tracking-[0.5px] text-on-surface-muted transition-colors hover:text-accent md:inline"
             >
               INSTAGRAM
             </a>
@@ -104,7 +104,7 @@ export function Navbar() {
             type="button"
             onClick={open}
             aria-label="Abrir carrito"
-            className="relative inline-flex items-center gap-2 text-[14px] font-semibold uppercase tracking-[0.5px] text-text transition-colors hover:text-accent"
+            className="relative inline-flex items-center gap-2 text-[14px] font-semibold uppercase tracking-[0.5px] text-on-surface transition-colors hover:text-accent"
           >
             <svg className="sm:hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
@@ -135,7 +135,7 @@ export function Navbar() {
                 href={ig}
                 target="_blank"
                 rel="noreferrer"
-                className="block border-t border-line py-3 text-[14px] font-semibold uppercase tracking-[1px] text-muted hover:text-accent"
+                className="block border-t border-line py-3 text-[14px] font-semibold uppercase tracking-[1px] text-on-surface-muted hover:text-accent"
               >
                 INSTAGRAM
               </a>

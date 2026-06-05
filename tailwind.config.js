@@ -17,6 +17,12 @@ export default {
         'line-soft': 'var(--color-border-soft)',
         'on-primary': 'var(--color-on-primary)',
         'on-accent': 'var(--color-on-accent)',
+        // Texto seguro sobre el fondo (--color-background) para componentes con
+        // fondo propio: cards, navbar. Nunca desaparece aunque el texto global
+        // no contraste con el fondo.
+        'on-surface': 'var(--color-on-surface)',
+        'on-surface-muted': 'var(--color-on-surface-muted)',
+        'on-surface-subtle': 'var(--color-on-surface-subtle)',
       },
       fontFamily: {
         heading: ['var(--font-heading)', 'system-ui', 'sans-serif'],

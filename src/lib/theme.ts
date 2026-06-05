@@ -23,6 +23,17 @@ export function contrastColor(bg: string): string {
   return luminance(bg) > 0.6 ? '#111111' : '#ffffff';
 }
 
+/**
+ * Color de texto SEGURO sobre un fondo: respeta el color configurado si
+ * contrasta lo suficiente con el fondo; si no (ej. texto blanco con fondo
+ * blanco), cae a un color legible derivado del fondo. Se usa en componentes con
+ * fondo propio (product cards, navbar) para que el texto nunca desaparezca,
+ * sin pisar elecciones de color legítimas (gris oscuro sobre blanco, etc.).
+ */
+export function safeText(text: string, bg: string): string {
+  return Math.abs(luminance(text) - luminance(bg)) >= 0.25 ? text : contrastColor(bg);
+}
+
 /** rgba() a partir de hex + alpha. */
 export function rgba(hex: string, alpha: number): string {
   const { r, g, b } = hexToRgb(hex);
@@ -50,6 +61,14 @@ export function applyTheme(config: StoreConfig): void {
   set('--color-subtle', rgba(config.colorText, 0.42)); // texto terciario (ink-500/700)
   set('--color-border', rgba(config.colorText, 0.12)); // bordes (ink-200)
   set('--color-border-soft', rgba(config.colorText, 0.07)); // bordes suaves (ink-100)
+
+  // Texto seguro para componentes con fondo propio (cards, navbar): contrasta
+  // siempre con --color-background, así los nombres de producto / links no
+  // desaparecen si el texto configurado no contrasta con el fondo.
+  const onSurface = safeText(config.colorText, config.colorBackground);
+  set('--color-on-surface', onSurface);
+  set('--color-on-surface-muted', rgba(onSurface, 0.62));
+  set('--color-on-surface-subtle', rgba(onSurface, 0.42));
 
   set('--font-heading', `'${config.fontHeading}', system-ui, sans-serif`);
   set('--font-body', `'${config.fontBody}', system-ui, sans-serif`);
