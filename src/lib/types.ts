@@ -145,6 +145,8 @@ export interface RawCatalogSettings {
   // Trust badges (etiquetas configurables; 4 textos).
   // Legacy: string[]. Nuevo (panel ProCurva): [{icon, text}].
   trust_badges?: Array<string | { icon?: string; text?: string }>;
+  // Color de fondo de la barra de trust badges. Vacío = transparente.
+  trust_badges_bg_color?: string;
   // Social
   social_instagram?: string;
   instagram_url?: string;
@@ -255,6 +257,8 @@ export interface StoreConfig {
   shippingMessage: string;
   // Trust badges (4 etiquetas)
   trustBadgeLabels: string[];
+  // Color de fondo de la barra de trust badges ('' = transparente).
+  trustBadgesBgColor: string;
   // Social / contacto
   whatsapp: string;
   instagramUrl: string;

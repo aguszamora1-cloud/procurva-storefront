@@ -50,10 +50,9 @@ export function Home() {
   // Las secciones PRO se gatean con isPro; las demás por su flag.
   const nodes: Record<string, ReactNode> = {
     hero: config.heroEnabled ? <Hero /> : null,
+    // Acoplada al hero (sin gap), como su parte inferior, con color de fondo configurable.
     trust_badges: config.sections.trustBadges ? (
-      <div className="mx-auto max-w-none px-6 pt-12 md:pt-16">
-        <TrustBadges />
-      </div>
+      <TrustBadges attached background={config.trustBadgesBgColor || undefined} />
     ) : null,
     categories: config.sections.categories ? <CategoriesSection products={products} /> : null,
     featured: config.sections.featured

@@ -51,12 +51,24 @@ const HandCoinsIcon = () => (
  */
 const ICONS: ReactNode[] = [<TruckIcon />, <HandCoinsIcon />, <CreditCardIcon />, <ShieldCheckIcon />];
 
-export function TrustBadges() {
+interface Props {
+  /** Variante acoplada al hero: banda full-width, sin borde superior, con color
+   *  de fondo configurable. Sin esta prop, render clásico (ej. detalle de producto). */
+  attached?: boolean;
+  /** Color de fondo de la banda (solo en variante attached). Vacío = transparente. */
+  background?: string;
+}
+
+export function TrustBadges({ attached = false, background }: Props = {}) {
   const config = useStore();
   const labels = config.trustBadgeLabels;
 
-  return (
-    <div className="grid grid-cols-2 gap-y-5 border-b border-t border-line py-6 md:grid-cols-4 md:gap-y-0">
+  const grid = (
+    <div
+      className={`grid grid-cols-2 gap-y-5 border-b border-line py-6 md:grid-cols-4 md:gap-y-0 ${
+        attached ? '' : 'border-t'
+      }`}
+    >
       {ICONS.map((icon, i) => (
         <div
           key={i}
@@ -68,6 +80,16 @@ export function TrustBadges() {
           </span>
         </div>
       ))}
+    </div>
+  );
+
+  // Uso clásico (detalle de producto): sin cambios.
+  if (!attached) return grid;
+
+  // Variante acoplada al hero: banda full-width con color de fondo configurable.
+  return (
+    <div className="w-full" style={background ? { backgroundColor: background } : undefined}>
+      <div className="mx-auto max-w-none px-6">{grid}</div>
     </div>
   );
 }
