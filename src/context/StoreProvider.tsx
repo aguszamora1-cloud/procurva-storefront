@@ -27,12 +27,13 @@ const COMPANY_COLUMNS =
   'id, name, plan, catalog_enabled, catalog_slug, catalog_settings, catalog_shipping_message, catalog_template_id';
 
 // Cache de config del tenant (stale-while-revalidate). Sirve la config cacheada
-// para el primer paint instantáneo y revalida en segundo plano. TTL 5 min:
-// dentro de la ventana no se vuelve a pedir; pasada, se revalida.
-const CACHE_TTL_MS = 5 * 60 * 1000;
-// v3: invalida caches viejos para que la config nueva (newsletter_popup, etc.)
-// se aplique sin esperar el TTL. (v2 fue el fix de normalización del plan.)
-const cacheKey = (slug: string) => `procurva_store_config_v3:${slug}`;
+// para el primer paint instantáneo y SIEMPRE revalida en segundo plano, así una
+// edición en el admin (texto de la franja promo, secciones, etc.) se refleja en
+// el próximo reload en vez de quedar pegada hasta que venza un TTL.
+// v4: invalida caches viejos (antes había un TTL de 5 min que evitaba revalidar
+// dentro de la ventana; eso dejaba ediciones recientes sin verse). v3 sumó
+// newsletter_popup; v2 fue el fix de normalización del plan.
+const cacheKey = (slug: string) => `procurva_store_config_v4:${slug}`;
 
 interface CacheEntry {
   ts: number;
@@ -86,11 +87,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       applyConfig(cached.config);
       setConfig(cached.config);
       setStatus('ready');
-      // Dentro del TTL: confiamos en la cache, no revalidamos.
-      if (Date.now() - cached.ts < CACHE_TTL_MS) return;
     }
 
-    // 2) Fetch / revalidación contra Supabase.
+    // 2) Revalidación contra Supabase. SIEMPRE corre: si había cache, el paint ya
+    //    ocurrió y este fetch sólo refresca (sin bloquear ni parpadear, porque
+    //    aplica los mismos valores cuando no cambió nada). Si no había cache, es
+    //    la carga inicial. Revalidar siempre evita que una edición del admin quede
+    //    "pegada" hasta vencer un TTL: el cambio aparece en el próximo reload.
     async function load() {
       try {
         const { data, error } = await supabase
