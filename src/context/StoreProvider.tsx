@@ -30,9 +30,9 @@ const COMPANY_COLUMNS =
 // para el primer paint instantáneo y revalida en segundo plano. TTL 5 min:
 // dentro de la ventana no se vuelve a pedir; pasada, se revalida.
 const CACHE_TTL_MS = 5 * 60 * 1000;
-// v2: invalida caches viejos que pudieran tener un isPro=false calculado antes del
-// fix de normalización del plan (trim + case-insensitive).
-const cacheKey = (slug: string) => `procurva_store_config_v2:${slug}`;
+// v3: invalida caches viejos para que la config nueva (newsletter_popup, etc.)
+// se aplique sin esperar el TTL. (v2 fue el fix de normalización del plan.)
+const cacheKey = (slug: string) => `procurva_store_config_v3:${slug}`;
 
 interface CacheEntry {
   ts: number;
