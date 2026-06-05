@@ -19,7 +19,7 @@ export function Category() {
   );
 
   return (
-    <div className="mx-auto max-w-[1400px] px-6 py-10 md:py-14">
+    <div className="mx-auto max-w-none px-6 py-10 md:py-14">
       <Seo
         title={`${category} · ${config.name}`}
         description={config.metaDescription || `${category} — productos de ${config.name}.`}

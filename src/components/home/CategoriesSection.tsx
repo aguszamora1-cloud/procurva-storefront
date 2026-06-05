@@ -16,7 +16,7 @@ export function CategoriesSection({ products }: { products: Product[] }) {
   const shown = categories.slice(0, 8);
 
   return (
-    <section className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
+    <section className="mx-auto max-w-none px-6 py-16 md:py-24">
       <SectionHeader label="Explorá" title="Categorías" linkTo="/categorias" linkText="Ver todas" />
       <div className={`grid gap-2 lg:gap-5 ${categoryGridCols(shown.length)}`}>
         {shown.map((cat) => {

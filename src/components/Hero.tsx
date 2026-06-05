@@ -68,7 +68,7 @@ export function Hero() {
     if (!hasText) return null;
     return (
       <section className="relative bg-primary text-[var(--color-on-primary)]">
-        <div className="mx-auto max-w-[1400px] px-6 py-24 md:px-12 md:py-40">
+        <div className="mx-auto max-w-none px-6 py-24 md:px-12 md:py-40">
           <h1 className="max-w-3xl font-heading text-[44px] font-extrabold uppercase leading-[1] tracking-[-0.5px] md:text-[88px]">
             {config.heroTitle}
           </h1>
@@ -131,7 +131,7 @@ export function Hero() {
         <>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-1/2 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 z-20">
-            <div className="mx-auto max-w-[1400px] px-6 py-12 md:px-12 md:py-16">
+            <div className="mx-auto max-w-none px-6 py-12 md:px-12 md:py-16">
               {showText && (
                 <div className="mb-5 max-w-2xl text-white">
                   {config.heroTitle && (

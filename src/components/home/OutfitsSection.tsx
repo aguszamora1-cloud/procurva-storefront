@@ -1,19 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SectionHeader } from '@/components/SectionHeader';
-import { useOutfits } from '@/hooks/useOutfits';
-import { useProducts } from '@/hooks/useProducts';
-import type { Outfit, Product } from '@/lib/types';
+import { useOutfits, type OutfitWithProducts } from '@/hooks/useOutfits';
 import { getPriceInfo, mainImage, formatPrice } from '@/lib/utils';
 
-interface ResolvedOutfit {
-  outfit: Outfit;
-  products: Product[];
-  total: number;
-}
+const outfitTotal = (o: OutfitWithProducts): number =>
+  o.products.reduce((sum, p) => sum + (getPriceInfo(p).mainPrice ?? 0), 0);
 
-function OutfitCard({ data, onOpen }: { data: ResolvedOutfit; onOpen: () => void }) {
-  const { outfit, products, total } = data;
+function OutfitCard({ outfit, onOpen }: { outfit: OutfitWithProducts; onOpen: () => void }) {
+  const { products } = outfit;
   return (
     <article className="flex flex-col border border-line bg-[var(--color-background)]">
       <button onClick={onOpen} className="group relative block aspect-[3/4] overflow-hidden bg-secondary">
@@ -40,7 +35,7 @@ function OutfitCard({ data, onOpen }: { data: ResolvedOutfit; onOpen: () => void
         <div className="mt-auto flex items-center justify-between gap-2 pt-1">
           <div>
             <p className="text-[11px] uppercase tracking-[0.5px] text-muted">{products.length} productos</p>
-            <p className="text-[16px] font-semibold text-text">{formatPrice(total)}</p>
+            <p className="text-[16px] font-semibold text-text">{formatPrice(outfitTotal(outfit))}</p>
           </div>
           <button onClick={onOpen} className="btn-accent px-4 py-2 text-[13px]">Ver outfit</button>
         </div>
@@ -49,8 +44,8 @@ function OutfitCard({ data, onOpen }: { data: ResolvedOutfit; onOpen: () => void
   );
 }
 
-function OutfitModal({ data, onClose }: { data: ResolvedOutfit; onClose: () => void }) {
-  const { outfit, products, total } = data;
+function OutfitModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClose: () => void }) {
+  const { products } = outfit;
   return (
     <div className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4" onClick={onClose}>
       <div
@@ -80,7 +75,7 @@ function OutfitModal({ data, onClose }: { data: ResolvedOutfit; onClose: () => v
 
         <div className="flex items-center justify-between border-t border-line px-5 py-4">
           <span className="text-[13px] uppercase tracking-[0.5px] text-muted">Total del outfit</span>
-          <span className="text-[18px] font-semibold text-text">{formatPrice(total)}</span>
+          <span className="text-[18px] font-semibold text-text">{formatPrice(outfitTotal(outfit))}</span>
         </div>
       </div>
     </div>
@@ -90,33 +85,23 @@ function OutfitModal({ data, onClose }: { data: ResolvedOutfit; onClose: () => v
 /** Sección de outfits / looks (Extra PRO). */
 export function OutfitsSection() {
   const { outfits } = useOutfits();
-  const { products } = useProducts();
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const resolved = useMemo<ResolvedOutfit[]>(() => {
-    const map = new Map(products.map((p) => [p.id, p]));
-    return outfits
-      .map((outfit) => {
-        const prods = outfit.items.map((it) => map.get(it.product_id)).filter((p): p is Product => Boolean(p));
-        const total = prods.reduce((sum, p) => sum + (getPriceInfo(p).mainPrice ?? 0), 0);
-        return { outfit, products: prods, total };
-      })
-      .filter((r) => r.products.length > 0);
-  }, [outfits, products]);
+  // Mostramos solo los outfits que tienen al menos un producto resoluble.
+  const visible = useMemo(() => outfits.filter((o) => o.products.length > 0), [outfits]);
+  if (visible.length === 0) return null;
 
-  if (resolved.length === 0) return null;
-
-  const open = resolved.find((r) => r.outfit.id === openId) ?? null;
+  const open = visible.find((o) => o.id === openId) ?? null;
 
   return (
-    <section className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
+    <section className="mx-auto w-full px-6 py-16 md:py-24">
       <SectionHeader label="Combiná tu look" title="Outfits" />
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-        {resolved.map((r) => (
-          <OutfitCard key={r.outfit.id} data={r} onOpen={() => setOpenId(r.outfit.id)} />
+        {visible.map((o) => (
+          <OutfitCard key={o.id} outfit={o} onOpen={() => setOpenId(o.id)} />
         ))}
       </div>
-      {open && <OutfitModal data={open} onClose={() => setOpenId(null)} />}
+      {open && <OutfitModal outfit={open} onClose={() => setOpenId(null)} />}
     </section>
   );
 }

@@ -25,7 +25,7 @@ export function StoriesSection() {
   };
 
   return (
-    <section className="mx-auto max-w-[1400px] px-6 pt-10 md:pt-14">
+    <section className="mx-auto max-w-none px-6 pt-10 md:pt-14">
       <div className="flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {stories.map((s) => (
           <button

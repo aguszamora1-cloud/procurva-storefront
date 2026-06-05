@@ -3,7 +3,7 @@ export function LoadingScreen() {
   return (
     <div className="min-h-screen bg-white">
       <div className="h-14 border-b border-neutral-200" />
-      <div className="mx-auto max-w-7xl px-4 py-8">
+      <div className="mx-auto max-w-none px-4 py-8">
         <div className="mb-8 h-72 w-full animate-pulse bg-neutral-100" />
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (

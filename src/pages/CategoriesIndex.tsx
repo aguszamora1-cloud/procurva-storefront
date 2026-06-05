@@ -14,7 +14,7 @@ export function CategoriesIndex() {
   const config = useStore();
 
   return (
-    <div className="mx-auto max-w-[1400px] px-6 py-10 md:py-14">
+    <div className="mx-auto max-w-none px-6 py-10 md:py-14">
       <Seo
         title={`Categorías · ${config.name}`}
         description={config.metaDescription || `Explorá las categorías de ${config.name}.`}

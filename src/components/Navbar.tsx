@@ -22,14 +22,12 @@ export function Navbar() {
 
   const ig = instagramHref(config.instagramUrl);
 
-  // Los links PRO (Outfits, Probador) sólo se muestran si la sección está
-  // habilitada en la config del tenant.
+  // Nota: los outfits se muestran como sección en el home; no hay página /outfits
+  // dedicada (la ruta no existe), por eso no se agrega al nav para evitar un 404.
   const navItems = [
     { label: 'INICIO', to: '/', end: true },
     { label: 'PRODUCTOS', to: '/productos', end: false },
     { label: 'CATEGORÍAS', to: '/categorias', end: false },
-    ...(config.isPro && config.sections.outfits ? [{ label: 'OUTFITS', to: '/outfits', end: false }] : []),
-    ...(config.isPro && config.sections.probador ? [{ label: 'PROBADOR', to: '/probador', end: false }] : []),
   ];
 
   useEffect(() => {
@@ -38,7 +36,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-background/90 backdrop-blur-md">
-      <div className="mx-auto grid max-w-[1400px] grid-cols-3 items-center gap-2 px-4 py-3 md:px-6">
+      <div className="mx-auto grid max-w-none grid-cols-3 items-center gap-2 px-4 py-3 md:px-6">
         {/* Izquierda: hamburguesa (mobile) + nav (desktop) */}
         <div className="flex items-center justify-start">
           <button
@@ -113,7 +111,7 @@ export function Navbar() {
       {/* Menú mobile */}
       {mobileOpen && (
         <div className="border-t border-line bg-background md:hidden">
-          <nav className="mx-auto max-w-[1400px] px-6 py-4">
+          <nav className="mx-auto max-w-none px-6 py-4">
             {navItems.map((item) => (
               <NavLink key={item.to} to={item.to} end={item.end} className={mobileNavLink}>
                 {item.label}

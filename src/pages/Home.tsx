@@ -15,6 +15,16 @@ export function Home() {
   const config = useStore();
   const { products, isLoading } = useProducts();
 
+  // Debug temporal: ver por consola el estado de los gates PRO del home.
+  console.debug('[Home] gates PRO', {
+    plan: config.plan,
+    isPro: config.isPro,
+    outfits: config.sections.outfits,
+    stories: config.sections.stories,
+    socialProof: config.sections.socialProof,
+    newsletter: config.sections.newsletter,
+  });
+
   // Destacados: sólo los marcados is_featured en ProCurva (máx 8).
   const featured = products.filter((p) => p.is_featured).slice(0, 8);
   // Nuevos ingresos: más recientes (ya vienen ordenados por created_at desc),
@@ -35,7 +45,7 @@ export function Home() {
       {config.heroEnabled && <Hero />}
 
       {config.sections.trustBadges && (
-        <div className="mx-auto max-w-[1400px] px-6 pt-12 md:pt-16">
+        <div className="mx-auto max-w-none px-6 pt-12 md:pt-16">
           <TrustBadges />
         </div>
       )}
@@ -47,7 +57,7 @@ export function Home() {
       {config.isPro && config.sections.outfits && <OutfitsSection />}
 
       {isLoading ? (
-        <div className="mx-auto max-w-[1400px] px-6 py-16 md:py-24">
+        <div className="mx-auto max-w-none px-6 py-16 md:py-24">
           <ProductGridSkeleton />
         </div>
       ) : (

@@ -53,7 +53,7 @@ export function Footer() {
 
   return (
     <footer className="bg-primary text-[var(--color-on-primary)]">
-      <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-10 px-6 py-14 md:grid-cols-4">
+      <div className="mx-auto grid max-w-none grid-cols-2 gap-10 px-6 py-14 md:grid-cols-4">
         {/* Marca */}
         <div className="col-span-2 md:col-span-1">
           {config.logoUrl ? (
@@ -99,7 +99,7 @@ export function Footer() {
 
       {/* Métodos de pago */}
       <div className="border-t border-[var(--color-on-primary)]/10">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-4 px-6 py-6">
+        <div className="mx-auto flex max-w-none flex-wrap items-center justify-between gap-4 px-6 py-6">
           <p className="text-[11px] font-semibold uppercase tracking-[1px] text-[var(--color-on-primary)]/50">Aceptamos</p>
           <div className="flex flex-wrap items-center gap-2">
             {payments.map((p) => (
@@ -116,7 +116,7 @@ export function Footer() {
 
       {/* Bottom bar */}
       <div className="border-t border-[var(--color-on-primary)]/10">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap justify-between gap-2 px-6 py-5 text-[11px] tracking-[0.5px] text-[var(--color-on-primary)]/50">
+        <div className="mx-auto flex max-w-none flex-wrap justify-between gap-2 px-6 py-5 text-[11px] tracking-[0.5px] text-[var(--color-on-primary)]/50">
           <span>© {new Date().getFullYear()} {config.name.toUpperCase()}</span>
           {config.showPoweredBy && (
             <a href="https://procurva.app" target="_blank" rel="noreferrer" className="transition-colors hover:text-accent">
