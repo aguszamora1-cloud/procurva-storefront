@@ -106,6 +106,9 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
       newsletter: bool(s.section_newsletter, false),
       trustBadges: bool(s.section_trust_badges, true),
     },
+    sectionsOrder: Array.isArray(s.sections_order)
+      ? s.sections_order.filter((k): k is string => typeof k === 'string')
+      : [],
 
     shippingPromiseEnabled: bool(s.shipping_promise_enabled, true),
     shippingPromiseTitle: shippingTitle,

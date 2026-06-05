@@ -136,6 +136,8 @@ export interface RawCatalogSettings {
   section_social_proof?: boolean;
   section_newsletter?: boolean;
   section_trust_badges?: boolean;
+  // Orden de las secciones del home (keys), configurado en el admin (drag & drop).
+  sections_order?: string[];
   // Shipping promise
   shipping_promise_enabled?: boolean;
   shipping_promise_title?: string;
@@ -244,6 +246,8 @@ export interface StoreConfig {
     newsletter: boolean;
     trustBadges: boolean;
   };
+  // Orden de las secciones del home (keys del admin). Vacío = orden por defecto.
+  sectionsOrder: string[];
   // Shipping
   shippingPromiseEnabled: boolean;
   shippingPromiseTitle: string;
