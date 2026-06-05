@@ -62,6 +62,18 @@ export interface Story {
   active: boolean | null;
 }
 
+/** Testimonio de cliente (Social Proof, Extra PRO). */
+export interface Testimonial {
+  id: string;
+  company_id: string;
+  customer_name: string;
+  customer_photo_url: string | null;
+  text: string;
+  rating: number | null;
+  order: number | null;
+  active: boolean | null;
+}
+
 /** catalog_settings crudo (JSONB). Todas las claves son opcionales. */
 export interface RawCatalogSettings {
   logo_url?: string;

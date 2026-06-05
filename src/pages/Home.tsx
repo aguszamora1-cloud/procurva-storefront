@@ -7,6 +7,7 @@ import { CategoriesSection } from '@/components/home/CategoriesSection';
 import { ProductsSection } from '@/components/home/ProductsSection';
 import { NewsletterSection } from '@/components/home/NewsletterSection';
 import { StoriesSection } from '@/components/home/StoriesSection';
+import { SocialProofSection } from '@/components/home/SocialProofSection';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
 
 export function Home() {
@@ -56,6 +57,8 @@ export function Home() {
           )}
         </>
       )}
+
+      {config.isPro && config.sections.socialProof && <SocialProofSection />}
 
       {config.isPro && config.sections.newsletter && <NewsletterSection />}
     </div>
