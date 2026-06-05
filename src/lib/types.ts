@@ -110,6 +110,8 @@ export interface RawCatalogSettings {
   section_title_align?: 'left' | 'center' | 'right';
   // Legacy: nombre viejo de la misma config. Se usa como fallback.
   category_title_align?: 'left' | 'center' | 'right';
+  // Modo de visualización de la sección de categorías en el home.
+  categories_display_mode?: 'grid' | 'carousel';
   tagline?: string;
   whatsapp?: string;
   top_bar_text?: string;
@@ -240,6 +242,8 @@ export interface StoreConfig {
   fontBody: string;
   // Alineación de los títulos de todas las secciones del home.
   sectionTitleAlign: 'left' | 'center' | 'right';
+  // Modo de visualización de la sección de categorías del home.
+  categoriesDisplayMode: 'grid' | 'carousel';
   // Top bar
   topBarText: string;
   topBarAnimated: boolean;

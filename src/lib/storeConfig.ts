@@ -79,6 +79,9 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
       return v === 'center' || v === 'right' ? v : 'left';
     })(),
 
+    // Modo de visualización de la sección de categorías. Default 'grid'.
+    categoriesDisplayMode: s.categories_display_mode === 'carousel' ? 'carousel' : 'grid',
+
     topBarText: str(s.top_bar_text),
     topBarAnimated: bool(s.top_bar_animated, false),
     tagline: str(s.tagline),
