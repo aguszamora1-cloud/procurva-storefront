@@ -72,6 +72,13 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
     fontHeading: firstStr(s.font_heading) || DEFAULTS.fontHeading,
     fontBody: firstStr(s.font_body) || DEFAULTS.fontBody,
 
+    // Alineación de títulos de secciones: key nueva (section_title_align) con
+    // fallback a la vieja (category_title_align) para no romper configs viejas.
+    sectionTitleAlign: ((): 'left' | 'center' | 'right' => {
+      const v = s.section_title_align ?? s.category_title_align;
+      return v === 'center' || v === 'right' ? v : 'left';
+    })(),
+
     topBarText: str(s.top_bar_text),
     topBarAnimated: bool(s.top_bar_animated, false),
     tagline: str(s.tagline),

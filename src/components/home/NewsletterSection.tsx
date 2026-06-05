@@ -10,6 +10,8 @@ import { supabase } from '@/lib/supabase';
 export function NewsletterSection() {
   const config = useStore();
   const { title, subtitle, buttonText, successMessage } = config.newsletterConfig;
+  const alignClass =
+    config.sectionTitleAlign === 'center' ? 'text-center' : config.sectionTitleAlign === 'right' ? 'text-right' : 'text-left';
 
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -42,7 +44,7 @@ export function NewsletterSection() {
 
   return (
     <section className="bg-primary text-[var(--color-on-primary)]">
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+      <div className={`mx-auto max-w-2xl px-4 py-16 ${alignClass}`}>
         <h2>{title}</h2>
         <p className="mt-2 text-sm opacity-80">{subtitle}</p>
 

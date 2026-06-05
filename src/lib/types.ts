@@ -106,6 +106,10 @@ export interface RawCatalogSettings {
   font_heading?: string;
   font_body?: string;
   theme?: 'dark' | 'light';
+  // Alineación de los títulos de todas las secciones del home.
+  section_title_align?: 'left' | 'center' | 'right';
+  // Legacy: nombre viejo de la misma config. Se usa como fallback.
+  category_title_align?: 'left' | 'center' | 'right';
   tagline?: string;
   whatsapp?: string;
   top_bar_text?: string;
@@ -234,6 +238,8 @@ export interface StoreConfig {
   // Tipografía
   fontHeading: string;
   fontBody: string;
+  // Alineación de los títulos de todas las secciones del home.
+  sectionTitleAlign: 'left' | 'center' | 'right';
   // Top bar
   topBarText: string;
   topBarAnimated: boolean;
