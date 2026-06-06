@@ -167,6 +167,22 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
     return map;
   }, [enriched]);
 
+  // Si una prenda tiene un solo color, lo pre-seleccionamos automáticamente.
+  useEffect(() => {
+    setSelectedColors((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const p of enriched) {
+        const cs = colorsByProduct[p.id] ?? [];
+        if (cs.length === 1 && !next[p.id]) {
+          next[p.id] = cs[0];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [colorsByProduct, enriched]);
+
   const { card, cash } = outfitPricing(outfit);
   const hasDual = cash > 0 && cash < card;
 

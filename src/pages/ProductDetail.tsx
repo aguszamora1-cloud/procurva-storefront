@@ -76,6 +76,11 @@ export function ProductDetail() {
     return () => obs.disconnect();
   }, [product?.id]);
 
+  // Si hay un solo color disponible, lo pre-seleccionamos (el usuario no tiene que tocarlo).
+  useEffect(() => {
+    if (colors.length === 1 && !selectedColor) setSelectedColor(colors[0]);
+  }, [colors, selectedColor]);
+
   if (isLoading) {
     return (
       <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 px-6 py-10 md:grid-cols-[1.2fr_1fr] md:gap-12">
