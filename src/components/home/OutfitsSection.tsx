@@ -4,7 +4,7 @@ import { useOutfits, type OutfitWithProducts } from '@/hooks/useOutfits';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
-import { colorToHex, formatPrice, getPriceInfo, mainImage, sortSizes } from '@/lib/utils';
+import { formatPrice, getPriceInfo, mainImage, sortSizes } from '@/lib/utils';
 import type { Product, Variant } from '@/lib/types';
 
 /**
@@ -106,10 +106,9 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
   const [variantsByProduct, setVariantsByProduct] = useState<Record<string, Variant[]>>({});
   const [loadingVariants, setLoadingVariants] = useState(true);
 
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  // Talle elegido POR producto: cada prenda del outfit puede llevar un talle distinto.
+  // Talle y color elegidos POR producto: cada prenda lleva su propia combinación.
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string | null>>({});
-  const [qty, setQty] = useState(1);
+  const [selectedColors, setSelectedColors] = useState<Record<string, string | null>>({});
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
@@ -147,58 +146,87 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
     [outfit.products, variantsByProduct],
   );
 
-  const colors = useMemo(() => {
-    const set = new Set<string>();
-    for (const p of enriched) for (const v of p.product_variants) if (v.color) set.add(v.color);
-    return Array.from(set);
-  }, [enriched]);
-
-  // Talles disponibles POR producto, filtrados por el color seleccionado.
+  // Talles y colores disponibles POR producto (lista completa; el stock se evalúa aparte).
   const sizesByProduct = useMemo(() => {
     const map: Record<string, string[]> = {};
     for (const p of enriched) {
       const set = new Set<string>();
-      for (const v of p.product_variants) {
-        if (!v.size) continue;
-        const colorOk = !selectedColor || !v.color || v.color === selectedColor;
-        if (colorOk) set.add(v.size);
-      }
+      for (const v of p.product_variants) if (v.size) set.add(v.size);
       map[p.id] = sortSizes(Array.from(set));
     }
     return map;
-  }, [enriched, selectedColor]);
+  }, [enriched]);
 
-  // Color por defecto: el primero disponible.
-  useEffect(() => {
-    if (selectedColor === null && colors.length > 0) setSelectedColor(colors[0]);
-  }, [colors, selectedColor]);
+  const colorsByProduct = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const p of enriched) {
+      const set = new Set<string>();
+      for (const v of p.product_variants) if (v.color) set.add(v.color);
+      map[p.id] = Array.from(set);
+    }
+    return map;
+  }, [enriched]);
 
   const { card, cash } = outfitPricing(outfit);
   const hasDual = cash > 0 && cash < card;
-  const cashOffPct = hasDual ? Math.round((1 - cash / card) * 100) : 0;
-  const installments = config.installmentsCount || 3;
 
-  // Cada producto que tenga talles debe tener uno elegido para poder agregar.
-  const anyNeedsSize = enriched.some((p) => (sizesByProduct[p.id]?.length ?? 0) > 0);
-  const allSizesChosen = enriched.every(
-    (p) => (sizesByProduct[p.id]?.length ?? 0) === 0 || Boolean(selectedSizes[p.id]),
-  );
-  const canAdd = allSizesChosen;
+  // ¿Hay stock para una combinación (talle, color) dentro de un producto?
+  const inStock = (p: Product, size: string | null, color: string | null): boolean =>
+    p.product_variants.some(
+      (v) => (!size || v.size === size) && (!color || v.color === color) && (v.stock ?? 0) > 0,
+    );
+
+  // Un talle está deshabilitado si no hay stock para ese talle con el color elegido del producto.
+  const sizeDisabled = (p: Product, size: string): boolean => {
+    const color = selectedColors[p.id] ?? null;
+    return !inStock(p, size, color);
+  };
+
+  // La combinación elegida del producto quedó sin stock (talle+color seleccionados pero agotados).
+  const comboOutOfStock = (p: Product): boolean => {
+    const size = selectedSizes[p.id] ?? null;
+    const color = selectedColors[p.id] ?? null;
+    const needSize = (sizesByProduct[p.id]?.length ?? 0) > 0;
+    const needColor = (colorsByProduct[p.id]?.length ?? 0) > 0;
+    if ((needSize && !size) || (needColor && !color)) return false; // todavía falta elegir
+    return !inStock(p, size, color);
+  };
+
+  // Cada producto tiene elegido lo que necesita (talle si tiene talles, color si tiene colores).
+  const allSelected = enriched.every((p) => {
+    const needSize = (sizesByProduct[p.id]?.length ?? 0) > 0;
+    const needColor = (colorsByProduct[p.id]?.length ?? 0) > 0;
+    return (!needSize || selectedSizes[p.id]) && (!needColor || selectedColors[p.id]);
+  });
+
+  // Listo para agregar: todo elegido y con stock real.
+  const allReady = enriched.every((p) => {
+    const size = selectedSizes[p.id] ?? null;
+    const color = selectedColors[p.id] ?? null;
+    const needSize = (sizesByProduct[p.id]?.length ?? 0) > 0;
+    const needColor = (colorsByProduct[p.id]?.length ?? 0) > 0;
+    if (needSize && !size) return false;
+    if (needColor && !color) return false;
+    return inStock(p, size, color);
+  });
+
+  const canAdd = allReady && !loadingVariants && !added;
 
   const handleAdd = () => {
     if (!canAdd) return;
     for (const p of enriched) {
       const size = selectedSizes[p.id] ?? null;
-      const v = resolveVariant(p, selectedColor, size);
+      const color = selectedColors[p.id] ?? null;
+      const v = resolveVariant(p, color, size);
       const info = getPriceInfo(p);
       addItem({
         product_id: p.id,
         variant_id: v?.id ?? p.id,
         name: p.name,
         size: v?.size ?? size ?? null,
-        color: v?.color ?? selectedColor ?? null,
+        color: v?.color ?? color ?? null,
         unit_price: info.mainPrice,
-        qty,
+        qty: 1,
         image_url: v?.image_url ?? mainImage(p),
       });
     }
@@ -206,143 +234,153 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
     window.setTimeout(() => onClose(), 1500);
   };
 
+  const actionLabel = added
+    ? '✓ Agregado al pedido'
+    : allSelected
+      ? 'Agregar al pedido'
+      : 'Elegí talle y color de cada prenda';
+  const actionBg = added ? '#27ae60' : allReady ? '#111' : '#999';
+
   return (
     <div
       className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(0,0,0,0.5)' }}
       onClick={onClose}
     >
       <div
-        className="flex max-h-[90vh] w-full flex-col overflow-y-auto text-white"
-        style={{ background: '#1a1a1a', borderRadius: '12px', maxWidth: '440px' }}
+        className="flex max-h-[90vh] w-full flex-col overflow-hidden"
+        style={{ background: '#fff', borderRadius: '12px', maxWidth: '520px', color: '#111' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 p-5">
+        <div className="flex items-start justify-between gap-3" style={{ padding: '24px 28px 16px' }}>
           <div>
-            <h2 className="text-[20px] font-bold uppercase" style={{ letterSpacing: '2px' }}>{outfit.name}</h2>
-            {outfit.description && <p className="mt-1 text-[13px] text-[#999]">{outfit.description}</p>}
+            <p className="text-[11px] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Configurar outfit</p>
+            <h2 className="mt-0.5 text-[22px] font-bold text-[#111]">{outfit.name}</h2>
           </div>
-          <button onClick={onClose} aria-label="Cerrar" className="-mr-1 text-[26px] leading-none text-[#999] hover:text-white">
-            &times;
+          <button onClick={onClose} className="text-[12px] font-semibold uppercase text-[#888] hover:text-[#111]" style={{ cursor: 'pointer' }}>
+            Cerrar
           </button>
         </div>
 
-        {/* Precios */}
-        <div className="grid grid-cols-2 gap-3 px-5">
-          <div style={{ background: '#222', borderRadius: '8px', padding: '14px 16px' }}>
-            <p className="text-[11px] text-[#999]">💳 Tarjeta</p>
-            <p className="mt-1 text-[22px] font-bold text-white">{formatPrice(card)}</p>
-            <p className="mt-0.5 text-[11px] text-[#999]">Hasta {installments} cuotas sin interés</p>
-          </div>
-          <div style={{ background: '#222', borderRadius: '8px', padding: '14px 16px' }}>
-            <p className="text-[11px] text-[#999]">💵 Efectivo / Transferencia</p>
-            <p className="mt-1 text-[22px] font-bold" style={{ color: '#2ecc71' }}>{formatPrice(hasDual ? cash : card)}</p>
-            {hasDual && <p className="mt-0.5 text-[11px]" style={{ color: '#2ecc71' }}>{cashOffPct}% OFF</p>}
-          </div>
-        </div>
-
-        {/* Selector de color */}
-        {colors.length > 0 && (
-          <div className="px-5 pt-5">
-            <p className="text-[12px] uppercase text-[#999]" style={{ letterSpacing: '1px' }}>Color</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {colors.map((c) => {
-                const selected = c === selectedColor;
-                return (
-                  <button
-                    key={c}
-                    onClick={() => {
-                      setSelectedColor(c);
-                      setSelectedSizes({});
-                    }}
-                    className="flex items-center gap-2"
-                    style={{
-                      background: '#2a2a2a',
-                      borderRadius: '8px',
-                      padding: '8px 14px',
-                      border: selected ? '2px solid #fff' : '2px solid transparent',
-                    }}
-                  >
-                    <span style={{ width: '16px', height: '16px', borderRadius: '9999px', background: colorToHex(c), border: '1px solid rgba(255,255,255,0.25)' }} />
-                    <span className="text-[12px] text-white">{c}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Selector de talle — un bloque por cada producto del outfit */}
-        {anyNeedsSize && (
-          <div className="px-5 pt-5">
-            <p className="text-[12px] uppercase text-[#999]" style={{ letterSpacing: '1px' }}>Talle</p>
-            <div className="mt-3 flex flex-col gap-4">
-              {enriched.map((p) => {
-                const productSizes = sizesByProduct[p.id] ?? [];
-                if (productSizes.length === 0) return null;
-                return (
-                  <div key={p.id}>
-                    <p className="text-[14px] font-bold text-white">{p.name}</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {productSizes.map((s) => {
-                        const selected = selectedSizes[p.id] === s;
-                        return (
-                          <button
-                            key={s}
-                            onClick={() => setSelectedSizes((prev) => ({ ...prev, [p.id]: s }))}
-                            className="text-[13px] font-semibold"
-                            style={{
-                              minWidth: '48px',
-                              height: '42px',
-                              borderRadius: '6px',
-                              background: selected ? '#fff' : 'transparent',
-                              color: selected ? '#000' : '#ccc',
-                              border: `1px solid ${selected ? '#fff' : '#555'}`,
-                            }}
-                          >
-                            {s}
-                          </button>
-                        );
-                      })}
-                    </div>
+        {/* Cuerpo scrolleable: un bloque por producto */}
+        <div className="flex-1 overflow-y-auto" style={{ padding: '0 28px' }}>
+          {loadingVariants ? (
+            <p className="py-8 text-center text-[13px] text-[#888]">Cargando opciones…</p>
+          ) : (
+            enriched.map((p) => {
+              const sizes = sizesByProduct[p.id] ?? [];
+              const colors = colorsByProduct[p.id] ?? [];
+              const info = getPriceInfo(p);
+              return (
+                <div key={p.id} style={{ borderBottom: '1px solid #eee', padding: '18px 0' }}>
+                  {/* Fila superior: thumb + nombre + precio */}
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={mainImage(p) ?? undefined}
+                      alt={p.name}
+                      style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px' }}
+                      className="shrink-0 bg-[#f3f3f3]"
+                    />
+                    <p className="flex-1 text-[14px] font-bold uppercase text-[#111]">{p.name}</p>
+                    <p className="text-[16px] font-bold text-[#111]">{formatPrice(info.mainPrice)}</p>
                   </div>
-                );
-              })}
-            </div>
-            {!allSizesChosen && (
-              <p className="mt-3 text-[12px]" style={{ color: '#e74c3c' }}>Seleccioná un talle para cada prenda</p>
-            )}
-          </div>
-        )}
 
-        {/* Selector de cantidad */}
-        <div className="px-5 pt-5">
-          <p className="text-[12px] uppercase text-[#999]" style={{ letterSpacing: '1px' }}>Cantidad</p>
-          <div className="mt-2 inline-flex items-center gap-3" style={{ background: '#2a2a2a', borderRadius: '8px', padding: '6px 10px' }}>
-            <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="flex h-8 w-8 items-center justify-center text-[18px] font-bold text-white disabled:opacity-30" disabled={qty <= 1} aria-label="Quitar uno">−</button>
-            <span className="w-6 text-center text-[15px] font-semibold text-white">{qty}</span>
-            <button onClick={() => setQty((q) => q + 1)} className="flex h-8 w-8 items-center justify-center text-[18px] font-bold text-white" aria-label="Agregar uno">+</button>
-          </div>
+                  {/* Talle */}
+                  {sizes.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-[11px] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Talle</p>
+                      <div className="mt-1.5 flex flex-wrap gap-2">
+                        {sizes.map((s) => {
+                          const selected = selectedSizes[p.id] === s;
+                          const disabled = sizeDisabled(p, s);
+                          return (
+                            <button
+                              key={s}
+                              onClick={() => !disabled && setSelectedSizes((prev) => ({ ...prev, [p.id]: s }))}
+                              disabled={disabled}
+                              className="text-[13px] font-semibold"
+                              style={{
+                                minWidth: '44px',
+                                height: '38px',
+                                borderRadius: '6px',
+                                background: selected && !disabled ? '#111' : '#fff',
+                                color: disabled ? '#ccc' : selected ? '#fff' : '#666',
+                                border: `1px solid ${disabled ? '#eee' : selected ? '#111' : '#ddd'}`,
+                                textDecoration: disabled ? 'line-through' : 'none',
+                                cursor: disabled ? 'not-allowed' : 'pointer',
+                              }}
+                            >
+                              {s}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Color */}
+                  {colors.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-[11px] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Color</p>
+                      <div className="mt-1.5 flex flex-wrap gap-2">
+                        {colors.map((c) => {
+                          const selected = selectedColors[p.id] === c;
+                          return (
+                            <button
+                              key={c}
+                              onClick={() => setSelectedColors((prev) => ({ ...prev, [p.id]: c }))}
+                              className="text-[12px] font-semibold uppercase"
+                              style={{
+                                padding: '6px 16px',
+                                borderRadius: '6px',
+                                background: selected ? '#111' : '#fff',
+                                color: selected ? '#fff' : '#666',
+                                border: `1px solid ${selected ? '#111' : '#ddd'}`,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {c}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {comboOutOfStock(p) && (
+                    <p className="mt-2 text-[12px] font-semibold" style={{ color: '#e74c3c' }}>SIN STOCK en esa variante</p>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
 
-        {/* Botón de acción */}
-        <div className="p-5 pt-6">
+        {/* Footer sticky: totales + acción */}
+        <div style={{ borderTop: '1px solid #eee', padding: '16px 28px 24px' }}>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase text-[#888]">Total tarjeta</span>
+            <span className="text-[18px] font-bold text-[#111]">{formatPrice(card)}</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase" style={{ color: '#27ae60' }}>Total efectivo / transferencia</span>
+            <span className="text-[18px] font-bold" style={{ color: '#27ae60' }}>{formatPrice(hasDual ? cash : card)}</span>
+          </div>
           <button
             onClick={handleAdd}
-            disabled={!canAdd || loadingVariants}
-            className="w-full text-[14px] font-bold uppercase transition-colors"
+            disabled={!canAdd}
+            className="mt-4 w-full text-[14px] font-bold uppercase transition-colors"
             style={{
-              background: added ? '#27ae60' : '#fff',
-              color: added ? '#fff' : '#000',
+              background: actionBg,
+              color: '#fff',
               letterSpacing: '2px',
               padding: '16px',
               borderRadius: '8px',
-              opacity: !canAdd || loadingVariants ? 0.4 : 1,
-              cursor: !canAdd || loadingVariants ? 'not-allowed' : 'pointer',
+              cursor: canAdd ? 'pointer' : 'not-allowed',
             }}
           >
-            {added ? '✓ Agregado al pedido' : 'Agregar al pedido'}
+            {actionLabel}
           </button>
         </div>
       </div>
