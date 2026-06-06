@@ -24,7 +24,7 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // NOTA SEGURIDAD: NO incluir la columna `settings` — contiene secretos (claves
 // AFIP, tokens Tiendanube) y anon ya no tiene acceso. El storefront no la usa.
 const COMPANY_COLUMNS =
-  'id, name, plan, catalog_enabled, catalog_slug, catalog_settings, catalog_shipping_message, catalog_template_id';
+  'id, name, plan, catalog_enabled, catalog_slug, catalog_settings, catalog_shipping_message';
 
 // Cache de config del tenant (stale-while-revalidate). Sirve la config cacheada
 // para el primer paint instantáneo y SIEMPRE revalida en segundo plano, así una
