@@ -410,14 +410,39 @@ export function OutfitsSection() {
   const { outfits } = useOutfits();
   const [openId, setOpenId] = useState<string | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  // Índice de la card más centrada — para resaltar el dot activo en mobile.
+  const [activeIndex, setActiveIndex] = useState(0);
 
   // Mostramos solo los outfits que tienen al menos un producto resoluble.
   const visible = useMemo(() => outfits.filter((o) => o.products.length > 0), [outfits]);
   if (visible.length === 0) return null;
 
   const open = visible.find((o) => o.id === openId) ?? null;
-  // Con 3 o menos entran en pantalla: se centran y no hace falta navegar.
+  // Con 3 o menos entran en pantalla (desktop): se centran y no hace falta navegar.
   const hasArrows = visible.length > 3;
+  // Hay más de uno: en mobile el carrusel es swipeable y mostramos dots.
+  const isCarousel = visible.length > 1;
+
+  // Paso de scroll (ancho de una card + gap), medido del primer hijo.
+  const stepWidth = (el: HTMLDivElement): number => {
+    const first = el.firstElementChild as HTMLElement | null;
+    if (!first) return el.clientWidth;
+    const styles = window.getComputedStyle(el);
+    const gap = parseFloat(styles.columnGap || styles.gap || '0') || 0;
+    return first.offsetWidth + gap;
+  };
+
+  const handleScroll = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const idx = Math.round(el.scrollLeft / stepWidth(el));
+    setActiveIndex(Math.max(0, Math.min(visible.length - 1, idx)));
+  };
+
+  const scrollToIndex = (i: number) => {
+    const el = scrollerRef.current;
+    if (el) el.scrollTo({ left: i * stepWidth(el), behavior: 'smooth' });
+  };
 
   const scrollByDir = (dir: number) => {
     const el = scrollerRef.current;
@@ -428,24 +453,27 @@ export function OutfitsSection() {
     <section className="mx-auto w-full px-6 py-16 md:py-24">
       <SectionHeader label="Combiná tu look" title="Outfits" />
       <div className="relative">
-        {/* Carrusel horizontal: 1 card en mobile, 2 en tablet, 3 en desktop. */}
+        {/* Carrusel horizontal swipeable: 85vw en mobile (con peek + snap), 2 en tablet, 3 en desktop.
+            touch-pan-x asegura que el swipe horizontal funcione en táctiles. */}
         <div
           ref={scrollerRef}
-          className={`flex gap-5 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-            hasArrows ? '' : 'justify-center'
+          onScroll={handleScroll}
+          style={{ touchAction: 'pan-x' }}
+          className={`flex touch-pan-x snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+            hasArrows ? '' : 'md:justify-center'
           }`}
         >
           {visible.map((o) => (
             <div
               key={o.id}
-              className="shrink-0 snap-start basis-full sm:basis-[calc((100%-1.25rem)/2)] lg:basis-[calc((100%-2.5rem)/3)]"
+              className="shrink-0 snap-center sm:snap-start basis-[85vw] sm:basis-[calc((100%-1.25rem)/2)] lg:basis-[calc((100%-2.5rem)/3)]"
             >
               <OutfitCard outfit={o} onOpen={() => setOpenId(o.id)} />
             </div>
           ))}
         </div>
 
-        {/* Flechas — sólo si hay más de 3 (scrolleable) y en desktop. */}
+        {/* Flechas — sólo si hay más de 3 (scrolleable) y en desktop (en mobile: dots + swipe). */}
         {hasArrows && (
           <>
             <button
@@ -467,6 +495,24 @@ export function OutfitsSection() {
           </>
         )}
       </div>
+
+      {/* Indicadores de paginación (dots) — sólo mobile, para señalar que hay más outfits. */}
+      {isCarousel && (
+        <div className="mt-5 flex justify-center gap-2 md:hidden">
+          {visible.map((o, i) => (
+            <button
+              key={o.id}
+              type="button"
+              aria-label={`Ir al outfit ${i + 1}`}
+              aria-current={i === activeIndex}
+              onClick={() => scrollToIndex(i)}
+              className={`h-2 rounded-full transition-all ${
+                i === activeIndex ? 'w-5 bg-text' : 'w-2 bg-line'
+              }`}
+            />
+          ))}
+        </div>
+      )}
       {open && <OutfitBuyModal outfit={open} onClose={() => setOpenId(null)} />}
     </section>
   );
