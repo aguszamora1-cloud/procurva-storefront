@@ -286,6 +286,35 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
                     <p className="text-[16px] font-bold text-[#111]">{formatPrice(info.mainPrice)}</p>
                   </div>
 
+                  {/* Color */}
+                  {colors.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-[11px] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Color</p>
+                      <div className="mt-1.5 flex flex-wrap gap-2">
+                        {colors.map((c) => {
+                          const selected = selectedColors[p.id] === c;
+                          return (
+                            <button
+                              key={c}
+                              onClick={() => setSelectedColors((prev) => ({ ...prev, [p.id]: c }))}
+                              className="text-[12px] font-semibold uppercase"
+                              style={{
+                                padding: '6px 16px',
+                                borderRadius: '6px',
+                                background: selected ? '#111' : '#fff',
+                                color: selected ? '#fff' : '#666',
+                                border: `1px solid ${selected ? '#111' : '#ddd'}`,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {c}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Talle */}
                   {sizes.length > 0 && (
                     <div className="mt-3">
@@ -312,35 +341,6 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
                               }}
                             >
                               {s}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Color */}
-                  {colors.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-[11px] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Color</p>
-                      <div className="mt-1.5 flex flex-wrap gap-2">
-                        {colors.map((c) => {
-                          const selected = selectedColors[p.id] === c;
-                          return (
-                            <button
-                              key={c}
-                              onClick={() => setSelectedColors((prev) => ({ ...prev, [p.id]: c }))}
-                              className="text-[12px] font-semibold uppercase"
-                              style={{
-                                padding: '6px 16px',
-                                borderRadius: '6px',
-                                background: selected ? '#111' : '#fff',
-                                color: selected ? '#fff' : '#666',
-                                border: `1px solid ${selected ? '#111' : '#ddd'}`,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {c}
                             </button>
                           );
                         })}
