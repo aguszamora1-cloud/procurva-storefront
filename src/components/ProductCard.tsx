@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/context/CartContext';
+import { useStoreType } from '@/context/StoreProvider';
+import { useWholesalePricing } from '@/context/WholesalePricingContext';
 import type { Product } from '@/lib/types';
 import { PriceDisplay } from './PriceDisplay';
+import { WholesalePriceTable } from './WholesalePriceTable';
 import { StoreImage } from './StoreImage';
 import { CardBadge } from './CardBadge';
 import {
@@ -21,6 +24,8 @@ export function ProductCard({ product, priority = false }: { product: Product; p
   const onSale = Boolean(comparePrice && compareDiscountPct > 0); // oferta vs precio de lista
   const { addItem } = useCart();
   const navigate = useNavigate();
+  const isWholesale = useStoreType() === 'wholesale';
+  const { curveTiers } = useWholesalePricing();
 
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -106,7 +111,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
 
         {/* Badges */}
         <div className="pointer-events-none absolute left-2 top-2 flex flex-col items-start gap-1.5 md:left-3 md:top-3">
-          {onSale && (
+          {onSale && !isWholesale && (
             <CardBadge bg="var(--color-accent)" color="var(--color-on-accent)">
               -{compareDiscountPct}%
             </CardBadge>
@@ -124,10 +129,31 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           <h3 className="mb-1.5 text-[14px] font-semibold leading-[1.3] text-on-surface transition-colors group-hover:text-accent md:text-[15px]">
             {product.name}
           </h3>
-          <PriceDisplay product={product} variant="card" />
+          {isWholesale ? (
+            <WholesalePriceTable
+              wholesalePrice={product.wholesale_price ?? 0}
+              tiers={curveTiers[product.id] ?? []}
+              variant="card"
+            />
+          ) : (
+            <PriceDisplay product={product} variant="card" />
+          )}
         </Link>
 
-        {/* Quick-add — sólo desktop (igual que RSW) */}
+        {/* Mayorista: el flujo suelto/curva vive en el detalle → CTA que navega ahí. */}
+        {isWholesale && (
+          <div className="mt-3">
+            <Link
+              to={`/producto/${product.id}`}
+              className="inline-flex w-full items-center justify-center gap-2 bg-primary py-[14px] text-[14px] font-bold uppercase tracking-[0.5px] text-on-primary transition-colors duration-200 hover:bg-accent hover:text-on-accent"
+            >
+              Comprar
+            </Link>
+          </div>
+        )}
+
+        {/* Quick-add retail — sólo desktop (igual que RSW) */}
+        {!isWholesale && (
         <div className="mt-3 hidden md:flex md:flex-col">
           {colors.length > 0 && (
             <div className="mb-2.5">
@@ -204,6 +230,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
             </button>
           </div>
         </div>
+        )}
       </div>
     </article>
   );

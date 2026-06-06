@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Eye, Ruler, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
-import { useStore } from '@/context/StoreProvider';
+import { useStore, useStoreType } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { Seo } from '@/components/Seo';
 import { ProductGallery } from '@/components/ProductGallery';
@@ -11,6 +11,7 @@ import { SizeSelector } from '@/components/SizeSelector';
 import { TrustBadges } from '@/components/TrustBadges';
 import { ShippingCalculator } from '@/components/ShippingCalculator';
 import { PriceDisplay } from '@/components/PriceDisplay';
+import { WholesalePurchasePanel } from '@/components/WholesalePurchasePanel';
 import { CardBadge } from '@/components/CardBadge';
 import { badgeColor, formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
@@ -27,6 +28,7 @@ export function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const { product, isLoading, error } = useProduct(id);
   const config = useStore();
+  const isWholesale = useStoreType() === 'wholesale';
   const { addItem } = useCart();
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -196,6 +198,10 @@ export function ProductDetail() {
             {product.name}
           </h1>
 
+          {isWholesale && <WholesalePurchasePanel product={product} images={images} />}
+
+          {!isWholesale && (
+          <>
           <PriceDisplay product={product} variant="detail" />
 
           {needSize && <SizeSelector sizes={sizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />}
@@ -275,6 +281,8 @@ export function ProductDetail() {
               </a>
             )}
           </div>
+          </>
+          )}
 
           <ShippingCalculator />
 
@@ -289,8 +297,8 @@ export function ProductDetail() {
         </div>
       </div>
 
-      {/* Sticky bar mobile */}
-      {showSticky && (
+      {/* Sticky bar mobile (solo retail; el panel mayorista tiene su propio CTA inline) */}
+      {!isWholesale && showSticky && (
         <div
           className="fixed inset-x-0 bottom-0 z-50 flex items-center gap-3 border-t border-line bg-background px-4 py-3 md:hidden"
           style={{ boxShadow: '0 -2px 10px rgba(0,0,0,0.08)' }}

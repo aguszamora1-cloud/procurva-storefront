@@ -28,7 +28,9 @@ function mapItems(items: CartItem[]) {
     color: i.color,
     quantity: i.qty,
     price: i.unit_price,
-    source: 'suelto',
+    // 'suelto' (retail y compra suelta mayorista) o 'curva' (mayorista por curva).
+    source: i.source ?? 'suelto',
+    ...(i.source === 'curva' && i.curves ? { curves: i.curves } : {}),
   }));
 }
 

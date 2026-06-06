@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { useStore } from '@/context/StoreProvider';
+import { useStore, useStoreType } from '@/context/StoreProvider';
 import { supabase } from '@/lib/supabase';
 import { Seo } from '@/components/Seo';
 import { Spinner } from '@/components/Spinner';
 import { formatPrice } from '@/lib/utils';
+import { groupCartItems } from '@/lib/cart';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, type CustomerInfo } from '@/lib/orders';
 
@@ -65,8 +66,11 @@ function toShippingOption(m: any): ShippingOption {
 }
 
 export function Checkout() {
-  const { items, subtotal } = useCart();
+  const { items, subtotal, itemCount } = useCart();
   const config = useStore();
+  const isWholesale = useStoreType() === 'wholesale';
+  const minQty = isWholesale ? config.minOrderQuantity : 0;
+  const minMissing = minQty > 0 ? Math.max(0, minQty - itemCount) : 0;
   const navigate = useNavigate();
 
   const [form, setForm] = useState<CustomerInfo>(emptyForm);
@@ -139,6 +143,7 @@ export function Checkout() {
   }
 
   function validate(requireEmail: boolean): string {
+    if (minMissing > 0) return `Pedido mínimo: ${minQty} unidades. Te faltan ${minMissing} unidades.`;
     if (!form.name.trim()) return 'Ingresá tu nombre.';
     if (!form.phone.trim()) return 'Ingresá tu teléfono.';
     if (requireEmail && !form.email.trim()) return 'Para pagar con MercadoPago necesitamos tu email.';
@@ -285,18 +290,30 @@ export function Checkout() {
         <aside className="h-fit border border-line p-6">
           <h2 className="mb-4 font-heading text-[18px] font-bold uppercase tracking-[0.5px] text-text">Tu pedido</h2>
           <div className="space-y-3 border-b border-line pb-4">
-            {items.map((item) => (
-              <div key={item.variant_id} className="flex items-start justify-between gap-3 text-[13px]">
+            {groupCartItems(items).map((row) => (
+              <div key={row.key} className="flex items-start justify-between gap-3 text-[13px]">
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-text">{item.qty}x {item.name}</p>
-                  {(item.color || item.size) && (
-                    <p className="text-[11px] text-subtle">{[item.color, item.size].filter(Boolean).join(' · ')}</p>
+                  <p className="truncate font-semibold text-text">
+                    {row.source === 'curva' ? row.detail : `${row.units}x ${row.name}`}
+                  </p>
+                  {row.source === 'curva' ? (
+                    <p className="text-[11px] text-subtle">{row.name} · {row.units} u.</p>
+                  ) : (
+                    row.detail && <p className="text-[11px] text-subtle">{row.detail}</p>
                   )}
                 </div>
-                <span className="shrink-0 font-bold text-text">{formatPrice(item.unit_price * item.qty)}</span>
+                <span className="shrink-0 font-bold text-text">{formatPrice(row.lineTotal)}</span>
               </div>
             ))}
           </div>
+
+          {minQty > 0 && (
+            <p className={`pt-3 text-[12px] font-semibold ${minMissing === 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+              {minMissing === 0
+                ? `✓ Mínimo de compra alcanzado (${minQty} u.)`
+                : `Pedido mínimo: ${minQty} unidades. Te faltan ${minMissing}.`}
+            </p>
+          )}
 
           {/* Subtotal + envío */}
           <div className="space-y-1 border-b border-line py-3">

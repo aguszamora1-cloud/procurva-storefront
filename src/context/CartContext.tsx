@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { CartItem } from '@/lib/types';
+import { cartLineKey } from '@/lib/cart';
 
 const CART_STORAGE_KEY = 'procurva_storefront_cart_v1';
 
@@ -18,8 +19,8 @@ interface CartContextValue {
   close: () => void;
   toggle: () => void;
   addItem: (item: CartItem) => void;
-  removeItem: (variantId: string) => void;
-  updateQty: (variantId: string, qty: number) => void;
+  removeItem: (lineKey: string) => void;
+  updateQty: (lineKey: string, qty: number) => void;
   clear: () => void;
   itemCount: number;
   subtotal: number;
@@ -48,25 +49,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback((item: CartItem) => {
     setItems((prev) => {
-      const idx = prev.findIndex((p) => p.variant_id === item.variant_id);
+      const key = cartLineKey(item);
+      const idx = prev.findIndex((p) => cartLineKey(p) === key);
       if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = { ...next[idx], qty: next[idx].qty + item.qty };
-        return next;
+        const copy = [...prev];
+        const cur = { ...copy[idx], qty: copy[idx].qty + item.qty };
+        // En curva, acumulamos también la cantidad de curvas para mostrar/agrupar bien.
+        if (item.source === 'curva') cur.curves = (copy[idx].curves ?? 0) + (item.curves ?? 0);
+        copy[idx] = cur;
+        return copy;
       }
       return [...prev, item];
     });
     setIsOpen(true);
   }, []);
 
-  const removeItem = useCallback((variantId: string) => {
-    setItems((prev) => prev.filter((p) => p.variant_id !== variantId));
+  const removeItem = useCallback((lineKey: string) => {
+    setItems((prev) => prev.filter((p) => cartLineKey(p) !== lineKey));
   }, []);
 
-  const updateQty = useCallback((variantId: string, qty: number) => {
+  const updateQty = useCallback((lineKey: string, qty: number) => {
     setItems((prev) =>
       prev
-        .map((p) => (p.variant_id === variantId ? { ...p, qty: Math.max(0, qty) } : p))
+        .map((p) => (cartLineKey(p) === lineKey ? { ...p, qty: Math.max(0, qty) } : p))
         .filter((p) => p.qty > 0),
     );
   }, []);

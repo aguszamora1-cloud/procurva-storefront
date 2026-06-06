@@ -64,7 +64,8 @@ export function Home() {
       config.sections.newArrivals && !isLoading
         ? <ProductsSection label="Recién llegados" title="Nuevos ingresos" products={newArrivals} linkTo="/productos" />
         : null,
-    outfits: config.isPro && config.sections.outfits ? <OutfitsSection /> : null,
+    // Outfits son exclusivos de la tienda minorista (no aplican a mayorista).
+    outfits: config.storeType !== 'wholesale' && config.isPro && config.sections.outfits ? <OutfitsSection /> : null,
     stories: config.isPro && config.sections.stories ? <StoriesSection /> : null,
     social_proof: config.isPro && config.sections.socialProof ? <SocialProofSection /> : null,
     newsletter: config.isPro && config.sections.newsletter ? <NewsletterSection /> : null,

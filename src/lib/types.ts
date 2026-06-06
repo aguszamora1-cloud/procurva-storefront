@@ -26,6 +26,8 @@ export interface Product {
   retail_price_transfer: number | null;
   retail_price_card: number | null;
   compare_at_price: number | null;
+  // Precio mayorista base ("por talle" / suelto). Solo se usa cuando storeType==='wholesale'.
+  wholesale_price: number | null;
   image_url: string | null;
   images: ProductImage[] | null;
   categories: string[] | null;
@@ -38,6 +40,20 @@ export interface Product {
   is_featured: boolean | null;
   created_at: string | null;
   product_variants: Variant[];
+}
+
+/** Precio por cantidad de curvas (mayorista). product_curve_price_tiers. */
+export interface CurvePriceTier {
+  product_id: string;
+  curve_quantity: number;
+  price_per_unit: number;
+}
+
+/** Composición de una curva: cuántas unidades de cada talle. product_curves. */
+export interface CurveDist {
+  product_id: string;
+  size: string;
+  quantity: number;
 }
 
 /** Banner del catálogo. */
@@ -116,6 +132,8 @@ export interface RawCatalogSettings {
   whatsapp?: string;
   // Modo de venta de la tienda (seam para la fase de render mayorista).
   sale_mode?: 'retail' | 'wholesale' | 'both';
+  // Mínimo de compra (unidades totales) para la tienda mayorista.
+  min_order_quantity?: number;
   top_bar_text?: string;
   top_bar_animated?: boolean;
   // Pagos / cuotas
@@ -254,6 +272,8 @@ export interface StoreConfig {
   // Tipo de tienda resuelta + modo de venta (seam para la fase de render mayorista).
   storeType: StoreType;
   saleMode: 'retail' | 'wholesale' | 'both';
+  // Mínimo de compra (unidades) en mayorista. 0 = sin mínimo.
+  minOrderQuantity: number;
   // Branding
   logoUrl: string;
   logoHeight: number;
@@ -377,4 +397,8 @@ export interface CartItem {
   unit_price: number;
   qty: number;
   image_url: string | null;
+  // Modo de compra mayorista. 'suelto' (default) o 'curva'. Retail no lo setea.
+  source?: 'suelto' | 'curva';
+  // Cantidad de curvas elegida (solo source==='curva'), para agrupar/mostrar en el carrito.
+  curves?: number;
 }

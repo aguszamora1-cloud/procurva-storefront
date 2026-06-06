@@ -4,9 +4,11 @@ import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { StoreImage } from './StoreImage';
 import { formatPrice } from '@/lib/utils';
+import { groupCartItems } from '@/lib/cart';
 
 export function CartDrawer() {
   const { items, isOpen, close, updateQty, removeItem, subtotal, itemCount } = useCart();
+  const rows = groupCartItems(items);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -55,34 +57,36 @@ export function CartDrawer() {
               </Link>
             </div>
           ) : (
-            items.map((item) => (
-              <div key={item.variant_id} className="flex gap-3 border-b border-line py-4">
+            rows.map((row) => (
+              <div key={row.key} className="flex gap-3 border-b border-line py-4">
                 <div className="h-24 w-20 shrink-0 overflow-hidden bg-secondary">
-                  {item.image_url && (
-                    <StoreImage src={item.image_url} alt={item.name} transformWidth={160} width={80} height={96} className="h-full w-full object-cover" />
+                  {row.image && (
+                    <StoreImage src={row.image} alt={row.name} transformWidth={160} width={80} height={96} className="h-full w-full object-cover" />
                   )}
                 </div>
                 <div className="flex flex-1 flex-col">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-[14px] font-semibold leading-snug text-text">{item.name}</p>
-                    <button aria-label="Eliminar" onClick={() => removeItem(item.variant_id)} className="text-subtle hover:text-accent">
+                    <p className="text-[14px] font-semibold leading-snug text-text">{row.name}</p>
+                    <button aria-label="Eliminar" onClick={() => row.removeKeys.forEach(removeItem)} className="text-subtle hover:text-accent">
                       <Trash2 size={16} />
                     </button>
                   </div>
-                  {(item.color || item.size) && (
-                    <p className="text-[12px] text-subtle">{[item.color, item.size].filter(Boolean).join(' · ')}</p>
-                  )}
+                  {row.detail && <p className="text-[12px] text-subtle">{row.detail}</p>}
                   <div className="mt-auto flex items-center justify-between pt-2">
-                    <div className="flex items-center border border-line">
-                      <button aria-label="Restar" className="px-2 py-1 hover:text-accent" onClick={() => updateQty(item.variant_id, item.qty - 1)}>
-                        <Minus size={14} />
-                      </button>
-                      <span className="min-w-[2rem] text-center text-[13px]">{item.qty}</span>
-                      <button aria-label="Sumar" className="px-2 py-1 hover:text-accent" onClick={() => updateQty(item.variant_id, item.qty + 1)}>
-                        <Plus size={14} />
-                      </button>
-                    </div>
-                    <span className="text-[14px] font-bold text-text">{formatPrice(item.unit_price * item.qty)}</span>
+                    {row.editable ? (
+                      <div className="flex items-center border border-line">
+                        <button aria-label="Restar" className="px-2 py-1 hover:text-accent" onClick={() => updateQty(row.removeKeys[0], row.units - 1)}>
+                          <Minus size={14} />
+                        </button>
+                        <span className="min-w-[2rem] text-center text-[13px]">{row.units}</span>
+                        <button aria-label="Sumar" className="px-2 py-1 hover:text-accent" onClick={() => updateQty(row.removeKeys[0], row.units + 1)}>
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-[12px] font-semibold uppercase tracking-wide text-subtle">{row.units} u.</span>
+                    )}
+                    <span className="text-[14px] font-bold text-text">{formatPrice(row.lineTotal)}</span>
                   </div>
                 </div>
               </div>

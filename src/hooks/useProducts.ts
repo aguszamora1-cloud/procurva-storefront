@@ -15,7 +15,7 @@ interface ProductsState {
 // aplicó, la query falla y caemos a COLS_BASE (sin romper el home).
 const COLS_BASE = `
   id, company_id, name, description,
-  retail_price, retail_price_transfer, retail_price_card, compare_at_price,
+  retail_price, retail_price_transfer, retail_price_card, compare_at_price, wholesale_price,
   image_url, images, categories,
   catalog_visible, catalog_badge_text, catalog_badge_color, catalog_badge_visible,
   pack_only_sale, created_at,
@@ -28,7 +28,7 @@ const PRODUCT_COLUMNS = `${COLS_BASE}, is_featured`;
  * catalog_visible y descarta productos sin stock (igual que PublicCatalog).
  */
 export function useProducts(): ProductsState {
-  const { companyId } = useStoreStatus();
+  const { companyId, storeType } = useStoreStatus();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,13 +43,16 @@ export function useProducts(): ProductsState {
     setError(null);
 
     (async () => {
+      // En mayorista filtramos por wholesale_price>0 (los productos pueden tener
+      // retail_price 0/null); en minorista, por retail_price>0 como siempre.
+      const priceCol = storeType === 'wholesale' ? 'wholesale_price' : 'retail_price';
       const runQuery = (columns: string) =>
         supabase
           .from('products')
           .select(columns)
           .eq('company_id', companyId)
           .eq('catalog_visible', true)
-          .gt('retail_price', 0)
+          .gt(priceCol, 0)
           .order('created_at', { ascending: false });
 
       let { data, error } = await runQuery(PRODUCT_COLUMNS);
@@ -75,7 +78,7 @@ export function useProducts(): ProductsState {
     return () => {
       cancelled = true;
     };
-  }, [companyId, reloadKey]);
+  }, [companyId, storeType, reloadKey]);
 
   return { products, isLoading, error, reload };
 }

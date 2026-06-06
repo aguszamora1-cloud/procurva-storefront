@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { StoreProvider, useStoreStatus } from '@/context/StoreProvider';
+import { WholesalePricingProvider } from '@/context/WholesalePricingContext';
 import { CartProvider } from '@/context/CartContext';
 import { Layout } from '@/components/Layout';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -32,6 +33,7 @@ function PageFallback() {
 function StoreRoutes() {
   return (
     <CartProvider>
+      <WholesalePricingProvider>
       <BrowserRouter>
         <Analytics />
         <Layout>
@@ -52,6 +54,7 @@ function StoreRoutes() {
           </Suspense>
         </Layout>
       </BrowserRouter>
+      </WholesalePricingProvider>
     </CartProvider>
   );
 }
