@@ -55,17 +55,19 @@ interface Props {
   /** Variante acoplada al hero: banda full-width, sin borde superior, con color
    *  de fondo configurable. Sin esta prop, render clásico (ej. detalle de producto). */
   attached?: boolean;
-  /** Color de fondo de la banda (solo en variante attached). Vacío = transparente. */
+  /** Color de fondo de la banda. Si no se pasa, se usa el de la config del negocio. */
   background?: string;
 }
 
 export function TrustBadges({ attached = false, background }: Props = {}) {
   const config = useStore();
   const labels = config.trustBadgeLabels;
-  // Color propio de la barra de confianza, independiente de --color-text. Se
-  // aplica vía style sólo a estos íconos/labels, así no afecta a ProductDetail
-  // ni al resto del storefront.
+  // Colores propios de la barra de confianza, independientes de --color-text.
+  // Se leen SIEMPRE de la config del negocio (mismos campos que usa el home),
+  // así el detalle de producto no queda con estilos hardcodeados.
   const textColor = config.trustBadgesTextColor;
+  // El prop tiene prioridad (lo pasa el home); si no, cae a la config. '' = transparente.
+  const bg = background ?? config.trustBadgesBgColor;
 
   const grid = (
     <div
@@ -88,12 +90,12 @@ export function TrustBadges({ attached = false, background }: Props = {}) {
     </div>
   );
 
-  // Uso clásico (detalle de producto): sin cambios.
-  if (!attached) return grid;
+  // Uso clásico (detalle de producto): banda con el fondo configurado por el negocio.
+  if (!attached) return bg ? <div style={{ backgroundColor: bg }}>{grid}</div> : grid;
 
   // Variante acoplada al hero: banda full-width con color de fondo configurable.
   return (
-    <div className="w-full" style={background ? { backgroundColor: background } : undefined}>
+    <div className="w-full" style={bg ? { backgroundColor: bg } : undefined}>
       <div className="mx-auto max-w-none px-6">{grid}</div>
     </div>
   );
