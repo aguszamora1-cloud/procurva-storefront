@@ -178,13 +178,13 @@ export function ProductDetail() {
         </nav>
       </div>
 
-      {/* Detalle 2 columnas */}
-      <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-8 px-6 pb-8 md:grid-cols-[1.2fr_1fr] md:gap-12">
-        <div className="md:sticky md:top-[24px] md:self-start">
+      {/* Detalle 2 columnas (flex para que la imagen quede sticky de forma fiable) */}
+      <div className="mx-auto flex max-w-[1200px] flex-col gap-8 px-6 pb-8 md:flex-row md:items-start md:gap-12">
+        <div className="md:sticky md:top-[24px] md:w-[54%] md:shrink-0 md:self-start">
           <ProductGallery images={images} alt={product.name} activeIndex={activeImageIndex} />
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 md:min-w-0 md:flex-1">
           {cats[0] && <p className="text-[11px] font-semibold uppercase tracking-[2px] text-accent">{cats[0]}</p>}
           {product.catalog_badge_visible && product.catalog_badge_text && (
             <CardBadge bg={badgeColor(product.catalog_badge_color)}>{product.catalog_badge_text}</CardBadge>
