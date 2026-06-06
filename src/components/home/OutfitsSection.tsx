@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useOutfits, type OutfitWithProducts } from '@/hooks/useOutfits';
 import { useStore } from '@/context/StoreProvider';
@@ -408,20 +409,63 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
 export function OutfitsSection() {
   const { outfits } = useOutfits();
   const [openId, setOpenId] = useState<string | null>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
   // Mostramos solo los outfits que tienen al menos un producto resoluble.
   const visible = useMemo(() => outfits.filter((o) => o.products.length > 0), [outfits]);
   if (visible.length === 0) return null;
 
   const open = visible.find((o) => o.id === openId) ?? null;
+  // Con 3 o menos entran en pantalla: se centran y no hace falta navegar.
+  const hasArrows = visible.length > 3;
+
+  const scrollByDir = (dir: number) => {
+    const el = scrollerRef.current;
+    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' });
+  };
 
   return (
     <section className="mx-auto w-full px-6 py-16 md:py-24">
       <SectionHeader label="Combiná tu look" title="Outfits" />
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-        {visible.map((o) => (
-          <OutfitCard key={o.id} outfit={o} onOpen={() => setOpenId(o.id)} />
-        ))}
+      <div className="relative">
+        {/* Carrusel horizontal: 1 card en mobile, 2 en tablet, 3 en desktop. */}
+        <div
+          ref={scrollerRef}
+          className={`flex gap-5 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+            hasArrows ? '' : 'justify-center'
+          }`}
+        >
+          {visible.map((o) => (
+            <div
+              key={o.id}
+              className="shrink-0 snap-start basis-full sm:basis-[calc((100%-1.25rem)/2)] lg:basis-[calc((100%-2.5rem)/3)]"
+            >
+              <OutfitCard outfit={o} onOpen={() => setOpenId(o.id)} />
+            </div>
+          ))}
+        </div>
+
+        {/* Flechas — sólo si hay más de 3 (scrolleable) y en desktop. */}
+        {hasArrows && (
+          <>
+            <button
+              type="button"
+              aria-label="Anterior"
+              onClick={() => scrollByDir(-1)}
+              className="absolute left-2 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-background text-on-surface shadow-card-hover transition-colors hover:text-accent md:flex"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Siguiente"
+              onClick={() => scrollByDir(1)}
+              className="absolute right-2 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-background text-on-surface shadow-card-hover transition-colors hover:text-accent md:flex"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </>
+        )}
       </div>
       {open && <OutfitBuyModal outfit={open} onClose={() => setOpenId(null)} />}
     </section>
