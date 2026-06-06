@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStore } from '@/context/StoreProvider';
+import { supabase } from '@/lib/supabase';
 import { Seo } from '@/components/Seo';
 import { Spinner } from '@/components/Spinner';
 import { formatPrice } from '@/lib/utils';
@@ -20,15 +21,91 @@ const emptyForm: CustomerInfo = {
   notes: '',
 };
 
+/** Método de envío normalizado que consume el checkout. */
+interface ShippingOption {
+  id: string;
+  name: string;
+  /** true si el método necesita dirección (no es retiro en local). */
+  requiresAddress: boolean;
+  /** Dirección del local (sólo retiro). */
+  pickupAddress?: string;
+  /** Costo: 0 = gratis, >0 = fijo, null = a coordinar con la tienda. */
+  cost: number | null;
+  /** Tiempo estimado de entrega (opcional). */
+  eta?: string;
+}
+
+// Métodos por defecto si el negocio no configuró ninguno (mismo criterio que el catálogo).
+const FALLBACK_METHODS: ShippingOption[] = [
+  { id: 'retiro', name: 'Retiro en local', requiresAddress: false, cost: 0, eta: 'Retirá en el local sin esperas' },
+  { id: 'envio', name: 'Envío a domicilio', requiresAddress: true, cost: null },
+];
+
+/** Mapea un método crudo (companies.settings.shippingMethods) a ShippingOption. */
+function toShippingOption(m: any): ShippingOption {
+  const isPickup = m.isPickup === true || m.type === 'retiro';
+  // Costo y tiempo estimado son opcionales en el modelo actual: se leen si el
+  // negocio los cargó; si no, retiro = gratis y envío = a coordinar.
+  const rawCost = m.cost ?? m.price ?? m.shipping_cost;
+  const cost = isPickup ? 0 : typeof rawCost === 'number' ? rawCost : null;
+  const rawEta = m.estimatedTime ?? m.eta ?? m.delivery_time ?? m.deliveryTime;
+  const eta = typeof rawEta === 'string' && rawEta.trim()
+    ? rawEta.trim()
+    : isPickup
+      ? 'Retirá en el local sin esperas'
+      : undefined;
+  return {
+    id: String(m.id ?? m.name),
+    name: String(m.name ?? 'Envío'),
+    requiresAddress: !isPickup,
+    pickupAddress: typeof m.pickupAddress === 'string' ? m.pickupAddress : undefined,
+    cost,
+    eta,
+  };
+}
+
 export function Checkout() {
   const { items, subtotal } = useCart();
   const config = useStore();
   const navigate = useNavigate();
 
   const [form, setForm] = useState<CustomerInfo>(emptyForm);
-  const [withShipping, setWithShipping] = useState(false);
+  const [floor, setFloor] = useState(''); // Piso / Depto (opcional)
+  const [methods, setMethods] = useState<ShippingOption[]>([]);
+  const [selectedMethodId, setSelectedMethodId] = useState('');
   const [loading, setLoading] = useState<null | 'mp' | 'wa'>(null);
   const [error, setError] = useState('');
+
+  // Carga dinámica de los métodos de envío configurados por el negocio.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error: rpcErr } = await supabase.rpc('get_catalog_shipping_methods', {
+        p_company_id: config.companyId,
+      });
+      if (cancelled) return;
+      if (rpcErr) console.error('[Checkout] error cargando métodos de envío:', rpcErr);
+      const raw = Array.isArray(data) ? data : [];
+      const active = raw.filter((m: any) => m && m.isActive !== false).map(toShippingOption);
+      const list = active.length > 0 ? active : FALLBACK_METHODS;
+      setMethods(list);
+      setSelectedMethodId((prev) => (prev && list.some((m) => m.id === prev) ? prev : list[0]?.id ?? ''));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [config.companyId]);
+
+  const selectedMethod = useMemo(
+    () => methods.find((m) => m.id === selectedMethodId) ?? null,
+    [methods, selectedMethodId],
+  );
+  const requiresAddress = selectedMethod?.requiresAddress ?? false;
+
+  // Costo conocido (número) vs "a coordinar" (null/sin método).
+  const shippingKnown = typeof selectedMethod?.cost === 'number';
+  const shippingCost = shippingKnown ? (selectedMethod!.cost as number) : 0;
+  const orderTotal = subtotal + shippingCost;
 
   const seo = <Seo title={`Finalizar compra · ${config.name}`} slug={config.slug} noindex />;
 
@@ -52,16 +129,25 @@ export function Checkout() {
 
   /** Datos del cliente listos para mandar (limpia campos de envío si es retiro). */
   function buildCustomer(): CustomerInfo {
-    return withShipping
-      ? form
-      : { ...form, address: '', city: '', province: '', zip: '' };
+    if (!requiresAddress) {
+      return { ...form, address: '', city: '', province: '', zip: '' };
+    }
+    const address = floor.trim()
+      ? `${form.address}${form.address ? ', ' : ''}${floor.trim()}`
+      : form.address;
+    return { ...form, address };
   }
 
   function validate(requireEmail: boolean): string {
     if (!form.name.trim()) return 'Ingresá tu nombre.';
     if (!form.phone.trim()) return 'Ingresá tu teléfono.';
     if (requireEmail && !form.email.trim()) return 'Para pagar con MercadoPago necesitamos tu email.';
-    if (withShipping && !form.address?.trim()) return 'Ingresá tu dirección de envío.';
+    if (requiresAddress) {
+      if (!form.address?.trim()) return 'Ingresá tu dirección de envío.';
+      if (!form.city?.trim()) return 'Ingresá la ciudad.';
+      if (!form.zip?.trim()) return 'Ingresá el código postal.';
+      if (!form.province?.trim()) return 'Ingresá la provincia.';
+    }
     return '';
   }
 
@@ -72,7 +158,7 @@ export function Checkout() {
     setError('');
     try {
       const customer = buildCustomer();
-      const orderId = await createCatalogOrder(config, items, subtotal, customer, 'MercadoPago');
+      const orderId = await createCatalogOrder(config, items, orderTotal, customer, 'MercadoPago');
       const initPoint = await startMercadoPagoCheckout(orderId);
       // Redirige a MercadoPago Checkout Pro. El carrito se limpia al volver a /checkout/success.
       window.location.href = initPoint;
@@ -86,7 +172,7 @@ export function Checkout() {
     const v = validate(false);
     if (v) { setError(v); return; }
     setLoading('wa');
-    const href = buildWhatsappOrderWithCustomer(config, items, subtotal, buildCustomer());
+    const href = buildWhatsappOrderWithCustomer(config, items, orderTotal, buildCustomer());
     if (!href) {
       setError('Esta tienda no tiene WhatsApp configurado.');
       setLoading(null);
@@ -99,6 +185,14 @@ export function Checkout() {
   // text-[16px] evita el zoom automático de iOS al enfocar un input (<16px).
   const inputCls =
     'w-full rounded-[8px] border border-line bg-background px-3.5 py-2.5 text-[16px] text-text outline-none transition-colors focus:border-accent';
+
+  const etaText = selectedMethod
+    ? selectedMethod.requiresAddress
+      ? selectedMethod.eta
+        ? `📦 Llega en ${selectedMethod.eta}`
+        : null
+      : `🏪 ${selectedMethod.eta || 'Retirá en el local sin esperas'}`
+    : null;
 
   return (
     <div className="mx-auto max-w-[1200px] px-6 py-10 md:py-14">
@@ -124,44 +218,58 @@ export function Checkout() {
             </label>
           </div>
 
-          {/* Envío / retiro */}
-          <div className="mt-6 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => { setWithShipping(false); setError(''); }}
-              className={`rounded-[8px] border px-4 py-2 text-[13px] font-semibold uppercase tracking-wide transition-colors ${
-                !withShipping ? 'border-accent bg-accent text-on-accent' : 'border-line text-muted hover:border-text'
-              }`}
-            >
-              Retiro en local
-            </button>
-            <button
-              type="button"
-              onClick={() => { setWithShipping(true); setError(''); }}
-              className={`rounded-[8px] border px-4 py-2 text-[13px] font-semibold uppercase tracking-wide transition-colors ${
-                withShipping ? 'border-accent bg-accent text-on-accent' : 'border-line text-muted hover:border-text'
-              }`}
-            >
-              Envío a domicilio
-            </button>
+          {/* Método de envío — dinámico desde los ajustes del negocio */}
+          <h2 className="mb-3 mt-8 font-heading text-[18px] font-bold uppercase tracking-[0.5px] text-text">Método de envío</h2>
+          <div className="flex flex-wrap gap-2">
+            {methods.map((m) => {
+              const selected = m.id === selectedMethodId;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => { setSelectedMethodId(m.id); setError(''); }}
+                  className={`rounded-[8px] border px-4 py-2 text-[13px] font-semibold uppercase tracking-wide transition-colors ${
+                    selected ? 'border-accent bg-accent text-on-accent' : 'border-line text-muted hover:border-text'
+                  }`}
+                >
+                  {m.name}
+                </button>
+              );
+            })}
           </div>
 
-          {withShipping && (
+          {/* Tiempo estimado / mensaje del método seleccionado */}
+          {etaText && <p className="mt-3 text-[13px] font-medium text-text">{etaText}</p>}
+
+          {/* Retiro en local: mostramos la dirección del local si está cargada */}
+          {selectedMethod && !requiresAddress && selectedMethod.pickupAddress && (
+            <p className="mt-1 text-[13px] text-muted">
+              <span className="text-subtle">Retirás en: </span>
+              <span className="font-medium text-text">{selectedMethod.pickupAddress}</span>
+            </p>
+          )}
+
+          {/* Campos de dirección: sólo si el método requiere envío a domicilio */}
+          {requiresAddress && (
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <label className="flex flex-col gap-1.5 sm:col-span-2">
                 <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Dirección *</span>
                 <input className={inputCls} value={form.address} onChange={set('address')} placeholder="Calle y número" />
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Ciudad</span>
+                <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Piso / Depto</span>
+                <input className={inputCls} value={floor} onChange={(e) => { setFloor(e.target.value); setError(''); }} placeholder="Opcional" />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Ciudad *</span>
                 <input className={inputCls} value={form.city} onChange={set('city')} />
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Provincia</span>
+                <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Provincia *</span>
                 <input className={inputCls} value={form.province} onChange={set('province')} />
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Código postal</span>
+                <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Código postal *</span>
                 <input className={inputCls} value={form.zip} onChange={set('zip')} inputMode="numeric" />
               </label>
             </div>
@@ -189,11 +297,32 @@ export function Checkout() {
               </div>
             ))}
           </div>
+
+          {/* Subtotal + envío */}
+          <div className="space-y-1 border-b border-line py-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] text-muted">Subtotal</span>
+              <span className="text-[13px] font-semibold text-text">{formatPrice(subtotal)}</span>
+            </div>
+            {shippingKnown && (
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] text-muted">Envío</span>
+                {shippingCost === 0 ? (
+                  <span className="text-[13px] font-bold text-[#27ae60]">GRATIS</span>
+                ) : (
+                  <span className="text-[13px] font-bold text-text">{formatPrice(shippingCost)}</span>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center justify-between py-4">
             <span className="text-[14px] text-muted">Total</span>
-            <span className="text-[22px] font-extrabold text-text">{formatPrice(subtotal)}</span>
+            <span className="text-[22px] font-extrabold text-text">{formatPrice(orderTotal)}</span>
           </div>
-          <p className="mb-4 text-[12px] text-subtle">El costo de envío se coordina con la tienda.</p>
+          {!shippingKnown && (
+            <p className="mb-4 text-[12px] text-subtle">El costo de envío se coordina con la tienda.</p>
+          )}
 
           {error && (
             <p className="mb-3 rounded-[8px] bg-red-50 px-3 py-2 text-[13px] font-medium text-red-700">{error}</p>
