@@ -10,7 +10,8 @@ import { ColorSelector } from '@/components/ColorSelector';
 import { SizeSelector } from '@/components/SizeSelector';
 import { TrustBadges } from '@/components/TrustBadges';
 import { PriceDisplay } from '@/components/PriceDisplay';
-import { formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
+import { CardBadge } from '@/components/CardBadge';
+import { badgeColor, formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
 import type { Variant } from '@/lib/types';
 
@@ -179,6 +180,9 @@ export function ProductDetail() {
 
         <div className="space-y-6">
           {cats[0] && <p className="text-[11px] font-semibold uppercase tracking-[2px] text-accent">{cats[0]}</p>}
+          {product.catalog_badge_visible && product.catalog_badge_text && (
+            <CardBadge bg={badgeColor(product.catalog_badge_color)}>{product.catalog_badge_text}</CardBadge>
+          )}
           <h1 className="font-heading text-[26px] font-bold uppercase leading-[1.15] tracking-[-0.3px] text-text md:text-[32px]">
             {product.name}
           </h1>
@@ -227,7 +231,9 @@ export function ProductDetail() {
           )}
 
           {stock !== null && stock > 0 && stock <= 5 && (
-            <p className="animate-fade-in text-[14px] font-semibold text-accent">¡Últimas {stock} unidades!</p>
+            <div className="animate-fade-in">
+              <CardBadge bg="#EF4444">⚡ ¡Últimas {stock} unidades!</CardBadge>
+            </div>
           )}
 
           <div className="space-y-3 pt-1">

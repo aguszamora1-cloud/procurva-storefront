@@ -4,6 +4,7 @@ import { useCart } from '@/context/CartContext';
 import type { Product } from '@/lib/types';
 import { PriceDisplay } from './PriceDisplay';
 import { StoreImage } from './StoreImage';
+import { CardBadge } from './CardBadge';
 import {
   badgeColor,
   colorToHex,
@@ -104,25 +105,16 @@ export function ProductCard({ product, priority = false }: { product: Product; p
         </Link>
 
         {/* Badges */}
-        <div className="pointer-events-none absolute left-2 top-2 flex flex-col items-start gap-1 md:left-3 md:top-3 md:gap-1.5">
+        <div className="pointer-events-none absolute left-2 top-2 flex flex-col items-start gap-1.5 md:left-3 md:top-3">
           {onSale && (
-            <span className="bg-primary px-2 py-[3px] text-[11px] font-bold uppercase leading-none text-on-primary md:px-3 md:py-1 md:text-[12px]">
+            <CardBadge bg="var(--color-accent)" color="var(--color-on-accent)">
               -{compareDiscountPct}%
-            </span>
+            </CardBadge>
           )}
           {showBadge && (
-            <span
-              className="px-2 py-[3px] text-[11px] font-bold uppercase leading-none text-white md:px-3 md:py-1 md:text-[12px]"
-              style={{ backgroundColor: badgeColor(product.catalog_badge_color) }}
-            >
-              {product.catalog_badge_text}
-            </span>
+            <CardBadge bg={badgeColor(product.catalog_badge_color)}>{product.catalog_badge_text}</CardBadge>
           )}
-          {lowStock && (
-            <span className="bg-accent px-2 py-[3px] text-[11px] font-bold uppercase leading-none text-on-accent md:px-3 md:py-1 md:text-[12px]">
-              Últimas unidades
-            </span>
-          )}
+          {lowStock && <CardBadge bg="#EF4444">⚡ Últimas unidades</CardBadge>}
         </div>
       </div>
 

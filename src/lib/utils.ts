@@ -167,17 +167,18 @@ export function colorToHex(color: string | null | undefined): string {
   return COLOR_HEX[key] ?? '#9ca3af';
 }
 
-/** Color del badge de catálogo → hex. */
+/** Color del badge de catálogo → hex. Tonos vibrantes para que resalten. */
 const BADGE_HEX: Record<string, string> = {
-  red: '#dc2626',
-  green: '#16a34a',
-  amber: '#f59e0b',
-  blue: '#2563eb',
+  red: '#EF4444',
+  green: '#10B981',
+  amber: '#F59E0B',
+  blue: '#2563EB',
   black: '#111111',
 };
 
+// Default verde vibrante: el badge más común es "NUEVO".
 export function badgeColor(name: string | null | undefined): string {
-  return BADGE_HEX[(name ?? 'black').toLowerCase()] ?? '#111111';
+  return BADGE_HEX[(name ?? 'green').toLowerCase()] ?? '#10B981';
 }
 
 /**

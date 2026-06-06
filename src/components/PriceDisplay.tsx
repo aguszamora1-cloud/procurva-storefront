@@ -53,7 +53,7 @@ export function PriceDisplay({ product, variant = 'card' }: Props) {
         <p className={`mt-1 flex items-center gap-1.5 text-muted ${detail ? 'text-[13px]' : 'text-[11px] md:text-[12px]'}`}>
           <span className="font-semibold text-text">{formatPrice(cashPrice as number)}</span>
           <span>efectivo o transferencia</span>
-          <span className="bg-accent px-1.5 py-0.5 text-[10px] font-bold leading-none text-on-accent">
+          <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold leading-none text-on-accent shadow-sm">
             -{cashDiscountPct}%
           </span>
         </p>
