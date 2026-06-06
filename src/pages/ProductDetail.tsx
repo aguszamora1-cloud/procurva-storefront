@@ -180,7 +180,7 @@ export function ProductDetail() {
 
       {/* Detalle 2 columnas */}
       <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-8 px-6 pb-8 md:grid-cols-[1.2fr_1fr] md:gap-12">
-        <div className="md:sticky md:top-[20px]">
+        <div className="md:sticky md:top-[24px] md:self-start">
           <ProductGallery images={images} alt={product.name} activeIndex={activeImageIndex} />
         </div>
 
