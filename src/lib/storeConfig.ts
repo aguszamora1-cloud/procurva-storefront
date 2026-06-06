@@ -1,4 +1,4 @@
-import type { CompanyRow, RawCatalogSettings, StoreConfig } from './types';
+import type { RawCatalogSettings, ResolvedStorefront, StoreConfig } from './types';
 
 // Defaults de la config del storefront. Coinciden con los defaults de la
 // migración 20260604_storefront_config.sql.
@@ -32,17 +32,20 @@ const firstStr = (...vals: unknown[]): string => {
 };
 
 /**
- * Normaliza una fila de `companies` (con su `catalog_settings` JSONB) a la
+ * Normaliza el payload saneado de la RPC `get_storefront_by_slug` /
+ * `verify_storefront_password` (con su `settings` JSONB por tienda) a la
  * StoreConfig que consume la UI. Reusa las claves que el panel "Catálogo
  * Online" de ProCurva ya escribe (logo_url, accent_color, banner_*, socials,
  * whatsapp, tagline) y completa con defaults las claves nuevas del storefront.
  */
-export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
-  const s: RawCatalogSettings = company.catalog_settings ?? {};
+export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig {
+  const s: RawCatalogSettings = resolved.settings ?? {};
+  const shippingMsg = resolved.shipping_message ?? '';
+  const companyName = resolved.name ?? 'Tienda';
   // Normalizamos el plan: trim + uppercase. El valor en la DB puede venir como
   // 'PROFESIONAL', 'profesional' o con espacios/saltos ocultos; cualquiera de esos
   // debe contar como PRO.
-  const plan = (company.plan ?? 'starter').toString().trim();
+  const plan = (resolved.plan ?? 'starter').toString().trim();
   const isPro = plan.toUpperCase() === 'PROFESIONAL';
 
   // Instagram puede venir como handle o URL en social_instagram, o como
@@ -52,13 +55,20 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
   const shippingTitle = firstStr(s.shipping_promise_title) || DEFAULTS.shippingPromiseTitle;
 
   return {
-    companyId: company.id,
-    name: company.name ?? 'Tienda',
+    companyId: resolved.company_id,
+    name: companyName,
     plan,
     isPro,
-    slug: company.catalog_slug ?? '',
+    slug: resolved.slug ?? '',
+    storeType: resolved.store_type === 'wholesale' ? 'wholesale' : 'retail',
+    saleMode:
+      s.sale_mode === 'wholesale' || s.sale_mode === 'both'
+        ? s.sale_mode
+        : resolved.store_type === 'wholesale'
+          ? 'wholesale'
+          : 'retail',
 
-    logoUrl: str(s.logo_url),
+    logoUrl: str(s.logo_url) || str(resolved.logo_url),
     logoHeight: typeof s.logo_height === 'number' ? s.logo_height : 40,
     faviconUrl: str(s.favicon_url),
 
@@ -123,9 +133,9 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
     shippingPromiseEnabled: bool(s.shipping_promise_enabled, true),
     shippingPromiseTitle: shippingTitle,
     shippingPromiseSubtitle:
-      firstStr(s.shipping_promise_subtitle, company.catalog_shipping_message) ||
+      firstStr(s.shipping_promise_subtitle, shippingMsg) ||
       DEFAULTS.shippingPromiseSubtitle,
-    shippingMessage: str(company.catalog_shipping_message),
+    shippingMessage: str(shippingMsg),
     // trust_badges puede venir legacy (string[]) o nuevo ([{icon, text}]).
     // Extraemos el texto de cada badge y descartamos vacíos.
     trustBadgeLabels: (() => {
@@ -152,7 +162,7 @@ export function normalizeStoreConfig(company: CompanyRow): StoreConfig {
     paymentMethods: Array.isArray(s.payment_methods_icons) ? s.payment_methods_icons : [],
     mercadopagoEnabled: bool(s.mercadopago_enabled, false),
 
-    metaTitle: firstStr(s.meta_title, company.name),
+    metaTitle: firstStr(s.meta_title, companyName),
     metaDescription: str(s.meta_description),
     ogImageUrl: firstStr(s.og_image_url, s.banner_url),
 

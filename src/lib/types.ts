@@ -114,6 +114,8 @@ export interface RawCatalogSettings {
   categories_display_mode?: 'grid' | 'carousel';
   tagline?: string;
   whatsapp?: string;
+  // Modo de venta de la tienda (seam para la fase de render mayorista).
+  sale_mode?: 'retail' | 'wholesale' | 'both';
   top_bar_text?: string;
   top_bar_animated?: boolean;
   // Pagos / cuotas
@@ -221,6 +223,27 @@ export interface CompanyRow {
   catalog_shipping_message: string | null;
 }
 
+/** Tipo de tienda resuelta por slug. */
+export type StoreType = 'retail' | 'wholesale';
+
+/**
+ * Payload saneado que devuelve la RPC `get_storefront_by_slug` (o
+ * `verify_storefront_password`). NUNCA incluye el password de la tienda.
+ * Para una tienda mayorista protegida sin desbloquear, `settings` viene null
+ * y sólo trae branding mínimo (`name`, `logo_url`) para pintar el gate.
+ */
+export interface ResolvedStorefront {
+  company_id: string;
+  name: string | null;
+  plan: string | null;
+  store_type: StoreType;
+  slug: string;
+  requires_password: boolean;
+  shipping_message: string | null;
+  logo_url?: string | null;
+  settings: RawCatalogSettings | null;
+}
+
 /** Config normalizada que consume toda la UI. */
 export interface StoreConfig {
   companyId: string;
@@ -228,6 +251,9 @@ export interface StoreConfig {
   plan: string;
   isPro: boolean;
   slug: string;
+  // Tipo de tienda resuelta + modo de venta (seam para la fase de render mayorista).
+  storeType: StoreType;
+  saleMode: 'retail' | 'wholesale' | 'both';
   // Branding
   logoUrl: string;
   logoHeight: number;

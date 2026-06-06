@@ -9,35 +9,47 @@ import { supabase } from '@/lib/supabase';
 import { resolveTenant } from '@/lib/tenant';
 import { normalizeStoreConfig } from '@/lib/storeConfig';
 import { applyDocumentMeta, applyTheme, loadFonts } from '@/lib/theme';
-import type { CompanyRow, StoreConfig } from '@/lib/types';
+import type { ResolvedStorefront, StoreConfig, StoreType } from '@/lib/types';
 
-type StoreStatus = 'loading' | 'ready' | 'not-found' | 'error';
+type StoreStatus = 'loading' | 'ready' | 'not-found' | 'error' | 'needs-password';
+
+/** Branding mínimo para pintar el gate de la tienda mayorista protegida. */
+interface PendingStore {
+  name: string;
+  logoUrl: string;
+}
 
 interface StoreContextValue {
   config: StoreConfig | null;
   companyId: string | null;
   status: StoreStatus;
+  storeType: StoreType | null;
+  requiresPassword: boolean;
+  slug: string | null;
+  // Datos para el gate (nombre + logo) cuando status === 'needs-password'.
+  pendingStore: PendingStore | null;
+  // El gate lo llama con el payload de verify_storefront_password tras un código OK.
+  unlock: (resolved: ResolvedStorefront) => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
-
-// NOTA SEGURIDAD: NO incluir la columna `settings` — contiene secretos (claves
-// AFIP, tokens Tiendanube) y anon ya no tiene acceso. El storefront no la usa.
-const COMPANY_COLUMNS =
-  'id, name, plan, catalog_enabled, catalog_slug, catalog_settings, catalog_shipping_message';
 
 // Cache de config del tenant (stale-while-revalidate). Sirve la config cacheada
 // para el primer paint instantáneo y SIEMPRE revalida en segundo plano, así una
 // edición en el admin (texto de la franja promo, secciones, etc.) se refleja en
 // el próximo reload en vez de quedar pegada hasta que venza un TTL.
-// v4: invalida caches viejos (antes había un TTL de 5 min que evitaba revalidar
-// dentro de la ventana; eso dejaba ediciones recientes sin verse). v3 sumó
+// v5: la resolución pasó a la RPC get_storefront_by_slug (dual store), la entrada
+// ahora guarda storeType/requiresPassword. v4 invalidó el TTL viejo; v3 sumó
 // newsletter_popup; v2 fue el fix de normalización del plan.
-const cacheKey = (slug: string) => `procurva_store_config_v4:${slug}`;
+const cacheKey = (slug: string) => `procurva_store_config_v5:${slug}`;
+// Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
+const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 
 interface CacheEntry {
   ts: number;
   config: StoreConfig;
+  storeType: StoreType;
+  requiresPassword: boolean;
 }
 
 function readCache(slug: string): CacheEntry | null {
@@ -52,11 +64,27 @@ function readCache(slug: string): CacheEntry | null {
   }
 }
 
-function writeCache(slug: string, config: StoreConfig): void {
+function writeCache(slug: string, entry: Omit<CacheEntry, 'ts'>): void {
   try {
-    sessionStorage.setItem(cacheKey(slug), JSON.stringify({ ts: Date.now(), config }));
+    sessionStorage.setItem(cacheKey(slug), JSON.stringify({ ts: Date.now(), ...entry }));
   } catch {
     /* sessionStorage lleno o no disponible: ignorar */
+  }
+}
+
+function isUnlocked(slug: string): boolean {
+  try {
+    return sessionStorage.getItem(unlockKey(slug)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function markUnlocked(slug: string): void {
+  try {
+    sessionStorage.setItem(unlockKey(slug), '1');
+  } catch {
+    /* ignorar */
   }
 }
 
@@ -70,6 +98,33 @@ function applyConfig(config: StoreConfig): void {
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<StoreConfig | null>(null);
   const [status, setStatus] = useState<StoreStatus>('loading');
+  const [storeType, setStoreType] = useState<StoreType | null>(null);
+  const [requiresPassword, setRequiresPassword] = useState(false);
+  const [slug, setSlug] = useState<string | null>(null);
+  const [pendingStore, setPendingStore] = useState<PendingStore | null>(null);
+
+  /** Normaliza un payload resuelto y lo aplica como config activa. */
+  function applyResolved(currentSlug: string, resolved: ResolvedStorefront): void {
+    const normalized = normalizeStoreConfig(resolved);
+    applyConfig(normalized);
+    writeCache(currentSlug, {
+      config: normalized,
+      storeType: resolved.store_type,
+      requiresPassword: resolved.requires_password,
+    });
+    setConfig(normalized);
+    setStoreType(resolved.store_type);
+    setRequiresPassword(resolved.requires_password);
+    setStatus('ready');
+  }
+
+  // El gate llama esto tras un código correcto (payload de verify_storefront_password).
+  function unlock(resolved: ResolvedStorefront): void {
+    const currentSlug = (resolved.slug || slug || '').toLowerCase();
+    if (currentSlug) markUnlocked(currentSlug);
+    setPendingStore(null);
+    applyResolved(currentSlug, resolved);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -79,29 +134,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setStatus('not-found');
       return;
     }
-    const slug = tenant.slug.toLowerCase();
+    const currentSlug = tenant.slug.toLowerCase();
+    setSlug(currentSlug);
 
     // 1) Servir desde cache para el primer paint (stale-while-revalidate).
-    const cached = readCache(slug);
+    const cached = readCache(currentSlug);
     if (cached) {
       applyConfig(cached.config);
       setConfig(cached.config);
+      setStoreType(cached.storeType);
+      setRequiresPassword(cached.requiresPassword);
       setStatus('ready');
     }
 
-    // 2) Revalidación contra Supabase. SIEMPRE corre: si había cache, el paint ya
-    //    ocurrió y este fetch sólo refresca (sin bloquear ni parpadear, porque
-    //    aplica los mismos valores cuando no cambió nada). Si no había cache, es
-    //    la carga inicial. Revalidar siempre evita que una edición del admin quede
-    //    "pegada" hasta vencer un TTL: el cambio aparece en el próximo reload.
+    // 2) Revalidación contra Supabase vía RPC. SIEMPRE corre.
     async function load() {
       try {
-        const { data, error } = await supabase
-          .from('companies')
-          .select(COMPANY_COLUMNS)
-          .eq('catalog_slug', slug)
-          .eq('catalog_enabled', true)
-          .maybeSingle();
+        const { data, error } = await supabase.rpc('get_storefront_by_slug', {
+          p_slug: currentSlug,
+        });
 
         if (cancelled) return;
 
@@ -111,16 +162,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (!cached) setStatus('error');
           return;
         }
-        if (!data) {
+
+        const resolved = data as ResolvedStorefront | null;
+        if (!resolved || !resolved.company_id) {
           setStatus('not-found');
           return;
         }
 
-        const normalized = normalizeStoreConfig(data as unknown as CompanyRow);
-        applyConfig(normalized);
-        writeCache(slug, normalized);
-        setConfig(normalized);
-        setStatus('ready');
+        setStoreType(resolved.store_type);
+        setRequiresPassword(resolved.requires_password);
+
+        // Tienda mayorista protegida: requiere código.
+        if (resolved.requires_password) {
+          // Ya desbloqueada en esta sesión y con config buena (cache): mantenerla.
+          if (isUnlocked(currentSlug) && (cached || config)) {
+            setStatus('ready');
+            return;
+          }
+          // Mostrar el gate con el branding mínimo que trae el payload.
+          setPendingStore({
+            name: resolved.name ?? 'Tienda',
+            logoUrl: resolved.logo_url ?? '',
+          });
+          setConfig(null);
+          setStatus('needs-password');
+          return;
+        }
+
+        // Tienda pública (minorista o mayorista pública): aplicar config completa.
+        applyResolved(currentSlug, resolved);
       } catch (e) {
         if (cancelled) return;
         console.error('[StoreProvider] unexpected', e);
@@ -132,11 +202,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <StoreContext.Provider
-      value={{ config, companyId: config?.companyId ?? null, status }}
+      value={{
+        config,
+        companyId: config?.companyId ?? null,
+        status,
+        storeType,
+        requiresPassword,
+        slug,
+        pendingStore,
+        unlock,
+      }}
     >
       {children}
     </StoreContext.Provider>
@@ -152,8 +232,31 @@ export function useStore(): StoreConfig {
 }
 
 /** Estado de carga del provider (para gating en App). */
-export function useStoreStatus(): { status: StoreStatus; companyId: string | null } {
+export function useStoreStatus(): {
+  status: StoreStatus;
+  companyId: string | null;
+  storeType: StoreType | null;
+  requiresPassword: boolean;
+  slug: string | null;
+  pendingStore: PendingStore | null;
+  unlock: (resolved: ResolvedStorefront) => void;
+} {
   const ctx = useContext(StoreContext);
   if (!ctx) throw new Error('useStoreStatus must be used within StoreProvider');
-  return { status: ctx.status, companyId: ctx.companyId };
+  return {
+    status: ctx.status,
+    companyId: ctx.companyId,
+    storeType: ctx.storeType,
+    requiresPassword: ctx.requiresPassword,
+    slug: ctx.slug,
+    pendingStore: ctx.pendingStore,
+    unlock: ctx.unlock,
+  };
+}
+
+/** Tipo de tienda resuelta (seam para el render mayorista). */
+export function useStoreType(): StoreType | null {
+  const ctx = useContext(StoreContext);
+  if (!ctx) throw new Error('useStoreType must be used within StoreProvider');
+  return ctx.storeType;
 }

@@ -9,6 +9,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Analytics } from '@/components/Analytics';
 import { StoreNotFound } from '@/pages/StoreNotFound';
 import { RouteNotFound } from '@/pages/RouteNotFound';
+import { WholesalePasswordGate } from '@/pages/WholesalePasswordGate';
 
 // Code-splitting: cada página se carga bajo demanda (lazy) para reducir el
 // bundle inicial. La navegación dispara la descarga del chunk de la página.
@@ -60,6 +61,7 @@ function Gate() {
   if (status === 'loading') return <LoadingScreen />;
   if (status === 'not-found') return <StoreNotFound />;
   if (status === 'error') return <ErrorScreen />;
+  if (status === 'needs-password') return <WholesalePasswordGate />;
   return <StoreRoutes />;
 }
 
