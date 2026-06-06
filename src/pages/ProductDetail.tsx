@@ -9,6 +9,7 @@ import { ProductGallery } from '@/components/ProductGallery';
 import { ColorSelector } from '@/components/ColorSelector';
 import { SizeSelector } from '@/components/SizeSelector';
 import { TrustBadges } from '@/components/TrustBadges';
+import { ShippingCalculator } from '@/components/ShippingCalculator';
 import { PriceDisplay } from '@/components/PriceDisplay';
 import { CardBadge } from '@/components/CardBadge';
 import { badgeColor, formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
@@ -266,6 +267,8 @@ export function ProductDetail() {
               </a>
             )}
           </div>
+
+          <ShippingCalculator />
 
           {config.sections.trustBadges && <TrustBadges />}
 
