@@ -32,7 +32,7 @@ function OutfitCard({ outfit, onOpen }: { outfit: OutfitWithProducts; onOpen: ()
 
   return (
     <article className="flex flex-col border border-line bg-[var(--color-background)]">
-      <button onClick={onOpen} className="group relative block aspect-[3/4] overflow-hidden bg-secondary">
+      <button onClick={onOpen} className="group relative block aspect-[4/5] overflow-hidden bg-secondary">
         {outfit.image_url ? (
           <img src={outfit.image_url} alt={outfit.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
         ) : (
