@@ -107,7 +107,8 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
   const [loadingVariants, setLoadingVariants] = useState(true);
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  // Talle elegido POR producto: cada prenda del outfit puede llevar un talle distinto.
+  const [selectedSizes, setSelectedSizes] = useState<Record<string, string | null>>({});
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
@@ -152,16 +153,19 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
     return Array.from(set);
   }, [enriched]);
 
-  const sizes = useMemo(() => {
-    const set = new Set<string>();
+  // Talles disponibles POR producto, filtrados por el color seleccionado.
+  const sizesByProduct = useMemo(() => {
+    const map: Record<string, string[]> = {};
     for (const p of enriched) {
+      const set = new Set<string>();
       for (const v of p.product_variants) {
         if (!v.size) continue;
         const colorOk = !selectedColor || !v.color || v.color === selectedColor;
         if (colorOk) set.add(v.size);
       }
+      map[p.id] = sortSizes(Array.from(set));
     }
-    return sortSizes(Array.from(set));
+    return map;
   }, [enriched, selectedColor]);
 
   // Color por defecto: el primero disponible.
@@ -174,19 +178,24 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
   const cashOffPct = hasDual ? Math.round((1 - cash / card) * 100) : 0;
   const installments = config.installmentsCount || 3;
 
-  const needSize = sizes.length > 0;
-  const canAdd = !needSize || Boolean(selectedSize);
+  // Cada producto que tenga talles debe tener uno elegido para poder agregar.
+  const anyNeedsSize = enriched.some((p) => (sizesByProduct[p.id]?.length ?? 0) > 0);
+  const allSizesChosen = enriched.every(
+    (p) => (sizesByProduct[p.id]?.length ?? 0) === 0 || Boolean(selectedSizes[p.id]),
+  );
+  const canAdd = allSizesChosen;
 
   const handleAdd = () => {
     if (!canAdd) return;
     for (const p of enriched) {
-      const v = resolveVariant(p, selectedColor, selectedSize);
+      const size = selectedSizes[p.id] ?? null;
+      const v = resolveVariant(p, selectedColor, size);
       const info = getPriceInfo(p);
       addItem({
         product_id: p.id,
         variant_id: v?.id ?? p.id,
         name: p.name,
-        size: v?.size ?? selectedSize ?? null,
+        size: v?.size ?? size ?? null,
         color: v?.color ?? selectedColor ?? null,
         unit_price: info.mainPrice,
         qty,
@@ -245,7 +254,7 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
                     key={c}
                     onClick={() => {
                       setSelectedColor(c);
-                      setSelectedSize(null);
+                      setSelectedSizes({});
                     }}
                     className="flex items-center gap-2"
                     style={{
@@ -264,34 +273,45 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
           </div>
         )}
 
-        {/* Selector de talle */}
-        {needSize && (
+        {/* Selector de talle — un bloque por cada producto del outfit */}
+        {anyNeedsSize && (
           <div className="px-5 pt-5">
             <p className="text-[12px] uppercase text-[#999]" style={{ letterSpacing: '1px' }}>Talle</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {sizes.map((s) => {
-                const selected = s === selectedSize;
+            <div className="mt-3 flex flex-col gap-4">
+              {enriched.map((p) => {
+                const productSizes = sizesByProduct[p.id] ?? [];
+                if (productSizes.length === 0) return null;
                 return (
-                  <button
-                    key={s}
-                    onClick={() => setSelectedSize(s)}
-                    className="text-[13px] font-semibold"
-                    style={{
-                      minWidth: '48px',
-                      height: '42px',
-                      borderRadius: '6px',
-                      background: selected ? '#fff' : 'transparent',
-                      color: selected ? '#000' : '#ccc',
-                      border: `1px solid ${selected ? '#fff' : '#555'}`,
-                    }}
-                  >
-                    {s}
-                  </button>
+                  <div key={p.id}>
+                    <p className="text-[14px] font-bold text-white">{p.name}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {productSizes.map((s) => {
+                        const selected = selectedSizes[p.id] === s;
+                        return (
+                          <button
+                            key={s}
+                            onClick={() => setSelectedSizes((prev) => ({ ...prev, [p.id]: s }))}
+                            className="text-[13px] font-semibold"
+                            style={{
+                              minWidth: '48px',
+                              height: '42px',
+                              borderRadius: '6px',
+                              background: selected ? '#fff' : 'transparent',
+                              color: selected ? '#000' : '#ccc',
+                              border: `1px solid ${selected ? '#fff' : '#555'}`,
+                            }}
+                          >
+                            {s}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
             </div>
-            {!selectedSize && (
-              <p className="mt-2 text-[12px]" style={{ color: '#e74c3c' }}>Seleccioná un talle para continuar</p>
+            {!allSizesChosen && (
+              <p className="mt-3 text-[12px]" style={{ color: '#e74c3c' }}>Seleccioná un talle para cada prenda</p>
             )}
           </div>
         )}
