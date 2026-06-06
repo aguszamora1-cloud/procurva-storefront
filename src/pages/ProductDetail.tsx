@@ -180,7 +180,10 @@ export function ProductDetail() {
 
       {/* Detalle 2 columnas (flex para que la imagen quede sticky de forma fiable) */}
       <div className="mx-auto flex max-w-[1200px] flex-col gap-8 px-6 pb-8 md:flex-row md:items-start md:gap-12">
-        <div className="md:sticky md:top-[88px] md:w-[54%] md:shrink-0 md:self-start">
+        <div
+          className="md:sticky md:w-[54%] md:shrink-0 md:self-start"
+          style={{ top: 'calc(var(--header-h, 64px) + 16px)' }}
+        >
           <ProductGallery images={images} alt={product.name} activeIndex={activeImageIndex} />
         </div>
 
