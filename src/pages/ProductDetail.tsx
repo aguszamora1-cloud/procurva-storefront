@@ -190,7 +190,7 @@ export function ProductDetail() {
         <div className="space-y-6 md:min-w-0 md:flex-1">
           {cats[0] && <p className="text-[11px] font-semibold uppercase tracking-[2px] text-accent">{cats[0]}</p>}
           {product.catalog_badge_visible && product.catalog_badge_text && (
-            <CardBadge bg={badgeColor(product.catalog_badge_color)}>{product.catalog_badge_text}</CardBadge>
+            <CardBadge glow bg={badgeColor(product.catalog_badge_color)}>{product.catalog_badge_text}</CardBadge>
           )}
           <h1 className="font-heading text-[26px] font-bold uppercase leading-[1.15] tracking-[-0.3px] text-text md:text-[32px]">
             {product.name}
@@ -241,7 +241,7 @@ export function ProductDetail() {
 
           {stock !== null && stock > 0 && stock <= 5 && (
             <div className="animate-fade-in">
-              <CardBadge bg="#EF4444">⚡ ¡Últimas {stock} unidades!</CardBadge>
+              <CardBadge glow bg="#EF4444">⚡ ¡Últimas {stock} unidades!</CardBadge>
             </div>
           )}
 

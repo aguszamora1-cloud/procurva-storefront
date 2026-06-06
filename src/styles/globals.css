@@ -214,8 +214,51 @@ html {
     animation: slide-up 0.25s ease-out both;
   }
 
+  /* Borde luminoso animado de los badges (NUEVO, ÚLTIMAS UNIDADES, etc.).
+     Una luz (conic-gradient) gira alrededor del pill. El fondo real va en
+     ::after inset 2px, así sólo se ve el rim girando sin cambiar el tamaño. */
+  @keyframes badge-rotate {
+    to {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  }
+  .badge-glow {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .badge-glow::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 250%;
+    aspect-ratio: 1 / 1;
+    transform: translate(-50%, -50%);
+    background: conic-gradient(
+      from 0deg,
+      var(--badge-glow),
+      transparent 25%,
+      transparent 75%,
+      var(--badge-glow)
+    );
+    animation: badge-rotate 2.5s linear infinite;
+    z-index: 0;
+  }
+  .badge-glow::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: 9999px;
+    background: var(--badge-bg);
+    z-index: 1;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .animate-marquee {
+      animation: none;
+    }
+    .badge-glow::before {
       animation: none;
     }
   }
