@@ -68,6 +68,9 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
           ? 'wholesale'
           : 'retail',
     minOrderQuantity: typeof s.min_order_quantity === 'number' && s.min_order_quantity > 0 ? s.min_order_quantity : 0,
+    policyShipping: str(s.envio_politica),
+    policyReturns: str(s.cambios_politica),
+    policyPayments: str(s.pagos_politica),
 
     logoUrl: str(s.logo_url) || str(resolved.logo_url),
     logoHeight: typeof s.logo_height === 'number' ? s.logo_height : 40,

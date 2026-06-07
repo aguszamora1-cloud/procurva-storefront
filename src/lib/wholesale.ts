@@ -79,15 +79,12 @@ export function expandCurve(
 }
 
 /** Texto de composición de la curva (ej: "1 curva = S×1, M×2, L×2"). */
-export function curveCompositionText(dist: CurveDist[], p: Product, color: string | null): string {
+export function curveCompositionText(dist: CurveDist[]): string {
   if (dist.length > 0) {
-    const sorted = [...dist].sort(
-      (a, b) => sortSizes([a.size, b.size]).indexOf(a.size) - sortSizes([a.size, b.size]).indexOf(b.size),
-    );
+    const order = sortSizes(dist.map((d) => d.size));
+    const sorted = [...dist].sort((a, b) => order.indexOf(a.size) - order.indexOf(b.size));
     return `1 curva = ${sorted.map((d) => `${d.size}×${d.quantity}`).join(', ')}`;
   }
-  const sizes = sizesOfColor(p, color);
-  if (sizes.length > 0) return `1 curva = ${sizes.map((s) => `${s}×1`).join(', ')}`;
   return 'Cada curva incluye 1 unidad de cada talle';
 }
 

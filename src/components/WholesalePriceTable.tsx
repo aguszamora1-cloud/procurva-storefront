@@ -4,8 +4,8 @@ import type { CurvePriceTier } from '@/lib/types';
 
 /**
  * Tabla de precios escalonados mayoristas: "Por talle" (wholesale_price) + una fila
- * por tier de curva. El mejor precio (tier más alto) se resalta en color acento.
- * variant 'card' = compacta para la grilla; 'detail' = más aireada.
+ * por tier de curva. El mejor precio (tier más alto) se resalta con un badge pill
+ * en color acento. Usa la tipografía del sitio (hereda font-body).
  */
 export function WholesalePriceTable({
   wholesalePrice,
@@ -22,18 +22,20 @@ export function WholesalePriceTable({
   }
 
   const detail = variant === 'detail';
-  const labelCls = detail ? 'text-[13px]' : 'text-[11px] md:text-[12px]';
-  const priceCls = detail ? 'text-[14px]' : 'text-[12px] md:text-[13px]';
 
   return (
-    <div className={detail ? 'flex flex-col gap-2' : 'flex flex-col gap-0.5'}>
+    <div className={detail ? 'flex flex-col gap-2' : 'flex flex-col gap-1'}>
       {rows.map((r) => (
         <div key={r.label} className="flex items-center justify-between gap-2">
-          <span className={`${labelCls} ${r.best ? 'font-semibold text-accent' : 'text-muted'}`}>
-            {r.label}
-            {r.best && <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide">🔥 mejor precio</span>}
+          <span className="flex items-center gap-1.5">
+            <span className={`text-[13px] ${r.best ? 'font-bold text-accent' : 'font-medium text-muted'}`}>{r.label}</span>
+            {r.best && (
+              <span className="rounded-full bg-accent px-2 py-[3px] text-[9px] font-bold uppercase leading-none tracking-wide text-on-accent">
+                Mejor precio
+              </span>
+            )}
           </span>
-          <span className={`${priceCls} ${r.best ? 'font-extrabold text-accent' : 'font-semibold text-text'}`}>
+          <span className={`text-[14px] ${r.best ? 'font-extrabold text-accent' : 'font-semibold text-text'}`}>
             {formatPrice(r.price)}
           </span>
         </div>

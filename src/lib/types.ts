@@ -134,6 +134,10 @@ export interface RawCatalogSettings {
   sale_mode?: 'retail' | 'wholesale' | 'both';
   // Mínimo de compra (unidades totales) para la tienda mayorista.
   min_order_quantity?: number;
+  // Políticas de la tienda (acordeones en el detalle).
+  envio_politica?: string;
+  cambios_politica?: string;
+  pagos_politica?: string;
   top_bar_text?: string;
   top_bar_animated?: boolean;
   // Pagos / cuotas
@@ -274,6 +278,10 @@ export interface StoreConfig {
   saleMode: 'retail' | 'wholesale' | 'both';
   // Mínimo de compra (unidades) en mayorista. 0 = sin mínimo.
   minOrderQuantity: number;
+  // Políticas de la tienda (acordeones del detalle). '' = no mostrar.
+  policyShipping: string;
+  policyReturns: string;
+  policyPayments: string;
   // Branding
   logoUrl: string;
   logoHeight: number;
