@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { CartItem, StoreConfig } from './types';
+import type { CartItem, StoreConfig, StoreType } from './types';
 
 /** Datos del cliente que se cargan en el checkout. */
 export interface CustomerInfo {
@@ -46,6 +46,9 @@ export async function createCatalogOrder(
   total: number,
   customer: CustomerInfo,
   paymentMethod: 'MercadoPago' | 'WhatsApp',
+  // Tienda de origen: define el canal de venta (Catálogo Minorista / Mayorista)
+  // que las Edge Functions asignan al crear la orden real en el ERP.
+  storeType: StoreType,
 ): Promise<string> {
   const orderId = crypto.randomUUID();
 
@@ -74,6 +77,7 @@ export async function createCatalogOrder(
     shipping_address: shippingAddress,
     is_pickup: !hasAddress,
     payment_method: paymentMethod,
+    store_type: storeType,
   };
 
   const { error } = await supabase.from('catalog_orders').insert(orderData);

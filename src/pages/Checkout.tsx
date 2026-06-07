@@ -68,7 +68,8 @@ function toShippingOption(m: any): ShippingOption {
 export function Checkout() {
   const { items, subtotal, itemCount } = useCart();
   const config = useStore();
-  const isWholesale = useStoreType() === 'wholesale';
+  const storeType = useStoreType();
+  const isWholesale = storeType === 'wholesale';
   const minQty = isWholesale ? config.minOrderQuantity : 0;
   const minMissing = minQty > 0 ? Math.max(0, minQty - itemCount) : 0;
   const navigate = useNavigate();
@@ -163,7 +164,8 @@ export function Checkout() {
     setError('');
     try {
       const customer = buildCustomer();
-      const orderId = await createCatalogOrder(config, items, orderTotal, customer, 'MercadoPago');
+      // storeType puede ser null mientras resuelve el tenant; por defecto minorista.
+      const orderId = await createCatalogOrder(config, items, orderTotal, customer, 'MercadoPago', storeType ?? 'retail');
       const initPoint = await startMercadoPagoCheckout(orderId);
       // Redirige a MercadoPago Checkout Pro. El carrito se limpia al volver a /checkout/success.
       window.location.href = initPoint;
