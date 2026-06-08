@@ -57,7 +57,7 @@ export function ProductGallery({ images, alt, activeIndex }: Props) {
         )}
 
         <div
-          className="relative aspect-[3/4] cursor-zoom-in overflow-hidden bg-secondary md:max-h-[80vh]"
+          className="relative aspect-[3/4] cursor-zoom-in overflow-hidden rounded-[12px] bg-secondary md:max-h-[80vh]"
           onMouseMove={handleMove}
           onMouseLeave={() => setZoom(null)}
         >

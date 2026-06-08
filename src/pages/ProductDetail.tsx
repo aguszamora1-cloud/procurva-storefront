@@ -1,8 +1,14 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { ChevronDown, Eye, Ruler, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
 import { useStore, useStoreType } from '@/context/StoreProvider';
+import { useCart } from '@/context/CartContext';
 import { Seo } from '@/components/Seo';
 import { ProductGallery } from '@/components/ProductGallery';
+import { ColorSelector } from '@/components/ColorSelector';
+import { SizeSelector } from '@/components/SizeSelector';
+import { SizeFinder } from '@/components/SizeFinder';
 import { TrustBadges } from '@/components/TrustBadges';
 import { ShippingCalculator } from '@/components/ShippingCalculator';
 import { PriceDisplay } from '@/components/PriceDisplay';
@@ -10,22 +16,87 @@ import { WholesalePurchasePanel } from '@/components/WholesalePurchasePanel';
 import { CardBadge } from '@/components/CardBadge';
 import { ProductDetailCustomSlot } from '@/components/ProductDetailCustomSlot';
 import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSections';
-import { badgeColor, productImages } from '@/lib/utils';
+import { badgeColor, formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
+import { buildWhatsappInquiry } from '@/lib/checkout';
+import type { Variant } from '@/lib/types';
+
+// "X personas viendo" determinístico (sin Math.random, para estabilidad).
+function viewersFromId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return 6 + (h % 18);
+}
 
 export function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const { product, isLoading, error } = useProduct(id);
   const config = useStore();
   const isWholesale = useStoreType() === 'wholesale';
+  const { addItem } = useCart();
   const { sections: pdSections } = useProductDetailCustomSections();
+
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [showSticky, setShowSticky] = useState(false);
+  const [showSizeFinder, setShowSizeFinder] = useState(false);
+  const addBtnRef = useRef<HTMLButtonElement>(null);
+
+  const variants: Variant[] = product?.product_variants ?? [];
+  const colors = useMemo(
+    () => Array.from(new Set(variants.filter((v) => v.color).map((v) => v.color as string))),
+    [variants],
+  );
+  const sizes = useMemo(
+    () => sortSizes(Array.from(new Set(variants.filter((v) => v.size).map((v) => v.size as string)))),
+    [variants],
+  );
+
+  const variant = useMemo(
+    () =>
+      variants.find(
+        (v) => (colors.length === 0 || v.color === selectedColor) && (sizes.length === 0 || v.size === selectedSize),
+      ) ?? null,
+    [variants, colors.length, sizes.length, selectedColor, selectedSize],
+  );
+
+  const sizeDisabled = (size: string) =>
+    !variants.some(
+      (v) => v.size === size && (colors.length === 0 || !selectedColor || v.color === selectedColor) && (v.stock ?? 0) > 0,
+    );
+
+  const images = product ? productImages(product) : [];
+  const activeImageIndex = useMemo(() => {
+    if (!selectedColor) return undefined;
+    const variantImg = variants.find((v) => v.color === selectedColor && v.image_url)?.image_url;
+    if (!variantImg) return undefined;
+    const i = images.indexOf(variantImg);
+    return i >= 0 ? i : undefined;
+  }, [selectedColor, variants, images]);
+
+  useEffect(() => {
+    const el = addBtnRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => setShowSticky(!entry.isIntersecting), {
+      rootMargin: '0px 0px -64px 0px',
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [product?.id]);
+
+  // Si hay un solo color disponible, lo pre-seleccionamos (el usuario no tiene que tocarlo).
+  useEffect(() => {
+    if (colors.length === 1 && !selectedColor) setSelectedColor(colors[0]);
+  }, [colors, selectedColor]);
 
   if (isLoading) {
     return (
       <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 px-6 py-10 md:grid-cols-[1.2fr_1fr] md:gap-12">
-        <div className="aspect-[3/4] animate-pulse bg-secondary" />
+        <div className="aspect-[3/4] animate-pulse rounded-[12px] bg-secondary" />
         <div className="space-y-4">
+          <div className="h-4 w-1/2 animate-pulse bg-secondary" />
           <div className="h-10 w-4/5 animate-pulse bg-secondary" />
           <div className="h-12 w-1/3 animate-pulse bg-secondary" />
+          <div className="h-12 w-full animate-pulse bg-secondary" />
         </div>
       </div>
     );
@@ -47,8 +118,38 @@ export function ProductDetail() {
     );
   }
 
-  const images = productImages(product);
+  const { mainPrice } = getPriceInfo(product);
+  const displayPrice = mainPrice; // precio prominente (tarjeta, o transferencia si no hay tarjeta)
+  const needColor = colors.length > 0;
+  const needSize = sizes.length > 0;
+  const canAdd = Boolean(variant && (variant.stock ?? 0) > 0 && displayPrice > 0);
+  const ctaLabel = !variant
+    ? needColor && needSize
+      ? 'ELEGÍ COLOR Y TALLE'
+      : needColor
+        ? 'ELEGÍ UN COLOR'
+        : 'ELEGÍ UN TALLE'
+    : (variant.stock ?? 0) <= 0
+      ? 'SIN STOCK'
+      : 'AGREGAR AL CARRITO';
+
+  const handleAdd = () => {
+    if (!variant || !canAdd) return;
+    addItem({
+      product_id: product.id,
+      variant_id: variant.id,
+      name: product.name,
+      size: variant.size,
+      color: variant.color,
+      unit_price: displayPrice,
+      qty: 1,
+      image_url: variant.image_url ?? images[0] ?? null,
+    });
+  };
+
+  const inquiry = buildWhatsappInquiry(config, product.name);
   const cats = Array.isArray(product.categories) ? product.categories.filter(Boolean) : [];
+  const stock = variant?.stock ?? null;
 
   return (
     <>
@@ -90,46 +191,166 @@ export function ProductDetail() {
           className="md:sticky md:w-[54%] md:shrink-0 md:self-start"
           style={{ top: 'calc(var(--header-h, 64px) + 16px)' }}
         >
-          <ProductGallery images={images} alt={product.name} />
+          <ProductGallery images={images} alt={product.name} activeIndex={activeImageIndex} />
           <ProductDetailCustomSlot sections={pdSections} slot="below_gallery" />
         </div>
 
         <div className="space-y-6 md:min-w-0 md:flex-1">
-          {isWholesale && cats[0] && <p className="text-[11px] font-semibold uppercase tracking-[2px] text-accent">{cats[0]}</p>}
-          {isWholesale && product.catalog_badge_visible && product.catalog_badge_text && (
+          {cats[0] && <p className="text-[11px] font-semibold uppercase tracking-[2px] text-accent">{cats[0]}</p>}
+          {product.catalog_badge_visible && product.catalog_badge_text && (
             <CardBadge glow bg={badgeColor(product.catalog_badge_color)}>{product.catalog_badge_text}</CardBadge>
           )}
           <h1 className="font-heading text-[26px] font-bold uppercase leading-[1.15] tracking-[-0.02em] text-text md:text-[32px]">
             {product.name}
           </h1>
 
-          {isWholesale ? (
-            <>
-              <WholesalePurchasePanel product={product} images={images} />
-              <ShippingCalculator />
-              <ProductDetailCustomSlot sections={pdSections} slot="above_description" />
-              {config.sections.trustBadges && <TrustBadges />}
-              {product.description && (
-                <div className="border-t border-line pt-6">
-                  <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Descripción</p>
-                  <p className="whitespace-pre-line text-[14px] leading-relaxed text-muted">{product.description}</p>
+          {isWholesale && <WholesalePurchasePanel product={product} images={images} />}
+
+          {!isWholesale && (
+          <>
+          <PriceDisplay product={product} variant="detail" />
+
+          {needSize && <SizeSelector sizes={sizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />}
+
+          {/* Probador virtual — plan PRO, sólo si section_probador. Panel inline desplegable. */}
+          {config.isPro && config.sections.probador && (
+            <div className="overflow-hidden rounded-lg border border-line">
+              <button
+                type="button"
+                onClick={() => setShowSizeFinder((v) => !v)}
+                aria-expanded={showSizeFinder}
+                className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-secondary"
+              >
+                <span className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-text">
+                  <Ruler size={16} /> ¿No sabés tu talle?
+                </span>
+                <span className="flex items-center gap-1 text-[12px] font-semibold text-accent">
+                  Probador virtual
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform duration-200 ${showSizeFinder ? 'rotate-180' : ''}`}
+                  />
+                </span>
+              </button>
+              {showSizeFinder && (
+                <div className="animate-fade-in border-t border-line bg-secondary px-4 py-4">
+                  <SizeFinder sizes={sizes} onSelect={setSelectedSize} />
                 </div>
               )}
-              <ProductDetailCustomSlot sections={pdSections} slot="below_description" />
-            </>
-          ) : (
-            <>
-              {/* Vista minorista simplificada: sólo precio (foto + nombre arriba). Las
-                  secciones custom del detalle siguen disponibles para sumar contenido. */}
-              <PriceDisplay product={product} variant="detail" />
-              <ProductDetailCustomSlot sections={pdSections} slot="above_description" />
-              <ProductDetailCustomSlot sections={pdSections} slot="below_description" />
-            </>
+            </div>
           )}
+
+          {needColor && (
+            <ColorSelector
+              colors={colors}
+              selected={selectedColor}
+              onSelect={(c) => {
+                setSelectedColor(c);
+                setSelectedSize(null);
+              }}
+            />
+          )}
+
+          {/* Promesa de envío */}
+          {config.shippingPromiseEnabled && (
+            <p
+              className="flex items-center gap-2 text-[14px]"
+              style={{ color: config.shippingPromiseColor }}
+            >
+              <Truck size={17} className="flex-none" />
+              <span className="font-semibold">{config.shippingPromiseTitle}</span>
+              {config.shippingPromiseSubtitle && (
+                <span className="opacity-70">· {config.shippingPromiseSubtitle}</span>
+              )}
+            </p>
+          )}
+
+          {config.sections.socialProof && (
+            <p className="flex animate-fade-in items-center gap-2 text-[14px] text-subtle">
+              <Eye size={15} /> {viewersFromId(product.id)} personas están viendo este producto
+            </p>
+          )}
+
+          {stock !== null && stock > 0 && stock <= 5 && (
+            <div className="animate-fade-in">
+              <CardBadge glow bg="#EF4444">⚡ ¡Últimas {stock} unidades!</CardBadge>
+            </div>
+          )}
+
+          <div className="space-y-3 pt-1">
+            <button
+              ref={addBtnRef}
+              type="button"
+              onClick={handleAdd}
+              disabled={!canAdd}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-primary px-6 py-[18px] text-[16px] font-bold uppercase tracking-[0.04em] text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent hover:scale-[1.01] active:scale-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:text-on-primary"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="9" cy="21" r="1" />
+                <circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+              </svg>
+              {ctaLabel}
+            </button>
+
+            {inquiry && (
+              <a
+                href={inquiry}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] border-[1.5px] border-[#25D366] px-6 py-[14px] text-[14px] font-semibold uppercase tracking-[0.03em] text-[#25D366] transition-colors hover:bg-[#25D366] hover:text-white"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M19.4 4.6A10 10 0 0 0 4.1 17.3L3 21l3.8-1.1A10 10 0 1 0 19.4 4.6Zm-7.4 15.3a8 8 0 0 1-4.1-1.1l-.3-.2-2.3.7.7-2.3-.2-.3a8 8 0 1 1 6.2 3.2Zm4.4-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.3.2-.3.6-1 .1-.1 0-.3 0-.4l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.4 0-.6.3l-.6.7a3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.7 2.6 4.2 3.6 1.5.6 2.1.7 2.9.5.5-.1 1.4-.6 1.6-1.2.2-.5.2-1 .2-1.1-.1-.1-.2-.1-.4-.2Z" />
+                </svg>
+                Consultar por WhatsApp
+              </a>
+            )}
+          </div>
+          </>
+          )}
+
+          <ShippingCalculator />
+
+          {config.sections.trustBadges && <TrustBadges />}
+
+          <ProductDetailCustomSlot sections={pdSections} slot="above_description" />
+
+          {product.description && (
+            <div className="border-t border-line pt-6">
+              <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Descripción</p>
+              <p className="whitespace-pre-line text-[14px] leading-relaxed text-muted">{product.description}</p>
+            </div>
+          )}
+
+          <ProductDetailCustomSlot sections={pdSections} slot="below_description" />
         </div>
       </div>
 
       <ProductDetailCustomSlot sections={pdSections} slot="below_product" />
+
+      {/* Sticky bar mobile (solo retail; el panel mayorista tiene su propio CTA inline) */}
+      {!isWholesale && showSticky && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-50 flex items-center gap-3 border-t border-line bg-background px-4 py-3 md:hidden"
+          style={{ boxShadow: '0 -2px 10px rgba(0,0,0,0.08)' }}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-[18px] font-extrabold leading-none text-accent">{formatPrice(displayPrice)}</p>
+            {(selectedColor || selectedSize) && (
+              <p className="mt-0.5 truncate text-[11px] text-subtle">{[selectedColor, selectedSize].filter(Boolean).join(' · ')}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={!canAdd}
+            className="inline-flex flex-shrink-0 items-center justify-center rounded-lg bg-primary px-5 py-3 text-[13px] font-bold uppercase tracking-[0.5px] text-on-primary disabled:opacity-40"
+          >
+            {!variant ? 'Elegí opción' : (variant.stock ?? 0) <= 0 ? 'Sin stock' : 'Agregar'}
+          </button>
+        </div>
+      )}
     </>
   );
 }
