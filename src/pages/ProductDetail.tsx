@@ -232,16 +232,16 @@ export function ProductDetail() {
 
           {/* Promesa de envío */}
           {config.shippingPromiseEnabled && (
-            <div
-              className="flex items-center gap-2 rounded-lg px-4 py-3 text-[14px] text-white"
-              style={{ backgroundColor: config.shippingPromiseColor }}
+            <p
+              className="flex items-center gap-2 text-[14px]"
+              style={{ color: config.shippingPromiseColor }}
             >
-              <Truck size={17} className="flex-none text-white" />
+              <Truck size={17} className="flex-none" />
               <span className="font-semibold">{config.shippingPromiseTitle}</span>
               {config.shippingPromiseSubtitle && (
-                <span className="text-white/80">· {config.shippingPromiseSubtitle}</span>
+                <span className="opacity-70">· {config.shippingPromiseSubtitle}</span>
               )}
-            </div>
+            </p>
           )}
 
           {config.sections.socialProof && (
