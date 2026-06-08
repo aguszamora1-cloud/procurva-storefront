@@ -40,7 +40,9 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
   const curveTabAvailable = tiers.length > 0 && !product.pack_only_sale;
 
   const [tab, setTab] = useState<'sueltos' | 'curva'>('sueltos');
-  const [color, setColor] = useState<string | null>(colors.length === 1 ? colors[0] : null);
+  // Pre-seleccionamos un color (el primero) así el selector de talles aparece de
+  // entrada, sin obligar a elegir color antes. El usuario lo cambia con un toque.
+  const [color, setColor] = useState<string | null>(colors[0] ?? null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [tierIdx, setTierIdx] = useState<number | null>(null); // -1 = "más curvas" (custom)
   const [customCurves, setCustomCurves] = useState(0);
@@ -48,7 +50,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
-    if (colors.length === 1 && !color) setColor(colors[0]);
+    if (colors.length > 0 && !color) setColor(colors[0]);
   }, [colors, color]);
 
   const vsColor = useMemo(() => variantsOfColor(product, color), [product, color]);
@@ -206,7 +208,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                 type="button"
                 onClick={() => setTab(t)}
                 className={`flex-1 rounded-md py-2 text-[14px] transition-colors ${
-                  active ? 'bg-background font-semibold text-text shadow-sm' : 'font-normal text-muted hover:text-text'
+                  active ? 'bg-background font-bold text-text shadow-sm' : 'font-normal text-subtle hover:text-text'
                 }`}
               >
                 {label}
@@ -230,7 +232,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                 key={size}
                 className={`flex items-center justify-between py-3 ${idx < sizes.length - 1 ? 'border-b border-line' : ''}`}
               >
-                <span className={`text-[15px] font-medium ${outOfStock ? 'text-subtle line-through' : 'text-text'}`}>{size}</span>
+                <span className={`text-[15px] font-semibold ${outOfStock ? 'text-subtle line-through' : 'text-text'}`}>{size}</span>
                 {outOfStock ? (
                   <span className="text-[12px] font-medium text-red-500">Sin stock</span>
                 ) : (
