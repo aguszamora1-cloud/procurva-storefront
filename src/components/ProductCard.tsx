@@ -38,7 +38,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
               width={400}
               height={500}
               loading={priority ? 'eager' : 'lazy'}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+              className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.04]"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-[11px] font-semibold uppercase tracking-[1px] text-on-surface-subtle">
