@@ -10,6 +10,9 @@ import { NewsletterSection } from '@/components/home/NewsletterSection';
 import { StoriesSection } from '@/components/home/StoriesSection';
 import { SocialProofSection } from '@/components/home/SocialProofSection';
 import { OutfitsSection } from '@/components/home/OutfitsSection';
+import { CustomBannerSection } from '@/components/home/CustomBannerSection';
+import { CustomTextSection } from '@/components/home/CustomTextSection';
+import { useCustomSections } from '@/hooks/useCustomSections';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
 
 // Orden por defecto de las secciones del home (coincide con la tab "Secciones"
@@ -32,6 +35,7 @@ const DEFAULT_SECTION_ORDER = [
 export function Home() {
   const config = useStore();
   const { products, isLoading } = useProducts();
+  const { sections: customSections } = useCustomSections();
 
   // Destacados: sólo los marcados is_featured en ProCurva (máx 8).
   const featured = products.filter((p) => p.is_featured).slice(0, 8);
@@ -71,11 +75,23 @@ export function Home() {
     newsletter: config.isPro && config.sections.newsletter ? <NewsletterSection /> : null,
   };
 
-  // Orden configurado en el admin (sections_order) + las secciones que falten,
-  // agregadas al final en su posición por defecto.
+  // Secciones personalizadas: cada una se referencia en sections_order como
+  // `custom:<uuid>`. Las agregamos al mapa de nodos para que se intercalen.
+  const customKeys: string[] = [];
+  for (const cs of customSections) {
+    const key = `custom:${cs.id}`;
+    customKeys.push(key);
+    nodes[key] = cs.section_type === 'banner'
+      ? <CustomBannerSection section={cs} />
+      : <CustomTextSection section={cs} />;
+  }
+
+  // Orden configurado en el admin (sections_order) + las secciones fijas que
+  // falten (en su posición por defecto) + las custom que aún no estén en el orden.
   const orderedKeys = [
     ...config.sectionsOrder.filter((k) => k in nodes),
     ...DEFAULT_SECTION_ORDER.filter((k) => !config.sectionsOrder.includes(k)),
+    ...customKeys.filter((k) => !config.sectionsOrder.includes(k)),
   ];
 
   return (

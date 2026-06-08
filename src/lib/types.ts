@@ -16,6 +16,33 @@ export interface Variant {
   image_url: string | null;
 }
 
+/** Secciones personalizadas del home (catalog_custom_sections). Sólo lectura. */
+export type CustomSectionType = 'banner' | 'text';
+
+export interface CustomSectionBannerContent {
+  image_url?: string;
+  link_url?: string;
+  alt_text?: string;
+  mobile_image_url?: string;
+}
+
+export interface CustomSectionTextContent {
+  heading?: string;
+  body?: string;
+  text_align?: 'left' | 'center' | 'right';
+  background_color?: string;
+}
+
+export interface CustomSection {
+  id: string;
+  company_id: string;
+  catalog_type: 'retail' | 'wholesale';
+  section_type: CustomSectionType;
+  label: string;
+  content: CustomSectionBannerContent | CustomSectionTextContent;
+  is_visible: boolean;
+}
+
 /** Fila cruda de products (+ variants anidadas). */
 export interface Product {
   id: string;
