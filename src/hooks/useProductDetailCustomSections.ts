@@ -4,12 +4,11 @@ import { useStoreStatus } from '@/context/StoreProvider';
 import type { CustomSection } from '@/lib/types';
 
 /**
- * Secciones personalizadas visibles del catálogo activo (retail/wholesale).
- * Query directa como rol anon — la RLS de catalog_custom_sections la acota a
- * secciones visibles de catálogos habilitados (mismo patrón que useProducts /
- * useBanners).
+ * Secciones custom visibles del DETALLE de producto (globales a todos los
+ * productos del catálogo activo). Query directa anon, ordenadas por position;
+ * cada una se ubica en su slot (content.slot).
  */
-export function useCustomSections(): { sections: CustomSection[]; isLoading: boolean } {
+export function useProductDetailCustomSections(): { sections: CustomSection[]; isLoading: boolean } {
   const { companyId, storeType } = useStoreStatus();
   const [sections, setSections] = useState<CustomSection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,9 +23,9 @@ export function useCustomSections(): { sections: CustomSection[]; isLoading: boo
         .select('id, company_id, catalog_type, section_type, label, content, is_visible, page_context, position')
         .eq('company_id', companyId)
         .eq('catalog_type', storeType)
-        .eq('page_context', 'home')
+        .eq('page_context', 'product_detail')
         .eq('is_visible', true)
-        .order('created_at', { ascending: true });
+        .order('position', { ascending: true });
       if (cancelled) return;
       setSections((data as CustomSection[]) ?? []);
       setIsLoading(false);

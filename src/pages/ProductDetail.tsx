@@ -14,6 +14,8 @@ import { ShippingCalculator } from '@/components/ShippingCalculator';
 import { PriceDisplay } from '@/components/PriceDisplay';
 import { WholesalePurchasePanel } from '@/components/WholesalePurchasePanel';
 import { CardBadge } from '@/components/CardBadge';
+import { ProductDetailCustomSlot } from '@/components/ProductDetailCustomSlot';
+import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSections';
 import { badgeColor, formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
 import type { Variant } from '@/lib/types';
@@ -31,6 +33,7 @@ export function ProductDetail() {
   const config = useStore();
   const isWholesale = useStoreType() === 'wholesale';
   const { addItem } = useCart();
+  const { sections: pdSections } = useProductDetailCustomSections();
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -189,6 +192,7 @@ export function ProductDetail() {
           style={{ top: 'calc(var(--header-h, 64px) + 16px)' }}
         >
           <ProductGallery images={images} alt={product.name} activeIndex={activeImageIndex} />
+          <ProductDetailCustomSlot sections={pdSections} slot="below_gallery" />
         </div>
 
         <div className="space-y-6 md:min-w-0 md:flex-1">
@@ -310,14 +314,20 @@ export function ProductDetail() {
 
           {config.sections.trustBadges && <TrustBadges />}
 
+          <ProductDetailCustomSlot sections={pdSections} slot="above_description" />
+
           {product.description && (
             <div className="border-t border-line pt-6">
               <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Descripción</p>
               <p className="whitespace-pre-line text-[14px] leading-relaxed text-muted">{product.description}</p>
             </div>
           )}
+
+          <ProductDetailCustomSlot sections={pdSections} slot="below_description" />
         </div>
       </div>
+
+      <ProductDetailCustomSlot sections={pdSections} slot="below_product" />
 
       {/* Sticky bar mobile (solo retail; el panel mayorista tiene su propio CTA inline) */}
       {!isWholesale && showSticky && (

@@ -16,14 +16,28 @@ export interface Variant {
   image_url: string | null;
 }
 
-/** Secciones personalizadas del home (catalog_custom_sections). Sólo lectura. */
+/** Secciones personalizadas (catalog_custom_sections). Sólo lectura. */
 export type CustomSectionType = 'banner' | 'text';
+export type CustomSectionPageContext = 'home' | 'product_detail';
+export type ProductDetailSlot = 'above_description' | 'below_description' | 'below_gallery' | 'below_product';
 
-export interface CustomSectionBannerContent {
+export interface CustomSectionBannerSlide {
   image_url?: string;
+  mobile_image_url?: string;
   link_url?: string;
   alt_text?: string;
+}
+
+export interface CustomSectionBannerContent {
+  images?: CustomSectionBannerSlide[];
+  autoplay?: boolean;
+  interval_seconds?: number;
+  slot?: ProductDetailSlot;
+  // Legacy (banners de 1 imagen previos al carrusel).
+  image_url?: string;
   mobile_image_url?: string;
+  link_url?: string;
+  alt_text?: string;
 }
 
 export interface CustomSectionTextContent {
@@ -31,6 +45,7 @@ export interface CustomSectionTextContent {
   body?: string;
   text_align?: 'left' | 'center' | 'right';
   background_color?: string;
+  slot?: ProductDetailSlot;
 }
 
 export interface CustomSection {
@@ -41,6 +56,8 @@ export interface CustomSection {
   label: string;
   content: CustomSectionBannerContent | CustomSectionTextContent;
   is_visible: boolean;
+  page_context: CustomSectionPageContext;
+  position: number;
 }
 
 /** Fila cruda de products (+ variants anidadas). */
