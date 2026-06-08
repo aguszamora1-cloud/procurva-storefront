@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Eye, Ruler, Truck } from 'lucide-react';
+import { ChevronDown, Eye, Ruler, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
@@ -8,7 +8,7 @@ import { Seo } from '@/components/Seo';
 import { ProductGallery } from '@/components/ProductGallery';
 import { ColorSelector } from '@/components/ColorSelector';
 import { SizeSelector } from '@/components/SizeSelector';
-import { SizeFinderModal } from '@/components/SizeFinderModal';
+import { SizeFinder } from '@/components/SizeFinder';
 import { TrustBadges } from '@/components/TrustBadges';
 import { ShippingCalculator } from '@/components/ShippingCalculator';
 import { PriceDisplay } from '@/components/PriceDisplay';
@@ -208,18 +208,32 @@ export function ProductDetail() {
 
           {needSize && <SizeSelector sizes={sizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />}
 
-          {/* Probador virtual — plan PRO, sólo si section_probador */}
+          {/* Probador virtual — plan PRO, sólo si section_probador. Panel inline desplegable. */}
           {config.isPro && config.sections.probador && (
-            <button
-              type="button"
-              onClick={() => setShowSizeFinder(true)}
-              className="flex w-full items-center justify-between rounded-lg border border-line px-4 py-3 text-left transition-colors hover:border-text"
-            >
-              <span className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-text">
-                <Ruler size={16} /> ¿No sabés tu talle?
-              </span>
-              <span className="text-[12px] font-semibold text-accent">Probador virtual ›</span>
-            </button>
+            <div className="overflow-hidden rounded-lg border border-line">
+              <button
+                type="button"
+                onClick={() => setShowSizeFinder((v) => !v)}
+                aria-expanded={showSizeFinder}
+                className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-secondary"
+              >
+                <span className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-text">
+                  <Ruler size={16} /> ¿No sabés tu talle?
+                </span>
+                <span className="flex items-center gap-1 text-[12px] font-semibold text-accent">
+                  Probador virtual
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform duration-200 ${showSizeFinder ? 'rotate-180' : ''}`}
+                  />
+                </span>
+              </button>
+              {showSizeFinder && (
+                <div className="animate-fade-in border-t border-line bg-secondary px-4 py-4">
+                  <SizeFinder sizes={sizes} onSelect={setSelectedSize} />
+                </div>
+              )}
+            </div>
           )}
 
           {needColor && (
@@ -326,14 +340,6 @@ export function ProductDetail() {
             {!variant ? 'Elegí opción' : (variant.stock ?? 0) <= 0 ? 'Sin stock' : 'Agregar'}
           </button>
         </div>
-      )}
-
-      {showSizeFinder && (
-        <SizeFinderModal
-          sizes={sizes}
-          onClose={() => setShowSizeFinder(false)}
-          onSelect={(s) => setSelectedSize(s)}
-        />
       )}
     </>
   );
