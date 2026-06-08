@@ -61,12 +61,10 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     isPro,
     slug: resolved.slug ?? '',
     storeType: resolved.store_type === 'wholesale' ? 'wholesale' : 'retail',
-    saleMode:
-      s.sale_mode === 'wholesale' || s.sale_mode === 'both'
-        ? s.sale_mode
-        : resolved.store_type === 'wholesale'
-          ? 'wholesale'
-          : 'retail',
+    // El modo se deriva de QUÉ tienda se está accediendo (store_type del slug resuelto),
+    // no de un campo de configuración. El antiguo settings.sale_mode (incluido 'both')
+    // quedó obsoleto al separarse minorista/mayorista en tiendas independientes.
+    saleMode: resolved.store_type === 'wholesale' ? 'wholesale' : 'retail',
     minOrderQuantity: typeof s.min_order_quantity === 'number' && s.min_order_quantity > 0 ? s.min_order_quantity : 0,
     policyShipping: str(s.envio_politica),
     policyReturns: str(s.cambios_politica),
