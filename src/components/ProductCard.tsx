@@ -126,7 +126,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
       {/* Contenido */}
       <div className="flex flex-1 flex-col p-2.5 md:p-4">
         <Link to={`/producto/${product.id}`} className="block">
-          <h3 className="mb-1.5 text-[14px] font-semibold leading-[1.3] text-on-surface transition-colors group-hover:text-accent md:text-[15px]">
+          <h3 className="mb-1.5 text-[14px] font-semibold leading-[1.3] tracking-[-0.01em] text-on-surface transition-colors group-hover:text-accent md:text-[15px]">
             {product.name}
           </h3>
           {isWholesale ? (
@@ -157,7 +157,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
         <div className="mt-3 hidden md:flex md:flex-col">
           {colors.length > 0 && (
             <div className="mb-2.5">
-              <p className="mb-1.5 text-[12px] font-medium text-on-surface-subtle">Colores</p>
+              <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-on-surface-subtle">Colores</p>
               <div className="flex flex-wrap gap-2">
                 {colors.map((c) => {
                   const active = selectedColor === c;
@@ -184,7 +184,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
 
           {sizes.length > 0 && (
             <div className="mb-3">
-              <p className="mb-1.5 text-[12px] font-medium text-on-surface-subtle">Talles</p>
+              <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-on-surface-subtle">Talles</p>
               <div className="flex flex-wrap gap-1.5">
                 {sizes.map((s) => {
                   const disabled = isSizeDisabled(s);
@@ -198,12 +198,12 @@ export function ProductCard({ product, priority = false }: { product: Product; p
                         stop(e);
                         if (!disabled) setSelectedSize((prev) => (prev === s ? null : s));
                       }}
-                      className={`h-9 min-w-[40px] border px-2 text-[13px] font-medium transition-colors ${
+                      className={`h-9 min-w-[40px] border-[1.5px] px-2 text-[13px] transition-colors ${
                         active
-                          ? 'border-on-surface bg-primary text-on-primary'
+                          ? 'border-on-surface bg-primary font-bold text-on-primary'
                           : disabled
-                            ? 'cursor-not-allowed border-line bg-secondary text-on-surface-subtle line-through'
-                            : 'border-line bg-background text-on-surface hover:border-on-surface'
+                            ? 'cursor-not-allowed border-line bg-secondary font-semibold text-on-surface-subtle line-through'
+                            : 'border-line bg-background font-semibold text-on-surface hover:border-on-surface'
                       }`}
                     >
                       {s}

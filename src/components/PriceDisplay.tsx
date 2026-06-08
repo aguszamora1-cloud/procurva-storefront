@@ -28,7 +28,7 @@ export function PriceDisplay({ product, variant = 'card' }: Props) {
   const hasCashDiscount = Boolean(cashPrice && cashDiscountPct > 0);
 
   const mainCls = detail
-    ? 'text-[30px] md:text-[34px] font-extrabold leading-none text-accent'
+    ? 'text-[30px] md:text-[34px] font-extrabold leading-none tracking-[-0.02em] text-accent'
     : 'text-[16px] md:text-[20px] font-extrabold leading-none text-text';
   const strikeCls = detail ? 'text-[16px]' : 'text-[13px] md:text-[15px]';
 

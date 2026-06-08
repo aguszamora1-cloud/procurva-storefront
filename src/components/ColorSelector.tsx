@@ -9,7 +9,7 @@ export function ColorSelector({ colors, selected, onSelect }: Props) {
   if (colors.length === 0) return null;
   return (
     <div>
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[1.5px] text-muted">
+      <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">
         Color{selected && <span className="text-text">: {selected}</span>}
       </p>
       <div className="flex flex-wrap gap-2">
@@ -20,8 +20,8 @@ export function ColorSelector({ colors, selected, onSelect }: Props) {
               key={color}
               type="button"
               onClick={() => onSelect(color)}
-              className={`h-11 rounded-lg border-2 px-4 text-[13px] font-semibold uppercase tracking-wide transition-all duration-150 ${
-                active ? 'border-text bg-primary text-on-primary' : 'border-line bg-background text-text hover:border-text'
+              className={`h-11 rounded-lg border-[1.5px] px-4 text-[14px] uppercase tracking-wide transition-all duration-150 ${
+                active ? 'border-text bg-primary font-bold text-on-primary' : 'border-line bg-background font-semibold text-text hover:border-text'
               }`}
             >
               {color}

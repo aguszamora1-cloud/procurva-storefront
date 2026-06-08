@@ -18,14 +18,12 @@ import {
 } from '@/lib/wholesale';
 import type { Product } from '@/lib/types';
 
-const SALMON = '#FF6F61';
-
 /**
  * Panel de compra MAYORISTA del detalle (réplica de procurva2/PublicCatalog.tsx):
  *  - Color con dots reales.
  *  - Tabs "Talles sueltos" / "Por curva".
  *  - Suelto: cantidad por talle (− 0 +). Curva: radios por tier + "Más curvas".
- *  - CTAs "Agregar al carrito" (outline) + "Comprar ahora" (salmón → checkout).
+ *  - CTAs "Agregar al carrito" (outline) + "Comprar ahora" (accent → checkout).
  *  - Acordeones de políticas (Envío / Cambios / Pagos) del settings mayorista.
  */
 export function WholesalePurchasePanel({ product, images }: { product: Product; images: string[] }) {
@@ -173,7 +171,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
       {/* Color con dots reales */}
       {needColor && (
         <div>
-          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[1.5px] text-muted">
+          <p className="mb-2.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">
             Color{color && <span className="text-text">: {color}</span>}
           </p>
           <div className="flex flex-wrap gap-2.5">
@@ -207,8 +205,8 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                 key={t}
                 type="button"
                 onClick={() => setTab(t)}
-                className={`flex-1 rounded-md py-2 text-[13px] transition-colors ${
-                  active ? 'bg-background font-medium text-text shadow-sm' : 'text-muted hover:text-text'
+                className={`flex-1 rounded-md py-2 text-[14px] transition-colors ${
+                  active ? 'bg-background font-semibold text-text shadow-sm' : 'font-normal text-muted hover:text-text'
                 }`}
               >
                 {label}
@@ -220,7 +218,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
 
       {tab === 'sueltos' ? (
         <div className="space-y-1">
-          <p className="text-[12px] text-subtle">Talles y cantidades</p>
+          <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Talles y cantidades</p>
           {sizes.map((size, idx) => {
             const v = vsColor.find((vv) => vv.size === size);
             if (!v) return null;
@@ -264,9 +262,9 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
           })}
           {/* Resumen suelto */}
           <div className="flex items-center justify-between border-t border-line pt-3">
-            <span className="text-[13px] text-muted">Total: {totalSueltosUnits} un.</span>
-            <span className="text-[13px] text-muted">
-              Precio por unidad <span className="text-[15px] font-bold text-text">{formatPrice(wholesalePrice)}</span>
+            <span className="text-[14px] font-normal text-subtle">Total: {totalSueltosUnits} un.</span>
+            <span className="text-[14px] font-normal text-subtle">
+              Precio por unidad <span className="text-[16px] font-bold text-text">{formatPrice(wholesalePrice)}</span>
             </span>
           </div>
         </div>
@@ -377,7 +375,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
           type="button"
           onClick={() => submit('cart')}
           disabled={!canSubmit || added}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] border-2 border-text bg-background py-[15px] text-[14px] font-bold uppercase tracking-[0.5px] text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] border-[1.5px] border-text bg-background px-6 py-[14px] text-[14px] font-semibold uppercase tracking-[0.03em] text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ShoppingBag size={16} />
           {added ? '✓ Agregado al carrito' : 'Agregar al carrito'}
@@ -386,8 +384,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
           type="button"
           onClick={() => submit('buy')}
           disabled={!canSubmit}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] py-[15px] text-[14px] font-bold uppercase tracking-[0.5px] text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-          style={{ background: SALMON }}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-accent px-6 py-[16px] text-[15px] font-bold uppercase tracking-[0.04em] text-on-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <CreditCard size={16} />
           Comprar ahora
@@ -406,7 +403,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                   onClick={() => setOpenPolicy(open ? null : p.key)}
                   className="flex w-full items-center justify-between py-3.5 text-left"
                 >
-                  <span className="text-[13px] font-semibold uppercase tracking-wide text-text">{p.label}</span>
+                  <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">{p.label}</span>
                   <ChevronDown size={16} className={`text-subtle transition-transform ${open ? 'rotate-180' : ''}`} />
                 </button>
                 {open && <p className="whitespace-pre-line pb-4 text-[13px] leading-relaxed text-muted">{p.text}</p>}
