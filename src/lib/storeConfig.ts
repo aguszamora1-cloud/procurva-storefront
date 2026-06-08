@@ -14,6 +14,7 @@ const DEFAULTS = {
   heroCtaLink: '/productos',
   shippingPromiseTitle: 'Envío rápido',
   shippingPromiseSubtitle: 'Envíos a todo el país',
+  shippingPromiseColor: '#00a650',
 };
 
 const str = (v: unknown, fallback = ''): string =>
@@ -139,6 +140,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     shippingPromiseSubtitle:
       firstStr(s.shipping_promise_subtitle, shippingMsg) ||
       DEFAULTS.shippingPromiseSubtitle,
+    shippingPromiseColor: firstStr(s.shipping_promise_color) || DEFAULTS.shippingPromiseColor,
     shippingMessage: str(shippingMsg),
     // trust_badges puede venir legacy (string[]) o nuevo ([{icon, text}]).
     // Extraemos el texto de cada badge y descartamos vacíos.

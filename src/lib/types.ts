@@ -172,6 +172,7 @@ export interface RawCatalogSettings {
   shipping_promise_enabled?: boolean;
   shipping_promise_title?: string;
   shipping_promise_subtitle?: string;
+  shipping_promise_color?: string;
   // Trust badges (etiquetas configurables; 4 textos).
   // Legacy: string[]. Nuevo (panel ProCurva): [{icon, text}].
   trust_badges?: Array<string | { icon?: string; text?: string }>;
@@ -334,6 +335,7 @@ export interface StoreConfig {
   shippingPromiseEnabled: boolean;
   shippingPromiseTitle: string;
   shippingPromiseSubtitle: string;
+  shippingPromiseColor: string;
   shippingMessage: string;
   // Trust badges (4 etiquetas)
   trustBadgeLabels: string[];
