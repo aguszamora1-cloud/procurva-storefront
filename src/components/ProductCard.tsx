@@ -47,17 +47,17 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           )}
         </Link>
 
-        {/* Badges */}
+        {/* Badge — UNO solo por tarjeta. Prioridad: descuento > badge del comercio > últimas unidades. */}
         <div className="pointer-events-none absolute left-2 top-2 flex flex-col items-start gap-1.5 md:left-3 md:top-3">
-          {onSale && !isWholesale && (
+          {onSale && !isWholesale ? (
             <CardBadge bg="var(--color-accent)" color="var(--color-on-accent)">
               -{compareDiscountPct}%
             </CardBadge>
-          )}
-          {showBadge && (
+          ) : showBadge ? (
             <CardBadge bg={badgeColor(product.catalog_badge_color)}>{product.catalog_badge_text}</CardBadge>
-          )}
-          {lowStock && <CardBadge bg="#EF4444">⚡ Últimas unidades</CardBadge>}
+          ) : lowStock ? (
+            <CardBadge bg="#EF4444">⚡ Últimas unidades</CardBadge>
+          ) : null}
         </div>
       </div>
 

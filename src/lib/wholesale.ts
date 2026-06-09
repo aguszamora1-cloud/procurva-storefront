@@ -123,6 +123,33 @@ export function curveHasStock(
   return expanded.every(({ variant, qty }) => (variant.stock ?? 0) >= qty);
 }
 
+/**
+ * Máximo de curvas que se pueden armar con el stock real del color (0 = ni una).
+ * Una curva necesita `qty` unidades de cada talle que la compone; el límite es el
+ * talle más escaso. Si algún talle de la curva tiene stock < su qty → 0.
+ */
+export function maxCurvesAvailable(p: Product, color: string | null, dist: CurveDist[]): number {
+  const perCurve = expandCurve(p, color, 1, dist);
+  if (perCurve.length === 0) return 0;
+  return perCurve.reduce((min, { variant, qty }) => {
+    const can = qty > 0 ? Math.floor((variant.stock ?? 0) / qty) : 0;
+    return Math.min(min, can);
+  }, Infinity);
+}
+
+/** Talles de la curva que no tienen stock suficiente para `curves` curvas. */
+export function curveMissingSizes(
+  p: Product,
+  color: string | null,
+  curves: number,
+  dist: CurveDist[],
+): string[] {
+  return expandCurve(p, color, Math.max(1, curves), dist)
+    .filter(({ variant, qty }) => (variant.stock ?? 0) < qty)
+    .map(({ variant }) => variant.size)
+    .filter((s): s is string => !!s);
+}
+
 export interface PriceRow {
   label: string;
   price: number;

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, CreditCard, Minus, Plus, ShoppingBag } from 'lucide-react';
+import { AlertCircle, ChevronDown, CreditCard, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
@@ -9,8 +9,10 @@ import {
   canOfferCurve,
   colorsOf,
   curveCompositionText,
+  curveMissingSizes,
   expandCurve,
   itemsPerCurve,
+  maxCurvesAvailable,
   sizesOfColor,
   sizeStock,
   sortedTiers,
@@ -72,6 +74,15 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
   const activeTierPrice = activeTier?.price_per_unit ?? 0;
   const totalCurvaUnits = activeTier ? selectedCurves * itemsPer : 0;
   const totalCurvaPrice = totalCurvaUnits * activeTierPrice;
+
+  // Stock real disponible para curvas en el color elegido. Una curva necesita stock
+  // de TODOS sus talles; el límite lo marca el más escaso (0 = no se puede armar).
+  const maxCurves = useMemo(() => maxCurvesAvailable(product, color, dist), [product, color, dist]);
+  const curveStockOk = !!activeTier && selectedCurves > 0 && selectedCurves <= maxCurves;
+  const missingSizes = useMemo(
+    () => (tab === 'curva' && color && !curveStockOk ? curveMissingSizes(product, color, selectedCurves || 1, dist) : []),
+    [tab, color, curveStockOk, product, selectedCurves, dist],
+  );
 
   const totalSueltosUnits = sizes.reduce((acc, size) => {
     const v = vsColor.find((vv) => vv.size === size);
@@ -136,7 +147,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
         });
       }
     } else {
-      if (!color || selectedCurves <= 0) return;
+      if (!color || selectedCurves <= 0 || selectedCurves > maxCurves) return;
       const expanded = expandCurve(product, color, selectedCurves, dist);
       if (expanded.length === 0) return;
       for (const { variant, qty } of expanded) {
@@ -160,7 +171,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
 
   const needColor = colors.length > 0;
   const hasSelection = tab === 'sueltos' ? totalSueltosUnits > 0 : !!activeTier && selectedCurves > 0;
-  const canSubmit = (!needColor || !!color) && hasSelection;
+  const canSubmit = (!needColor || !!color) && hasSelection && (tab === 'sueltos' || curveStockOk);
 
   const policies = [
     { key: 'envio', label: 'Envío', text: config.policyShipping },
@@ -282,14 +293,20 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
               {tiers.map((tier, idx) => {
                 const sel = tierIdx === idx;
                 const best = idx === cheapestIdx && tiers.length > 1;
+                const tierOut = tier.curve_quantity > maxCurves;
                 const label = `${tier.curve_quantity} ${tier.curve_quantity === 1 ? 'curva' : 'curvas'}`;
                 return (
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => pickTier(idx)}
+                    onClick={() => !tierOut && pickTier(idx)}
+                    disabled={tierOut}
                     className={`flex w-full items-center justify-between rounded-lg px-3.5 py-2.5 text-left transition-colors ${
-                      sel ? 'border-[1.5px] border-text bg-secondary' : 'border border-line hover:border-subtle'
+                      tierOut
+                        ? 'cursor-not-allowed border border-line opacity-50'
+                        : sel
+                          ? 'border-[1.5px] border-text bg-secondary'
+                          : 'border border-line hover:border-subtle'
                     }`}
                   >
                     <span className="flex items-center gap-3">
@@ -299,10 +316,13 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                         {sel && <span className="h-2 w-2 rounded-full bg-text" />}
                       </span>
                       <span className="text-[13px] font-medium text-text">{label}</span>
-                      {best && (
+                      {best && !tierOut && (
                         <span className="rounded-full bg-accent px-2 py-[3px] text-[10px] font-bold uppercase leading-none tracking-wide text-on-accent">
                           Mejor precio
                         </span>
+                      )}
+                      {tierOut && (
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-red-500">Sin stock</span>
                       )}
                     </span>
                     <span className="flex items-baseline gap-1">
@@ -313,8 +333,8 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                 );
               })}
 
-              {/* "Más curvas" — custom */}
-              {lastTier && (
+              {/* "Más curvas" — custom (solo si el stock permite más que el último tier) */}
+              {lastTier && customMin <= maxCurves && (
                 <>
                   <button
                     type="button"
@@ -355,8 +375,21 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
             </div>
           )}
 
-          {/* Resumen curva */}
-          {activeTier && totalCurvaUnits > 0 && (
+          {/* Aviso de stock insuficiente para armar la(s) curva(s) */}
+          {color && (maxCurves === 0 || (!!activeTier && selectedCurves > maxCurves)) && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[12px] font-medium leading-snug text-red-600">
+              <AlertCircle size={15} className="mt-px flex-none" />
+              <span>
+                {maxCurves === 0
+                  ? 'No hay stock suficiente para armar una curva en este color.'
+                  : `Con el stock actual solo podés armar hasta ${maxCurves} ${maxCurves === 1 ? 'curva' : 'curvas'}.`}
+                {missingSizes.length > 0 && ` Faltan talles: ${missingSizes.join(', ')}.`}
+              </span>
+            </div>
+          )}
+
+          {/* Resumen curva (solo si el stock alcanza) */}
+          {activeTier && totalCurvaUnits > 0 && curveStockOk && (
             <div className="flex items-center justify-between border-t border-line pt-3">
               <span className="text-[13px] text-muted">
                 {selectedCurves} {selectedCurves === 1 ? 'curva' : 'curvas'} · {totalCurvaUnits} un.
