@@ -28,7 +28,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
       }`}
     >
       {/* Imagen */}
-      <div className="relative aspect-[4/5] overflow-hidden bg-secondary">
+      <div className="relative aspect-[3/4] overflow-hidden bg-secondary">
         <Link to={`/producto/${product.id}`} className="block h-full w-full">
           {image ? (
             <StoreImage
