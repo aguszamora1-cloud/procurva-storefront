@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useTestimonials } from '@/hooks/useTestimonials';
@@ -42,8 +42,31 @@ function TestimonialCard({ t }: { t: Testimonial }) {
 export function SocialProofSection() {
   const { testimonials } = useTestimonials();
   const scrollerRef = useRef<HTMLDivElement>(null);
+  // Pausa el auto-scroll mientras el cliente interactúa (hover, swipe, foco).
+  const pausedRef = useRef(false);
 
-  if (testimonials.length === 0) return null;
+  // Auto-scroll: avanza solo cada 3.5s y vuelve al inicio al llegar al final.
+  // Respeta "prefers-reduced-motion" y pausa al interactuar.
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el || testimonials.length <= 1) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const id = window.setInterval(() => {
+      if (pausedRef.current) return;
+      // Sin overflow (todas las reseñas entran en pantalla) → no scrollear.
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (maxScroll <= 1) return;
+      const atEnd = el.scrollLeft >= maxScroll - 1;
+      if (atEnd) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: el.clientWidth * 0.8, behavior: 'smooth' });
+      }
+    }, 3500);
+
+    return () => window.clearInterval(id);
+  }, [testimonials.length]);
 
   // Flechas (desktop) sólo cuando hay más reseñas que las visibles (3 en desktop).
   const hasArrows = testimonials.length > 3;
@@ -56,7 +79,15 @@ export function SocialProofSection() {
   return (
     <section className="mx-auto max-w-none px-6 py-10 md:py-24">
       <SectionHeader label="Lo que dicen" title="Reseñas de clientes" />
-      <div className="relative">
+      <div
+        className="relative"
+        onMouseEnter={() => { pausedRef.current = true; }}
+        onMouseLeave={() => { pausedRef.current = false; }}
+        onTouchStart={() => { pausedRef.current = true; }}
+        onTouchEnd={() => { pausedRef.current = false; }}
+        onFocusCapture={() => { pausedRef.current = true; }}
+        onBlurCapture={() => { pausedRef.current = false; }}
+      >
         {/* Carrusel horizontal swipeable: 80vw en mobile (con peek + snap), 2 en tablet, 3 en desktop. */}
         <div
           ref={scrollerRef}
