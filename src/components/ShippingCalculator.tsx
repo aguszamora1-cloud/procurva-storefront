@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStore } from '@/context/StoreProvider';
 import { Spinner } from '@/components/Spinner';
 import { formatPrice, whatsappLink } from '@/lib/utils';
-import { etaBadgeColors, fetchShippingOptions, type ShippingOption } from '@/lib/shipping';
+import { etaBadgeColors, fetchShippingOptions, methodCoversPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 
 type Status = 'idle' | 'loading' | 'done' | 'empty' | 'error';
 
@@ -28,16 +28,17 @@ export function ShippingCalculator() {
     setStatus('loading');
     try {
       const all = await fetchShippingOptions(config.companyId);
-      // El modelo no tiene reglas de CP: se muestran todas las opciones activas.
-      // Los métodos sin costo fijo (transportes como Correo Argentino, Andreani,
-      // etc.) se muestran igual como "A coordinar" — no se ocultan. Sólo si no hay
-      // ningún método activo se cae al estado vacío.
-      if (all.length === 0) {
+      // Filtramos por CP: el retiro en local y los métodos sin restricción siempre
+      // aparecen; los envíos sólo si cubren la zona del cliente. Si nada cubre la
+      // zona se cae al estado vacío (con CTA a WhatsApp).
+      const cpNum = normalizePostalCode(cp);
+      const matched = all.filter((o) => methodCoversPostalCode(o, cpNum));
+      if (matched.length === 0) {
         setOptions([]);
         setStatus('empty');
         return;
       }
-      setOptions(all);
+      setOptions(matched);
       setStatus('done');
     } catch (e) {
       console.error('[ShippingCalculator] error calculando envío:', e);

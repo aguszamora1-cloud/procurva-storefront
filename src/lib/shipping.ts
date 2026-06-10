@@ -16,6 +16,56 @@ export interface ShippingOption {
   icon: string;
   /** Descripción corta para mostrar bajo el nombre. */
   description: string;
+  /** Cubre todo el país: disponible para cualquier CP (transportadoras nacionales). */
+  coversAllPostalCodes: boolean;
+  /** Rangos de CP cubiertos [desde, hasta]. Vacío = sin restricción (disponible para cualquier CP). */
+  postalCodeRanges: [number, number][];
+}
+
+/**
+ * Parsea el texto de cobertura CP cargado por el negocio ("1000-1499, 1601, 1700-1900")
+ * a rangos numéricos. Acepta CPs de 3-4 dígitos. Tokens inválidos se ignoran.
+ */
+export function parsePostalCodeRanges(raw: unknown): [number, number][] {
+  if (typeof raw !== 'string') return [];
+  return raw
+    .split(',')
+    .map((tok) => tok.trim())
+    .filter(Boolean)
+    .flatMap((tok): [number, number][] => {
+      const range = tok.match(/(\d{3,4})\s*-\s*(\d{3,4})/);
+      if (range) {
+        const a = Number(range[1]);
+        const b = Number(range[2]);
+        return [[Math.min(a, b), Math.max(a, b)]];
+      }
+      const single = tok.match(/\d{3,4}/);
+      if (single) {
+        const n = Number(single[0]);
+        return [[n, n]];
+      }
+      return [];
+    });
+}
+
+/** Extrae el CP numérico de lo ingresado por el cliente (acepta CPA tipo "A4400XYZ" → 4400). */
+export function normalizePostalCode(raw: string): number | null {
+  const digits = (raw.match(/\d+/g) || []).join('');
+  if (!digits) return null;
+  const n = Number(digits.slice(0, 4)); // CPA: la zona son los primeros 4 dígitos
+  return isNaN(n) ? null : n;
+}
+
+/**
+ * ¿El método está disponible para el CP dado?
+ * Retiro en local y métodos sin restricción → siempre disponibles (compat. hacia atrás).
+ */
+export function methodCoversPostalCode(m: ShippingOption, cp: number | null): boolean {
+  if (!m.requiresAddress) return true; // retiro en local: siempre
+  if (m.coversAllPostalCodes) return true; // cubre todo el país
+  if (m.postalCodeRanges.length === 0) return true; // sin restricción configurada
+  if (cp == null) return false;
+  return m.postalCodeRanges.some(([a, b]) => cp >= a && cp <= b);
 }
 
 function iconFor(isPickup: boolean, type: unknown): string {
@@ -60,6 +110,8 @@ export function toShippingOption(m: any): ShippingOption {
     eta: etaFor(m, isPickup),
     icon: iconFor(isPickup, m.type),
     description: descriptionFor(isPickup, m.allowedCities),
+    coversAllPostalCodes: m.coversAllPostalCodes === true,
+    postalCodeRanges: parsePostalCodeRanges(m.postalCodes),
   };
 }
 
@@ -75,6 +127,8 @@ export function expandMethod(m: any): ShippingOption[] {
     const baseId = String(m.id ?? m.name);
     const baseName = String(m.name ?? 'Envío');
     const eta = etaFor(m, false);
+    const coversAllPostalCodes = m.coversAllPostalCodes === true;
+    const postalCodeRanges = parsePostalCodeRanges(m.postalCodes);
     return [
       {
         id: `${baseId}:domicilio`,
@@ -84,6 +138,8 @@ export function expandMethod(m: any): ShippingOption[] {
         eta,
         icon: '📦',
         description: 'Te lo enviamos a tu domicilio',
+        coversAllPostalCodes,
+        postalCodeRanges,
       },
       {
         id: `${baseId}:sucursal`,
@@ -93,6 +149,8 @@ export function expandMethod(m: any): ShippingOption[] {
         eta,
         icon: '🏢',
         description: `Retiralo en una sucursal de ${baseName}`,
+        coversAllPostalCodes,
+        postalCodeRanges,
       },
     ];
   }

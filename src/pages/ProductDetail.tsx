@@ -17,6 +17,7 @@ import { CardBadge } from '@/components/CardBadge';
 import { ProductDetailCustomSlot } from '@/components/ProductDetailCustomSlot';
 import { RelatedProducts } from '@/components/RelatedProducts';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
+import { VirtualTryOn, mapFashnCategory } from '@/components/VirtualTryOn';
 import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSections';
 import { badgeColor, formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
@@ -213,8 +214,8 @@ export function ProductDetail() {
 
           {needSize && <SizeSelector sizes={sizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />}
 
-          {/* Probador virtual — plan PRO, sólo si section_probador. Panel inline desplegable. */}
-          {config.isPro && config.sections.probador && (
+          {/* Recomendador de talle — plan TIENDA+, sólo si section_probador. Panel inline desplegable. */}
+          {config.isPaid && config.sections.probador && (
             <div className="overflow-hidden rounded-lg border border-line">
               <button
                 type="button"
@@ -226,7 +227,7 @@ export function ProductDetail() {
                   <Ruler size={16} /> ¿No sabés tu talle?
                 </span>
                 <span className="flex items-center gap-1 text-[12px] font-semibold text-accent">
-                  Probador virtual
+                  Recomendador de talle
                   <ChevronDown
                     size={16}
                     className={`transition-transform duration-200 ${showSizeFinder ? 'rotate-180' : ''}`}
@@ -306,6 +307,15 @@ export function ProductDetail() {
                 </svg>
                 Consultar por WhatsApp
               </a>
+            )}
+
+            {/* Probador virtual con IA (FASHN) — plan PRO, sólo si section_virtual_tryon. */}
+            {config.isPro && config.sections.virtualTryon && images[0] && (
+              <VirtualTryOn
+                garmentImageUrl={images[0]}
+                garmentName={product.name}
+                garmentCategory={mapFashnCategory(cats)}
+              />
             )}
           </div>
           </>

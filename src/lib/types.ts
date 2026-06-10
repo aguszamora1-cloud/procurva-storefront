@@ -153,6 +153,14 @@ export interface Outfit {
   items: OutfitItem[];
 }
 
+/** Un paso del flujo de compra ("Así funciona tu compra"). */
+export interface PurchaseFlowStep {
+  name: string;
+  detail: string;
+  /** Estado visual: completado (check verde), actual (oscuro) o pendiente (gris). */
+  state: 'done' | 'current' | 'pending';
+}
+
 /** catalog_settings crudo (JSONB). Todas las claves son opcionales. */
 export interface RawCatalogSettings {
   logo_url?: string;
@@ -207,6 +215,7 @@ export interface RawCatalogSettings {
   section_outfits?: boolean;
   section_upsell?: boolean;
   section_probador?: boolean;
+  section_virtual_tryon?: boolean;
   section_stories?: boolean;
   section_social_proof?: boolean;
   section_newsletter?: boolean;
@@ -225,6 +234,9 @@ export interface RawCatalogSettings {
   trust_badges_bg_color?: string;
   // Color del texto e íconos de la barra de trust badges. Default #000000.
   trust_badges_text_color?: string;
+  // Flujo de compra ("Así funciona tu compra") en el detalle de producto.
+  purchase_flow_enabled?: boolean;
+  purchase_flow_steps?: PurchaseFlowStep[];
   // Social
   social_instagram?: string;
   instagram_url?: string;
@@ -318,6 +330,8 @@ export interface StoreConfig {
   name: string;
   plan: string;
   isPro: boolean;
+  /** Plan pago (TIENDA o PROFESIONAL) — habilita features de plan TIENDA en adelante. */
+  isPaid: boolean;
   slug: string;
   // Tipo de tienda resuelta + modo de venta (seam para la fase de render mayorista).
   storeType: StoreType;
@@ -369,6 +383,7 @@ export interface StoreConfig {
     outfits: boolean;
     upsell: boolean;
     probador: boolean;
+    virtualTryon: boolean;
     stories: boolean;
     socialProof: boolean;
     newsletter: boolean;
@@ -388,6 +403,9 @@ export interface StoreConfig {
   trustBadgesBgColor: string;
   // Color del texto e íconos de la barra de trust badges (independiente de --color-text).
   trustBadgesTextColor: string;
+  // Flujo de compra ("Así funciona tu compra") en el detalle de producto.
+  purchaseFlowEnabled: boolean;
+  purchaseFlowSteps: PurchaseFlowStep[];
   // Social / contacto
   whatsapp: string;
   instagramUrl: string;

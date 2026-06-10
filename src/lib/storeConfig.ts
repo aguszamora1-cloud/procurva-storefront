@@ -1,4 +1,29 @@
-import type { RawCatalogSettings, ResolvedStorefront, StoreConfig } from './types';
+import type { PurchaseFlowStep, RawCatalogSettings, ResolvedStorefront, StoreConfig } from './types';
+
+/** Pasos por defecto del flujo de compra (si el comercio no configuró los suyos). */
+export const DEFAULT_PURCHASE_FLOW: PurchaseFlowStep[] = [
+  { name: 'Comprás online', detail: 'Pagás con tarjeta, transferencia o efectivo', state: 'done' },
+  { name: 'Preparamos tu pedido', detail: 'En 24hs hábiles', state: 'done' },
+  { name: 'Te lo enviamos', detail: 'Envío gratis · 2-5 días al interior', state: 'current' },
+  { name: 'Recibís en tu casa', detail: 'Con seguimiento en tiempo real', state: 'pending' },
+];
+
+const VALID_STATES = new Set(['done', 'current', 'pending']);
+
+/** Saneamos los pasos crudos del JSONB: descarta los sin nombre y normaliza el estado. */
+function parsePurchaseFlowSteps(raw: unknown): PurchaseFlowStep[] {
+  if (!Array.isArray(raw)) return DEFAULT_PURCHASE_FLOW;
+  const steps = raw
+    .map((s) => {
+      const o = (s ?? {}) as Record<string, unknown>;
+      const name = str(o.name);
+      if (!name) return null;
+      const state = typeof o.state === 'string' && VALID_STATES.has(o.state) ? o.state : 'pending';
+      return { name, detail: str(o.detail), state: state as PurchaseFlowStep['state'] };
+    })
+    .filter((s): s is PurchaseFlowStep => s !== null);
+  return steps.length > 0 ? steps : DEFAULT_PURCHASE_FLOW;
+}
 
 // Defaults de la config del storefront. Coinciden con los defaults de la
 // migración 20260604_storefront_config.sql.
@@ -47,7 +72,11 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
   // 'PROFESIONAL', 'profesional' o con espacios/saltos ocultos; cualquiera de esos
   // debe contar como PRO.
   const plan = (resolved.plan ?? 'starter').toString().trim();
-  const isPro = plan.toUpperCase() === 'PROFESIONAL';
+  const planUpper = plan.toUpperCase();
+  const isPro = planUpper === 'PROFESIONAL';
+  // Plan pago: TIENDA o PROFESIONAL (habilita features de plan TIENDA en adelante,
+  // como el recomendador de talle).
+  const isPaid = planUpper === 'TIENDA' || planUpper === 'PROFESIONAL';
 
   // Instagram puede venir como handle o URL en social_instagram, o como
   // instagram_url completo en las claves nuevas.
@@ -60,6 +89,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     name: companyName,
     plan,
     isPro,
+    isPaid,
     slug: resolved.slug ?? '',
     storeType: resolved.store_type === 'wholesale' ? 'wholesale' : 'retail',
     saleMode:
@@ -126,6 +156,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       outfits: bool(s.section_outfits, false),
       upsell: bool(s.section_upsell, false),
       probador: bool(s.section_probador, false),
+      virtualTryon: bool(s.section_virtual_tryon, false),
       stories: bool(s.section_stories, false),
       socialProof: bool(s.section_social_proof, false),
       newsletter: bool(s.section_newsletter, false),
@@ -156,6 +187,9 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     })(),
     trustBadgesBgColor: firstStr(s.trust_badges_bg_color),
     trustBadgesTextColor: firstStr(s.trust_badges_text_color) || '#000000',
+
+    purchaseFlowEnabled: bool(s.purchase_flow_enabled, true),
+    purchaseFlowSteps: parsePurchaseFlowSteps(s.purchase_flow_steps),
 
     whatsapp: str(s.whatsapp),
     instagramUrl: instagram,

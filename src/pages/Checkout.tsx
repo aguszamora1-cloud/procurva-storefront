@@ -10,7 +10,7 @@ import { formatPrice } from '@/lib/utils';
 import { groupCartItems } from '@/lib/cart';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, type CustomerInfo } from '@/lib/orders';
-import { expandMethod, type ShippingOption } from '@/lib/shipping';
+import { expandMethod, methodCoversPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 
 const emptyForm: CustomerInfo = {
   name: '',
@@ -25,8 +25,8 @@ const emptyForm: CustomerInfo = {
 
 // Métodos por defecto si el negocio no configuró ninguno (mismo criterio que el catálogo).
 const FALLBACK_METHODS: ShippingOption[] = [
-  { id: 'retiro', name: 'Retiro en local', requiresAddress: false, cost: 0, eta: 'Retirá en el local sin esperas', icon: '🏪', description: 'Retirá sin esperas en nuestro local' },
-  { id: 'envio', name: 'Envío a domicilio', requiresAddress: true, cost: null, icon: '🚚', description: 'Envío a todo el país' },
+  { id: 'retiro', name: 'Retiro en local', requiresAddress: false, cost: 0, eta: 'Retirá en el local sin esperas', icon: '🏪', description: 'Retirá sin esperas en nuestro local', coversAllPostalCodes: false, postalCodeRanges: [] },
+  { id: 'envio', name: 'Envío a domicilio', requiresAddress: true, cost: null, icon: '🚚', description: 'Envío a todo el país', coversAllPostalCodes: true, postalCodeRanges: [] },
 ];
 
 export function Checkout() {
@@ -42,6 +42,8 @@ export function Checkout() {
   const [floor, setFloor] = useState(''); // Piso / Depto (opcional)
   const [methods, setMethods] = useState<ShippingOption[]>([]);
   const [selectedMethodId, setSelectedMethodId] = useState('');
+  const [cpInput, setCpInput] = useState(''); // CP que el cliente está tipeando
+  const [appliedCp, setAppliedCp] = useState(''); // CP confirmado ('' = todavía no calculó)
   const [loading, setLoading] = useState<null | 'mp' | 'wa'>(null);
   const [error, setError] = useState('');
 
@@ -58,18 +60,55 @@ export function Checkout() {
       const active = raw.filter((m: any) => m && m.isActive !== false).flatMap(expandMethod);
       const list = active.length > 0 ? active : FALLBACK_METHODS;
       setMethods(list);
-      setSelectedMethodId((prev) => (prev && list.some((m) => m.id === prev) ? prev : list[0]?.id ?? ''));
     })();
     return () => {
       cancelled = true;
     };
   }, [config.companyId]);
 
+  // ¿Hay métodos de envío a domicilio? Si sólo hay retiro en local no pedimos CP.
+  const hasDeliveryMethods = useMemo(() => methods.some((m) => m.requiresAddress), [methods]);
+  // El input de CP gatea los envíos: hasta no calcular no se muestra ningún método de envío.
+  const showCpGate = hasDeliveryMethods && !appliedCp;
+
+  // Métodos disponibles según el CP: retiro en local siempre; envíos sólo si cubren la zona.
+  const cpNum = useMemo(() => (appliedCp ? normalizePostalCode(appliedCp) : null), [appliedCp]);
+  const availableMethods = useMemo(() => {
+    if (showCpGate) return [];
+    return methods.filter((m) => methodCoversPostalCode(m, cpNum));
+  }, [methods, cpNum, showCpGate]);
+
+  // Mantené la selección si sigue disponible; si no, elegí la primera opción disponible.
+  useEffect(() => {
+    setSelectedMethodId((prev) =>
+      availableMethods.some((m) => m.id === prev) ? prev : availableMethods[0]?.id ?? '',
+    );
+  }, [availableMethods]);
+
+  // Ya calculó el CP pero ningún envío a domicilio cubre su zona (el retiro igual aparece).
+  const noDeliveryForZone = !!appliedCp && hasDeliveryMethods && !availableMethods.some((m) => m.requiresAddress);
+
   const selectedMethod = useMemo(
-    () => methods.find((m) => m.id === selectedMethodId) ?? null,
-    [methods, selectedMethodId],
+    () => availableMethods.find((m) => m.id === selectedMethodId) ?? null,
+    [availableMethods, selectedMethodId],
   );
   const requiresAddress = selectedMethod?.requiresAddress ?? false;
+
+  function applyCp() {
+    const cp = cpInput.trim();
+    if (!normalizePostalCode(cp)) {
+      setError('Ingresá un código postal válido.');
+      return;
+    }
+    setAppliedCp(cp);
+    setForm((f) => ({ ...f, zip: cp })); // reutilizamos el CP en la dirección — no lo pedimos dos veces
+    setError('');
+  }
+
+  function changeCp() {
+    setAppliedCp('');
+    setError('');
+  }
 
   // Costo conocido (número) vs "a coordinar" (null/sin método).
   const shippingKnown = typeof selectedMethod?.cost === 'number';
@@ -189,35 +228,88 @@ export function Checkout() {
             </label>
           </div>
 
-          {/* Método de envío — dinámico desde los ajustes del negocio */}
+          {/* Método de envío — gateado por código postal */}
           <h2 className="mb-3 mt-8 font-heading text-[18px] font-bold uppercase tracking-[0.5px] text-text">Método de envío</h2>
-          <div className="flex flex-wrap gap-2">
-            {methods.map((m) => {
-              const selected = m.id === selectedMethodId;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => { setSelectedMethodId(m.id); setError(''); }}
-                  className={`rounded-[8px] border px-4 py-2 text-[13px] font-semibold uppercase tracking-wide transition-colors ${
-                    selected ? 'border-accent bg-accent text-on-accent' : 'border-line text-muted hover:border-text'
-                  }`}
-                >
-                  {m.name}
-                </button>
-              );
-            })}
-          </div>
 
-          {/* Tiempo estimado / mensaje del método seleccionado */}
-          {etaText && <p className="mt-3 text-[13px] font-medium text-text">{etaText}</p>}
+          {showCpGate ? (
+            /* Paso 1: pedimos el CP antes de mostrar los envíos disponibles */
+            <div className="max-w-[440px]">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Código postal</span>
+                <div className="flex gap-2">
+                  <input
+                    className={inputCls}
+                    value={cpInput}
+                    onChange={(e) => { setCpInput(e.target.value); setError(''); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCp(); } }}
+                    inputMode="numeric"
+                    placeholder="Ingresá tu código postal"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyCp}
+                    className="shrink-0 rounded-[8px] bg-primary px-5 text-[13px] font-bold uppercase tracking-wide text-on-primary transition-colors hover:bg-accent hover:text-on-accent"
+                  >
+                    Calcular envío
+                  </button>
+                </div>
+              </label>
+              <a
+                href="https://www.correoargentino.com.ar/formularios/cpa"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block text-[12px] text-subtle underline hover:text-accent"
+              >
+                No sé mi código postal
+              </a>
+            </div>
+          ) : (
+            <>
+              {/* CP confirmado: lo mostramos con opción de cambiarlo (recalcula los envíos) */}
+              {appliedCp && (
+                <div className="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
+                  <span className="text-muted">Enviando al CP</span>
+                  <span className="font-semibold text-text">{appliedCp}</span>
+                  <button type="button" onClick={changeCp} className="text-[12px] uppercase tracking-wide text-accent underline">Cambiar</button>
+                </div>
+              )}
 
-          {/* Retiro en local: mostramos la dirección del local si está cargada */}
-          {selectedMethod && !requiresAddress && selectedMethod.pickupAddress && (
-            <p className="mt-1 text-[13px] text-muted">
-              <span className="text-subtle">Retirás en: </span>
-              <span className="font-medium text-text">{selectedMethod.pickupAddress}</span>
-            </p>
+              {/* Ningún envío cubre la zona — el retiro en local, si existe, igual aparece abajo */}
+              {noDeliveryForZone && (
+                <p className="mb-3 rounded-[8px] bg-amber-50 px-3 py-2 text-[13px] font-medium text-amber-800">
+                  No hay envíos disponibles para tu zona. Contactanos por WhatsApp.
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                {availableMethods.map((m) => {
+                  const selected = m.id === selectedMethodId;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => { setSelectedMethodId(m.id); setError(''); }}
+                      className={`rounded-[8px] border px-4 py-2 text-[13px] font-semibold uppercase tracking-wide transition-colors ${
+                        selected ? 'border-accent bg-accent text-on-accent' : 'border-line text-muted hover:border-text'
+                      }`}
+                    >
+                      {m.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Tiempo estimado / mensaje del método seleccionado */}
+              {etaText && <p className="mt-3 text-[13px] font-medium text-text">{etaText}</p>}
+
+              {/* Retiro en local: mostramos la dirección del local si está cargada */}
+              {selectedMethod && !requiresAddress && selectedMethod.pickupAddress && (
+                <p className="mt-1 text-[13px] text-muted">
+                  <span className="text-subtle">Retirás en: </span>
+                  <span className="font-medium text-text">{selectedMethod.pickupAddress}</span>
+                </p>
+              )}
+            </>
           )}
 
           {/* Campos de dirección: sólo si el método requiere envío a domicilio */}
@@ -238,10 +330,6 @@ export function Checkout() {
               <label className="flex flex-col gap-1.5">
                 <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Provincia *</span>
                 <input className={inputCls} value={form.province} onChange={set('province')} />
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Código postal *</span>
-                <input className={inputCls} value={form.zip} onChange={set('zip')} inputMode="numeric" />
               </label>
             </div>
           )}
