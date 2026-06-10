@@ -31,11 +31,13 @@ export interface TransformOpts {
  * Devuelve la URL transformada (render/image) si es una imagen pública de
  * Supabase; si no, devuelve la URL original sin tocar.
  *
- * Importante: `resize` (cover/contain/fill) solo se envía cuando hay un box
- * completo (width + height). Con solo `width`, Supabase mantiene el aspect ratio
- * original y hace un downscale proporcional. Mandar `resize=cover` con solo
- * `width` rompe la proporción (devuelve una imagen con el alto original), lo que
- * provocaba que las fotos ya recortadas a 3:4 se vieran "zoomeadas" en las cards.
+ * Quirk de Supabase: con SOLO `width` (sin height) el render ignora el alto y
+ * devuelve la imagen con el alto ORIGINAL (ej: 960x1280 → 500x1280), rompiendo
+ * la proporción. Eso hacía que las fotos ya recortadas a 3:4 se vieran
+ * "zoomeadas" en las cards (object-cover recortaba de nuevo). `resize=contain`
+ * fuerza el escalado proporcional (500x667). Por eso:
+ *  - width + height → se respeta el `resize` pedido (default cover, recorta al box).
+ *  - solo width     → `resize=contain` (downscale proporcional, mantiene el 3:4).
  */
 export function transformedSrc(url: string | null | undefined, opts: TransformOpts = {}): string {
   if (!url || !isSupabasePublicImage(url)) return url ?? '';
@@ -45,6 +47,7 @@ export function transformedSrc(url: string | null | undefined, opts: TransformOp
   if (width) params.set('width', String(Math.round(width)));
   if (height) params.set('height', String(Math.round(height)));
   params.set('quality', String(quality));
-  if (resize && width && height) params.set('resize', resize);
+  if (width && height) params.set('resize', resize ?? 'cover');
+  else if (width) params.set('resize', 'contain');
   return `${base}?${params.toString()}`;
 }
