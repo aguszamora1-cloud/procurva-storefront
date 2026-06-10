@@ -10,6 +10,7 @@ import { formatPrice } from '@/lib/utils';
 import { groupCartItems } from '@/lib/cart';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, type CustomerInfo } from '@/lib/orders';
+import { expandMethod, type ShippingOption } from '@/lib/shipping';
 
 const emptyForm: CustomerInfo = {
   name: '',
@@ -22,48 +23,11 @@ const emptyForm: CustomerInfo = {
   notes: '',
 };
 
-/** Método de envío normalizado que consume el checkout. */
-interface ShippingOption {
-  id: string;
-  name: string;
-  /** true si el método necesita dirección (no es retiro en local). */
-  requiresAddress: boolean;
-  /** Dirección del local (sólo retiro). */
-  pickupAddress?: string;
-  /** Costo: 0 = gratis, >0 = fijo, null = a coordinar con la tienda. */
-  cost: number | null;
-  /** Tiempo estimado de entrega (opcional). */
-  eta?: string;
-}
-
 // Métodos por defecto si el negocio no configuró ninguno (mismo criterio que el catálogo).
 const FALLBACK_METHODS: ShippingOption[] = [
-  { id: 'retiro', name: 'Retiro en local', requiresAddress: false, cost: 0, eta: 'Retirá en el local sin esperas' },
-  { id: 'envio', name: 'Envío a domicilio', requiresAddress: true, cost: null },
+  { id: 'retiro', name: 'Retiro en local', requiresAddress: false, cost: 0, eta: 'Retirá en el local sin esperas', icon: '🏪', description: 'Retirá sin esperas en nuestro local' },
+  { id: 'envio', name: 'Envío a domicilio', requiresAddress: true, cost: null, icon: '🚚', description: 'Envío a todo el país' },
 ];
-
-/** Mapea un método crudo (companies.settings.shippingMethods) a ShippingOption. */
-function toShippingOption(m: any): ShippingOption {
-  const isPickup = m.isPickup === true || m.type === 'retiro';
-  // Costo y tiempo estimado son opcionales en el modelo actual: se leen si el
-  // negocio los cargó; si no, retiro = gratis y envío = a coordinar.
-  const rawCost = m.cost ?? m.price ?? m.shipping_cost;
-  const cost = isPickup ? 0 : typeof rawCost === 'number' ? rawCost : null;
-  const rawEta = m.estimatedTime ?? m.eta ?? m.delivery_time ?? m.deliveryTime;
-  const eta = typeof rawEta === 'string' && rawEta.trim()
-    ? rawEta.trim()
-    : isPickup
-      ? 'Retirá en el local sin esperas'
-      : undefined;
-  return {
-    id: String(m.id ?? m.name),
-    name: String(m.name ?? 'Envío'),
-    requiresAddress: !isPickup,
-    pickupAddress: typeof m.pickupAddress === 'string' ? m.pickupAddress : undefined,
-    cost,
-    eta,
-  };
-}
 
 export function Checkout() {
   const { items, subtotal, itemCount } = useCart();
@@ -91,7 +55,7 @@ export function Checkout() {
       if (cancelled) return;
       if (rpcErr) console.error('[Checkout] error cargando métodos de envío:', rpcErr);
       const raw = Array.isArray(data) ? data : [];
-      const active = raw.filter((m: any) => m && m.isActive !== false).map(toShippingOption);
+      const active = raw.filter((m: any) => m && m.isActive !== false).flatMap(expandMethod);
       const list = active.length > 0 ? active : FALLBACK_METHODS;
       setMethods(list);
       setSelectedMethodId((prev) => (prev && list.some((m) => m.id === prev) ? prev : list[0]?.id ?? ''));

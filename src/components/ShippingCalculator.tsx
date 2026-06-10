@@ -4,7 +4,7 @@ import { Spinner } from '@/components/Spinner';
 import { formatPrice, whatsappLink } from '@/lib/utils';
 import { etaBadgeColors, fetchShippingOptions, type ShippingOption } from '@/lib/shipping';
 
-type Status = 'idle' | 'loading' | 'done' | 'empty' | 'nocost' | 'error';
+type Status = 'idle' | 'loading' | 'done' | 'empty' | 'error';
 
 /**
  * Calculadora de envío del detalle de producto: el cliente ingresa su CP y ve
@@ -29,11 +29,12 @@ export function ShippingCalculator() {
     try {
       const all = await fetchShippingOptions(config.companyId);
       // El modelo no tiene reglas de CP: se muestran todas las opciones activas.
-      // Si no hay ningún método con costo configurado → mensaje genérico por WhatsApp.
-      const hasCost = all.some((o) => o.cost != null);
-      if (all.length === 0 || !hasCost) {
+      // Los métodos sin costo fijo (transportes como Correo Argentino, Andreani,
+      // etc.) se muestran igual como "A coordinar" — no se ocultan. Sólo si no hay
+      // ningún método activo se cae al estado vacío.
+      if (all.length === 0) {
         setOptions([]);
-        setStatus('nocost');
+        setStatus('empty');
         return;
       }
       setOptions(all);
@@ -118,6 +119,15 @@ export function ShippingCalculator() {
               </div>
             );
           })}
+          {options.some((o) => o.cost == null) && (
+            <p className="pt-1 text-[12px] text-muted">
+              {waHref ? (
+                <a href={waHref} target="_blank" rel="noreferrer" className="font-semibold text-accent underline">Consultá el costo exacto a tu zona por WhatsApp</a>
+              ) : (
+                'Consultá el costo exacto a tu zona por WhatsApp.'
+              )}
+            </p>
+          )}
         </div>
       )}
 
@@ -128,16 +138,6 @@ export function ShippingCalculator() {
             <a href={waHref} target="_blank" rel="noreferrer" className="font-semibold text-accent underline">Contactanos por WhatsApp.</a>
           ) : (
             'Contactanos por WhatsApp.'
-          )}
-        </p>
-      )}
-
-      {status === 'nocost' && (
-        <p className="mt-4 text-[13px] text-muted">
-          {waHref ? (
-            <a href={waHref} target="_blank" rel="noreferrer" className="font-semibold text-accent underline">Consultá el envío a tu zona por WhatsApp</a>
-          ) : (
-            'Consultá el envío a tu zona por WhatsApp.'
           )}
         </p>
       )}
