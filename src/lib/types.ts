@@ -126,6 +126,7 @@ export interface Story {
 export interface Testimonial {
   id: string;
   company_id: string;
+  catalog_type: 'retail' | 'wholesale';
   customer_name: string;
   customer_photo_url: string | null;
   text: string;
