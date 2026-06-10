@@ -15,6 +15,8 @@ import { PriceDisplay } from '@/components/PriceDisplay';
 import { WholesalePurchasePanel } from '@/components/WholesalePurchasePanel';
 import { CardBadge } from '@/components/CardBadge';
 import { ProductDetailCustomSlot } from '@/components/ProductDetailCustomSlot';
+import { RelatedProducts } from '@/components/RelatedProducts';
+import { PurchaseFlow } from '@/components/PurchaseFlow';
 import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSections';
 import { badgeColor, formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
@@ -196,7 +198,6 @@ export function ProductDetail() {
         </div>
 
         <div className="space-y-6 md:min-w-0 md:flex-1">
-          {cats[0] && <p className="text-[11px] font-semibold uppercase tracking-[2px] text-accent">{cats[0]}</p>}
           {product.catalog_badge_visible && product.catalog_badge_text && (
             <CardBadge glow bg={badgeColor(product.catalog_badge_color)}>{product.catalog_badge_text}</CardBadge>
           )}
@@ -314,6 +315,8 @@ export function ProductDetail() {
 
           {config.sections.trustBadges && <TrustBadges />}
 
+          <PurchaseFlow />
+
           <ProductDetailCustomSlot sections={pdSections} slot="above_description" />
 
           {product.description && (
@@ -328,6 +331,9 @@ export function ProductDetail() {
       </div>
 
       <ProductDetailCustomSlot sections={pdSections} slot="below_product" />
+
+      {/* Productos relacionados (sección "upsell" del admin, PRO) */}
+      {config.isPro && config.sections.upsell && <RelatedProducts product={product} />}
 
       {/* Sticky bar mobile (solo retail; el panel mayorista tiene su propio CTA inline) */}
       {!isWholesale && showSticky && (
