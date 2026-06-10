@@ -4,7 +4,6 @@ import { ChevronDown } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
-import { instagramHref } from '@/lib/storeConfig';
 
 const drawerLink = ({ isActive }: { isActive: boolean }) =>
   `block py-3 text-[15px] tracking-[1px] font-semibold uppercase transition-colors ${
@@ -24,8 +23,6 @@ export function Navbar() {
   const [catOpen, setCatOpen] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
   const [scrolled, setScrolled] = useState(false);
-
-  const ig = instagramHref(config.instagramUrl);
 
   // Links principales del menú. (Outfits se muestra como sección del home, no
   // tiene página propia, así que no se agrega para evitar un 404.)
@@ -121,18 +118,8 @@ export function Navbar() {
           )}
         </Link>
 
-        {/* Derecha: instagram (desktop) + carrito */}
+        {/* Derecha: carrito */}
         <div className="flex items-center justify-end gap-3 md:gap-6">
-          {ig && (
-            <a
-              href={ig}
-              target="_blank"
-              rel="noreferrer"
-              className="hidden text-[14px] font-semibold uppercase tracking-[0.5px] text-on-surface-muted transition-colors hover:text-accent md:inline"
-            >
-              INSTAGRAM
-            </a>
-          )}
           <button
             type="button"
             onClick={open}
@@ -226,19 +213,6 @@ export function Navbar() {
               </div>
             )}
           </div>
-
-          {/* Instagram dentro del menú (también accesible en mobile) */}
-          {ig && (
-            <a
-              href={ig}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => setMenuOpen(false)}
-              className="mt-2 block border-t border-line py-3 text-[14px] font-semibold uppercase tracking-[1px] text-on-surface-muted hover:text-accent"
-            >
-              INSTAGRAM
-            </a>
-          )}
         </nav>
       </aside>
     </header>
