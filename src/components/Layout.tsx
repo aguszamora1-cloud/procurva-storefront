@@ -6,6 +6,7 @@ import { PromoBanner } from './PromoBanner';
 import { NewsletterPopup } from './NewsletterPopup';
 import { Footer } from './Footer';
 import { CartDrawer } from './CartDrawer';
+import { FloatingWhatsApp } from './FloatingWhatsApp';
 
 export function Layout({ children }: { children: ReactNode }) {
   const config = useStore();
@@ -42,6 +43,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
       <Footer />
       <CartDrawer />
+      <FloatingWhatsApp />
       <NewsletterPopup />
     </div>
   );
