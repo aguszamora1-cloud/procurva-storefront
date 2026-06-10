@@ -30,7 +30,9 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  /* Sin `scroll-behavior: smooth` global: en webviews (Instagram/iOS) puede
+     generar tirones al scrollear. Los carruseles usan scroll-smooth localmente
+     en su propio contenedor, así que no se ve afectado. */
   /* Red de seguridad anti-overflow horizontal en mobile. `clip` (no `hidden`)
      no rompe position: sticky del navbar ni de la galería. */
   overflow-x: clip;

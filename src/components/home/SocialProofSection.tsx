@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useTestimonials } from '@/hooks/useTestimonials';
 import type { Testimonial } from '@/lib/types';
@@ -19,7 +21,7 @@ function Stars({ value }: { value: number }) {
 
 function TestimonialCard({ t }: { t: Testimonial }) {
   return (
-    <article className="flex flex-col gap-4 border border-line bg-[var(--color-background)] p-6">
+    <article className="flex h-full flex-col gap-4 border border-line bg-[var(--color-background)] p-6">
       <Stars value={t.rating ?? 5} />
       <p className="flex-1 text-[14px] leading-relaxed text-text md:text-[15px]">“{t.text}”</p>
       <div className="flex items-center gap-3">
@@ -36,18 +38,64 @@ function TestimonialCard({ t }: { t: Testimonial }) {
   );
 }
 
-/** Sección de testimonios / reseñas (Social Proof, Extra PRO). */
+/** Sección de testimonios / reseñas (Social Proof, Extra PRO). Carrusel horizontal. */
 export function SocialProofSection() {
   const { testimonials } = useTestimonials();
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
   if (testimonials.length === 0) return null;
 
+  // Flechas (desktop) sólo cuando hay más reseñas que las visibles (3 en desktop).
+  const hasArrows = testimonials.length > 3;
+
+  const scrollByDir = (dir: number) => {
+    const el = scrollerRef.current;
+    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' });
+  };
+
   return (
-    <section className="mx-auto max-w-none px-6 py-16 md:py-24">
+    <section className="mx-auto max-w-none px-6 py-10 md:py-24">
       <SectionHeader label="Lo que dicen" title="Reseñas de clientes" />
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-        {testimonials.map((t) => (
-          <TestimonialCard key={t.id} t={t} />
-        ))}
+      <div className="relative">
+        {/* Carrusel horizontal swipeable: 80vw en mobile (con peek + snap), 2 en tablet, 3 en desktop. */}
+        <div
+          ref={scrollerRef}
+          style={{ touchAction: 'pan-x' }}
+          className={`flex touch-pan-x snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 lg:gap-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+            hasArrows ? '' : 'md:justify-center'
+          }`}
+        >
+          {testimonials.map((t) => (
+            <div
+              key={t.id}
+              className="shrink-0 snap-center sm:snap-start basis-[80vw] sm:basis-[calc((100%-1rem)/2)] lg:basis-[calc((100%-2.5rem)/3)]"
+            >
+              <TestimonialCard t={t} />
+            </div>
+          ))}
+        </div>
+
+        {/* Flechas — sólo si hay más de 3 y en desktop (en mobile: swipe). */}
+        {hasArrows && (
+          <>
+            <button
+              type="button"
+              aria-label="Anterior"
+              onClick={() => scrollByDir(-1)}
+              className="absolute left-2 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-background text-on-surface shadow-card-hover transition-colors hover:text-accent md:flex"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Siguiente"
+              onClick={() => scrollByDir(1)}
+              className="absolute right-2 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-background text-on-surface shadow-card-hover transition-colors hover:text-accent md:flex"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </>
+        )}
       </div>
     </section>
   );

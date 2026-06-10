@@ -51,7 +51,7 @@ export function CategoriesSection({ products }: { products: Product[] }) {
   };
 
   return (
-    <section className="mx-auto max-w-none px-6 py-16 md:py-24">
+    <section className="mx-auto max-w-none px-6 py-10 md:py-24">
       <SectionHeader label="Explorá" title="Categorías" linkTo="/categorias" linkText="Ver todas" />
 
       {categoriesDisplayMode === 'carousel' ? (

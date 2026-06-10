@@ -20,7 +20,7 @@ interface Props {
  * tamaño y los estilos del pill no cambian: sólo se suma el rim luminoso.
  */
 export function CardBadge({ children, bg, color = '#ffffff', className = '', glow = false }: Props) {
-  const base = 'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold uppercase leading-none tracking-[0.3px] shadow-sm';
+  const base = 'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold uppercase leading-none tracking-[0.3px] shadow-sm';
 
   if (glow) {
     return (

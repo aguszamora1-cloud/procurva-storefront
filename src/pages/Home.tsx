@@ -45,7 +45,7 @@ export function Home() {
   const newArrivals = products.filter((p) => !featuredIds.has(p.id)).slice(0, 8);
 
   const productSkeleton = (
-    <div className="mx-auto max-w-none px-6 py-16 md:py-24">
+    <div className="mx-auto max-w-none px-6 py-10 md:py-24">
       <ProductGridSkeleton />
     </div>
   );

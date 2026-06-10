@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Zap } from 'lucide-react';
 import { useStoreType } from '@/context/StoreProvider';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
 import type { Product } from '@/lib/types';
@@ -56,7 +57,10 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           ) : showBadge ? (
             <CardBadge bg={badgeColor(product.catalog_badge_color)}>{product.catalog_badge_text}</CardBadge>
           ) : lowStock ? (
-            <CardBadge bg="#EF4444">⚡ Últimas unidades</CardBadge>
+            <CardBadge bg="#EF4444" className="px-2.5 py-0.5 text-[10px]">
+              <Zap className="h-3 w-3" fill="currentColor" />
+              Últimas unidades
+            </CardBadge>
           ) : null}
         </div>
       </div>
