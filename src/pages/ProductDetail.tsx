@@ -347,10 +347,10 @@ export function ProductDetail() {
 
       <ProductDetailCustomSlot sections={pdSections} slot="below_product" />
 
-      {/* Reseñas del producto (Extra PRO). El componente se autooculta si no hay reseñas. */}
+      {/* Reseñas (Extra PRO): las mismas reseñas del home (social proof). El componente se autooculta si no hay reseñas. */}
       {config.isPro && config.sections.productReviews && (
         <div className="mx-auto max-w-[1200px] px-6 pb-4">
-          <ProductReviews productId={product.id} />
+          <ProductReviews />
         </div>
       )}
 

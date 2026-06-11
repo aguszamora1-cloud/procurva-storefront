@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useProductReviews } from '@/hooks/useProductReviews';
-import type { ProductReview } from '@/lib/types';
+import { useTestimonials } from '@/hooks/useTestimonials';
+import type { Testimonial } from '@/lib/types';
 
 const initials = (name: string): string =>
   name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || '?';
@@ -17,7 +17,7 @@ function Stars({ value, size = 15 }: { value: number; size?: number }) {
   );
 }
 
-function ReviewCard({ r }: { r: ProductReview }) {
+function ReviewCard({ r }: { r: Testimonial }) {
   return (
     <article className="flex flex-col gap-3 border border-line bg-[var(--color-background)] p-5">
       <Stars value={r.rating ?? 5} />
@@ -37,11 +37,13 @@ function ReviewCard({ r }: { r: ProductReview }) {
 }
 
 /**
- * Reseñas del producto en su página de detalle (Extra PRO). Se renderiza sólo si
- * el producto tiene reseñas activas. El gating de plan/section lo hace el caller.
+ * Reseñas en la página de detalle del producto (Extra PRO). Para que sirvan de
+ * social proof, son las MISMAS reseñas que el comercio carga para el home
+ * (testimonios company-wide del catálogo activo), no reseñas por producto. Se
+ * renderiza sólo si hay testimonios activos. El gating de plan/section lo hace el caller.
  */
-export function ProductReviews({ productId, title }: { productId: string; title?: string }) {
-  const { reviews } = useProductReviews(productId);
+export function ProductReviews({ title }: { title?: string }) {
+  const { testimonials: reviews } = useTestimonials();
 
   const average = useMemo(() => {
     if (reviews.length === 0) return 0;
