@@ -37,7 +37,7 @@ export function Hero() {
           link: b.link_url,
         }))
       : isRenderable(config.heroImageUrl)
-        ? [{ image: config.heroImageUrl, imageMobile: null, link: null }]
+        ? [{ image: config.heroImageUrl, imageMobile: isRenderable(config.heroImageMobileUrl) ? config.heroImageMobileUrl : null, link: null }]
         : [];
 
   const srcFor = (url: string, width: number) => (transformFailed ? url : transformedSrc(url, { width }));

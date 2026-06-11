@@ -209,6 +209,7 @@ export interface RawCatalogSettings {
   card_payment_text?: string;
   card_installments?: number;
   banner_url?: string;
+  banner_url_mobile?: string;
   banner_text?: string;
   // Texto de la barra superior EXCLUSIVO del storefront minorista. Si no está,
   // no se muestra la barra (no usamos top_bar_text, que es del catálogo mayorista).
@@ -216,6 +217,7 @@ export interface RawCatalogSettings {
   // Hero (nuevas claves del storefront)
   hero_enabled?: boolean;
   hero_image_url?: string;
+  hero_image_url_mobile?: string;
   hero_title?: string;
   hero_subtitle?: string;
   hero_cta_text?: string;
@@ -396,6 +398,8 @@ export interface StoreConfig {
   // Hero
   heroEnabled: boolean;
   heroImageUrl: string;
+  /** Versión mobile opcional del hero. Si está vacía, mobile usa heroImageUrl. */
+  heroImageMobileUrl: string;
   heroTitle: string;
   heroSubtitle: string;
   heroCtaText: string;

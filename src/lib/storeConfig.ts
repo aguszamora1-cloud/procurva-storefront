@@ -143,6 +143,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     // legacy como "COLECCIÓN 2026" que no deben aparecer en la tienda minorista.
     heroEnabled: bool(s.hero_enabled, true),
     heroImageUrl: firstStr(s.hero_image_url, s.banner_url),
+    heroImageMobileUrl: firstStr(s.hero_image_url_mobile, s.banner_url_mobile),
     heroTitle: firstStr(s.hero_title),
     heroSubtitle: firstStr(s.hero_subtitle),
     // Sin default: el botón del hero sólo aparece si el comercio cargó el texto.
