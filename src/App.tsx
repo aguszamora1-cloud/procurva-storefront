@@ -11,6 +11,7 @@ import { Analytics } from '@/components/Analytics';
 import { StoreNotFound } from '@/pages/StoreNotFound';
 import { RouteNotFound } from '@/pages/RouteNotFound';
 import { WholesalePasswordGate } from '@/pages/WholesalePasswordGate';
+import { PaginaEnConstruccion } from '@/pages/PaginaEnConstruccion';
 
 // Code-splitting: cada página se carga bajo demanda (lazy) para reducir el
 // bundle inicial. La navegación dispara la descarga del chunk de la página.
@@ -60,10 +61,12 @@ function StoreRoutes() {
 }
 
 function Gate() {
-  const { status } = useStoreStatus();
+  const { status, pendingStore } = useStoreStatus();
   if (status === 'loading') return <LoadingScreen />;
   if (status === 'not-found') return <StoreNotFound />;
   if (status === 'error') return <ErrorScreen />;
+  if (status === 'under-construction')
+    return <PaginaEnConstruccion nombreEmpresa={pendingStore?.name} />;
   if (status === 'needs-password') return <WholesalePasswordGate />;
   return <StoreRoutes />;
 }

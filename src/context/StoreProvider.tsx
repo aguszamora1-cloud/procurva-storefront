@@ -11,9 +11,18 @@ import { normalizeStoreConfig } from '@/lib/storeConfig';
 import { applyDocumentMeta, applyTheme, loadFonts } from '@/lib/theme';
 import type { ResolvedStorefront, StoreConfig, StoreType } from '@/lib/types';
 
-type StoreStatus = 'loading' | 'ready' | 'not-found' | 'error' | 'needs-password';
+type StoreStatus =
+  | 'loading'
+  | 'ready'
+  | 'not-found'
+  | 'error'
+  | 'needs-password'
+  | 'under-construction';
 
-/** Branding mínimo para pintar el gate de la tienda mayorista protegida. */
+/**
+ * Branding mínimo para pintar el gate de la tienda mayorista protegida y la
+ * página "en construcción" (ambos necesitan solo nombre + logo, sin catálogo).
+ */
 interface PendingStore {
   name: string;
   logoUrl: string;
@@ -171,6 +180,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
         setStoreType(resolved.store_type);
         setRequiresPassword(resolved.requires_password);
+
+        // Página en construcción: el comercio desactivó esta tienda (toggle del
+        // admin). Tiene prioridad sobre el gate de password — si está en
+        // construcción no pedimos código. Invalidamos la cache para que un
+        // visitante recurrente no vea el catálogo viejo por un instante.
+        if (resolved.active === false) {
+          try {
+            sessionStorage.removeItem(cacheKey(currentSlug));
+          } catch {
+            /* ignorar */
+          }
+          setPendingStore({
+            name: resolved.name ?? 'Tienda',
+            logoUrl: resolved.logo_url ?? '',
+          });
+          setConfig(null);
+          setStatus('under-construction');
+          return;
+        }
 
         // Tienda mayorista protegida: requiere código.
         if (resolved.requires_password) {

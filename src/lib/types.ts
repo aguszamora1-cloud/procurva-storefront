@@ -332,6 +332,13 @@ export interface ResolvedStorefront {
   store_type: StoreType;
   slug: string;
   requires_password: boolean;
+  /**
+   * Disponibilidad de la tienda (toggle "página en construcción" del admin).
+   * `false` ⇒ la tienda está publicada pero el comercio la desactivó
+   * temporalmente: el storefront muestra la página de aviso en vez del catálogo.
+   * Optativo / default true: payloads viejos o `verify_storefront_password` no lo traen.
+   */
+  active?: boolean;
   shipping_message: string | null;
   logo_url?: string | null;
   settings: RawCatalogSettings | null;
