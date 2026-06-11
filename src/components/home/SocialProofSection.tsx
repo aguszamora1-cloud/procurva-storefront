@@ -44,16 +44,27 @@ export function SocialProofSection() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   // Pausa el auto-scroll mientras el cliente interactúa (hover, swipe, foco).
   const pausedRef = useRef(false);
+  // Sólo auto-scrolleamos cuando la sección está visible en pantalla, así el
+  // scroll programático nunca "tironea" la página mientras el cliente está
+  // leyendo otra parte del catálogo.
+  const visibleRef = useRef(false);
 
   // Auto-scroll: avanza solo cada 3.5s y vuelve al inicio al llegar al final.
-  // Respeta "prefers-reduced-motion" y pausa al interactuar.
+  // Respeta "prefers-reduced-motion", pausa al interactuar y sólo corre cuando
+  // la sección está a la vista.
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el || testimonials.length <= 1) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+    const io = new IntersectionObserver(
+      ([entry]) => { visibleRef.current = entry.isIntersecting; },
+      { threshold: 0.2 },
+    );
+    io.observe(el);
+
     const id = window.setInterval(() => {
-      if (pausedRef.current) return;
+      if (pausedRef.current || !visibleRef.current || document.hidden) return;
       // Sin overflow (todas las reseñas entran en pantalla) → no scrollear.
       const maxScroll = el.scrollWidth - el.clientWidth;
       if (maxScroll <= 1) return;
@@ -65,7 +76,10 @@ export function SocialProofSection() {
       }
     }, 3500);
 
-    return () => window.clearInterval(id);
+    return () => {
+      window.clearInterval(id);
+      io.disconnect();
+    };
   }, [testimonials.length]);
 
   // Flechas (desktop) sólo cuando hay más reseñas que las visibles (3 en desktop).
@@ -92,7 +106,7 @@ export function SocialProofSection() {
         <div
           ref={scrollerRef}
           style={{ touchAction: 'pan-x' }}
-          className={`flex touch-pan-x snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 lg:gap-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          className={`flex touch-pan-x snap-x snap-proximity gap-4 overflow-x-auto scroll-smooth pb-2 lg:gap-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
             hasArrows ? '' : 'md:justify-center'
           }`}
         >
