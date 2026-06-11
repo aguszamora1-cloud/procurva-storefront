@@ -60,7 +60,7 @@ export function Hero() {
   const hasCta = Boolean(config.heroCtaText); // sólo si el comercio cargó el texto
 
   if (isLoading && slides.length === 0) {
-    return <section className="h-[60svh] w-full bg-secondary md:h-[70vh]" />;
+    return <section className="aspect-[4/5] max-h-[680px] w-full bg-secondary md:aspect-auto md:max-h-none md:h-[70vh]" />;
   }
 
   // Sin imágenes: hero editorial sólo si hay texto configurado. Si no, no hay hero.
@@ -96,7 +96,7 @@ export function Hero() {
   const showText = hasText;
 
   const media = (
-    <div className="relative h-[72svh] min-h-[420px] w-full overflow-hidden bg-primary md:h-screen">
+    <div className="relative aspect-[4/5] max-h-[680px] w-full overflow-hidden bg-primary md:aspect-auto md:max-h-none md:h-screen">
       {slides.map((s, i) => (
         <div
           key={i}
