@@ -116,7 +116,6 @@ export function ProductReviews({ title }: { title?: string }) {
 
   const rounded = Math.round(average);
   const avgLabel = average.toFixed(average % 1 === 0 ? 0 : 1);
-  const countLabel = reviews.length === 1 ? '1 opinión' : `${reviews.length} opiniones`;
 
   return (
     <section className="border-t border-line pt-6">
@@ -125,7 +124,6 @@ export function ProductReviews({ title }: { title?: string }) {
         <div className="flex items-center gap-2">
           <Stars value={rounded} />
           <span className="text-[13px] font-semibold text-text">{avgLabel}</span>
-          <span className="text-[13px] text-subtle">· {countLabel}</span>
         </div>
       </div>
 
