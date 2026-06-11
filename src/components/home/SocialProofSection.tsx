@@ -49,6 +49,11 @@ export function SocialProofSection() {
   const visibleRef = useRef(false);
   // Cuando animamos, duplicamos las reseñas para hacer un loop sin corte visible.
   const [animate, setAnimate] = useState(false);
+  // Posición acumulada en JS. Clave: en pantallas DPR=1 (la mayoría de los
+  // monitores) el navegador redondea `scrollLeft` a enteros, así que sumar
+  // sub-píxeles leyendo desde el DOM nunca acumula y el carrusel queda quieto.
+  // Llevando la posición acá, el avance es independiente del redondeo.
+  const posRef = useRef(0);
 
   // Decidimos si animar: hace falta más de una reseña y que el cliente no haya
   // pedido "reducir movimiento".
@@ -72,20 +77,25 @@ export function SocialProofSection() {
     io.observe(el);
 
     const SPEED = 45; // px por segundo
+    posRef.current = el.scrollLeft;
     let raf = 0;
     let last = 0;
     const tick = (ts: number) => {
       raf = requestAnimationFrame(tick);
       const prev = last;
       last = ts;
-      if (!prev || pausedRef.current || !visibleRef.current || document.hidden) return;
+      if (!prev || pausedRef.current || !visibleRef.current || document.hidden) {
+        // Mientras está pausado el cliente puede haber hecho swipe: resincronizamos.
+        if (pausedRef.current) posRef.current = el.scrollLeft;
+        return;
+      }
       const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
       // Con dos sets idénticos: el ancho de un loop = (scrollWidth + gap) / 2.
       const loopWidth = (el.scrollWidth + gap) / 2;
       if (loopWidth <= 0) return;
-      let next = el.scrollLeft + (SPEED * (ts - prev)) / 1000;
-      if (next >= loopWidth) next -= loopWidth;
-      el.scrollLeft = next;
+      posRef.current += (SPEED * (ts - prev)) / 1000;
+      if (posRef.current >= loopWidth) posRef.current -= loopWidth;
+      el.scrollLeft = posRef.current;
     };
     raf = requestAnimationFrame(tick);
 
