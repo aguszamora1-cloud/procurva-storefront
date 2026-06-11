@@ -210,7 +210,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
 
       {/* Tabs Talles sueltos / Por curva */}
       {curveTabAvailable && (
-        <div className="flex w-full gap-1 rounded-lg bg-secondary p-1">
+        <div className="flex w-full gap-1 rounded-md bg-secondary p-1">
           {([['sueltos', 'Talles sueltos'], ['curva', 'Por curva']] as const).map(([t, label]) => {
             const active = tab === t;
             return (
@@ -247,7 +247,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                 {outOfStock ? (
                   <span className="text-[12px] font-medium text-red-500">Sin stock</span>
                 ) : (
-                  <div className="inline-flex items-center overflow-hidden rounded-lg border border-line">
+                  <div className="inline-flex items-center overflow-hidden rounded-md border border-line">
                     <button
                       type="button"
                       aria-label="Restar"
@@ -285,7 +285,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
         <div className="space-y-2">
           <p className="text-[12px] text-subtle">{curveCompositionText(dist)}</p>
           {tiers.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-line py-6 text-center text-[13px] text-subtle">
+            <div className="rounded-md border border-dashed border-line py-6 text-center text-[13px] text-subtle">
               Sin escala de precios por curva
             </div>
           ) : (
@@ -301,7 +301,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                     type="button"
                     onClick={() => !tierOut && pickTier(idx)}
                     disabled={tierOut}
-                    className={`flex w-full items-center justify-between rounded-lg px-3.5 py-2.5 text-left transition-colors ${
+                    className={`flex w-full items-center justify-between rounded-md px-3.5 py-2.5 text-left transition-colors ${
                       tierOut
                         ? 'cursor-not-allowed border border-line opacity-50'
                         : sel
@@ -317,7 +317,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                       </span>
                       <span className="text-[13px] font-medium text-text">{label}</span>
                       {best && !tierOut && (
-                        <span className="rounded-full bg-accent px-2 py-[3px] text-[10px] font-bold uppercase leading-none tracking-wide text-on-accent">
+                        <span className="rounded bg-accent px-2 py-[3px] text-[10px] font-bold uppercase leading-none tracking-wide text-on-accent">
                           Mejor precio
                         </span>
                       )}
@@ -377,7 +377,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
 
           {/* Aviso de stock insuficiente para armar la(s) curva(s) */}
           {color && (maxCurves === 0 || (!!activeTier && selectedCurves > maxCurves)) && (
-            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[12px] font-medium leading-snug text-red-600">
+            <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-[12px] font-medium leading-snug text-red-600">
               <AlertCircle size={15} className="mt-px flex-none" />
               <span>
                 {maxCurves === 0

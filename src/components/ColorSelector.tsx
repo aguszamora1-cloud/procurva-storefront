@@ -20,7 +20,7 @@ export function ColorSelector({ colors, selected, onSelect }: Props) {
               key={color}
               type="button"
               onClick={() => onSelect(color)}
-              className={`h-11 rounded-lg border-[1.5px] px-4 text-[14px] uppercase tracking-wide transition-all duration-150 ${
+              className={`h-11 rounded border-[1.5px] px-4 text-[14px] uppercase tracking-wide transition-all duration-150 ${
                 active ? 'border-text bg-primary font-bold text-on-primary' : 'border-line bg-background font-semibold text-text hover:border-text'
               }`}
             >

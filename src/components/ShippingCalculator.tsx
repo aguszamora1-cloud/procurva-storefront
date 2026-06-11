@@ -103,7 +103,7 @@ export function ShippingCalculator() {
                     <p className="mt-0.5 text-[12px] text-muted">{o.description}</p>
                     {o.eta && badge && (
                       <span
-                        className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                        className="mt-1.5 inline-block rounded px-2 py-0.5 text-[11px] font-semibold"
                         style={{ background: badge.bg, color: badge.color }}
                       >
                         {o.eta}

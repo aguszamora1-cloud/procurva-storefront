@@ -149,7 +149,7 @@ export function NewsletterPopup() {
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
         style={{ backgroundColor: popup.bgColor, color: textColor }}
-        className={`relative w-full max-w-sm rounded-2xl p-7 shadow-2xl transition-all duration-200 md:max-w-md ${
+        className={`relative w-full max-w-sm rounded-lg p-7 shadow-2xl transition-all duration-200 md:max-w-md ${
           entered ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
         }`}
       >
@@ -182,7 +182,7 @@ export function NewsletterPopup() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Tu nombre"
                   style={{ borderColor: textColor + '40', color: textColor }}
-                  className="w-full rounded-lg border bg-transparent px-4 py-3 text-sm outline-none placeholder:opacity-50 focus:border-current"
+                  className="w-full rounded-md border bg-transparent px-4 py-3 text-sm outline-none placeholder:opacity-50 focus:border-current"
                 />
               )}
               <input
@@ -192,13 +192,13 @@ export function NewsletterPopup() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Tu email"
                 style={{ borderColor: textColor + '40', color: textColor }}
-                className="w-full rounded-lg border bg-transparent px-4 py-3 text-sm outline-none placeholder:opacity-50 focus:border-current"
+                className="w-full rounded-md border bg-transparent px-4 py-3 text-sm outline-none placeholder:opacity-50 focus:border-current"
               />
               <button
                 type="submit"
                 disabled={status === 'loading'}
                 style={{ backgroundColor: popup.buttonColor, color: btnTextColor }}
-                className="w-full rounded-lg px-5 py-3 text-sm font-bold uppercase tracking-wide transition-transform hover:scale-[1.02] disabled:opacity-60"
+                className="w-full rounded-md px-5 py-3 text-sm font-bold uppercase tracking-wide transition-transform hover:scale-[1.02] disabled:opacity-60"
               >
                 {status === 'loading' ? 'Enviando…' : popup.buttonText}
               </button>

@@ -23,7 +23,7 @@ export function SizeSelector({ sizes, selected, isDisabled, onSelect }: Props) {
               type="button"
               disabled={disabled}
               onClick={() => !disabled && onSelect(s)}
-              className={`h-12 min-w-[48px] rounded-lg border-[1.5px] px-3 text-[14px] tracking-wide transition-all duration-150 ${
+              className={`h-12 min-w-[48px] rounded border-[1.5px] px-3 text-[14px] tracking-wide transition-all duration-150 ${
                 active
                   ? 'border-text bg-primary font-bold text-on-primary'
                   : disabled

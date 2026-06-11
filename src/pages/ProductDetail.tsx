@@ -221,7 +221,7 @@ export function ProductDetail() {
 
           {/* Recomendador de talle — plan TIENDA+, sólo si section_probador. Panel inline desplegable. */}
           {config.isPaid && config.sections.probador && (
-            <div className="overflow-hidden rounded-lg border border-line">
+            <div className="overflow-hidden rounded-md border border-line">
               <button
                 type="button"
                 onClick={() => setShowSizeFinder((v) => !v)}
@@ -373,7 +373,7 @@ export function ProductDetail() {
             type="button"
             onClick={handleAdd}
             disabled={!canAdd}
-            className="inline-flex flex-shrink-0 items-center justify-center rounded-lg bg-primary px-5 py-3 text-[13px] font-bold uppercase tracking-[0.5px] text-on-primary disabled:opacity-40"
+            className="inline-flex flex-shrink-0 items-center justify-center rounded-md bg-primary px-5 py-3 text-[13px] font-bold uppercase tracking-[0.5px] text-on-primary disabled:opacity-40"
           >
             {outOfStock ? 'Sin stock' : !variant ? 'Elegí opción' : (variant.stock ?? 0) <= 0 ? 'Sin stock' : 'Agregar'}
           </button>

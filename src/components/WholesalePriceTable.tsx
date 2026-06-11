@@ -30,7 +30,7 @@ export function WholesalePriceTable({
           <span className="flex items-center gap-1.5">
             <span className={`text-[13px] ${r.best ? 'font-bold text-accent' : 'font-medium text-muted'}`}>{r.label}</span>
             {r.best && (
-              <span className="rounded-full bg-accent px-2 py-[3px] text-[9px] font-bold uppercase leading-none tracking-wide text-on-accent">
+              <span className="rounded bg-accent px-2 py-[3px] text-[9px] font-bold uppercase leading-none tracking-wide text-on-accent">
                 Mejor precio
               </span>
             )}

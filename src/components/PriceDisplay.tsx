@@ -54,7 +54,7 @@ export function PriceDisplay({ product, variant = 'card' }: Props) {
           <span className="font-semibold text-text">{formatPrice(cashPrice as number)}</span>
           <span className="font-medium">efectivo o transferencia</span>
           {detail && (
-            <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold leading-none text-on-accent shadow-sm">
+            <span className="shrink-0 rounded bg-accent px-2 py-0.5 text-[10px] font-bold leading-none text-on-accent shadow-sm">
               -{cashDiscountPct}%
             </span>
           )}

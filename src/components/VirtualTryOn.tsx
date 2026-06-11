@@ -208,7 +208,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
 
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-background shadow-2xl"
+            className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-lg bg-background shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
@@ -232,7 +232,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
                 <div>
                   <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Tu foto</p>
                   {userImage ? (
-                    <div className="relative aspect-[3/4] overflow-hidden rounded-lg border border-line">
+                    <div className="relative aspect-[3/4] overflow-hidden rounded-md border border-line">
                       <img src={userImage} alt="Tu foto" className="h-full w-full object-cover" />
                       <button
                         type="button"
@@ -250,7 +250,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
                       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                       onDragLeave={() => setDragOver(false)}
                       onDrop={onDrop}
-                      className={`flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-2 text-center transition-colors ${
+                      className={`flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed px-2 text-center transition-colors ${
                         dragOver ? 'border-accent bg-accent/5' : 'border-line hover:border-accent/60 hover:bg-secondary'
                       }`}
                     >
@@ -276,7 +276,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
                 {/* Prenda */}
                 <div>
                   <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">La prenda</p>
-                  <div className="relative aspect-[3/4] overflow-hidden rounded-lg border border-line bg-secondary">
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-md border border-line bg-secondary">
                     {garmentImageUrl ? (
                       <img src={garmentImageUrl} alt={garmentName} className="h-full w-full object-cover" />
                     ) : (
@@ -295,7 +295,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
 
               {/* Error */}
               {status === 'error' && (
-                <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2.5 text-[12px] text-red-700">
+                <div className="mt-3 flex items-start gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2.5 text-[12px] text-red-700">
                   <AlertCircle size={16} className="mt-0.5 flex-none" />
                   <span>{errorMsg}</span>
                 </div>
@@ -305,7 +305,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
               {status === 'completed' && resultUrl && (
                 <div className="mt-4">
                   <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Resultado</p>
-                  <div className="overflow-hidden rounded-lg border border-line">
+                  <div className="overflow-hidden rounded-md border border-line">
                     <img src={resultUrl} alt={`Probador — ${garmentName}`} className="w-full" />
                   </div>
                 </div>
@@ -313,7 +313,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
 
               {/* Procesando */}
               {status === 'processing' && (
-                <div className="mt-4 flex flex-col items-center gap-2 rounded-lg bg-secondary px-4 py-6 text-center">
+                <div className="mt-4 flex flex-col items-center gap-2 rounded-md bg-secondary px-4 py-6 text-center">
                   <Loader2 size={28} className="animate-spin text-accent" />
                   <p className="text-[13px] font-medium text-text">Generando tu imagen…</p>
                   <p className="text-[12px] text-subtle">Esto puede tardar entre 5 y 15 segundos.</p>

@@ -154,7 +154,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
             value={height}
             onChange={(e) => setHeight(e.target.value)}
             placeholder="170"
-            className="w-full rounded-lg border border-line bg-background px-3 py-2.5 text-sm text-text outline-none focus:border-text"
+            className="w-full rounded-md border border-line bg-background px-3 py-2.5 text-sm text-text outline-none focus:border-text"
           />
         </label>
         <label className="block">
@@ -165,7 +165,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
             placeholder="70"
-            className="w-full rounded-lg border border-line bg-background px-3 py-2.5 text-sm text-text outline-none focus:border-text"
+            className="w-full rounded-md border border-line bg-background px-3 py-2.5 text-sm text-text outline-none focus:border-text"
           />
         </label>
       </div>
@@ -179,7 +179,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
           value={usual}
           onChange={(e) => setUsual(e.target.value)}
           placeholder="Ej: M o 42"
-          className="w-full rounded-lg border border-line bg-background px-3 py-2.5 text-sm text-text outline-none focus:border-text"
+          className="w-full rounded-md border border-line bg-background px-3 py-2.5 text-sm text-text outline-none focus:border-text"
         />
       </label>
 
@@ -193,7 +193,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
       </button>
 
       {reco && (
-        <div className="mt-4 animate-fade-in rounded-xl border border-line bg-background p-5 text-center">
+        <div className="mt-4 animate-fade-in rounded-md border border-line bg-background p-5 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[1.5px] text-muted">Te recomendamos</p>
           <p className="mt-1 font-heading text-4xl font-extrabold text-text">{matched ?? reco}</p>
           {matched ? (

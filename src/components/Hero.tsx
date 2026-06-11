@@ -81,7 +81,7 @@ export function Hero() {
             <div className="mt-10">
               <Link
                 to={config.heroCtaLink}
-                className="inline-flex items-center justify-center rounded-lg bg-accent px-10 py-4 text-[13px] font-bold uppercase tracking-[1px] text-on-accent shadow-lg transition-all duration-200 hover:scale-[1.02]"
+                className="inline-flex items-center justify-center rounded-md bg-accent px-10 py-4 text-[13px] font-bold uppercase tracking-[1px] text-on-accent shadow-lg transition-all duration-200 hover:scale-[1.02]"
               >
                 {config.heroCtaText}
               </Link>
@@ -147,7 +147,7 @@ export function Hero() {
               {hasCta && (
                 <Link
                   to={config.heroCtaLink}
-                  className="inline-flex items-center justify-center rounded-lg bg-accent px-8 py-4 text-[12px] font-bold uppercase tracking-[1px] text-on-accent shadow-lg transition-all duration-200 hover:scale-[1.02] md:px-10 md:text-[13px]"
+                  className="inline-flex items-center justify-center rounded-md bg-accent px-8 py-4 text-[12px] font-bold uppercase tracking-[1px] text-on-accent shadow-lg transition-all duration-200 hover:scale-[1.02] md:px-10 md:text-[13px]"
                 >
                   {config.heroCtaText}
                 </Link>

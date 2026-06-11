@@ -59,7 +59,7 @@ export function StoriesSection() {
           <img
             src={lightbox.image_url}
             alt={lightbox.title}
-            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+            className="max-h-[90vh] max-w-[90vw] rounded-md object-contain"
             onClick={(e) => e.stopPropagation()}
           />
           <button

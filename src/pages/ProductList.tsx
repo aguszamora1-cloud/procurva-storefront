@@ -177,12 +177,12 @@ export function ProductList() {
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-primary px-6 py-3 text-[13px] font-bold uppercase tracking-[0.5px] text-on-primary shadow-lg lg:hidden"
+        className="fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-md bg-primary px-6 py-3 text-[13px] font-bold uppercase tracking-[0.5px] text-on-primary shadow-lg lg:hidden"
       >
         <SlidersHorizontal className="h-4 w-4" />
         Filtros
         {activeCount > 0 && (
-          <span className="ml-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-on-primary/20 px-1.5 text-[11px]">
+          <span className="ml-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-md bg-on-primary/20 px-1.5 text-[11px]">
             {activeCount}
           </span>
         )}
