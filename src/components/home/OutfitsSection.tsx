@@ -415,6 +415,55 @@ export function OutfitsSection() {
 
   // Mostramos solo los outfits que tienen al menos un producto resoluble.
   const visible = useMemo(() => outfits.filter((o) => o.products.length > 0), [outfits]);
+  const visibleCount = visible.length;
+
+  // Auto-scroll SOLO en mobile: el carrusel avanza solo cada ~3.5s y vuelve al
+  // inicio al llegar al final. Se pausa al interactuar (touch/swipe) y reanuda
+  // tras unos segundos; no corre con el modal abierto ni con reduce-motion.
+  // Debe declararse ANTES de cualquier return condicional (Rules of Hooks).
+  useEffect(() => {
+    if (visibleCount <= 1 || openId) return;
+    const el = scrollerRef.current;
+    if (!el) return;
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!isMobile || reduce) return;
+
+    // Paso de scroll (ancho de una card + gap), medido del primer hijo.
+    const stepWidth = (): number => {
+      const first = el.firstElementChild as HTMLElement | null;
+      if (!first) return el.clientWidth;
+      const styles = window.getComputedStyle(el);
+      const gap = parseFloat(styles.columnGap || styles.gap || '0') || 0;
+      return first.offsetWidth + gap;
+    };
+
+    let paused = false;
+    let resumeTimer: number | undefined;
+    const pause = () => {
+      paused = true;
+      window.clearTimeout(resumeTimer);
+      resumeTimer = window.setTimeout(() => { paused = false; }, 6000);
+    };
+    el.addEventListener('touchstart', pause, { passive: true });
+    el.addEventListener('pointerdown', pause, { passive: true });
+
+    const id = window.setInterval(() => {
+      if (paused) return;
+      const step = stepWidth();
+      const cur = Math.round(el.scrollLeft / step);
+      const next = cur >= visibleCount - 1 ? 0 : cur + 1;
+      el.scrollTo({ left: next * step, behavior: 'smooth' });
+    }, 3500);
+
+    return () => {
+      window.clearInterval(id);
+      window.clearTimeout(resumeTimer);
+      el.removeEventListener('touchstart', pause);
+      el.removeEventListener('pointerdown', pause);
+    };
+  }, [visibleCount, openId]);
+
   if (visible.length === 0) return null;
 
   const open = visible.find((o) => o.id === openId) ?? null;
@@ -448,43 +497,6 @@ export function OutfitsSection() {
     const el = scrollerRef.current;
     if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' });
   };
-
-  // Auto-scroll SOLO en mobile: el carrusel avanza solo cada ~3.5s y vuelve al
-  // inicio al llegar al final. Se pausa al interactuar (touch/swipe) y reanuda
-  // tras unos segundos; no corre con el modal abierto ni con reduce-motion.
-  useEffect(() => {
-    if (!isCarousel || openId) return;
-    const el = scrollerRef.current;
-    if (!el) return;
-    const isMobile = window.matchMedia('(max-width: 767px)').matches;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!isMobile || reduce) return;
-
-    let paused = false;
-    let resumeTimer: number | undefined;
-    const pause = () => {
-      paused = true;
-      window.clearTimeout(resumeTimer);
-      resumeTimer = window.setTimeout(() => { paused = false; }, 6000);
-    };
-    el.addEventListener('touchstart', pause, { passive: true });
-    el.addEventListener('pointerdown', pause, { passive: true });
-
-    const id = window.setInterval(() => {
-      if (paused) return;
-      const step = stepWidth(el);
-      const cur = Math.round(el.scrollLeft / step);
-      const next = cur >= visible.length - 1 ? 0 : cur + 1;
-      el.scrollTo({ left: next * step, behavior: 'smooth' });
-    }, 3500);
-
-    return () => {
-      window.clearInterval(id);
-      window.clearTimeout(resumeTimer);
-      el.removeEventListener('touchstart', pause);
-      el.removeEventListener('pointerdown', pause);
-    };
-  }, [isCarousel, openId, visible.length]);
 
   return (
     <section className="mx-auto w-full px-6 py-10 md:py-24">
