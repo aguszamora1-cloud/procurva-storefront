@@ -190,7 +190,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] border-[1.5px] border-accent px-6 py-[14px] text-[14px] font-semibold uppercase tracking-[0.03em] text-accent transition-colors hover:bg-accent hover:text-on-accent"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] border-[1.5px] border-accent px-6 py-[14px] text-[14px] font-semibold text-accent transition-colors hover:bg-accent hover:text-on-accent"
       >
         <Sparkles size={17} className="flex-none" />
         Probá cómo te queda
@@ -328,14 +328,14 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
                   <button
                     type="button"
                     onClick={reset}
-                    className="inline-flex items-center justify-center gap-2 rounded-[8px] border-[1.5px] border-line px-4 py-3 text-[13px] font-semibold uppercase tracking-wide text-text transition-colors hover:bg-secondary"
+                    className="inline-flex items-center justify-center gap-2 rounded-[8px] border-[1.5px] border-line px-4 py-3 text-[13px] font-semibold text-text transition-colors hover:bg-secondary"
                   >
                     <RefreshCw size={16} /> Probar otra vez
                   </button>
                   <button
                     type="button"
                     onClick={download}
-                    className="inline-flex items-center justify-center gap-2 rounded-[8px] bg-primary px-4 py-3 text-[13px] font-bold uppercase tracking-wide text-on-primary transition-colors hover:bg-accent hover:text-on-accent"
+                    className="inline-flex items-center justify-center gap-2 rounded-[8px] bg-primary px-4 py-3 text-[13px] font-bold text-on-primary transition-colors hover:bg-accent hover:text-on-accent"
                   >
                     <Download size={16} /> Descargar
                   </button>
@@ -345,7 +345,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
                   type="button"
                   onClick={generate}
                   disabled={!userImage || status === 'processing' || status === 'uploading'}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-primary px-6 py-[15px] text-[15px] font-bold uppercase tracking-[0.04em] text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary disabled:hover:text-on-primary"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-primary px-6 py-[15px] text-[15px] font-bold text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary disabled:hover:text-on-primary"
                 >
                   {status === 'processing' ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
                   {status === 'processing' ? 'Generando…' : '¡Generar!'}

@@ -410,7 +410,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
           type="button"
           onClick={() => submit('cart')}
           disabled={!canSubmit || added}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] border-[1.5px] border-text bg-background px-6 py-[14px] text-[14px] font-semibold uppercase tracking-[0.03em] text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] border-[1.5px] border-text bg-background px-6 py-[14px] text-[14px] font-semibold text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ShoppingBag size={16} />
           {added ? '✓ Agregado al carrito' : 'Agregar al carrito'}
@@ -419,7 +419,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
           type="button"
           onClick={() => submit('buy')}
           disabled={!canSubmit}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-accent px-6 py-[16px] text-[15px] font-bold uppercase tracking-[0.04em] text-on-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-accent px-6 py-[16px] text-[15px] font-bold text-on-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <CreditCard size={16} />
           Comprar ahora

@@ -198,7 +198,7 @@ export function NewsletterPopup() {
                 type="submit"
                 disabled={status === 'loading'}
                 style={{ backgroundColor: popup.buttonColor, color: btnTextColor }}
-                className="w-full rounded-md px-5 py-3 text-sm font-bold uppercase tracking-wide transition-transform hover:scale-[1.02] disabled:opacity-60"
+                className="w-full rounded-md px-5 py-3 text-sm font-bold transition-transform hover:scale-[1.02] disabled:opacity-60"
               >
                 {status === 'loading' ? 'Enviando…' : popup.buttonText}
               </button>

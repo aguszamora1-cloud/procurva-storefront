@@ -187,7 +187,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
         type="button"
         onClick={calc}
         disabled={!canCalc}
-        className="mt-4 w-full rounded-[10px] bg-primary py-3 text-[14px] font-bold uppercase tracking-[0.5px] text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary disabled:hover:text-on-primary"
+        className="mt-4 w-full rounded-[10px] bg-primary py-3 text-[14px] font-bold text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary disabled:hover:text-on-primary"
       >
         Calcular mi talle
       </button>
@@ -202,7 +202,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
               <button
                 type="button"
                 onClick={() => onSelect(matched)}
-                className="mt-4 w-full rounded-[10px] border-2 border-text bg-background py-2.5 text-[13px] font-bold uppercase tracking-wide text-text transition-colors hover:bg-text hover:text-background"
+                className="mt-4 w-full rounded-[10px] border-2 border-text bg-background py-2.5 text-[13px] font-bold text-text transition-colors hover:bg-text hover:text-background"
               >
                 Usar talle {matched}
               </button>

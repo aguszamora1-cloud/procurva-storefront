@@ -40,7 +40,7 @@ export function CartDrawer() {
         }`}
       >
         <div className="flex items-center justify-between border-b border-line px-6 py-5">
-          <h2 className="font-heading text-[24px] font-extrabold uppercase tracking-[-0.5px] text-text">
+          <h2 className="font-heading text-[24px] font-extrabold tracking-[-0.5px] text-text">
             Carrito {itemCount > 0 && <span className="text-subtle">({itemCount})</span>}
           </h2>
           <button type="button" onClick={close} className="text-[11px] tracking-wide text-subtle hover:text-accent">
@@ -52,7 +52,7 @@ export function CartDrawer() {
           {items.length === 0 ? (
             <div className="py-16 text-center">
               <p className="text-[14px] text-subtle">Tu carrito está vacío.</p>
-              <Link to="/productos" onClick={close} className="mt-5 inline-block border border-line px-6 py-3 text-[13px] font-semibold uppercase tracking-wide hover:border-text">
+              <Link to="/productos" onClick={close} className="mt-5 inline-block border border-line px-6 py-3 text-[13px] font-semibold hover:border-text">
                 Ver productos
               </Link>
             </div>
@@ -103,14 +103,14 @@ export function CartDrawer() {
             <Link
               to="/carrito"
               onClick={close}
-              className="mb-2 block w-full border border-line py-3 text-center text-[13px] font-semibold uppercase tracking-wide hover:border-text"
+              className="mb-2 block w-full border border-line py-3 text-center text-[13px] font-semibold hover:border-text"
             >
               Ver carrito
             </Link>
             <Link
               to="/checkout"
               onClick={close}
-              className="block w-full rounded-[10px] bg-accent py-4 text-center text-[14px] font-bold uppercase tracking-[0.5px] text-on-accent transition-all hover:scale-[1.01]"
+              className="block w-full rounded-[10px] bg-accent py-4 text-center text-[14px] font-bold text-on-accent transition-all hover:scale-[1.01]"
             >
               Finalizar compra
             </Link>

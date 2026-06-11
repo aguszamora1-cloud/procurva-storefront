@@ -18,7 +18,7 @@ export function ErrorScreen({ onRetry }: { onRetry?: () => void }) {
       <button
         type="button"
         onClick={onRetry ?? (() => window.location.reload())}
-        className="mt-8 bg-neutral-900 px-8 py-3.5 text-sm font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90"
+        className="mt-8 bg-neutral-900 px-8 py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
       >
         Reintentar
       </button>
@@ -40,7 +40,7 @@ export function InlineError({ message, onRetry }: { message?: string; onRetry?: 
         <button
           type="button"
           onClick={onRetry}
-          className="mt-1 rounded-[10px] bg-primary px-7 py-3 text-[13px] font-bold uppercase tracking-[0.5px] text-on-primary transition-all hover:bg-accent hover:text-on-accent"
+          className="mt-1 rounded-[10px] bg-primary px-7 py-3 text-[13px] font-bold text-on-primary transition-all hover:bg-accent hover:text-on-accent"
         >
           Reintentar
         </button>

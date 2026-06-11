@@ -21,8 +21,8 @@ export function Cart() {
       <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-5 px-6 py-24 text-center">
         {seo}
         <ShoppingBag size={56} className="text-subtle" />
-        <h1 className="font-heading text-[28px] font-semibold uppercase tracking-[1px] text-text">Tu carrito está vacío</h1>
-        <Link to="/productos" className="rounded-[10px] bg-primary px-8 py-3.5 text-[14px] font-bold uppercase tracking-[0.5px] text-on-primary transition-all hover:bg-accent hover:text-on-accent">
+        <h1 className="font-heading text-[28px] font-semibold text-text">Tu carrito está vacío</h1>
+        <Link to="/productos" className="rounded-[10px] bg-primary px-8 py-3.5 text-[14px] font-bold text-on-primary transition-all hover:bg-accent hover:text-on-accent">
           Ver productos
         </Link>
       </div>
@@ -32,7 +32,7 @@ export function Cart() {
   return (
     <div className="mx-auto max-w-[1200px] px-6 py-10 md:py-14">
       {seo}
-      <h1 className="mb-8 font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[40px]">Tu carrito</h1>
+      <h1 className="mb-8 font-heading text-[32px] font-semibold text-text md:text-[40px]">Tu carrito</h1>
 
       <div className="grid gap-10 lg:grid-cols-[1fr_340px]">
         <div>
@@ -72,13 +72,13 @@ export function Cart() {
               </div>
             </div>
           ))}
-          <button onClick={clear} className="mt-4 text-[12px] uppercase tracking-wide text-subtle hover:text-accent">
+          <button onClick={clear} className="mt-4 text-[12px] text-subtle hover:text-accent">
             Vaciar carrito
           </button>
         </div>
 
         <aside className="h-fit border border-line p-6">
-          <h2 className="mb-4 font-heading text-[18px] font-bold uppercase tracking-[0.5px] text-text">Resumen</h2>
+          <h2 className="mb-4 font-heading text-[18px] font-bold text-text">Resumen</h2>
           <div className="flex items-center justify-between border-b border-line pb-4">
             <span className="text-[14px] text-muted">Subtotal</span>
             <span className="text-[20px] font-extrabold text-text">{formatPrice(subtotal)}</span>
@@ -94,7 +94,7 @@ export function Cart() {
           {minOk ? (
             <Link
               to="/checkout"
-              className="block w-full rounded-[10px] bg-accent py-4 text-center text-[14px] font-bold uppercase tracking-[0.5px] text-on-accent transition-all hover:scale-[1.01]"
+              className="block w-full rounded-[10px] bg-accent py-4 text-center text-[14px] font-bold text-on-accent transition-all hover:scale-[1.01]"
             >
               Finalizar compra
             </Link>
@@ -102,12 +102,12 @@ export function Cart() {
             <button
               type="button"
               disabled
-              className="block w-full cursor-not-allowed rounded-[10px] bg-primary py-4 text-center text-[14px] font-bold uppercase tracking-[0.5px] text-on-primary opacity-40"
+              className="block w-full cursor-not-allowed rounded-[10px] bg-primary py-4 text-center text-[14px] font-bold text-on-primary opacity-40"
             >
               Faltan {minQty - itemCount} unidades
             </button>
           )}
-          <Link to="/productos" className="mt-3 block text-center text-[12px] uppercase tracking-wide text-subtle hover:text-accent">
+          <Link to="/productos" className="mt-3 block text-center text-[12px] text-subtle hover:text-accent">
             Seguir comprando
           </Link>
         </aside>

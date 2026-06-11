@@ -92,7 +92,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           <div className="mt-3">
             <Link
               to={`/producto/${product.id}`}
-              className="inline-flex w-full items-center justify-center gap-2 bg-primary py-[14px] text-[14px] font-bold uppercase tracking-[0.5px] text-on-primary transition-colors duration-200 hover:bg-accent hover:text-on-accent"
+              className="inline-flex w-full items-center justify-center gap-2 bg-primary py-[14px] text-[14px] font-bold text-on-primary transition-colors duration-200 hover:bg-accent hover:text-on-accent"
             >
               Comprar
             </Link>

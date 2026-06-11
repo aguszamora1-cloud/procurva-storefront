@@ -64,7 +64,7 @@ export function ShippingCalculator() {
           type="button"
           onClick={calcular}
           disabled={status === 'loading' || cp.length === 0}
-          className="flex shrink-0 items-center justify-center rounded-[8px] bg-[#111] px-5 text-[13px] font-bold uppercase tracking-wide text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex shrink-0 items-center justify-center rounded-[8px] bg-[#111] px-5 text-[13px] font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
         >
           {status === 'loading' ? <Spinner size={14} /> : 'Calcular'}
         </button>
