@@ -4,9 +4,8 @@ import { useMemo, useState } from 'react';
  * Probador virtual universal (placeholder hasta integrar fashn.ai).
  *
  * Panel inline que se despliega dentro del detalle de producto (no es modal):
- * estima el talle ideal a partir de altura, peso y (opcional) talle habitual,
- * y lo mapea contra los talles realmente disponibles del producto. La
- * recomendación es orientativa.
+ * estima el talle ideal a partir de altura y peso, y lo mapea contra los
+ * talles realmente disponibles del producto. La recomendación es orientativa.
  */
 
 // Escala genérica unisex de adulto, de menor a mayor.
@@ -44,35 +43,9 @@ function indexFromBody(heightCm: number, weightKg: number): number {
   return Math.max(0, Math.min(SCALE.length - 1, idx));
 }
 
-/** Normaliza un talle escrito por el usuario a un índice de SCALE, o null. */
-function scaleIndexOf(raw: string): number | null {
-  const up = raw.trim().toUpperCase();
-  const letter = SCALE.indexOf(up as ScaleSize);
-  if (letter >= 0) return letter;
-  // talle numérico → buscamos el más cercano en NUMERIC
-  if (/^\d+$/.test(up)) {
-    const target = Number(up);
-    let best = 0;
-    let bestDist = Infinity;
-    SCALE.forEach((s, i) => {
-      const d = Math.abs(Number(NUMERIC[s]) - target);
-      if (d < bestDist) {
-        bestDist = d;
-        best = i;
-      }
-    });
-    return best;
-  }
-  return null;
-}
-
-/** Talle recomendado (letra) combinando cuerpo + talle habitual opcional. */
-function recommend(heightCm: number, weightKg: number, usual: string): ScaleSize {
-  const bodyIdx = indexFromBody(heightCm, weightKg);
-  const usualIdx = usual ? scaleIndexOf(usual) : null;
-  // Si hay talle habitual válido, promediamos (el habitual pesa fuerte).
-  const idx = usualIdx === null ? bodyIdx : Math.round((bodyIdx + usualIdx) / 2);
-  return SCALE[Math.max(0, Math.min(SCALE.length - 1, idx))];
+/** Talle recomendado (letra) estimado a partir del cuerpo. */
+function recommend(heightCm: number, weightKg: number): ScaleSize {
+  return SCALE[indexFromBody(heightCm, weightKg)];
 }
 
 /** Mapea la letra recomendada al talle disponible más parecido del producto. */
@@ -122,7 +95,6 @@ interface Props {
 export function SizeFinder({ sizes, onSelect }: Props) {
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
-  const [usual, setUsual] = useState('');
   const [reco, setReco] = useState<ScaleSize | null>(null);
 
   const h = Number(height);
@@ -136,7 +108,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
 
   const calc = () => {
     if (!canCalc) return;
-    setReco(recommend(h, w, usual));
+    setReco(recommend(h, w));
   };
 
   return (
@@ -169,19 +141,6 @@ export function SizeFinder({ sizes, onSelect }: Props) {
           />
         </label>
       </div>
-
-      <label className="mt-3 block">
-        <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[1.5px] text-muted">
-          Talle habitual <span className="normal-case tracking-normal text-subtle">(opcional)</span>
-        </span>
-        <input
-          type="text"
-          value={usual}
-          onChange={(e) => setUsual(e.target.value)}
-          placeholder="Ej: M o 42"
-          className="w-full rounded-md border border-line bg-background px-3 py-2.5 text-sm text-text outline-none focus:border-text"
-        />
-      </label>
 
       <button
         type="button"
