@@ -50,7 +50,7 @@ export function PriceDisplay({ product, variant = 'card' }: Props) {
       </div>
 
       {hasCashDiscount && (
-        <p className={`mt-1 flex flex-nowrap items-center gap-1.5 whitespace-nowrap text-subtle ${detail ? 'text-[13px]' : 'text-[11px] md:text-[12px]'}`}>
+        <p className={`mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-subtle ${detail ? 'text-[13px]' : 'text-[11px] md:text-[12px]'}`}>
           <span className="font-semibold text-text">{formatPrice(cashPrice as number)}</span>
           <span className="font-medium">efectivo o transferencia</span>
           {detail && (
