@@ -14,6 +14,7 @@ import { CustomBannerSection } from '@/components/home/CustomBannerSection';
 import { CustomTextSection } from '@/components/home/CustomTextSection';
 import { useCustomSections } from '@/hooks/useCustomSections';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
+import { Reveal } from '@/components/Reveal';
 
 // Orden por defecto de las secciones del home (coincide con la tab "Secciones"
 // del admin). Las keys sin sección en el home (upsell, probador) se ignoran:
@@ -104,9 +105,14 @@ export function Home() {
         siteName={config.name}
         path="/"
       />
-      {orderedKeys.map((key) => (
-        <Fragment key={key}>{nodes[key] ?? null}</Fragment>
-      ))}
+      {orderedKeys.map((key) => {
+        const node = nodes[key];
+        if (!node) return null;
+        // Hero y trust badges van arriba del fold: se muestran de una, sin fade
+        // (animarlos perjudicaría la carga inicial y el LCP).
+        if (key === 'hero' || key === 'trust_badges') return <Fragment key={key}>{node}</Fragment>;
+        return <Reveal key={key}>{node}</Reveal>;
+      })}
     </div>
   );
 }
