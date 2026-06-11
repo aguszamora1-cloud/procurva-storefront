@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useTestimonials } from '@/hooks/useTestimonials';
@@ -45,42 +45,55 @@ export function SocialProofSection() {
   // Pausa el auto-scroll mientras el cliente interactúa (hover, swipe, foco).
   const pausedRef = useRef(false);
   // Sólo auto-scrolleamos cuando la sección está visible en pantalla, así el
-  // scroll programático nunca "tironea" la página mientras el cliente está
-  // leyendo otra parte del catálogo.
+  // scroll nunca "tironea" la página mientras el cliente lee otra parte.
   const visibleRef = useRef(false);
+  // Cuando animamos, duplicamos las reseñas para hacer un loop sin corte visible.
+  const [animate, setAnimate] = useState(false);
 
-  // Auto-scroll: avanza solo cada 3.5s y vuelve al inicio al llegar al final.
-  // Respeta "prefers-reduced-motion", pausa al interactuar y sólo corre cuando
-  // la sección está a la vista.
+  // Decidimos si animar: hace falta más de una reseña y que el cliente no haya
+  // pedido "reducir movimiento".
+  useEffect(() => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setAnimate(testimonials.length > 1 && !reduce);
+  }, [testimonials.length]);
+
+  // Deslizamiento continuo (tipo cinta) con requestAnimationFrame: avanza unos
+  // pocos píxeles por frame en vez de saltar de a una página, y al llegar al
+  // final del primer set salta exactamente un loop hacia atrás — como el segundo
+  // set es idéntico, el salto es invisible. Pausa al interactuar / fuera de vista.
   useEffect(() => {
     const el = scrollerRef.current;
-    if (!el || testimonials.length <= 1) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!el || !animate) return;
 
     const io = new IntersectionObserver(
       ([entry]) => { visibleRef.current = entry.isIntersecting; },
-      { threshold: 0.2 },
+      { threshold: 0 },
     );
     io.observe(el);
 
-    const id = window.setInterval(() => {
-      if (pausedRef.current || !visibleRef.current || document.hidden) return;
-      // Sin overflow (todas las reseñas entran en pantalla) → no scrollear.
-      const maxScroll = el.scrollWidth - el.clientWidth;
-      if (maxScroll <= 1) return;
-      const atEnd = el.scrollLeft >= maxScroll - 1;
-      if (atEnd) {
-        el.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        el.scrollBy({ left: el.clientWidth * 0.8, behavior: 'smooth' });
-      }
-    }, 3500);
+    const SPEED = 45; // px por segundo
+    let raf = 0;
+    let last = 0;
+    const tick = (ts: number) => {
+      raf = requestAnimationFrame(tick);
+      const prev = last;
+      last = ts;
+      if (!prev || pausedRef.current || !visibleRef.current || document.hidden) return;
+      const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
+      // Con dos sets idénticos: el ancho de un loop = (scrollWidth + gap) / 2.
+      const loopWidth = (el.scrollWidth + gap) / 2;
+      if (loopWidth <= 0) return;
+      let next = el.scrollLeft + (SPEED * (ts - prev)) / 1000;
+      if (next >= loopWidth) next -= loopWidth;
+      el.scrollLeft = next;
+    };
+    raf = requestAnimationFrame(tick);
 
     return () => {
-      window.clearInterval(id);
+      cancelAnimationFrame(raf);
       io.disconnect();
     };
-  }, [testimonials.length]);
+  }, [animate]);
 
   // Flechas (desktop) sólo cuando hay más reseñas que las visibles (3 en desktop).
   const hasArrows = testimonials.length > 3;
@@ -102,18 +115,20 @@ export function SocialProofSection() {
         onFocusCapture={() => { pausedRef.current = true; }}
         onBlurCapture={() => { pausedRef.current = false; }}
       >
-        {/* Carrusel horizontal swipeable: 80vw en mobile (con peek + snap), 2 en tablet, 3 en desktop. */}
+        {/* Carrusel horizontal: deslizamiento continuo (cinta). 80vw en mobile, 2 en tablet, 3 en desktop. */}
         <div
           ref={scrollerRef}
           style={{ touchAction: 'pan-x' }}
-          className={`flex touch-pan-x snap-x snap-proximity gap-4 overflow-x-auto scroll-smooth pb-2 lg:gap-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-            hasArrows ? '' : 'md:justify-center'
+          className={`flex touch-pan-x gap-4 overflow-x-auto pb-2 lg:gap-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+            hasArrows || animate ? '' : 'md:justify-center'
           }`}
         >
-          {testimonials.map((t) => (
+          {/* Cuando animamos duplicamos el set para el loop sin corte (la 2ª copia es decorativa). */}
+          {(animate ? [...testimonials, ...testimonials] : testimonials).map((t, i) => (
             <div
-              key={t.id}
-              className="shrink-0 snap-center sm:snap-start basis-[80vw] sm:basis-[calc((100%-1rem)/2)] lg:basis-[calc((100%-2.5rem)/3)]"
+              key={`${t.id}-${i}`}
+              aria-hidden={i >= testimonials.length}
+              className="shrink-0 basis-[80vw] sm:basis-[calc((100%-1rem)/2)] lg:basis-[calc((100%-2.5rem)/3)]"
             >
               <TestimonialCard t={t} />
             </div>
