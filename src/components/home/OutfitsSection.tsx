@@ -454,7 +454,7 @@ export function OutfitsSection() {
       const cur = Math.round(el.scrollLeft / step);
       const next = cur >= visibleCount - 1 ? 0 : cur + 1;
       el.scrollTo({ left: next * step, behavior: 'smooth' });
-    }, 3500);
+    }, 2000);
 
     return () => {
       window.clearInterval(id);
