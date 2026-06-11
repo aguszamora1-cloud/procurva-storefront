@@ -5,8 +5,15 @@
  * desactivada): paleta neutra propia con soporte de dark mode por preferencia
  * del sistema (Tailwind darkMode 'media').
  */
-export function PaginaEnConstruccion({ nombreEmpresa }: { nombreEmpresa?: string | null }) {
+export function PaginaEnConstruccion({
+  nombreEmpresa,
+  mensaje,
+}: {
+  nombreEmpresa?: string | null;
+  mensaje?: string | null;
+}) {
   const nombre = nombreEmpresa?.trim() || 'esta tienda';
+  const mensajePersonalizado = mensaje?.trim();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 dark:bg-neutral-950">
@@ -18,8 +25,12 @@ export function PaginaEnConstruccion({ nombreEmpresa }: { nombreEmpresa?: string
           Página en construcción
         </h1>
         <p className="mt-3 text-neutral-500 dark:text-neutral-400">
-          La tienda de {nombre} no está disponible en este momento. Volvé a
-          intentar más tarde.
+          {mensajePersonalizado || (
+            <>
+              La tienda de {nombre} no está disponible en este momento. Volvé a
+              intentar más tarde.
+            </>
+          )}
         </p>
         <p className="mt-8 text-xs text-neutral-400 dark:text-neutral-600">
           Powered by ProCurva

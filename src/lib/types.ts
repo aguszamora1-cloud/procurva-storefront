@@ -339,6 +339,11 @@ export interface ResolvedStorefront {
    * Optativo / default true: payloads viejos o `verify_storefront_password` no lo traen.
    */
   active?: boolean;
+  /**
+   * Mensaje personalizado para la página "en construcción" (cuando active=false).
+   * Si es null/vacío, el storefront usa el texto genérico.
+   */
+  message?: string | null;
   shipping_message: string | null;
   logo_url?: string | null;
   settings: RawCatalogSettings | null;

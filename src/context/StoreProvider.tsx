@@ -26,6 +26,8 @@ type StoreStatus =
 interface PendingStore {
   name: string;
   logoUrl: string;
+  /** Mensaje personalizado para la página "en construcción" (solo ese caso). */
+  message?: string | null;
 }
 
 interface StoreContextValue {
@@ -194,6 +196,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           setPendingStore({
             name: resolved.name ?? 'Tienda',
             logoUrl: resolved.logo_url ?? '',
+            message: resolved.message ?? null,
           });
           setConfig(null);
           setStatus('under-construction');

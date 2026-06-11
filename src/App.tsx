@@ -66,7 +66,12 @@ function Gate() {
   if (status === 'not-found') return <StoreNotFound />;
   if (status === 'error') return <ErrorScreen />;
   if (status === 'under-construction')
-    return <PaginaEnConstruccion nombreEmpresa={pendingStore?.name} />;
+    return (
+      <PaginaEnConstruccion
+        nombreEmpresa={pendingStore?.name}
+        mensaje={pendingStore?.message}
+      />
+    );
   if (status === 'needs-password') return <WholesalePasswordGate />;
   return <StoreRoutes />;
 }
