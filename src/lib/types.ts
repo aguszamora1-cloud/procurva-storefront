@@ -135,6 +135,18 @@ export interface Testimonial {
   active: boolean | null;
 }
 
+/** Reseña asociada a un producto puntual (Extra PRO), mostrada en su detalle. */
+export interface ProductReview {
+  id: string;
+  product_id: string;
+  customer_name: string;
+  customer_photo_url: string | null;
+  text: string;
+  rating: number | null;
+  order: number | null;
+  active: boolean | null;
+}
+
 /** Item de un outfit (referencia a un producto). */
 export interface OutfitItem {
   product_id: string;
@@ -218,6 +230,7 @@ export interface RawCatalogSettings {
   section_virtual_tryon?: boolean;
   section_stories?: boolean;
   section_social_proof?: boolean;
+  section_product_reviews?: boolean;
   section_newsletter?: boolean;
   section_trust_badges?: boolean;
   // Orden de las secciones del home (keys), configurado en el admin (drag & drop).
@@ -386,6 +399,7 @@ export interface StoreConfig {
     virtualTryon: boolean;
     stories: boolean;
     socialProof: boolean;
+    productReviews: boolean;
     newsletter: boolean;
     trustBadges: boolean;
   };

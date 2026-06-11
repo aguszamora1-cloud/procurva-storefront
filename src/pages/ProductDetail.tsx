@@ -16,6 +16,7 @@ import { WholesalePurchasePanel } from '@/components/WholesalePurchasePanel';
 import { CardBadge } from '@/components/CardBadge';
 import { ProductDetailCustomSlot } from '@/components/ProductDetailCustomSlot';
 import { RelatedProducts } from '@/components/RelatedProducts';
+import { ProductReviews } from '@/components/ProductReviews';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
 import { VirtualTryOn, mapFashnCategory } from '@/components/VirtualTryOn';
 import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSections';
@@ -125,16 +126,20 @@ export function ProductDetail() {
   const displayPrice = mainPrice; // precio prominente (tarjeta, o transferencia si no hay tarjeta)
   const needColor = colors.length > 0;
   const needSize = sizes.length > 0;
+  // Producto totalmente agotado: ninguna variante con stock.
+  const outOfStock = variants.length > 0 && variants.every((v) => (v.stock ?? 0) <= 0);
   const canAdd = Boolean(variant && (variant.stock ?? 0) > 0 && displayPrice > 0);
-  const ctaLabel = !variant
-    ? needColor && needSize
-      ? 'ELEGÍ COLOR Y TALLE'
-      : needColor
-        ? 'ELEGÍ UN COLOR'
-        : 'ELEGÍ UN TALLE'
-    : (variant.stock ?? 0) <= 0
-      ? 'SIN STOCK'
-      : 'AGREGAR AL CARRITO';
+  const ctaLabel = outOfStock
+    ? 'SIN STOCK'
+    : !variant
+      ? needColor && needSize
+        ? 'ELEGÍ COLOR Y TALLE'
+        : needColor
+          ? 'ELEGÍ UN COLOR'
+          : 'ELEGÍ UN TALLE'
+      : (variant.stock ?? 0) <= 0
+        ? 'SIN STOCK'
+        : 'AGREGAR AL CARRITO';
 
   const handleAdd = () => {
     if (!variant || !canAdd) return;
@@ -342,6 +347,13 @@ export function ProductDetail() {
 
       <ProductDetailCustomSlot sections={pdSections} slot="below_product" />
 
+      {/* Reseñas del producto (Extra PRO). El componente se autooculta si no hay reseñas. */}
+      {config.isPro && config.sections.productReviews && (
+        <div className="mx-auto max-w-[1200px] px-6 pb-4">
+          <ProductReviews productId={product.id} />
+        </div>
+      )}
+
       {/* Productos relacionados (sección "upsell" del admin, PRO) */}
       {config.isPro && config.sections.upsell && <RelatedProducts product={product} />}
 
@@ -363,7 +375,7 @@ export function ProductDetail() {
             disabled={!canAdd}
             className="inline-flex flex-shrink-0 items-center justify-center rounded-lg bg-primary px-5 py-3 text-[13px] font-bold uppercase tracking-[0.5px] text-on-primary disabled:opacity-40"
           >
-            {!variant ? 'Elegí opción' : (variant.stock ?? 0) <= 0 ? 'Sin stock' : 'Agregar'}
+            {outOfStock ? 'Sin stock' : !variant ? 'Elegí opción' : (variant.stock ?? 0) <= 0 ? 'Sin stock' : 'Agregar'}
           </button>
         </div>
       )}

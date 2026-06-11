@@ -24,8 +24,9 @@ const COLS_BASE = `
 const PRODUCT_COLUMNS = `${COLS_BASE}, is_featured`;
 
 /**
- * Productos visibles del tenant con sus variantes. Filtra por company_id,
- * catalog_visible y descarta productos sin stock (igual que PublicCatalog).
+ * Productos visibles del tenant con sus variantes. Filtra por company_id y
+ * catalog_visible. Los productos sin stock NO se descartan: se muestran con
+ * cartel "Sin stock" (no comprables) y se ordenan al final de la lista.
  */
 export function useProducts(): ProductsState {
   const { companyId, storeType } = useStoreStatus();
@@ -69,7 +70,11 @@ export function useProducts(): ProductsState {
         setIsLoading(false);
         return;
       }
-      const next = ((data ?? []) as unknown as Product[]).filter((p) => hasStock(p));
+      // No descartamos los sin stock: los ordenamos al final (sort estable, así
+      // dentro de cada grupo se respeta el orden por created_at de la query).
+      const next = ((data ?? []) as unknown as Product[])
+        .slice()
+        .sort((a, b) => Number(hasStock(b)) - Number(hasStock(a)));
       setProducts(next);
       setError(null);
       setIsLoading(false);

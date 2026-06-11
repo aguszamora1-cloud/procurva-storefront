@@ -159,6 +159,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       virtualTryon: bool(s.section_virtual_tryon, false),
       stories: bool(s.section_stories, false),
       socialProof: bool(s.section_social_proof, false),
+      productReviews: bool(s.section_product_reviews, false),
       newsletter: bool(s.section_newsletter, false),
       trustBadges: bool(s.section_trust_badges, true),
     },

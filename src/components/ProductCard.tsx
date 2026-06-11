@@ -17,6 +17,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
   const { curveTiers } = useWholesalePricing();
 
   const stock = totalStock(product);
+  const outOfStock = stock <= 0;
   const lowStock = stock > 0 && stock <= 5;
   const showBadge = product.catalog_badge_visible && product.catalog_badge_text;
 
@@ -39,7 +40,9 @@ export function ProductCard({ product, priority = false }: { product: Product; p
               width={400}
               height={500}
               loading={priority ? 'eager' : 'lazy'}
-              className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.04]"
+              className={`h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.04]${
+                outOfStock ? ' opacity-50 grayscale' : ''
+              }`}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-[11px] font-semibold uppercase tracking-[1px] text-on-surface-subtle">
@@ -48,9 +51,11 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           )}
         </Link>
 
-        {/* Badge — UNO solo por tarjeta. Prioridad: descuento > badge del comercio > últimas unidades. */}
+        {/* Badge — UNO solo por tarjeta. Prioridad: sin stock > descuento > badge del comercio > últimas unidades. */}
         <div className="pointer-events-none absolute left-2 top-2 flex flex-col items-start gap-1.5 md:left-3 md:top-3">
-          {onSale && !isWholesale ? (
+          {outOfStock ? (
+            <CardBadge bg="#525252">Sin stock</CardBadge>
+          ) : onSale && !isWholesale ? (
             <CardBadge bg="var(--color-accent)" color="var(--color-on-accent)">
               -{compareDiscountPct}%
             </CardBadge>
