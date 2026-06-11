@@ -449,6 +449,43 @@ export function OutfitsSection() {
     if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' });
   };
 
+  // Auto-scroll SOLO en mobile: el carrusel avanza solo cada ~3.5s y vuelve al
+  // inicio al llegar al final. Se pausa al interactuar (touch/swipe) y reanuda
+  // tras unos segundos; no corre con el modal abierto ni con reduce-motion.
+  useEffect(() => {
+    if (!isCarousel || openId) return;
+    const el = scrollerRef.current;
+    if (!el) return;
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!isMobile || reduce) return;
+
+    let paused = false;
+    let resumeTimer: number | undefined;
+    const pause = () => {
+      paused = true;
+      window.clearTimeout(resumeTimer);
+      resumeTimer = window.setTimeout(() => { paused = false; }, 6000);
+    };
+    el.addEventListener('touchstart', pause, { passive: true });
+    el.addEventListener('pointerdown', pause, { passive: true });
+
+    const id = window.setInterval(() => {
+      if (paused) return;
+      const step = stepWidth(el);
+      const cur = Math.round(el.scrollLeft / step);
+      const next = cur >= visible.length - 1 ? 0 : cur + 1;
+      el.scrollTo({ left: next * step, behavior: 'smooth' });
+    }, 3500);
+
+    return () => {
+      window.clearInterval(id);
+      window.clearTimeout(resumeTimer);
+      el.removeEventListener('touchstart', pause);
+      el.removeEventListener('pointerdown', pause);
+    };
+  }, [isCarousel, openId, visible.length]);
+
   return (
     <section className="mx-auto w-full px-6 py-10 md:py-24">
       <SectionHeader label="Combiná tu look" title="Outfits" />
