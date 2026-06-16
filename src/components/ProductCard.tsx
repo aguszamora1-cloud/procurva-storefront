@@ -14,7 +14,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
   const { comparePrice, compareDiscountPct } = getPriceInfo(product);
   const onSale = Boolean(comparePrice && compareDiscountPct > 0); // oferta vs precio de lista
   const isWholesale = useStoreType() === 'wholesale';
-  const { curveTiers } = useWholesalePricing();
+  const { curveTiers, productPacks } = useWholesalePricing();
 
   const stock = totalStock(product);
   const outOfStock = stock <= 0;
@@ -80,6 +80,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
             <WholesalePriceTable
               wholesalePrice={product.wholesale_price ?? 0}
               tiers={curveTiers[product.id] ?? []}
+              packs={productPacks[product.id] ?? []}
               variant="card"
             />
           ) : (

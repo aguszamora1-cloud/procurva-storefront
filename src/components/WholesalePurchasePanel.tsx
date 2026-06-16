@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, ChevronDown, CreditCard, Minus, Plus, ShoppingBag } from 'lucide-react';
+import { AlertCircle, Check, ChevronDown, CreditCard, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
@@ -18,7 +18,18 @@ import {
   sortedTiers,
   variantsOfColor,
 } from '@/lib/wholesale';
+import {
+  activePacks,
+  packCartLines,
+  packCountLabel,
+  packSizeDistribution,
+  packTierLabel,
+  pickPackTier,
+  sortedPackTiers,
+} from '@/lib/packs';
 import type { Product } from '@/lib/types';
+
+type PanelTab = 'sueltos' | 'curva' | 'pack';
 
 /**
  * Panel de compra MAYORISTA del detalle (réplica de procurva2/PublicCatalog.tsx):
@@ -31,23 +42,38 @@ import type { Product } from '@/lib/types';
 export function WholesalePurchasePanel({ product, images }: { product: Product; images: string[] }) {
   const config = useStore();
   const { addItem, close } = useCart();
-  const { curveTiers, curveDistributions } = useWholesalePricing();
+  const { curveTiers, curveDistributions, productPacks } = useWholesalePricing();
   const navigate = useNavigate();
 
   const tiers = useMemo(() => sortedTiers(curveTiers[product.id] ?? []), [curveTiers, product.id]);
   const dist = curveDistributions[product.id] ?? [];
+  const packs = useMemo(() => activePacks(productPacks[product.id] ?? []), [productPacks, product.id]);
   const wholesalePrice = product.wholesale_price ?? product.retail_price ?? 0;
   const colors = useMemo(() => colorsOf(product), [product]);
   const fallbackImg = images[0] ?? mainImage(product);
   const curveTabAvailable = tiers.length > 0 && !product.pack_only_sale;
+  // Talles sueltos: disponibles salvo que el producto sea solo-pack.
+  const sueltoTabAvailable = !product.pack_only_sale;
+  const packTabAvailable = packs.length > 0;
 
-  const [tab, setTab] = useState<'sueltos' | 'curva'>('sueltos');
+  // Tabs visibles según lo que tenga el producto (suelto / curva / pack).
+  const availableTabs = useMemo(() => {
+    const t: Array<[PanelTab, string]> = [];
+    if (sueltoTabAvailable) t.push(['sueltos', 'Talles sueltos']);
+    if (curveTabAvailable) t.push(['curva', 'Por curva']);
+    if (packTabAvailable) t.push(['pack', 'Por pack']);
+    return t;
+  }, [sueltoTabAvailable, curveTabAvailable, packTabAvailable]);
+
+  const [tab, setTab] = useState<PanelTab>(() => (product.pack_only_sale && packs.length > 0 ? 'pack' : 'sueltos'));
   // Pre-seleccionamos un color (el primero) así el selector de talles aparece de
   // entrada, sin obligar a elegir color antes. El usuario lo cambia con un toque.
   const [color, setColor] = useState<string | null>(colors[0] ?? null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [tierIdx, setTierIdx] = useState<number | null>(null); // -1 = "más curvas" (custom)
   const [customCurves, setCustomCurves] = useState(0);
+  const [packId, setPackId] = useState<string | null>(null);
+  const [packCount, setPackCount] = useState(1);
   const [openPolicy, setOpenPolicy] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
 
@@ -55,14 +81,37 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
     if (colors.length > 0 && !color) setColor(colors[0]);
   }, [colors, color]);
 
+  // Si el tab activo deja de estar disponible (datos async de packs/curva), caemos al primero.
+  const tabKeys = availableTabs.map((t) => t[0]).join(',');
+  useEffect(() => {
+    const valid = tabKeys ? tabKeys.split(',') : [];
+    if (valid.length > 0 && !valid.includes(tab)) setTab(valid[0] as PanelTab);
+  }, [tabKeys, tab]);
+
+  // Pre-seleccionamos el primer pack (menor volumen) cuando el tab pack aparece.
+  useEffect(() => {
+    if (packs.length > 0 && (!packId || !packs.some((p) => p.id === packId))) {
+      setPackId(packs[0].id);
+      setPackCount(1);
+    }
+  }, [packs, packId]);
+
+  const selectedPack = packs.find((p) => p.id === packId) ?? packs[0] ?? null;
+  const packTier = selectedPack ? pickPackTier(selectedPack.price_tiers, packCount) : null;
+  const packUnitPrice = packTier?.price_per_unit ?? 0;
+  const packTotalUnits = selectedPack ? selectedPack.total_units * packCount : 0;
+  const packTotalPrice = packTotalUnits * packUnitPrice;
+  const packDist = selectedPack ? packSizeDistribution(selectedPack) : [];
+
   const vsColor = useMemo(() => variantsOfColor(product, color), [product, color]);
   const sizes = useMemo(() => sizesOfColor(product, color), [product, color]);
   const itemsPer = itemsPerCurve(dist, product, color);
   const lastTier = tiers.length > 0 ? tiers[tiers.length - 1] : null;
   const customMin = lastTier ? lastTier.curve_quantity + 1 : 2;
-  const cheapestIdx = tiers.length > 0
-    ? tiers.reduce((best, t, i) => (t.price_per_unit < tiers[best].price_per_unit ? i : best), 0)
-    : -1;
+  // Precio base = el de "1 curva" (o el primer tier) para calcular el ahorro por unidad
+  // que muestran las cards de 2+ curvas.
+  const baseTier = tiers.find((t) => t.curve_quantity === 1) ?? tiers[0] ?? null;
+  const basePrice = baseTier?.price_per_unit ?? 0;
 
   const canCurve = canOfferCurve(product, color, tiers, dist);
   useEffect(() => {
@@ -146,7 +195,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
           source: 'suelto',
         });
       }
-    } else {
+    } else if (tab === 'curva') {
       if (!color || selectedCurves <= 0 || selectedCurves > maxCurves) return;
       const expanded = expandCurve(product, color, selectedCurves, dist);
       if (expanded.length === 0) return;
@@ -164,14 +213,29 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
           curves: selectedCurves,
         });
       }
+    } else {
+      // pack
+      if (!selectedPack || packCount < 1 || packUnitPrice <= 0) return;
+      const lines = packCartLines(product, selectedPack, packCount, packUnitPrice, fallbackImg);
+      if (lines.length === 0) return;
+      for (const line of lines) addItem(line);
     }
     if (mode === 'buy') goCheckout();
     else flashAdded();
   };
 
   const needColor = colors.length > 0;
-  const hasSelection = tab === 'sueltos' ? totalSueltosUnits > 0 : !!activeTier && selectedCurves > 0;
-  const canSubmit = (!needColor || !!color) && hasSelection && (tab === 'sueltos' || curveStockOk);
+  const hasSelection =
+    tab === 'sueltos'
+      ? totalSueltosUnits > 0
+      : tab === 'curva'
+        ? !!activeTier && selectedCurves > 0
+        : !!selectedPack && packCount > 0 && packUnitPrice > 0;
+  // El pack trae su propia distribución (color incluido): no exige elegir color del producto.
+  const canSubmit =
+    tab === 'pack'
+      ? hasSelection
+      : (!needColor || !!color) && hasSelection && (tab === 'sueltos' || curveStockOk);
 
   const policies = [
     { key: 'envio', label: 'Envío', text: config.policyShipping },
@@ -181,8 +245,8 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
 
   return (
     <div className="space-y-5">
-      {/* Color con dots reales */}
-      {needColor && (
+      {/* Color con dots reales (el pack trae su propia distribución → no aplica) */}
+      {needColor && tab !== 'pack' && (
         <div>
           <p className="mb-2.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">
             Color{color && <span className="text-text">: {color}</span>}
@@ -208,18 +272,18 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
         </div>
       )}
 
-      {/* Tabs Talles sueltos / Por curva */}
-      {curveTabAvailable && (
-        <div className="flex w-full gap-1 rounded-md bg-secondary p-1">
-          {([['sueltos', 'Talles sueltos'], ['curva', 'Por curva']] as const).map(([t, label]) => {
+      {/* Tabs Talles sueltos / Por curva / Por pack — tab selector con subrayado accent */}
+      {availableTabs.length > 1 && (
+        <div className="flex w-full border-b border-line">
+          {availableTabs.map(([t, label]) => {
             const active = tab === t;
             return (
               <button
                 key={t}
                 type="button"
                 onClick={() => setTab(t)}
-                className={`flex-1 rounded-md py-2 text-[14px] transition-colors ${
-                  active ? 'bg-background font-bold text-text shadow-sm' : 'font-normal text-subtle hover:text-text'
+                className={`-mb-px flex-1 border-b-2 pb-2.5 pt-1 text-[15px] transition-colors ${
+                  active ? 'border-accent font-semibold text-text' : 'border-transparent font-medium text-subtle hover:text-text'
                 }`}
               >
                 {label}
@@ -229,7 +293,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
         </div>
       )}
 
-      {tab === 'sueltos' ? (
+      {tab === 'sueltos' && sueltoTabAvailable && (
         <div className="space-y-1">
           <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Talles y cantidades</p>
           {sizes.map((size, idx) => {
@@ -241,11 +305,11 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
             return (
               <div
                 key={size}
-                className={`flex items-center justify-between py-3 ${idx < sizes.length - 1 ? 'border-b border-line' : ''}`}
+                className={`flex items-center justify-between py-3 ${idx < sizes.length - 1 ? 'border-b border-line' : ''} ${outOfStock ? 'opacity-50' : ''}`}
               >
-                <span className={`text-[15px] font-semibold ${outOfStock ? 'text-subtle line-through' : 'text-text'}`}>{size}</span>
+                <span className="text-[15px] font-semibold text-text">{size}</span>
                 {outOfStock ? (
-                  <span className="text-[12px] font-medium text-red-500">Sin stock</span>
+                  <span className="text-[12px] font-medium text-subtle">Sin stock</span>
                 ) : (
                   <div className="inline-flex items-center overflow-hidden rounded-md border border-line">
                     <button
@@ -274,26 +338,34 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
             );
           })}
           {/* Resumen suelto */}
-          <div className="flex items-center justify-between border-t border-line pt-3">
-            <span className="text-[14px] font-normal text-subtle">Total: {totalSueltosUnits} un.</span>
-            <span className="text-[14px] font-normal text-subtle">
-              Precio por unidad <span className="text-[16px] font-bold text-text">{formatPrice(wholesalePrice)}</span>
-            </span>
+          <div className="flex items-end justify-between border-t border-line pt-3">
+            <span className="text-[14px] font-medium text-subtle">Total: {totalSueltosUnits} un.</span>
+            <div className="text-right">
+              <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
+              <p className="mt-1 flex items-baseline justify-end gap-1">
+                <span className="text-[26px] font-bold leading-none text-text">{formatPrice(wholesalePrice)}</span>
+                <span className="text-[13px] font-medium text-subtle">c/u</span>
+              </p>
+            </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {tab === 'curva' && (
         <div className="space-y-2">
-          <p className="text-[12px] text-subtle">{curveCompositionText(dist)}</p>
+          <p className="text-[13px] font-medium text-subtle">{curveCompositionText(dist)}</p>
           {tiers.length === 0 ? (
-            <div className="rounded-md border border-dashed border-line py-6 text-center text-[13px] text-subtle">
+            <div className="rounded-md border border-dashed border-line py-6 text-center text-[13px] font-medium text-subtle">
               Sin escala de precios por curva
             </div>
           ) : (
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               {tiers.map((tier, idx) => {
                 const sel = tierIdx === idx;
-                const best = idx === cheapestIdx && tiers.length > 1;
+                const isLast = idx === tiers.length - 1 && tiers.length > 1;
                 const tierOut = tier.curve_quantity > maxCurves;
+                const savings = basePrice - tier.price_per_unit;
+                const showSavings = tier.curve_quantity >= 2 && savings > 0;
                 const label = `${tier.curve_quantity} ${tier.curve_quantity === 1 ? 'curva' : 'curvas'}`;
                 return (
                   <button
@@ -301,33 +373,37 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                     type="button"
                     onClick={() => !tierOut && pickTier(idx)}
                     disabled={tierOut}
-                    className={`flex w-full items-center justify-between rounded-md px-3.5 py-2.5 text-left transition-colors ${
+                    style={sel ? { backgroundColor: 'color-mix(in srgb, var(--color-accent) 8%, transparent)' } : undefined}
+                    className={`flex w-full items-center justify-between gap-3 rounded-lg px-4 py-3.5 text-left transition-colors ${
                       tierOut
                         ? 'cursor-not-allowed border border-line opacity-50'
                         : sel
-                          ? 'border-[1.5px] border-text bg-secondary'
+                          ? 'border-[2.5px] border-accent'
                           : 'border border-line hover:border-subtle'
                     }`}
                   >
-                    <span className="flex items-center gap-3">
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
                       <span
-                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-[1.5px] ${sel ? 'border-text' : 'border-line'}`}
+                        className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 ${sel ? 'border-accent' : 'border-line'}`}
                       >
-                        {sel && <span className="h-2 w-2 rounded-full bg-text" />}
+                        {sel && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
                       </span>
-                      <span className="text-[13px] font-medium text-text">{label}</span>
-                      {best && !tierOut && (
-                        <span className="rounded bg-accent px-2 py-[3px] text-[10px] font-bold uppercase leading-none tracking-wide text-on-accent">
+                      <span className="text-[15px] font-semibold text-text">{label}</span>
+                      {showSavings && (
+                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[12px] font-bold leading-none text-emerald-600">
+                          -{formatPrice(savings)}/u
+                        </span>
+                      )}
+                      {isLast && (
+                        <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[12px] font-bold leading-none text-amber-700">
                           Mejor precio
                         </span>
                       )}
-                      {tierOut && (
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-red-500">Sin stock</span>
-                      )}
+                      {tierOut && <span className="text-[12px] font-medium text-subtle">Sin stock</span>}
                     </span>
-                    <span className="flex items-baseline gap-1">
-                      <span className="text-[14px] font-medium text-text">{formatPrice(tier.price_per_unit)}</span>
-                      <span className="text-[11px] text-subtle">c/u</span>
+                    <span className="flex shrink-0 items-baseline gap-1">
+                      <span className="text-[26px] font-bold leading-none text-text">{formatPrice(tier.price_per_unit)}</span>
+                      <span className="text-[13px] font-medium text-subtle">c/u</span>
                     </span>
                   </button>
                 );
@@ -339,7 +415,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                   <button
                     type="button"
                     onClick={pickCustom}
-                    className={`flex w-full items-center gap-2 py-2 text-left text-[12px] ${tierIdx === -1 ? 'text-text' : 'text-muted'}`}
+                    className={`flex w-full items-center gap-2 py-2 text-left text-[13px] font-medium ${tierIdx === -1 ? 'text-text' : 'text-muted'}`}
                   >
                     <Plus size={14} /> <span>Más curvas</span>
                   </button>
@@ -367,7 +443,10 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                           <Plus size={14} />
                         </button>
                       </div>
-                      <span className="text-[16px] font-medium text-text">{formatPrice(lastTier.price_per_unit)} c/u</span>
+                      <span className="flex items-baseline gap-1">
+                        <span className="text-[26px] font-bold leading-none text-text">{formatPrice(lastTier.price_per_unit)}</span>
+                        <span className="text-[13px] font-medium text-subtle">c/u</span>
+                      </span>
                     </div>
                   )}
                 </>
@@ -391,35 +470,153 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
           {/* Resumen curva (solo si el stock alcanza) */}
           {activeTier && totalCurvaUnits > 0 && curveStockOk && (
             <div className="flex items-center justify-between border-t border-line pt-3">
-              <span className="text-[13px] text-muted">
+              <span className="text-[14px] font-medium text-muted">
                 {selectedCurves} {selectedCurves === 1 ? 'curva' : 'curvas'} · {totalCurvaUnits} un.
               </span>
               <div className="text-right">
-                <p className="text-[11px] leading-none text-subtle">Precio por unidad</p>
-                <p className="text-[18px] font-semibold text-text">{formatPrice(activeTierPrice)}</p>
-                <p className="mt-1 text-[13px] font-semibold text-text">Total: {formatPrice(totalCurvaPrice)}</p>
+                <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
+                <p className="flex items-baseline justify-end gap-1">
+                  <span className="text-[26px] font-bold leading-none text-text">{formatPrice(activeTierPrice)}</span>
+                  <span className="text-[13px] font-medium text-subtle">c/u</span>
+                </p>
+                <p className="mt-1.5 text-[18px] font-bold text-text">Total: {formatPrice(totalCurvaPrice)}</p>
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* CTAs: Agregar al carrito (outline) + Comprar ahora (salmón → checkout) */}
+      {tab === 'pack' && selectedPack && (
+        <div className="space-y-4">
+          {/* Sub-selector de packs disponibles (chips) */}
+          {packs.length > 1 && (
+            <div className="flex flex-wrap gap-2">
+              {packs.map((p) => {
+                const sel = p.id === selectedPack.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      setPackId(p.id);
+                      setPackCount(1);
+                    }}
+                    style={sel ? { backgroundColor: 'color-mix(in srgb, var(--color-accent) 8%, transparent)' } : undefined}
+                    className={`rounded-full border px-3.5 py-2 text-[13px] font-semibold transition-colors ${
+                      sel ? 'border-accent text-text' : 'border-line text-subtle hover:border-subtle'
+                    }`}
+                  >
+                    {p.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Nombre + unidades del pack */}
+          <p className="text-[15px] font-semibold text-text">
+            {selectedPack.name} — {selectedPack.total_units} {selectedPack.total_units === 1 ? 'unidad' : 'unidades'}
+          </p>
+
+          {/* Distribución de talles (readonly) o, sin distribución, el total */}
+          {packDist.length > 0 ? (
+            <div>
+              <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Qué incluye</p>
+              <div className="divide-y divide-line overflow-hidden rounded-lg border border-line">
+                {packDist.map((r) => (
+                  <div key={r.size} className="flex items-center justify-between px-3.5 py-2.5">
+                    <span className="text-[14px] font-semibold text-text">{r.size}</span>
+                    <span className="text-[13px] font-medium text-subtle">{r.quantity} u.</span>
+                  </div>
+                ))}
+              </div>
+              {selectedPack.pack_type === 'free_color' && (
+                <p className="mt-2 text-[12px] font-medium text-subtle">Color a definir con el vendedor.</p>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-line px-3.5 py-3 text-[14px] font-medium text-text">
+              Cantidad total: {selectedPack.total_units} unidades
+            </div>
+          )}
+
+          {/* Escala de precios por volumen (informativa, escalón activo resaltado) */}
+          {sortedPackTiers(selectedPack.price_tiers).length > 1 && (
+            <div className="flex flex-wrap gap-1.5">
+              {sortedPackTiers(selectedPack.price_tiers).map((t) => {
+                const isActive = packTier?.min_packs === t.min_packs;
+                return (
+                  <span
+                    key={t.min_packs}
+                    className={`rounded-full border px-2.5 py-1 text-[12px] font-medium ${
+                      isActive ? 'border-accent text-text' : 'border-line text-subtle'
+                    }`}
+                  >
+                    {packTierLabel(selectedPack, t)} · {formatPrice(t.price_per_unit)}/u
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Selector de cantidad de packs */}
+          <div className="flex items-center justify-between border-t border-line pt-3">
+            <span className="text-[14px] font-medium text-muted">Cantidad de packs</span>
+            <div className="inline-flex items-center overflow-hidden rounded-md border border-line">
+              <button
+                type="button"
+                aria-label="Restar pack"
+                onClick={() => setPackCount((c) => Math.max(1, c - 1))}
+                disabled={packCount <= 1}
+                className="flex h-[34px] w-[34px] items-center justify-center text-text disabled:opacity-40"
+              >
+                <Minus size={14} />
+              </button>
+              <span className="min-w-[40px] text-center text-[15px] font-medium text-text">{packCount}</span>
+              <button
+                type="button"
+                aria-label="Sumar pack"
+                onClick={() => setPackCount((c) => c + 1)}
+                className="flex h-[34px] w-[34px] items-center justify-center text-text"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Resumen pack: precio por unidad + total */}
+          <div className="flex items-center justify-between border-t border-line pt-3">
+            <span className="text-[14px] font-medium text-muted">
+              {packCountLabel(selectedPack, packCount)} · {packTotalUnits} un.
+            </span>
+            <div className="text-right">
+              <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
+              <p className="flex items-baseline justify-end gap-1">
+                <span className="text-[26px] font-bold leading-none text-text">{formatPrice(packUnitPrice)}</span>
+                <span className="text-[13px] font-medium text-subtle">c/u</span>
+              </p>
+              <p className="mt-1.5 text-[18px] font-bold text-text">Total: {formatPrice(packTotalPrice)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CTAs: Agregar al carrito (outline gris) + Comprar ahora (sólido oscuro → checkout) */}
       <div className="flex flex-col gap-2.5 pt-1">
         <button
           type="button"
           onClick={() => submit('cart')}
           disabled={!canSubmit || added}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] border-[1.5px] border-text bg-background px-6 py-[14px] text-[14px] font-semibold text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] border border-line bg-transparent px-6 py-[14px] text-[14px] font-medium text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <ShoppingBag size={16} />
-          {added ? '✓ Agregado al carrito' : 'Agregar al carrito'}
+          {added ? <Check size={16} /> : <ShoppingBag size={16} />}
+          {added ? 'Agregado al carrito' : 'Agregar al carrito'}
         </button>
         <button
           type="button"
           onClick={() => submit('buy')}
           disabled={!canSubmit}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-accent px-6 py-[16px] text-[15px] font-bold text-on-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-text px-6 py-[14px] text-[14px] font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <CreditCard size={16} />
           Comprar ahora
@@ -441,7 +638,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                   <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">{p.label}</span>
                   <ChevronDown size={16} className={`text-subtle transition-transform ${open ? 'rotate-180' : ''}`} />
                 </button>
-                {open && <p className="whitespace-pre-line pb-4 text-[13px] leading-relaxed text-muted">{p.text}</p>}
+                {open && <p className="whitespace-pre-line pb-4 text-[13px] font-medium leading-relaxed text-muted">{p.text}</p>}
               </div>
             );
           })}

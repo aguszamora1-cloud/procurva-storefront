@@ -28,9 +28,10 @@ function mapItems(items: CartItem[]) {
     color: i.color,
     quantity: i.qty,
     price: i.unit_price,
-    // 'suelto' (retail y compra suelta mayorista) o 'curva' (mayorista por curva).
+    // 'suelto' (retail y compra suelta mayorista), 'curva' o 'pack' (mayorista).
     source: i.source ?? 'suelto',
     ...(i.source === 'curva' && i.curves ? { curves: i.curves } : {}),
+    ...(i.source === 'pack' ? { pack_id: i.packId, pack_label: i.packLabel, packs: i.packs } : {}),
   }));
 }
 

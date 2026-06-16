@@ -2,10 +2,12 @@ import type { CartItem } from './types';
 
 /**
  * Clave de línea del carrito. En mayorista, una misma variante puede estar como
- * 'suelto' y como 'curva' (precios distintos): por eso la clave incluye el source.
- * En retail (source undefined → 'suelto') es idéntico al comportamiento previo.
+ * 'suelto', 'curva' o dentro de distintos packs (precios distintos): por eso la
+ * clave incluye el source (y el packId en packs). En retail (source undefined →
+ * 'suelto') es idéntico al comportamiento previo.
  */
-export function cartLineKey(item: Pick<CartItem, 'variant_id' | 'source'>): string {
+export function cartLineKey(item: Pick<CartItem, 'variant_id' | 'source' | 'packId'>): string {
+  if (item.source === 'pack') return `${item.variant_id}::pack::${item.packId ?? ''}`;
   return `${item.variant_id}::${item.source ?? 'suelto'}`;
 }
 
@@ -16,7 +18,7 @@ export interface CartDisplayRow {
   name: string;
   image: string | null;
   detail: string;
-  source: 'suelto' | 'curva';
+  source: 'suelto' | 'curva' | 'pack';
   units: number;
   lineTotal: number;
   // lineKeys que componen la fila (para eliminar; una curva agrupa varias variantes).
@@ -27,16 +29,21 @@ export interface CartDisplayRow {
 
 /**
  * Agrupa los items del carrito para mostrarlos. Los 'curva' se agrupan por
- * (producto, color) en una sola fila "N curvas × color"; el resto queda 1:1.
+ * (producto, color) y los 'pack' por (producto, packId) en una sola fila; el
+ * resto queda 1:1.
  */
 export function groupCartItems(items: CartItem[]): CartDisplayRow[] {
   const rows: CartDisplayRow[] = [];
   const curveGroups = new Map<string, CartItem[]>();
+  const packGroups = new Map<string, CartItem[]>();
 
   for (const it of items) {
     if (it.source === 'curva') {
       const gk = `${it.product_id}::${it.color ?? ''}`;
       (curveGroups.get(gk) ?? curveGroups.set(gk, []).get(gk)!).push(it);
+    } else if (it.source === 'pack') {
+      const gk = `${it.product_id}::${it.packId ?? ''}`;
+      (packGroups.get(gk) ?? packGroups.set(gk, []).get(gk)!).push(it);
     } else {
       rows.push({
         key: cartLineKey(it),
@@ -65,6 +72,26 @@ export function groupCartItems(items: CartItem[]): CartDisplayRow[] {
       image: first.image_url,
       detail: `${curves} ${curves === 1 ? 'curva' : 'curvas'}${first.color ? ` × ${first.color}` : ''}`,
       source: 'curva',
+      units,
+      lineTotal,
+      removeKeys: group.map(cartLineKey),
+      editable: false,
+    });
+  }
+
+  for (const group of packGroups.values()) {
+    const first = group[0];
+    const units = group.reduce((s, i) => s + i.qty, 0);
+    const lineTotal = group.reduce((s, i) => s + i.unit_price * i.qty, 0);
+    const packs = first.packs ?? 1;
+    const label = first.packLabel ?? 'Pack';
+    rows.push({
+      key: `pack::${first.product_id}::${first.packId ?? ''}`,
+      productId: first.product_id,
+      name: first.name,
+      image: first.image_url,
+      detail: packs > 1 ? `${packs} × ${label}` : label,
+      source: 'pack',
       units,
       lineTotal,
       removeKeys: group.map(cartLineKey),

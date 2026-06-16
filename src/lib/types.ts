@@ -100,6 +100,45 @@ export interface CurveDist {
   quantity: number;
 }
 
+/**
+ * Modo de armado del pack (product_packs.pack_type):
+ *  - single_color: todos los items comparten color.
+ *  - assorted: colores surtidos.
+ *  - free_color: color a definir por el comprador (items con color vacío).
+ *  - no_distribution: sin distribución de talles (solo total_units).
+ */
+export type PackType = 'single_color' | 'assorted' | 'free_color' | 'no_distribution';
+
+/** Item de distribución de un pack (color + talle). product_pack_items. */
+export interface PackItem {
+  color: string;
+  size: string;
+  quantity: number;
+}
+
+/** Escalón de precio por cantidad de packs. product_pack_price_tiers. */
+export interface PackPriceTier {
+  min_packs: number;
+  max_packs: number | null;
+  price_per_unit: number;
+}
+
+/**
+ * Pack de venta (media docena / docena / bulto) con su distribución de talles y
+ * sus escalones de precio por volumen. La categoría (media docena / docena /
+ * bulto) se infiere de total_units. product_packs + items + price_tiers.
+ */
+export interface ProductPack {
+  id: string;
+  product_id: string;
+  pack_type: PackType;
+  name: string;
+  total_units: number;
+  is_active: boolean;
+  items: PackItem[];
+  price_tiers: PackPriceTier[];
+}
+
 /** Banner del catálogo. */
 export interface Banner {
   id: string;
@@ -500,8 +539,13 @@ export interface CartItem {
   unit_price: number;
   qty: number;
   image_url: string | null;
-  // Modo de compra mayorista. 'suelto' (default) o 'curva'. Retail no lo setea.
-  source?: 'suelto' | 'curva';
+  // Modo de compra mayorista. 'suelto' (default), 'curva' o 'pack'. Retail no lo setea.
+  source?: 'suelto' | 'curva' | 'pack';
   // Cantidad de curvas elegida (solo source==='curva'), para agrupar/mostrar en el carrito.
   curves?: number;
+  // Datos del pack (solo source==='pack'), para agrupar/mostrar y recalcular precio.
+  packId?: string;
+  packLabel?: string;
+  // Cantidad de packs elegida (solo source==='pack').
+  packs?: number;
 }

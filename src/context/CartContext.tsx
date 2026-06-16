@@ -54,8 +54,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (idx >= 0) {
         const copy = [...prev];
         const cur = { ...copy[idx], qty: copy[idx].qty + item.qty };
-        // En curva, acumulamos también la cantidad de curvas para mostrar/agrupar bien.
+        // En curva/pack acumulamos también la cantidad de curvas/packs para mostrar/agrupar bien.
         if (item.source === 'curva') cur.curves = (copy[idx].curves ?? 0) + (item.curves ?? 0);
+        if (item.source === 'pack') cur.packs = (copy[idx].packs ?? 0) + (item.packs ?? 0);
         copy[idx] = cur;
         return copy;
       }
