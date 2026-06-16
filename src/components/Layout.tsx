@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { useStore } from '@/context/StoreProvider';
+import { PreviewBanner } from './PreviewBanner';
 import { AnnouncementBar } from './AnnouncementBar';
 import { Navbar } from './Navbar';
 import { PromoBanner } from './PromoBanner';
@@ -35,6 +36,7 @@ export function Layout({ children }: { children: ReactNode }) {
           un contenedor sticky ocupan lugar en el flujo, así que el contenido
           scrollea por debajo sin necesidad de spacer/padding-top. */}
       <div ref={headerRef} className="sticky top-0 z-50">
+        <PreviewBanner />
         {promoTop && <PromoBanner />}
         <AnnouncementBar />
         <Navbar />
