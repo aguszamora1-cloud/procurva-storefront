@@ -74,7 +74,8 @@ export function packBestUnitPrice(pack: ProductPack): number {
 /** Etiqueta de un escalón en la tabla de precios (ej: "1 docena", "2+ docenas"). */
 export function packTierLabel(pack: ProductPack, tier: PackPriceTier): string {
   const { one, many } = packNoun(pack);
-  if (tier.max_packs == null) return `${tier.min_packs}+ ${many}`;
+  // Singular si la cantidad mínima es 1 ("1+ docena"), plural si es 2+ ("2+ docenas").
+  if (tier.max_packs == null) return `${tier.min_packs}+ ${tier.min_packs === 1 ? one : many}`;
   if (tier.min_packs === tier.max_packs) return `${tier.min_packs} ${tier.min_packs === 1 ? one : many}`;
   return `${tier.min_packs}–${tier.max_packs} ${many}`;
 }
