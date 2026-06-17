@@ -28,10 +28,14 @@ export interface CustomSectionBannerSlide {
   alt_text?: string;
 }
 
+export type BannerDisplayMode = 'carousel' | 'scroll' | 'phone_mockup';
+
 export interface CustomSectionBannerContent {
   images?: CustomSectionBannerSlide[];
   autoplay?: boolean;
   interval_seconds?: number;
+  display_mode?: BannerDisplayMode;
+  title?: string;
   slot?: ProductDetailSlot;
   // Legacy (banners de 1 imagen previos al carrusel).
   image_url?: string;
