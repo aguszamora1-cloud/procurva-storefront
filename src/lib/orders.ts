@@ -81,19 +81,38 @@ export async function createCatalogOrder(
     store_type: storeType,
   };
 
-  const { error } = await supabase.from('catalog_orders').insert(orderData);
+  // Insert vía RPC con dedup en DB: si ya entró un pedido idéntico (misma
+  // empresa + email + items + total) en los últimos minutos, devuelve el id
+  // del existente en vez de duplicar. Defensa contra doble-submit / reintentos
+  // de red (anon no tiene SELECT sobre catalog_orders, así que el dedup vive
+  // en la función SECURITY DEFINER create_catalog_order_dedup).
+  const { data: dedupId, error } = await supabase.rpc('create_catalog_order_dedup', {
+    p_order: orderData,
+  });
   if (error) {
     console.error('[orders] error creando catalog_order', error);
     throw new Error('No pudimos registrar tu pedido. Probá de nuevo.');
   }
+  // id efectivo: el recién creado, o el del existente si hubo dedup.
+  const effectiveOrderId = (dedupId as string) || orderId;
 
   // Auto-confirmación para plan PROFESIONAL: crea la orden real en el ERP al
   // momento de la creación (descuenta stock, registra el movimiento), sin
   // depender del webhook de MercadoPago. Server-side, idempotente y no
   // bloqueante: ante cualquier fallo el pedido queda `pending`.
-  await triggerAutoConfirm(orderId);
+  //
+  // IMPORTANTE: NO se auto-confirma cuando el pago va por Mercado Pago.
+  // create-preference exige que la orden esté en 'pending'; si el auto-confirm
+  // la pasa a 'confirmed' primero, create-preference responde 400 ("La orden
+  // ya fue procesada") y el cliente NO puede pagar. Para MP, la orden real la
+  // crea mp-catalog-webhook recién cuando el pago se aprueba (descuenta stock
+  // + registra la transacción). El auto-confirm queda para WhatsApp (cobro
+  // coordinado, sin pago online que dispare webhook).
+  if (paymentMethod !== 'MercadoPago') {
+    await triggerAutoConfirm(effectiveOrderId);
+  }
 
-  return orderId;
+  return effectiveOrderId;
 }
 
 /**
