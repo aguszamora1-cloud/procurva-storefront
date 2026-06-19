@@ -87,7 +87,50 @@ export async function createCatalogOrder(
     throw new Error('No pudimos registrar tu pedido. Probá de nuevo.');
   }
 
+  // Auto-confirmación para plan PROFESIONAL: crea la orden real en el ERP al
+  // momento de la creación (descuenta stock, registra el movimiento), sin
+  // depender del webhook de MercadoPago. Server-side, idempotente y no
+  // bloqueante: ante cualquier fallo el pedido queda `pending`.
+  await triggerAutoConfirm(orderId);
+
   return orderId;
+}
+
+/**
+ * Dispara la Edge Function `auto-confirm-catalog-order`. Para empresas en plan
+ * PROFESIONAL crea automáticamente la orden real (vía RPC `create_order_atomic`:
+ * descuenta stock, registra el movimiento) en el momento de la creación, sin
+ * esperar el webhook de MercadoPago — clave para efectivo/transferencia, que
+ * nunca disparan webhook.
+ *
+ * La función chequea el plan del lado del servidor y hace `skip` si no es
+ * PROFESIONAL, así que es seguro llamarla siempre. Es idempotente (si el
+ * catalog_order ya tiene `linked_order_id` no hace nada), por lo que si después
+ * paga por MP, el webhook detecta el pedido vinculado y solo actualiza el
+ * estado de pago (no crea una orden duplicada).
+ *
+ * NO bloquea el checkout: cualquier fallo se loggea y el pedido queda `pending`
+ * para que el negocio lo confirme manualmente.
+ */
+async function triggerAutoConfirm(catalogOrderId: string): Promise<void> {
+  const baseUrl = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
+  try {
+    const res = await fetch(`${baseUrl}/functions/v1/auto-confirm-catalog-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ catalog_order_id: catalogOrderId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.ok === false) {
+      console.error('[orders] auto-confirm rechazó el pedido', res.status, data);
+    } else if (data?.skipped) {
+      console.warn('[orders] auto-confirm skipped', data);
+    } else {
+      console.log('[orders] auto-confirm OK', data);
+    }
+  } catch (err) {
+    console.error('[orders] auto-confirm falló (no bloqueante)', err);
+  }
 }
 
 /**
