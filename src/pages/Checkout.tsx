@@ -47,6 +47,35 @@ export function Checkout() {
   const [loading, setLoading] = useState<null | 'mp' | 'wa'>(null);
   const [error, setError] = useState('');
 
+  // Método de pago elegido. 'transferencia'/'efectivo' = contado (con descuento si
+  // hay); 'tarjeta' = precio de tarjeta. La tarjeta requiere Mercado Pago.
+  type PayMethod = 'transferencia' | 'efectivo' | 'tarjeta';
+  const mpEnabled = config.mercadopagoEnabled;
+  const waEnabled = Boolean(config.whatsapp);
+  // Métodos disponibles según lo que el negocio tenga configurado:
+  //  - transferencia: contado; va a MP si está habilitado, si no se coordina por WhatsApp.
+  //  - efectivo: contado; siempre se coordina por WhatsApp.
+  //  - tarjeta: precio tarjeta; sólo si hay Mercado Pago.
+  const payMethods = useMemo<PayMethod[]>(() => {
+    const list: PayMethod[] = [];
+    if (mpEnabled || waEnabled) list.push('transferencia');
+    if (waEnabled) list.push('efectivo');
+    if (mpEnabled) list.push('tarjeta');
+    return list;
+  }, [mpEnabled, waEnabled]);
+  const [payMethod, setPayMethod] = useState<PayMethod>('transferencia');
+
+  // Si el método elegido deja de estar disponible, caé al primero disponible.
+  useEffect(() => {
+    setPayMethod((prev) => (payMethods.includes(prev) ? prev : payMethods[0] ?? 'transferencia'));
+  }, [payMethods]);
+
+  // ¿El método actual se cobra online por Mercado Pago? tarjeta siempre; transferencia
+  // si hay MP; efectivo nunca.
+  const routing: 'mp' | 'wa' =
+    payMethod === 'tarjeta' ? 'mp' : payMethod === 'transferencia' && mpEnabled ? 'mp' : 'wa';
+  const priceMode: 'cash' | 'card' = payMethod === 'tarjeta' ? 'card' : 'cash';
+
   // Carga dinámica de los métodos de envío configurados por el negocio.
   useEffect(() => {
     let cancelled = false;
@@ -110,10 +139,21 @@ export function Checkout() {
     setError('');
   }
 
+  // Subtotal de contado (efectivo/transferencia): usa unit_price_cash si existe.
+  // `subtotal` (del carrito) es el de tarjeta/lista.
+  const cashSubtotal = useMemo(
+    () => items.reduce((s, i) => s + (typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price) * i.qty, 0),
+    [items],
+  );
+  const itemsSubtotal = priceMode === 'cash' ? cashSubtotal : subtotal;
+  // % de descuento de contado respecto del precio de tarjeta (0 si no hay diferencia,
+  // p.ej. en mayorista). Se muestra en las opciones de contado.
+  const cashDiscountPct = subtotal > cashSubtotal ? Math.round(((subtotal - cashSubtotal) / subtotal) * 100) : 0;
+
   // Costo conocido (número) vs "a coordinar" (null/sin método).
   const shippingKnown = typeof selectedMethod?.cost === 'number';
   const shippingCost = shippingKnown ? (selectedMethod!.cost as number) : 0;
-  const orderTotal = subtotal + shippingCost;
+  const orderTotal = itemsSubtotal + shippingCost;
 
   const seo = <Seo title={`Finalizar compra · ${config.name}`} slug={config.slug} noindex />;
 
@@ -160,36 +200,43 @@ export function Checkout() {
     return '';
   }
 
-  async function handleMercadoPago() {
-    const v = validate(true);
+  // Etiqueta legible del método elegido (se guarda en catalog_orders.payment_method
+  // y se muestra en el mensaje de WhatsApp).
+  const payLabel: 'Transferencia' | 'Efectivo' | 'Tarjeta' =
+    payMethod === 'tarjeta' ? 'Tarjeta' : payMethod === 'transferencia' ? 'Transferencia' : 'Efectivo';
+
+  // Acción única de pago: persiste el pedido y lo rutea a Mercado Pago o WhatsApp
+  // según el método elegido. Para MP se pide email; create-preference necesita la
+  // orden en 'pending' (por eso createCatalogOrder NO auto-confirma cuando viaMercadoPago).
+  async function handlePay() {
+    const v = validate(routing === 'mp');
     if (v) { setError(v); return; }
-    setLoading('mp');
+    setLoading(routing);
     setError('');
     try {
       const customer = buildCustomer();
       // storeType puede ser null mientras resuelve el tenant; por defecto minorista.
-      const orderId = await createCatalogOrder(config, items, orderTotal, customer, 'MercadoPago', storeType ?? 'retail');
-      const initPoint = await startMercadoPagoCheckout(orderId);
-      // Redirige a MercadoPago Checkout Pro. El carrito se limpia al volver a /checkout/success.
-      window.location.href = initPoint;
-    } catch (e: any) {
-      setError(e?.message || 'Hubo un problema al iniciar el pago.');
-      setLoading(null);
-    }
-  }
+      const orderId = await createCatalogOrder(
+        config, items, orderTotal, customer, payLabel, storeType ?? 'retail',
+        { priceMode, viaMercadoPago: routing === 'mp' },
+      );
 
-  function handleWhatsApp() {
-    const v = validate(false);
-    if (v) { setError(v); return; }
-    setLoading('wa');
-    const href = buildWhatsappOrderWithCustomer(config, items, orderTotal, buildCustomer());
-    if (!href) {
-      setError('Esta tienda no tiene WhatsApp configurado.');
+      if (routing === 'mp') {
+        const initPoint = await startMercadoPagoCheckout(orderId);
+        // Redirige a MercadoPago Checkout Pro. El carrito se limpia al volver a /checkout/success.
+        window.location.href = initPoint;
+        return;
+      }
+
+      // WhatsApp: el pedido ya quedó registrado (y auto-confirmado si el plan es
+      // Profesional). Abrimos el chat con el detalle y mostramos la confirmación.
+      const href = buildWhatsappOrderWithCustomer(config, items, orderTotal, customer, payLabel);
+      if (href) window.open(href, '_blank', 'noopener');
+      navigate(`/checkout/success?order=${orderId}`);
+    } catch (e: any) {
+      setError(e?.message || 'Hubo un problema al procesar tu pedido.');
       setLoading(null);
-      return;
     }
-    window.open(href, '_blank', 'noopener');
-    setLoading(null);
   }
 
   // text-[16px] evita el zoom automático de iOS al enfocar un input (<16px).
@@ -373,7 +420,7 @@ export function Checkout() {
           <div className="space-y-1 border-b border-line py-3">
             <div className="flex items-center justify-between">
               <span className="text-[13px] text-muted">Subtotal</span>
-              <span className="text-[13px] font-semibold text-text">{formatPrice(subtotal)}</span>
+              <span className="text-[13px] font-semibold text-text">{formatPrice(itemsSubtotal)}</span>
             </div>
             {shippingKnown && (
               <div className="flex items-center justify-between">
@@ -395,36 +442,67 @@ export function Checkout() {
             <p className="mb-4 text-[12px] text-subtle">El costo de envío se coordina con la tienda.</p>
           )}
 
+          {/* Método de pago */}
+          {payMethods.length > 0 && (
+            <div className="mb-4">
+              <p className="mb-2 text-[13px] font-semibold text-text">Método de pago</p>
+              <div className="space-y-2">
+                {payMethods.map((m) => {
+                  const selected = payMethod === m;
+                  const isCash = m !== 'tarjeta';
+                  const label = m === 'tarjeta' ? 'Tarjeta' : m === 'transferencia' ? 'Transferencia' : 'Efectivo';
+                  const sub =
+                    m === 'tarjeta'
+                      ? config.cardPaymentText ||
+                        (config.installmentsCount > 1 ? `Hasta ${config.installmentsCount} cuotas` : 'Pago con tarjeta')
+                      : m === 'transferencia'
+                        ? mpEnabled
+                          ? 'Pago online con Mercado Pago'
+                          : 'Coordinamos la transferencia por WhatsApp'
+                        : 'Lo coordinamos por WhatsApp';
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => { setPayMethod(m); setError(''); }}
+                      className={`flex w-full items-center justify-between gap-3 rounded-[10px] border px-4 py-3 text-left transition-colors ${selected ? 'border-accent bg-accent/5' : 'border-line hover:border-accent/50'}`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-[13px] font-semibold text-text">{label}</span>
+                        <span className="block text-[11px] leading-snug text-subtle">{sub}</span>
+                      </span>
+                      {isCash && cashDiscountPct > 0 && (
+                        <span className="shrink-0 rounded bg-accent px-2 py-0.5 text-[10px] font-bold leading-none text-on-accent">
+                          -{cashDiscountPct}%
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {error && (
             <p className="mb-3 rounded-[8px] bg-red-50 px-3 py-2 text-[13px] font-medium text-red-700">{error}</p>
           )}
 
-          {config.mercadopagoEnabled && (
+          {payMethods.length > 0 ? (
             <button
               type="button"
-              onClick={handleMercadoPago}
+              onClick={handlePay}
               disabled={loading !== null}
-              className="mb-3 flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#009ee3] py-4 text-[14px] font-bold text-white transition-all hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+              className={`flex w-full items-center justify-center gap-2 rounded-[10px] py-4 text-[14px] font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 ${routing === 'mp' ? 'bg-[#009ee3] hover:scale-[1.01]' : 'bg-[#25D366] hover:brightness-105'}`}
             >
-              {loading === 'mp' ? <><Spinner size={16} /> Redirigiendo…</> : 'Pagar con MercadoPago'}
+              {loading !== null ? (
+                <><Spinner size={16} /> {routing === 'mp' ? 'Redirigiendo…' : 'Procesando…'}</>
+              ) : routing === 'mp' ? (
+                'Pagar con Mercado Pago'
+              ) : (
+                'Confirmar pedido por WhatsApp'
+              )}
             </button>
-          )}
-
-          {config.whatsapp && (
-            <button
-              type="button"
-              onClick={handleWhatsApp}
-              disabled={loading !== null}
-              className="flex w-full items-center justify-center gap-2 rounded-[10px] border-2 border-[#25D366] py-[14px] text-[14px] font-bold text-[#25D366] transition-colors hover:bg-[#25D366] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M19.4 4.6A10 10 0 0 0 4.1 17.3L3 21l3.8-1.1A10 10 0 1 0 19.4 4.6Zm-7.4 15.3a8 8 0 0 1-4.1-1.1l-.3-.2-2.3.7.7-2.3-.2-.3a8 8 0 1 1 6.2 3.2Zm4.4-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.3.2-.3.6-1 .1-.1 0-.3 0-.4l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.4 0-.6.3l-.6.7a3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.7 2.6 4.2 3.6 1.5.6 2.1.7 2.9.5.5-.1 1.4-.6 1.6-1.2.2-.5.2-1 .2-1.1-.1-.1-.2-.1-.4-.2Z" />
-              </svg>
-              {loading === 'wa' ? <><Spinner size={16} /> Abriendo WhatsApp…</> : 'Pagar por WhatsApp'}
-            </button>
-          )}
-
-          {!config.mercadopagoEnabled && !config.whatsapp && (
+          ) : (
             <p className="text-[13px] text-subtle">Esta tienda todavía no tiene medios de pago configurados.</p>
           )}
 

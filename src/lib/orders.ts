@@ -18,7 +18,19 @@ export interface CustomerInfo {
  * (el mismo que arma PublicCatalog en procurva2 y que leen tanto
  * create-preference como mp-catalog-webhook).
  */
-function mapItems(items: CartItem[]) {
+/** Método de pago elegido en el checkout (etiqueta que se guarda en catalog_orders). */
+export type PaymentMethodLabel = 'Transferencia' | 'Efectivo' | 'Tarjeta';
+
+/**
+ * Precio unitario según el método: 'cash' (efectivo/transferencia) usa el precio
+ * de contado si existe; 'card' (tarjeta) usa el precio de tarjeta (`unit_price`).
+ */
+function itemPrice(i: CartItem, priceMode: 'cash' | 'card'): number {
+  if (priceMode === 'cash' && typeof i.unit_price_cash === 'number') return i.unit_price_cash;
+  return i.unit_price;
+}
+
+function mapItems(items: CartItem[], priceMode: 'cash' | 'card') {
   return items.map((i) => ({
     name: i.name,
     product_id: i.product_id,
@@ -27,7 +39,7 @@ function mapItems(items: CartItem[]) {
     size: i.size,
     color: i.color,
     quantity: i.qty,
-    price: i.unit_price,
+    price: itemPrice(i, priceMode),
     // 'suelto' (retail y compra suelta mayorista), 'curva' o 'pack' (mayorista).
     source: i.source ?? 'suelto',
     ...(i.source === 'curva' && i.curves ? { curves: i.curves } : {}),
@@ -46,10 +58,17 @@ export async function createCatalogOrder(
   items: CartItem[],
   total: number,
   customer: CustomerInfo,
-  paymentMethod: 'MercadoPago' | 'WhatsApp',
+  paymentMethod: PaymentMethodLabel,
   // Tienda de origen: define el canal de venta (Catálogo Minorista / Mayorista)
   // que las Edge Functions asignan al crear la orden real en el ERP.
   storeType: StoreType,
+  opts: {
+    // 'cash' (efectivo/transferencia, con descuento de contado) o 'card' (tarjeta).
+    priceMode: 'cash' | 'card';
+    // true si el pago se cobra online por Mercado Pago. Si es true NO se
+    // auto-confirma (create-preference necesita la orden en 'pending').
+    viaMercadoPago: boolean;
+  },
 ): Promise<string> {
   const orderId = crypto.randomUUID();
 
@@ -70,7 +89,7 @@ export async function createCatalogOrder(
     customer_city: customer.city || null,
     customer_province: customer.province || null,
     customer_zip: customer.zip || null,
-    items: mapItems(items),
+    items: mapItems(items, opts.priceMode),
     total,
     notes: customer.notes || null,
     status: 'pending',
@@ -108,7 +127,7 @@ export async function createCatalogOrder(
   // crea mp-catalog-webhook recién cuando el pago se aprueba (descuenta stock
   // + registra la transacción). El auto-confirm queda para WhatsApp (cobro
   // coordinado, sin pago online que dispare webhook).
-  if (paymentMethod !== 'MercadoPago') {
+  if (!opts.viaMercadoPago) {
     await triggerAutoConfirm(effectiveOrderId);
   }
 

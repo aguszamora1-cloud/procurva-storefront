@@ -122,7 +122,7 @@ export function ProductDetail() {
     );
   }
 
-  const { mainPrice } = getPriceInfo(product);
+  const { mainPrice, cashPrice } = getPriceInfo(product);
   const displayPrice = mainPrice; // precio prominente (tarjeta, o transferencia si no hay tarjeta)
   const needColor = colors.length > 0;
   const needSize = sizes.length > 0;
@@ -150,6 +150,9 @@ export function ProductDetail() {
       size: variant.size,
       color: variant.color,
       unit_price: displayPrice,
+      // Precio de contado (efectivo/transferencia) si hay descuento, para que el
+      // checkout pueda ajustar el total según el método de pago elegido.
+      ...(cashPrice && cashPrice < displayPrice ? { unit_price_cash: cashPrice } : {}),
       qty: 1,
       image_url: variant.image_url ?? images[0] ?? null,
     });

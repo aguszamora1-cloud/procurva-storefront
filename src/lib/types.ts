@@ -541,6 +541,11 @@ export interface CartItem {
   size: string | null;
   color: string | null;
   unit_price: number;
+  // Precio unitario de contado (efectivo/transferencia) cuando es más barato que
+  // `unit_price` (que en retail es el de tarjeta). Solo lo setea retail suelto si
+  // hay descuento por contado. Si falta (carritos viejos, mayorista) se usa
+  // `unit_price` para todos los métodos.
+  unit_price_cash?: number;
   qty: number;
   image_url: string | null;
   // Modo de compra mayorista. 'suelto' (default), 'curva' o 'pack'. Retail no lo setea.

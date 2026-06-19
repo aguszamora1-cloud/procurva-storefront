@@ -42,13 +42,20 @@ export function buildWhatsappOrderWithCustomer(
   items: CartItem[],
   subtotal: number,
   customer: CustomerInfo,
+  // Método de pago elegido: ajusta los precios mostrados (contado vs tarjeta) y
+  // se aclara en el mensaje. Default 'Efectivo' (contado).
+  paymentMethod: 'Transferencia' | 'Efectivo' | 'Tarjeta' = 'Efectivo',
 ): string {
   if (!config.whatsapp || items.length === 0) return '';
+
+  const useCash = paymentMethod !== 'Tarjeta';
+  const unit = (i: CartItem) =>
+    useCash && typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price;
 
   const lines = items.map((i) => {
     const variant = [i.color, i.size].filter(Boolean).join(' / ');
     const variantTxt = variant ? ` (${variant})` : '';
-    return `• ${i.qty}x ${i.name}${variantTxt} — ${formatPrice(i.unit_price * i.qty)}`;
+    return `• ${i.qty}x ${i.name}${variantTxt} — ${formatPrice(unit(i) * i.qty)}`;
   });
 
   const datos = [
@@ -66,6 +73,7 @@ export function buildWhatsappOrderWithCustomer(
     ...lines,
     '',
     `Total: ${formatPrice(subtotal)}`,
+    `Pago: ${paymentMethod}`,
     '',
     'Mis datos:',
     ...datos,

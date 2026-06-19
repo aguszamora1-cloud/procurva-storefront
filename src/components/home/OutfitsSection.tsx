@@ -243,6 +243,9 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
         size: v?.size ?? size ?? null,
         color: v?.color ?? color ?? null,
         unit_price: info.mainPrice,
+        // Precio de contado (efectivo/transferencia) si hay descuento, para que el
+        // checkout ajuste el total según el método de pago.
+        ...(info.cashPrice && info.cashPrice < info.mainPrice ? { unit_price_cash: info.cashPrice } : {}),
         qty: 1,
         image_url: v?.image_url ?? mainImage(p),
       });
