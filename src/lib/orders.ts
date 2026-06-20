@@ -72,7 +72,7 @@ export async function createCatalogOrder(
     // descuento restado; estos campos son para el desglose y el tracking.
     discount?: {
       coupon_code: string;
-      discount_type: 'percentage' | 'fixed_amount';
+      discount_type: 'percent' | 'fixed';
       discount_value: number;
       discount_amount: number;
     } | null;

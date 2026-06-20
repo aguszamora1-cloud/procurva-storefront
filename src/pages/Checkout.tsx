@@ -166,7 +166,7 @@ export function Checkout() {
   // compra mínima del cupón, el descuento es 0 (sin romper nada).
   const discountAmount = useMemo(() => {
     if (!appliedCoupon) return 0;
-    if (appliedCoupon.min_purchase && itemsSubtotal < appliedCoupon.min_purchase) return 0;
+    if (appliedCoupon.min_subtotal && itemsSubtotal < appliedCoupon.min_subtotal) return 0;
     return Math.round(computeDiscount(appliedCoupon, itemsSubtotal));
   }, [appliedCoupon, itemsSubtotal]);
 
@@ -261,8 +261,8 @@ export function Checkout() {
         appliedCoupon && discountAmount > 0
           ? {
               coupon_code: appliedCoupon.code.toUpperCase(),
-              discount_type: appliedCoupon.type,
-              discount_value: appliedCoupon.value,
+              discount_type: appliedCoupon.discount_type,
+              discount_value: appliedCoupon.discount_value,
               discount_amount: discountAmount,
             }
           : null;
@@ -487,7 +487,7 @@ export function Checkout() {
                         Cupón {appliedCoupon.code.toUpperCase()} aplicado
                       </p>
                       <p className="text-[11px] text-emerald-600">
-                        {appliedCoupon.type === 'percentage' ? `-${appliedCoupon.value}% ` : ''}(-{formatPrice(discountAmount)})
+                        {appliedCoupon.discount_type === 'percent' ? `-${appliedCoupon.discount_value}% ` : ''}(-{formatPrice(discountAmount)})
                       </p>
                     </>
                   ) : (
@@ -541,7 +541,7 @@ export function Checkout() {
             {discountAmount > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-[13px] text-muted">
-                  Descuento{appliedCoupon?.type === 'percentage' ? ` (${appliedCoupon.value}%)` : ''}
+                  Descuento{appliedCoupon?.discount_type === 'percent' ? ` (${appliedCoupon.discount_value}%)` : ''}
                 </span>
                 <span className="text-[13px] font-bold text-[#27ae60]">-{formatPrice(discountAmount)}</span>
               </div>

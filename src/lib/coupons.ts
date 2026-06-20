@@ -4,14 +4,14 @@ import { supabase } from './supabase';
 export interface CouponRecord {
   id: string;
   code: string;
-  type: 'percentage' | 'fixed_amount';
-  value: number;
-  min_purchase: number | null;
+  discount_type: 'percent' | 'fixed';
+  discount_value: number;
+  min_subtotal: number | null;
   max_uses: number | null;
-  used_count: number | null;
-  starts_at: string | null;
-  expires_at: string | null;
-  is_active: boolean;
+  current_uses: number | null;
+  valid_from: string | null;
+  valid_until: string | null;
+  active: boolean;
 }
 
 /** Cupón aplicado en el checkout: el registro + el monto en $ que descuenta. */
@@ -26,12 +26,12 @@ export type CouponValidation =
 
 /**
  * Calcula el monto descontado para un cupón y un subtotal dados.
- * - percentage: subtotal * (value / 100)
- * - fixed_amount: value
+ * - percent: subtotal * (discount_value / 100)
+ * - fixed:   discount_value
  * Nunca supera el subtotal.
  */
 export function computeDiscount(coupon: CouponRecord, subtotal: number): number {
-  const raw = coupon.type === 'percentage' ? subtotal * (coupon.value / 100) : coupon.value;
+  const raw = coupon.discount_type === 'percent' ? subtotal * (coupon.discount_value / 100) : coupon.discount_value;
   return Math.min(Math.max(0, raw), subtotal);
 }
 
@@ -52,9 +52,9 @@ export async function validateCoupon(
   // por empresa + código (case-insensitive) en la query.
   const { data, error } = await supabase
     .from('ecommerce_coupons')
-    .select('id, code, type, value, min_purchase, max_uses, used_count, starts_at, expires_at, is_active')
+    .select('id, code, discount_type, discount_value, min_subtotal, max_uses, current_uses, valid_from, valid_until, active')
     .eq('company_id', companyId)
-    .eq('is_active', true)
+    .eq('active', true)
     .ilike('code', code)
     .limit(1)
     .maybeSingle();
@@ -67,19 +67,19 @@ export async function validateCoupon(
   if (!coupon) return { ok: false, error: 'El código no es válido.' };
 
   const now = Date.now();
-  if (coupon.starts_at && new Date(coupon.starts_at).getTime() > now) {
+  if (coupon.valid_from && new Date(coupon.valid_from).getTime() > now) {
     return { ok: false, error: 'El cupón todavía no está vigente.' };
   }
-  if (coupon.expires_at && new Date(coupon.expires_at).getTime() <= now) {
+  if (coupon.valid_until && new Date(coupon.valid_until).getTime() <= now) {
     return { ok: false, error: 'El cupón está vencido.' };
   }
-  if (coupon.max_uses != null && (coupon.used_count ?? 0) >= coupon.max_uses) {
+  if (coupon.max_uses != null && (coupon.current_uses ?? 0) >= coupon.max_uses) {
     return { ok: false, error: 'El cupón alcanzó su límite de usos.' };
   }
-  if (coupon.min_purchase && subtotal < coupon.min_purchase) {
+  if (coupon.min_subtotal && subtotal < coupon.min_subtotal) {
     return {
       ok: false,
-      error: `Compra mínima de $${Number(coupon.min_purchase).toLocaleString('es-AR')} para usar este cupón.`,
+      error: `Compra mínima de $${Number(coupon.min_subtotal).toLocaleString('es-AR')} para usar este cupón.`,
     };
   }
 
@@ -90,7 +90,7 @@ export async function validateCoupon(
 }
 
 /**
- * Registra el uso de un cupón tras confirmar la compra: incrementa used_count
+ * Registra el uso de un cupón tras confirmar la compra: incrementa current_uses
  * (vía RPC SECURITY DEFINER, porque anon no tiene UPDATE) e inserta la fila de
  * tracking en ecommerce_coupon_uses. No bloquea el checkout: cualquier fallo se
  * loggea y sigue (el pedido ya quedó registrado con el descuento).
