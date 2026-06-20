@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useStore } from '@/context/StoreProvider';
-import { supabase } from '@/lib/supabase';
+import { subscribeNewsletter } from '@/lib/newsletter';
 
 /**
- * Sección PRO de newsletter. Inserta el suscriptor en
- * `catalog_newsletter_subscribers` (anon puede INSERT en catálogos habilitados).
- * El email duplicado se detecta por la violación de UNIQUE(company_id, email).
+ * Sección PRO de newsletter. Suscribe vía la edge function `newsletter-welcome`,
+ * que inserta el suscriptor y — si la tienda lo tiene activado — genera un cupón
+ * único y se lo manda por email. El email duplicado vuelve como 'duplicate'.
  */
 export function NewsletterSection() {
   const config = useStore();
@@ -16,30 +16,20 @@ export function NewsletterSection() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'duplicate' | 'error'>('idle');
+  const [generatedCoupon, setGeneratedCoupon] = useState('');
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !config.companyId) return;
     setStatus('loading');
 
-    const { error } = await supabase.from('catalog_newsletter_subscribers').insert({
-      company_id: config.companyId,
-      email: email.trim().toLowerCase(),
-      name: name.trim() || null,
-      source: 'section',
-    });
-
-    if (error) {
-      // 23505 = unique_violation → ya está suscripto.
-      if (error.code === '23505') {
-        setStatus('duplicate');
-      } else {
-        console.error('Error al suscribir al newsletter:', error);
-        setStatus('error');
-      }
+    const res = await subscribeNewsletter(config.companyId, email.trim().toLowerCase(), name.trim(), 'section');
+    if (res.status === 'error') {
+      setStatus('error');
       return;
     }
-    setStatus('done');
+    if (res.couponCode) setGeneratedCoupon(res.couponCode);
+    setStatus(res.status);
   };
 
   return (
@@ -49,7 +39,17 @@ export function NewsletterSection() {
         <p className="mt-2 text-sm opacity-80">{subtitle}</p>
 
         {status === 'done' ? (
-          <p className="mt-6 text-accent">{successMessage}</p>
+          <div className="mt-6">
+            <p className="text-accent">{successMessage}</p>
+            {generatedCoupon && (
+              <div className="mt-3">
+                <p className="text-sm opacity-80">Tu cupón de descuento (también te lo enviamos por email):</p>
+                <p className="mt-1 inline-block rounded-md border border-dashed border-[var(--color-on-primary)]/40 px-4 py-2 text-lg font-extrabold uppercase tracking-[0.15em]">
+                  {generatedCoupon}
+                </p>
+              </div>
+            )}
+          </div>
         ) : status === 'duplicate' ? (
           <p className="mt-6 text-accent">Ya estás suscripto 🙌</p>
         ) : (

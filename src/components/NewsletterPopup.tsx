@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '@/context/StoreProvider';
-import { supabase } from '@/lib/supabase';
+import { subscribeNewsletter } from '@/lib/newsletter';
 
 /** ¿El color es claro? (para elegir color de texto legible encima). */
 function isLight(hex: string): boolean {
@@ -44,8 +44,12 @@ export function NewsletterPopup() {
   const [name, setName] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'duplicate' | 'error'>('idle');
   const [copied, setCopied] = useState(false);
+  // Cupón único devuelto por la edge function al suscribirse (si la tienda lo
+  // tiene activado). Tiene prioridad sobre el código fijo configurado.
+  const [generatedCoupon, setGeneratedCoupon] = useState('');
   const shownRef = useRef(false);
   const couponCode = popup.couponCode;
+  const shownCoupon = generatedCoupon || couponCode;
 
   const active = config.isPro && popup.enabled;
 
@@ -112,33 +116,28 @@ export function NewsletterPopup() {
     e.preventDefault();
     if (!email.trim() || !config.companyId) return;
     setStatus('loading');
-    const { error } = await supabase.from('catalog_newsletter_subscribers').insert({
-      company_id: config.companyId,
-      email: email.trim().toLowerCase(),
-      name: popup.askName ? name.trim() || null : null,
-      source: 'popup',
-    });
-    if (error) {
-      if (error.code === '23505') {
-        writeFlag(storageKey, 'subscribed');
-        setStatus('duplicate');
-        // Si hay cupón para mostrar, NO auto-cerramos: el usuario lo cierra con X
-        // (necesita tiempo para copiar el código).
-        if (!couponCode) window.setTimeout(() => setVisible(false), 2000);
-      } else {
-        console.error('Error al suscribir (popup):', error);
-        setStatus('error');
-      }
+    const res = await subscribeNewsletter(
+      config.companyId,
+      email.trim().toLowerCase(),
+      popup.askName ? name.trim() : '',
+      'popup',
+    );
+    if (res.status === 'error') {
+      setStatus('error');
       return;
     }
     writeFlag(storageKey, 'subscribed');
-    setStatus('done');
-    if (!couponCode) window.setTimeout(() => setVisible(false), 2000);
+    if (res.couponCode) setGeneratedCoupon(res.couponCode);
+    setStatus(res.status); // 'done' | 'duplicate'
+    // Si hay un cupón para mostrar (generado o fijo), NO auto-cerramos: el
+    // usuario necesita tiempo para copiar el código.
+    const willShowCoupon = !!(res.couponCode || couponCode);
+    if (!willShowCoupon) window.setTimeout(() => setVisible(false), 2000);
   };
 
   const copyCoupon = async () => {
     try {
-      await navigator.clipboard.writeText(couponCode);
+      await navigator.clipboard.writeText(shownCoupon);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -181,7 +180,7 @@ export function NewsletterPopup() {
 
         {finished ? (
           <div className="py-6 text-center">
-            {couponCode ? (
+            {shownCoupon ? (
               <>
                 <p className="text-xl font-extrabold">🎉 ¡Listo!</p>
                 <p className="mt-3 text-sm opacity-70">Tu código de descuento:</p>
@@ -191,7 +190,7 @@ export function NewsletterPopup() {
                   style={{ borderColor: textColor + '55', color: textColor }}
                   className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-dashed px-4 py-3.5 text-lg font-extrabold uppercase tracking-[0.15em] transition-transform hover:scale-[1.01]"
                 >
-                  {couponCode}
+                  {shownCoupon}
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
@@ -199,6 +198,9 @@ export function NewsletterPopup() {
                 </button>
                 <p className="mt-1.5 text-[11px] opacity-50">{copied ? '¡Copiado!' : '(click para copiar)'}</p>
                 <p className="mt-3 text-sm opacity-70">Usalo en el checkout de tu próxima compra.</p>
+                {generatedCoupon && (
+                  <p className="mt-1 text-[11px] opacity-50">También te lo enviamos por email.</p>
+                )}
               </>
             ) : (
               <p className="text-lg font-bold">{status === 'duplicate' ? 'Ya estás suscripto 🙌' : popup.successMessage}</p>
