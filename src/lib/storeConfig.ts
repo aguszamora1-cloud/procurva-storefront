@@ -232,6 +232,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
         bgColor: firstStr(p.bg_color) || '#FFFFFF',
         buttonColor: firstStr(p.button_color) || '#000000',
         footerText: firstStr(p.footer_text) || 'Vas a recibir un correo para validar tu email',
+        couponCode: (firstStr(p.coupon_code) || '').toUpperCase(),
       };
     })(),
 

@@ -43,7 +43,9 @@ export function NewsletterPopup() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'duplicate' | 'error'>('idle');
+  const [copied, setCopied] = useState(false);
   const shownRef = useRef(false);
+  const couponCode = popup.couponCode;
 
   const active = config.isPro && popup.enabled;
 
@@ -120,7 +122,9 @@ export function NewsletterPopup() {
       if (error.code === '23505') {
         writeFlag(storageKey, 'subscribed');
         setStatus('duplicate');
-        window.setTimeout(() => setVisible(false), 2000);
+        // Si hay cupón para mostrar, NO auto-cerramos: el usuario lo cierra con X
+        // (necesita tiempo para copiar el código).
+        if (!couponCode) window.setTimeout(() => setVisible(false), 2000);
       } else {
         console.error('Error al suscribir (popup):', error);
         setStatus('error');
@@ -129,7 +133,17 @@ export function NewsletterPopup() {
     }
     writeFlag(storageKey, 'subscribed');
     setStatus('done');
-    window.setTimeout(() => setVisible(false), 2000);
+    if (!couponCode) window.setTimeout(() => setVisible(false), 2000);
+  };
+
+  const copyCoupon = async () => {
+    try {
+      await navigator.clipboard.writeText(couponCode);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard no disponible */
+    }
   };
 
   const textColor = isLight(popup.bgColor) ? '#111111' : '#ffffff';
@@ -166,8 +180,29 @@ export function NewsletterPopup() {
         </button>
 
         {finished ? (
-          <div className="py-8 text-center">
-            <p className="text-lg font-bold">{status === 'duplicate' ? 'Ya estás suscripto 🙌' : popup.successMessage}</p>
+          <div className="py-6 text-center">
+            {couponCode ? (
+              <>
+                <p className="text-xl font-extrabold">🎉 ¡Listo!</p>
+                <p className="mt-3 text-sm opacity-70">Tu código de descuento:</p>
+                <button
+                  type="button"
+                  onClick={copyCoupon}
+                  style={{ borderColor: textColor + '55', color: textColor }}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-dashed px-4 py-3.5 text-lg font-extrabold uppercase tracking-[0.15em] transition-transform hover:scale-[1.01]"
+                >
+                  {couponCode}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
+                <p className="mt-1.5 text-[11px] opacity-50">{copied ? '¡Copiado!' : '(click para copiar)'}</p>
+                <p className="mt-3 text-sm opacity-70">Usalo en el checkout de tu próxima compra.</p>
+              </>
+            ) : (
+              <p className="text-lg font-bold">{status === 'duplicate' ? 'Ya estás suscripto 🙌' : popup.successMessage}</p>
+            )}
           </div>
         ) : (
           <>

@@ -68,6 +68,14 @@ export async function createCatalogOrder(
     // true si el pago se cobra online por Mercado Pago. Si es true NO se
     // auto-confirma (create-preference necesita la orden en 'pending').
     viaMercadoPago: boolean;
+    // Cupón aplicado (opcional). El `total` que se pasa ya viene con el
+    // descuento restado; estos campos son para el desglose y el tracking.
+    discount?: {
+      coupon_code: string;
+      discount_type: 'percentage' | 'fixed_amount';
+      discount_value: number;
+      discount_amount: number;
+    } | null;
   },
 ): Promise<string> {
   const orderId = crypto.randomUUID();
@@ -98,6 +106,16 @@ export async function createCatalogOrder(
     is_pickup: !hasAddress,
     payment_method: paymentMethod,
     store_type: storeType,
+    // Descuento por cupón (si hay). create_catalog_order_dedup mapea estas
+    // claves a las columnas homónimas de catalog_orders vía jsonb_populate_record.
+    ...(opts.discount
+      ? {
+          coupon_code: opts.discount.coupon_code,
+          discount_type: opts.discount.discount_type,
+          discount_value: opts.discount.discount_value,
+          discount_amount: opts.discount.discount_amount,
+        }
+      : {}),
   };
 
   // Insert vía RPC con dedup en DB: si ya entró un pedido idéntico (misma

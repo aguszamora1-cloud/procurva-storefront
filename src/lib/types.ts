@@ -335,6 +335,7 @@ export interface RawCatalogSettings {
     bg_color?: string;
     button_color?: string;
     footer_text?: string;
+    coupon_code?: string;
   };
   // Franja promocional (PRO) con countdown.
   promo_banner?: {
@@ -518,6 +519,7 @@ export interface StoreConfig {
     bgColor: string;
     buttonColor: string;
     footerText: string;
+    couponCode: string;
   };
   // Franja promocional (PRO) con countdown.
   promoBanner: {

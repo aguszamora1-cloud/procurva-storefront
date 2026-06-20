@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { supabase } from '@/lib/supabase';
@@ -11,6 +11,7 @@ import { groupCartItems } from '@/lib/cart';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, type CustomerInfo } from '@/lib/orders';
 import { expandMethod, methodCoversPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
+import { validateCoupon, registerCouponUse, computeDiscount, type CouponRecord } from '@/lib/coupons';
 
 const emptyForm: CustomerInfo = {
   name: '',
@@ -150,10 +151,49 @@ export function Checkout() {
   // p.ej. en mayorista). Se muestra en las opciones de contado.
   const cashDiscountPct = subtotal > cashSubtotal ? Math.round(((subtotal - cashSubtotal) / subtotal) * 100) : 0;
 
+  // ── Cupón de descuento ──────────────────────────────────────────────────
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponRecord | null>(null);
+  const [couponStatus, setCouponStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [couponError, setCouponError] = useState('');
+
   // Costo conocido (número) vs "a coordinar" (null/sin método).
   const shippingKnown = typeof selectedMethod?.cost === 'number';
   const shippingCost = shippingKnown ? (selectedMethod!.cost as number) : 0;
-  const orderTotal = itemsSubtotal + shippingCost;
+
+  // Descuento recalculado en vivo contra el subtotal actual (cambia con el
+  // método de pago: contado vs tarjeta). Si el subtotal cae por debajo de la
+  // compra mínima del cupón, el descuento es 0 (sin romper nada).
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.min_purchase && itemsSubtotal < appliedCoupon.min_purchase) return 0;
+    return Math.round(computeDiscount(appliedCoupon, itemsSubtotal));
+  }, [appliedCoupon, itemsSubtotal]);
+
+  const orderTotal = Math.max(0, itemsSubtotal - discountAmount) + shippingCost;
+
+  async function applyCoupon() {
+    const code = couponInput.trim();
+    if (!code) return;
+    setCouponStatus('loading');
+    setCouponError('');
+    const res = await validateCoupon(config.companyId, code, itemsSubtotal);
+    if (!res.ok) {
+      setAppliedCoupon(null);
+      setCouponError(res.error);
+      setCouponStatus('error');
+      return;
+    }
+    setAppliedCoupon(res.applied.coupon);
+    setCouponStatus('idle');
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon(null);
+    setCouponInput('');
+    setCouponError('');
+    setCouponStatus('idle');
+  }
 
   const seo = <Seo title={`Finalizar compra · ${config.name}`} slug={config.slug} noindex />;
 
@@ -215,11 +255,27 @@ export function Checkout() {
     setError('');
     try {
       const customer = buildCustomer();
+      // Cupón aplicado (si hay y descuenta algo). El `orderTotal` ya viene con el
+      // descuento restado; estos campos son para el desglose y el tracking.
+      const discount =
+        appliedCoupon && discountAmount > 0
+          ? {
+              coupon_code: appliedCoupon.code.toUpperCase(),
+              discount_type: appliedCoupon.type,
+              discount_value: appliedCoupon.value,
+              discount_amount: discountAmount,
+            }
+          : null;
       // storeType puede ser null mientras resuelve el tenant; por defecto minorista.
       const orderId = await createCatalogOrder(
         config, items, orderTotal, customer, payLabel, storeType ?? 'retail',
-        { priceMode, viaMercadoPago: routing === 'mp' },
+        { priceMode, viaMercadoPago: routing === 'mp', discount },
       );
+
+      // Registrá el uso del cupón (incrementa used_count + fila de tracking).
+      if (discount && appliedCoupon) {
+        await registerCouponUse(appliedCoupon.id, orderId, discountAmount);
+      }
 
       if (routing === 'mp') {
         const initPoint = await startMercadoPagoCheckout(orderId);
@@ -416,12 +472,80 @@ export function Checkout() {
             </p>
           )}
 
-          {/* Subtotal + envío */}
+          {/* Cupón de descuento */}
+          <div className="border-b border-line py-3">
+            {appliedCoupon ? (
+              <div
+                className={`flex items-center justify-between gap-2 rounded-[8px] px-3 py-2 ${
+                  discountAmount > 0 ? 'bg-emerald-50' : 'bg-amber-50'
+                }`}
+              >
+                <div className="min-w-0">
+                  {discountAmount > 0 ? (
+                    <>
+                      <p className="text-[12px] font-bold text-emerald-700">
+                        Cupón {appliedCoupon.code.toUpperCase()} aplicado
+                      </p>
+                      <p className="text-[11px] text-emerald-600">
+                        {appliedCoupon.type === 'percentage' ? `-${appliedCoupon.value}% ` : ''}(-{formatPrice(discountAmount)})
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-[12px] font-semibold text-amber-700">
+                      El cupón {appliedCoupon.code.toUpperCase()} no aplica a este monto.
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={removeCoupon}
+                  aria-label="Quitar cupón"
+                  className="shrink-0 rounded-full p-1 text-current opacity-70 transition-opacity hover:opacity-100"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="mb-2 text-[12px] font-semibold text-muted">¿Tenés un cupón de descuento?</p>
+                <div className="flex gap-2">
+                  <input
+                    className={inputCls}
+                    value={couponInput}
+                    onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon(); } }}
+                    placeholder="NEWSLETTER10"
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyCoupon}
+                    disabled={couponStatus === 'loading' || !couponInput.trim()}
+                    className="shrink-0 rounded-[8px] bg-primary px-5 text-[13px] font-bold text-on-primary transition-colors hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {couponStatus === 'loading' ? '…' : 'Aplicar'}
+                  </button>
+                </div>
+                {couponError && <p className="mt-2 text-[12px] font-medium text-red-600">{couponError}</p>}
+              </>
+            )}
+          </div>
+
+          {/* Subtotal + descuento + envío */}
           <div className="space-y-1 border-b border-line py-3">
             <div className="flex items-center justify-between">
               <span className="text-[13px] text-muted">Subtotal</span>
               <span className="text-[13px] font-semibold text-text">{formatPrice(itemsSubtotal)}</span>
             </div>
+            {discountAmount > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] text-muted">
+                  Descuento{appliedCoupon?.type === 'percentage' ? ` (${appliedCoupon.value}%)` : ''}
+                </span>
+                <span className="text-[13px] font-bold text-[#27ae60]">-{formatPrice(discountAmount)}</span>
+              </div>
+            )}
             {shippingKnown && (
               <div className="flex items-center justify-between">
                 <span className="text-[13px] text-muted">Envío</span>
