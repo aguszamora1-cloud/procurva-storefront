@@ -4,6 +4,7 @@ import { ChevronDown, Eye, Ruler, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
+import { usePromotions } from '@/context/PromotionsContext';
 import { Seo } from '@/components/Seo';
 import { ProductGallery } from '@/components/ProductGallery';
 import { ColorSelector } from '@/components/ColorSelector';
@@ -13,6 +14,7 @@ import { TrustBadges } from '@/components/TrustBadges';
 import { ShippingCalculator } from '@/components/ShippingCalculator';
 import { PriceDisplay } from '@/components/PriceDisplay';
 import { WholesalePurchasePanel } from '@/components/WholesalePurchasePanel';
+import { PromoCountdown } from '@/components/PromoCountdown';
 import { CardBadge } from '@/components/CardBadge';
 import { ProductDetailCustomSlot } from '@/components/ProductDetailCustomSlot';
 import { RelatedProducts } from '@/components/RelatedProducts';
@@ -37,6 +39,7 @@ export function ProductDetail() {
   const config = useStore();
   const isWholesale = useStoreType() === 'wholesale';
   const { addItem } = useCart();
+  const { priceFor, promoForProduct } = usePromotions();
   const { sections: pdSections } = useProductDetailCustomSections();
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -123,7 +126,11 @@ export function ProductDetail() {
   }
 
   const { mainPrice, cashPrice } = getPriceInfo(product);
-  const displayPrice = mainPrice; // precio prominente (tarjeta, o transferencia si no hay tarjeta)
+  // Promoción automática vigente: descuenta el precio que se muestra y el que va al carrito.
+  const promo = promoForProduct(product);
+  const finalPrice = priceFor(mainPrice, product).finalPrice; // precio prominente con promo aplicada
+  const finalCash = cashPrice != null ? priceFor(cashPrice, product).finalPrice : null;
+  const displayPrice = finalPrice; // precio prominente (tarjeta/transferencia, ya con promo)
   const needColor = colors.length > 0;
   const needSize = sizes.length > 0;
   // Producto totalmente agotado: ninguna variante con stock.
@@ -149,10 +156,20 @@ export function ProductDetail() {
       name: product.name,
       size: variant.size,
       color: variant.color,
-      unit_price: displayPrice,
+      // Precio ya con la promo aplicada (finalPrice). El cliente paga lo que ve.
+      unit_price: finalPrice,
       // Precio de contado (efectivo/transferencia) si hay descuento, para que el
       // checkout pueda ajustar el total según el método de pago elegido.
-      ...(cashPrice && cashPrice < displayPrice ? { unit_price_cash: cashPrice } : {}),
+      ...(finalCash != null && finalCash < finalPrice ? { unit_price_cash: finalCash } : {}),
+      // Datos de la promo aplicada (para el tachado en el carrito y el tracking).
+      ...(promo
+        ? {
+            promo_id: promo.id,
+            promo_name: promo.name,
+            unit_price_original: mainPrice,
+            promo_stackable: promo.stackable_with_coupons !== false,
+          }
+        : {}),
       qty: 1,
       image_url: variant.image_url ?? images[0] ?? null,
     });
@@ -214,7 +231,14 @@ export function ProductDetail() {
             {product.name}
           </h1>
 
-          {isWholesale && <WholesalePurchasePanel product={product} images={images} />}
+          {/* Countdown de la promoción (si la promo lo activa). */}
+          {promo?.show_countdown && (
+            <div>
+              <PromoCountdown endsAt={promo.ends_at} color={promo.badge_color} />
+            </div>
+          )}
+
+          {isWholesale && <WholesalePurchasePanel product={product} images={images} promo={promo} />}
 
           {!isWholesale && (
           <>

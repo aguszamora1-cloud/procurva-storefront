@@ -27,7 +27,8 @@ import {
   pickPackTier,
   sortedPackTiers,
 } from '@/lib/packs';
-import type { Product } from '@/lib/types';
+import { applyPromoToPrice, type Promotion } from '@/lib/promotions';
+import type { CartItem, Product } from '@/lib/types';
 
 type PanelTab = 'sueltos' | 'curva' | 'pack';
 
@@ -39,11 +40,32 @@ type PanelTab = 'sueltos' | 'curva' | 'pack';
  *  - CTAs "Agregar al carrito" (outline) + "Comprar ahora" (accent → checkout).
  *  - Acordeones de políticas (Envío / Cambios / Pagos) del settings mayorista.
  */
-export function WholesalePurchasePanel({ product, images }: { product: Product; images: string[] }) {
+export function WholesalePurchasePanel({
+  product,
+  images,
+  promo = null,
+}: {
+  product: Product;
+  images: string[];
+  promo?: Promotion | null;
+}) {
   const config = useStore();
   const { addItem, close } = useCart();
   const { curveTiers, curveDistributions, productPacks } = useWholesalePricing();
   const navigate = useNavigate();
+
+  // Descuento de la promoción mayorista vigente, por unidad. Si no hay promo, identidad.
+  const d = (price: number) => (promo ? applyPromoToPrice(price, promo, 'wholesale') : price);
+  // Tags de la promo para cada línea de carrito (precio ya descontado en unit_price).
+  const promoTag = (originalUnit: number): Partial<CartItem> =>
+    promo
+      ? {
+          promo_id: promo.id,
+          promo_name: promo.name,
+          unit_price_original: originalUnit,
+          promo_stackable: promo.stackable_with_coupons !== false,
+        }
+      : {};
 
   const tiers = useMemo(() => sortedTiers(curveTiers[product.id] ?? []), [curveTiers, product.id]);
   const dist = curveDistributions[product.id] ?? [];
@@ -100,7 +122,6 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
   const packTier = selectedPack ? pickPackTier(selectedPack.price_tiers, packCount) : null;
   const packUnitPrice = packTier?.price_per_unit ?? 0;
   const packTotalUnits = selectedPack ? selectedPack.total_units * packCount : 0;
-  const packTotalPrice = packTotalUnits * packUnitPrice;
   const packDist = selectedPack ? packSizeDistribution(selectedPack) : [];
 
   const vsColor = useMemo(() => variantsOfColor(product, color), [product, color]);
@@ -122,7 +143,6 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
   const selectedCurves = tierIdx === -1 ? customCurves : activeTier?.curve_quantity ?? 0;
   const activeTierPrice = activeTier?.price_per_unit ?? 0;
   const totalCurvaUnits = activeTier ? selectedCurves * itemsPer : 0;
-  const totalCurvaPrice = totalCurvaUnits * activeTierPrice;
 
   // Stock real disponible para curvas en el color elegido. Una curva necesita stock
   // de TODOS sus talles; el límite lo marca el más escaso (0 = no se puede armar).
@@ -189,10 +209,11 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
           name: product.name,
           size: v.size,
           color: v.color,
-          unit_price: wholesalePrice,
+          unit_price: d(wholesalePrice),
           qty: q,
           image_url: v.image_url ?? fallbackImg,
           source: 'suelto',
+          ...promoTag(wholesalePrice),
         });
       }
     } else if (tab === 'curva') {
@@ -206,19 +227,20 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
           name: product.name,
           size: variant.size,
           color: variant.color,
-          unit_price: activeTierPrice || wholesalePrice,
+          unit_price: d(activeTierPrice || wholesalePrice),
           qty,
           image_url: variant.image_url ?? fallbackImg,
           source: 'curva',
           curves: selectedCurves,
+          ...promoTag(activeTierPrice || wholesalePrice),
         });
       }
     } else {
       // pack
       if (!selectedPack || packCount < 1 || packUnitPrice <= 0) return;
-      const lines = packCartLines(product, selectedPack, packCount, packUnitPrice, fallbackImg);
+      const lines = packCartLines(product, selectedPack, packCount, d(packUnitPrice), fallbackImg);
       if (lines.length === 0) return;
-      for (const line of lines) addItem(line);
+      for (const line of lines) addItem({ ...line, ...promoTag(packUnitPrice) });
     }
     if (mode === 'buy') goCheckout();
     else flashAdded();
@@ -245,6 +267,20 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
 
   return (
     <div className="space-y-5">
+      {/* Aviso de promoción mayorista vigente (precios ya con descuento aplicado). */}
+      {promo && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-line bg-secondary px-3 py-2">
+          <span
+            className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-bold uppercase leading-none tracking-wide text-white"
+            style={{ backgroundColor: promo.badge_color || 'var(--color-accent)' }}
+          >
+            {promo.badge_text || 'PROMO'}
+          </span>
+          <span className="text-[13px] font-semibold text-text">{promo.name}</span>
+          <span className="text-[12px] font-medium text-subtle">· precios con descuento aplicado</span>
+        </div>
+      )}
+
       {/* Color con dots reales (el pack trae su propia distribución → no aplica) */}
       {needColor && tab !== 'pack' && (
         <div>
@@ -343,7 +379,10 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
             <div className="text-right">
               <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
               <p className="mt-1 flex items-baseline justify-end gap-1">
-                <span className="text-[26px] font-bold leading-none text-text">{formatPrice(wholesalePrice)}</span>
+                {promo && d(wholesalePrice) < wholesalePrice && (
+                  <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(wholesalePrice)}</span>
+                )}
+                <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(wholesalePrice))}</span>
                 <span className="text-[13px] font-medium text-subtle">c/u</span>
               </p>
             </div>
@@ -364,7 +403,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                 const sel = tierIdx === idx;
                 const isLast = idx === tiers.length - 1 && tiers.length > 1;
                 const tierOut = tier.curve_quantity > maxCurves;
-                const savings = basePrice - tier.price_per_unit;
+                const savings = d(basePrice) - d(tier.price_per_unit);
                 const showSavings = tier.curve_quantity >= 2 && savings > 0;
                 const label = `${tier.curve_quantity} ${tier.curve_quantity === 1 ? 'curva' : 'curvas'}`;
                 return (
@@ -402,7 +441,10 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                       {tierOut && <span className="text-[12px] font-medium text-subtle">Sin stock</span>}
                     </span>
                     <span className="flex shrink-0 items-baseline gap-1">
-                      <span className="text-[26px] font-bold leading-none text-text">{formatPrice(tier.price_per_unit)}</span>
+                      {promo && d(tier.price_per_unit) < tier.price_per_unit && (
+                        <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(tier.price_per_unit)}</span>
+                      )}
+                      <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(tier.price_per_unit))}</span>
                       <span className="text-[13px] font-medium text-subtle">c/u</span>
                     </span>
                   </button>
@@ -444,7 +486,10 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                         </button>
                       </div>
                       <span className="flex items-baseline gap-1">
-                        <span className="text-[26px] font-bold leading-none text-text">{formatPrice(lastTier.price_per_unit)}</span>
+                        {promo && d(lastTier.price_per_unit) < lastTier.price_per_unit && (
+                          <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(lastTier.price_per_unit)}</span>
+                        )}
+                        <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(lastTier.price_per_unit))}</span>
                         <span className="text-[13px] font-medium text-subtle">c/u</span>
                       </span>
                     </div>
@@ -476,10 +521,13 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
               <div className="text-right">
                 <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
                 <p className="flex items-baseline justify-end gap-1">
-                  <span className="text-[26px] font-bold leading-none text-text">{formatPrice(activeTierPrice)}</span>
+                  {promo && d(activeTierPrice) < activeTierPrice && (
+                    <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(activeTierPrice)}</span>
+                  )}
+                  <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(activeTierPrice))}</span>
                   <span className="text-[13px] font-medium text-subtle">c/u</span>
                 </p>
-                <p className="mt-1.5 text-[18px] font-bold text-text">Total: {formatPrice(totalCurvaPrice)}</p>
+                <p className="mt-1.5 text-[18px] font-bold text-text">Total: {formatPrice(totalCurvaUnits * d(activeTierPrice))}</p>
               </div>
             </div>
           )}
@@ -552,7 +600,7 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
                       isActive ? 'border-accent text-text' : 'border-line text-subtle'
                     }`}
                   >
-                    {packTierLabel(selectedPack, t)} · {formatPrice(t.price_per_unit)}/u
+                    {packTierLabel(selectedPack, t)} · {formatPrice(d(t.price_per_unit))}/u
                   </span>
                 );
               })}
@@ -592,10 +640,13 @@ export function WholesalePurchasePanel({ product, images }: { product: Product; 
             <div className="text-right">
               <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
               <p className="flex items-baseline justify-end gap-1">
-                <span className="text-[26px] font-bold leading-none text-text">{formatPrice(packUnitPrice)}</span>
+                {promo && d(packUnitPrice) < packUnitPrice && (
+                  <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(packUnitPrice)}</span>
+                )}
+                <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(packUnitPrice))}</span>
                 <span className="text-[13px] font-medium text-subtle">c/u</span>
               </p>
-              <p className="mt-1.5 text-[18px] font-bold text-text">Total: {formatPrice(packTotalPrice)}</p>
+              <p className="mt-1.5 text-[18px] font-bold text-text">Total: {formatPrice(packTotalUnits * d(packUnitPrice))}</p>
             </div>
           </div>
         </div>

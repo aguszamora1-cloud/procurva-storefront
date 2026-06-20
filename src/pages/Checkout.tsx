@@ -155,6 +155,12 @@ export function Checkout() {
   const cashDiscountPct = subtotal > cashSubtotal ? Math.round(((subtotal - cashSubtotal) / subtotal) * 100) : 0;
 
   // ── Cupón de descuento ──────────────────────────────────────────────────
+  // Si algún item lleva una promo automática NO acumulable, no se permiten
+  // cupones (el descuento promocional ya está aplicado en el precio).
+  const hasNonStackablePromo = useMemo(
+    () => items.some((i) => i.promo_id && i.promo_stackable === false),
+    [items],
+  );
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<CouponRecord | null>(null);
   const [couponStatus, setCouponStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -477,7 +483,11 @@ export function Checkout() {
 
           {/* Cupón de descuento */}
           <div className="border-b border-line py-3">
-            {appliedCoupon ? (
+            {hasNonStackablePromo ? (
+              <div className="rounded-[8px] bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-800">
+                Este producto ya tiene un descuento promocional aplicado. No se puede combinar con cupones.
+              </div>
+            ) : appliedCoupon ? (
               <div
                 className={`flex items-center justify-between gap-2 rounded-[8px] px-3 py-2 ${
                   discountAmount > 0 ? 'bg-emerald-50' : 'bg-amber-50'

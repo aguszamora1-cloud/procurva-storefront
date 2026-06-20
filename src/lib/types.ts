@@ -559,4 +559,14 @@ export interface CartItem {
   packLabel?: string;
   // Cantidad de packs elegida (solo source==='pack').
   packs?: number;
+  // ── Promoción automática aplicada a este item (si la hubo). El `unit_price`
+  // (y `unit_price_cash`) YA vienen con el descuento de la promo restado; estos
+  // campos son para mostrar el ahorro en el carrito y trackear la venta por
+  // promo (se serializan dentro de catalog_orders.items, sin migración). ──
+  promo_id?: string;
+  promo_name?: string;
+  // Precio unitario ORIGINAL (antes de la promo), para mostrar el tachado/ahorro.
+  unit_price_original?: number;
+  // Si la promo NO es acumulable con cupones (gatea el cupón en el checkout).
+  promo_stackable?: boolean;
 }

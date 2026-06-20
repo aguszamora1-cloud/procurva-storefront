@@ -44,6 +44,12 @@ function mapItems(items: CartItem[], priceMode: 'cash' | 'card') {
     source: i.source ?? 'suelto',
     ...(i.source === 'curva' && i.curves ? { curves: i.curves } : {}),
     ...(i.source === 'pack' ? { pack_id: i.packId, pack_label: i.packLabel, packs: i.packs } : {}),
+    // Promoción automática aplicada (si la hubo). `price` ya viene con el
+    // descuento; estos campos quedan en catalog_orders.items para trackear
+    // ventas por promo en el dashboard de marketing (sin migración).
+    ...(i.promo_id
+      ? { promotion_id: i.promo_id, promotion_name: i.promo_name, price_original: i.unit_price_original }
+      : {}),
   }));
 }
 

@@ -12,6 +12,7 @@ import { SocialProofSection } from '@/components/home/SocialProofSection';
 import { OutfitsSection } from '@/components/home/OutfitsSection';
 import { CustomBannerSection } from '@/components/home/CustomBannerSection';
 import { CustomTextSection } from '@/components/home/CustomTextSection';
+import { PromoBannerAuto } from '@/components/PromoBannerAuto';
 import { useCustomSections } from '@/hooks/useCustomSections';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
 import { Reveal } from '@/components/Reveal';
@@ -105,6 +106,8 @@ export function Home() {
         siteName={config.name}
         path="/"
       />
+      {/* Banner de promoción de tienda completa (scope 'all'), arriba del contenido. */}
+      <PromoBannerAuto />
       {orderedKeys.map((key) => {
         const node = nodes[key];
         if (!node) return null;

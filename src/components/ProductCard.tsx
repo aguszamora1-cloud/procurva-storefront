@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { Zap } from 'lucide-react';
 import { useStoreType } from '@/context/StoreProvider';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
+import { usePromotions } from '@/context/PromotionsContext';
+import { applyPromoToPrice } from '@/lib/promotions';
 import type { Product } from '@/lib/types';
 import { PriceDisplay } from './PriceDisplay';
 import { WholesalePriceTable } from './WholesalePriceTable';
@@ -15,6 +17,11 @@ export function ProductCard({ product, priority = false }: { product: Product; p
   const onSale = Boolean(comparePrice && compareDiscountPct > 0); // oferta vs precio de lista
   const isWholesale = useStoreType() === 'wholesale';
   const { curveTiers, productPacks } = useWholesalePricing();
+  const { promoForProduct } = usePromotions();
+  // Promoción automática vigente para este producto (descuento del modo actual).
+  const promo = promoForProduct(product);
+  // En mayorista, descontamos cada precio por unidad de la tabla de curvas/packs.
+  const wholesaleDiscount = promo ? (p: number) => applyPromoToPrice(p, promo, 'wholesale') : undefined;
 
   const stock = totalStock(product);
   const outOfStock = stock <= 0;
@@ -55,6 +62,8 @@ export function ProductCard({ product, priority = false }: { product: Product; p
         <div className="pointer-events-none absolute left-2 top-2 flex flex-col items-start gap-1.5 md:left-3 md:top-3">
           {outOfStock ? (
             <CardBadge bg="#525252">Sin stock</CardBadge>
+          ) : promo ? (
+            <CardBadge bg={promo.badge_color || 'var(--color-accent)'}>{promo.badge_text || 'PROMO'}</CardBadge>
           ) : onSale && !isWholesale ? (
             <CardBadge bg="var(--color-accent)" color="var(--color-on-accent)">
               -{compareDiscountPct}%
@@ -82,6 +91,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
               tiers={curveTiers[product.id] ?? []}
               packs={productPacks[product.id] ?? []}
               variant="card"
+              discount={wholesaleDiscount}
             />
           ) : (
             <PriceDisplay product={product} variant="card" />
