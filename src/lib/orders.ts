@@ -170,10 +170,20 @@ export async function createCatalogOrder(
  */
 async function triggerAutoConfirm(catalogOrderId: string): Promise<void> {
   const baseUrl = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
   try {
     const res = await fetch(`${baseUrl}/functions/v1/auto-confirm-catalog-order`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // El gateway de Edge Functions rechaza la llamada con 401
+      // (UNAUTHORIZED_NO_AUTH_HEADER) si no mandamos la apikey/Authorization,
+      // y el catch de abajo lo tragaba en silencio: el pedido quedaba `pending`
+      // y nunca se creaba la orden real. La anon key alcanza (la función usa el
+      // service_role internamente y valida plan/empresa del lado del servidor).
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
       body: JSON.stringify({ catalog_order_id: catalogOrderId }),
     });
     const data = await res.json().catch(() => ({}));

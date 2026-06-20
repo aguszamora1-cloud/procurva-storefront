@@ -24,9 +24,12 @@ const emptyForm: CustomerInfo = {
   notes: '',
 };
 
-// Métodos por defecto si el negocio no configuró ninguno (mismo criterio que el catálogo).
+// Método por defecto si el negocio no configuró ninguno: SÓLO envío a domicilio.
+// No incluimos "Retiro en local" como fallback: el retiro debe aparecer
+// únicamente si el negocio lo configuró explícitamente y activo
+// (isPickup: true). Mostrarlo por defecto hacía que llegaran pedidos como
+// "Retiro" sin dirección en tiendas que no ofrecen retiro.
 const FALLBACK_METHODS: ShippingOption[] = [
-  { id: 'retiro', name: 'Retiro en local', requiresAddress: false, cost: 0, eta: 'Retirá en el local sin esperas', icon: '🏪', description: 'Retirá sin esperas en nuestro local', coversAllPostalCodes: false, postalCodeRanges: [] },
   { id: 'envio', name: 'Envío a domicilio', requiresAddress: true, cost: null, icon: '🚚', description: 'Envío a todo el país', coversAllPostalCodes: true, postalCodeRanges: [] },
 ];
 
