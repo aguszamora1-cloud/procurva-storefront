@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronDown, Eye, Ruler, Tag, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
 import { useStore, useStoreType } from '@/context/StoreProvider';
@@ -35,6 +35,7 @@ function viewersFromId(id: string): number {
 
 export function ProductDetail() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const { product, isLoading, error } = useProduct(id);
   const config = useStore();
   const isWholesale = useStoreType() === 'wholesale';
@@ -94,6 +95,16 @@ export function ProductDetail() {
   useEffect(() => {
     if (colors.length === 1 && !selectedColor) setSelectedColor(colors[0]);
   }, [colors, selectedColor]);
+
+  // Color pre-seleccionado vía ?color= (lo setean las "cards por color" del
+  // catálogo). Sólo aplica si el color existe en el producto y el usuario todavía
+  // no eligió uno; después puede cambiarlo libremente con el ColorSelector.
+  const colorParam = searchParams.get('color');
+  useEffect(() => {
+    if (colorParam && !selectedColor && colors.includes(colorParam)) {
+      setSelectedColor(colorParam);
+    }
+  }, [colorParam, colors, selectedColor]);
 
   if (isLoading) {
     return (
