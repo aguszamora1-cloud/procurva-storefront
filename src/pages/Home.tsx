@@ -41,10 +41,9 @@ export function Home() {
 
   // Destacados: sólo los marcados is_featured en ProCurva (máx 8).
   const featured = products.filter((p) => p.is_featured).slice(0, 8);
-  // Nuevos ingresos: más recientes (ya vienen ordenados por created_at desc),
-  // excluyendo los que ya están en Destacados para que no se repitan (máx 8).
-  const featuredIds = new Set(featured.map((p) => p.id));
-  const newArrivals = products.filter((p) => !featuredIds.has(p.id)).slice(0, 8);
+  // Nuevos ingresos: sólo los marcados is_new_arrival (máx 8). Un producto puede
+  // estar en ambas secciones si el dueño marcó los dos flags.
+  const newArrivals = products.filter((p) => p.is_new_arrival).slice(0, 8);
 
   const productSkeleton = (
     <div className="mx-auto max-w-none px-6 py-10 md:py-24">

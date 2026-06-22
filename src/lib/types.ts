@@ -86,6 +86,8 @@ export interface Product {
   pack_only_sale: boolean | null;
   // Marca de producto destacado (sección "Destacados" del home).
   is_featured: boolean | null;
+  // Marca de "Nuevo Ingreso" (sección "Nuevos Ingresos" del home).
+  is_new_arrival?: boolean | null;
   // Si true, el storefront muestra cada color como una card separada en el catálogo.
   display_variants_separately?: boolean | null;
   created_at: string | null;
