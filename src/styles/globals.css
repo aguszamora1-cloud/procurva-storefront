@@ -36,6 +36,12 @@ html {
   /* Red de seguridad anti-overflow horizontal en mobile. `clip` (no `hidden`)
      no rompe position: sticky del navbar ni de la galería. */
   overflow-x: clip;
+  /* Página "estática": sin paneo ni rebote horizontal. Junto con el viewport
+     meta (maximum-scale=1, user-scalable=no) evita que al hacer pinch-zoom en
+     mobile la página se pueda mover a cualquier lado y se vean glitches. */
+  overscroll-behavior-x: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 @layer base {

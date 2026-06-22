@@ -5,6 +5,7 @@ import { WholesalePricingProvider } from '@/context/WholesalePricingContext';
 import { PromotionsProvider } from '@/context/PromotionsContext';
 import { CartProvider } from '@/context/CartContext';
 import { Layout } from '@/components/Layout';
+import { ScrollToTop } from '@/components/ScrollToTop';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ErrorScreen } from '@/components/ErrorScreen';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -38,6 +39,7 @@ function StoreRoutes() {
       <WholesalePricingProvider>
       <PromotionsProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Analytics />
         <Layout>
           <Suspense fallback={<PageFallback />}>
