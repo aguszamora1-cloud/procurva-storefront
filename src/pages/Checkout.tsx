@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useCartPromos } from '@/hooks/useCartPromos';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { supabase } from '@/lib/supabase';
 import { Seo } from '@/components/Seo';
 import { Spinner } from '@/components/Spinner';
 import { formatPrice } from '@/lib/utils';
-import { groupCartItems } from '@/lib/cart';
+import { cartLineKey, groupCartItems } from '@/lib/cart';
+import { applyPromoToPrice } from '@/lib/promotions';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, type CustomerInfo } from '@/lib/orders';
 import { expandMethod, methodCoversPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
@@ -35,9 +37,40 @@ const FALLBACK_METHODS: ShippingOption[] = [
 
 export function Checkout() {
   const { items, subtotal, itemCount } = useCart();
+  const { byLine } = useCartPromos();
   const config = useStore();
   const storeType = useStoreType();
   const isWholesale = storeType === 'wholesale';
+  const effStoreType = storeType ?? 'retail';
+
+  // Items con la promo POR CANTIDAD ya aplicada al precio (lo que se cobra y se
+  // serializa en la orden). Las líneas activas bajan unit_price/unit_price_cash y
+  // guardan el tracking en los campos promo_* existentes (sin migración).
+  const pricedItems = useMemo(
+    () =>
+      items.map((it) => {
+        const r = byLine.get(cartLineKey(it));
+        if (!r?.active || !r.promo) return it;
+        const cardBase = it.unit_price_original ?? it.unit_price;
+        const newCard = Math.min(it.unit_price, applyPromoToPrice(cardBase, r.promo, effStoreType));
+        const hasCash = typeof it.unit_price_cash === 'number';
+        const cashBase = hasCash ? (it.unit_price_cash as number) : cardBase;
+        const newCash = Math.min(cashBase, applyPromoToPrice(cashBase, r.promo, effStoreType));
+        return {
+          ...it,
+          unit_price: newCard,
+          ...(hasCash ? { unit_price_cash: newCash } : {}),
+          unit_price_original: cardBase,
+          promo_id: r.promo.id,
+          promo_name: r.promo.name,
+          promo_stackable: r.promo.stackable_with_coupons !== false,
+        };
+      }),
+    [items, byLine, effStoreType],
+  );
+
+  // Subtotal de tarjeta/lista ya con las promos por cantidad aplicadas.
+  const cardSubtotal = useMemo(() => pricedItems.reduce((s, i) => s + i.unit_price * i.qty, 0), [pricedItems]);
   const minQty = isWholesale ? config.minOrderQuantity : 0;
   const minMissing = minQty > 0 ? Math.max(0, minQty - itemCount) : 0;
   const navigate = useNavigate();
@@ -146,20 +179,29 @@ export function Checkout() {
   // Subtotal de contado (efectivo/transferencia): usa unit_price_cash si existe.
   // `subtotal` (del carrito) es el de tarjeta/lista.
   const cashSubtotal = useMemo(
+    () => pricedItems.reduce((s, i) => s + (typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price) * i.qty, 0),
+    [pricedItems],
+  );
+  const itemsSubtotal = priceMode === 'cash' ? cashSubtotal : cardSubtotal;
+  // % de descuento de contado respecto del precio de tarjeta (0 si no hay diferencia,
+  // p.ej. en mayorista). Se muestra en las opciones de contado.
+  const cashDiscountPct = cardSubtotal > cashSubtotal ? Math.round(((cardSubtotal - cashSubtotal) / cardSubtotal) * 100) : 0;
+
+  // Subtotal SIN la promo por cantidad (precios originales), para mostrar el
+  // "Descuento por cantidad" como una línea propia en el resumen.
+  const rawCashSubtotal = useMemo(
     () => items.reduce((s, i) => s + (typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price) * i.qty, 0),
     [items],
   );
-  const itemsSubtotal = priceMode === 'cash' ? cashSubtotal : subtotal;
-  // % de descuento de contado respecto del precio de tarjeta (0 si no hay diferencia,
-  // p.ej. en mayorista). Se muestra en las opciones de contado.
-  const cashDiscountPct = subtotal > cashSubtotal ? Math.round(((subtotal - cashSubtotal) / subtotal) * 100) : 0;
+  const rawSubtotalForMode = priceMode === 'cash' ? rawCashSubtotal : subtotal;
+  const quantitySavingsShown = Math.max(0, rawSubtotalForMode - itemsSubtotal);
 
   // ── Cupón de descuento ──────────────────────────────────────────────────
   // Si algún item lleva una promo automática NO acumulable, no se permiten
   // cupones (el descuento promocional ya está aplicado en el precio).
   const hasNonStackablePromo = useMemo(
-    () => items.some((i) => i.promo_id && i.promo_stackable === false),
-    [items],
+    () => pricedItems.some((i) => i.promo_id && i.promo_stackable === false),
+    [pricedItems],
   );
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<CouponRecord | null>(null);
@@ -277,7 +319,7 @@ export function Checkout() {
           : null;
       // storeType puede ser null mientras resuelve el tenant; por defecto minorista.
       const orderId = await createCatalogOrder(
-        config, items, orderTotal, customer, payLabel, storeType ?? 'retail',
+        config, pricedItems, orderTotal, customer, payLabel, storeType ?? 'retail',
         { priceMode, viaMercadoPago: routing === 'mp', discount },
       );
 
@@ -295,7 +337,7 @@ export function Checkout() {
 
       // WhatsApp: el pedido ya quedó registrado (y auto-confirmado si el plan es
       // Profesional). Abrimos el chat con el detalle y mostramos la confirmación.
-      const href = buildWhatsappOrderWithCustomer(config, items, orderTotal, customer, payLabel);
+      const href = buildWhatsappOrderWithCustomer(config, pricedItems, orderTotal, customer, payLabel);
       if (href) window.open(href, '_blank', 'noopener');
       navigate(`/checkout/success?order=${orderId}`);
     } catch (e: any) {
@@ -456,7 +498,7 @@ export function Checkout() {
         <aside className="h-fit border border-line p-6">
           <h2 className="mb-4 font-heading text-[18px] font-bold text-text">Tu pedido</h2>
           <div className="space-y-3 border-b border-line pb-4">
-            {groupCartItems(items).map((row) => (
+            {groupCartItems(pricedItems).map((row) => (
               <div key={row.key} className="flex items-start justify-between gap-3 text-[13px]">
                 <div className="min-w-0">
                   <p className="truncate font-semibold text-text">
@@ -549,8 +591,14 @@ export function Checkout() {
           <div className="space-y-1 border-b border-line py-3">
             <div className="flex items-center justify-between">
               <span className="text-[13px] text-muted">Subtotal</span>
-              <span className="text-[13px] font-semibold text-text">{formatPrice(itemsSubtotal)}</span>
+              <span className="text-[13px] font-semibold text-text">{formatPrice(rawSubtotalForMode)}</span>
             </div>
+            {quantitySavingsShown > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] text-muted">Descuento por cantidad</span>
+                <span className="text-[13px] font-bold text-[#27ae60]">-{formatPrice(quantitySavingsShown)}</span>
+              </div>
+            )}
             {discountAmount > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-[13px] text-muted">

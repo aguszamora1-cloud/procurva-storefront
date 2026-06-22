@@ -17,9 +17,11 @@ export function ProductCard({ product, priority = false }: { product: Product; p
   const onSale = Boolean(comparePrice && compareDiscountPct > 0); // oferta vs precio de lista
   const isWholesale = useStoreType() === 'wholesale';
   const { curveTiers, productPacks } = useWholesalePricing();
-  const { promoForProduct } = usePromotions();
+  const { promoForProduct, quantityPromoFor } = usePromotions();
   // Promoción automática vigente para este producto (descuento del modo actual).
   const promo = promoForProduct(product);
+  // Promo por cantidad (no descuenta hasta llegar al mínimo en el carrito; solo badge).
+  const qtyPromo = quantityPromoFor(product);
   // En mayorista, descontamos cada precio por unidad de la tabla de curvas/packs.
   const wholesaleDiscount = promo ? (p: number) => applyPromoToPrice(p, promo, 'wholesale') : undefined;
 
@@ -64,6 +66,8 @@ export function ProductCard({ product, priority = false }: { product: Product; p
             <CardBadge bg="#525252">Sin stock</CardBadge>
           ) : promo ? (
             <CardBadge bg={promo.badge_color || 'var(--color-accent)'}>{promo.badge_text || 'PROMO'}</CardBadge>
+          ) : qtyPromo ? (
+            <CardBadge bg={qtyPromo.badge_color || 'var(--color-accent)'}>{qtyPromo.badge_text || 'PROMO'}</CardBadge>
           ) : onSale && !isWholesale ? (
             <CardBadge bg="var(--color-accent)" color="var(--color-on-accent)">
               -{compareDiscountPct}%

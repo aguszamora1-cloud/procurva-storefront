@@ -31,11 +31,11 @@ export function AnnouncementBar() {
   return (
     <div className="overflow-hidden bg-primary text-on-primary">
       <div className="py-2">
-        <ul className="animate-marquee flex w-max items-center gap-12" style={{ animationDuration: `${durationS}s` }}>
+        <ul className="animate-marquee flex w-max items-center" style={{ animationDuration: `${durationS}s` }}>
           {loop.map((text, i) => (
             <li
               key={`${text}-${i}`}
-              className="whitespace-nowrap text-[12px] font-semibold uppercase tracking-[0.5px] md:text-[13px]"
+              className="whitespace-nowrap pr-12 text-[12px] font-semibold uppercase tracking-[0.5px] md:text-[13px]"
             >
               {text}
             </li>

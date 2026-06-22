@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ChevronDown, Eye, Ruler, Truck } from 'lucide-react';
+import { ChevronDown, Eye, Ruler, Tag, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
@@ -39,7 +39,7 @@ export function ProductDetail() {
   const config = useStore();
   const isWholesale = useStoreType() === 'wholesale';
   const { addItem } = useCart();
-  const { priceFor, promoForProduct } = usePromotions();
+  const { priceFor, promoForProduct, quantityPromoFor, quantityMessageFor } = usePromotions();
   const { sections: pdSections } = useProductDetailCustomSections();
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -130,6 +130,9 @@ export function ProductDetail() {
   const promo = promoForProduct(product);
   const finalPrice = priceFor(mainPrice, product).finalPrice; // precio prominente con promo aplicada
   const finalCash = cashPrice != null ? priceFor(cashPrice, product).finalPrice : null;
+  // Promo por cantidad (descuento condicional: se activa al llegar al mínimo en el carrito).
+  const qtyPromo = quantityPromoFor(product);
+  const qtyPromoMsg = quantityMessageFor(product);
   const displayPrice = finalPrice; // precio prominente (tarjeta/transferencia, ya con promo)
   const needColor = colors.length > 0;
   const needSize = sizes.length > 0;
@@ -154,6 +157,7 @@ export function ProductDetail() {
       product_id: product.id,
       variant_id: variant.id,
       name: product.name,
+      categories: cats,
       size: variant.size,
       color: variant.color,
       // Precio ya con la promo aplicada (finalPrice). El cliente paga lo que ve.
@@ -243,6 +247,26 @@ export function ProductDetail() {
           {!isWholesale && (
           <>
           <PriceDisplay product={product} variant="detail" />
+
+          {/* Promo por cantidad: banner informativo. El precio NO se tacha (el
+              descuento se aplica recién al llegar al mínimo en el carrito). */}
+          {qtyPromo && qtyPromoMsg && (
+            <div
+              className="flex items-center gap-2.5 rounded-lg border px-3 py-2.5"
+              style={{
+                borderColor: (qtyPromo.badge_color || '#16a34a') + '40',
+                backgroundColor: (qtyPromo.badge_color || '#16a34a') + '12',
+              }}
+            >
+              <Tag className="h-4 w-4 shrink-0" style={{ color: qtyPromo.badge_color || '#16a34a' }} />
+              <p className="text-[13px] font-semibold" style={{ color: qtyPromo.badge_color || '#16a34a' }}>
+                {qtyPromoMsg}
+              </p>
+            </div>
+          )}
+          {qtyPromo?.show_countdown && (
+            <PromoCountdown endsAt={qtyPromo.ends_at} color={qtyPromo.badge_color} />
+          )}
 
           {needSize && <SizeSelector sizes={sizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />}
 

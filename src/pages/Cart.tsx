@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useCartPromos } from '@/hooks/useCartPromos';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { StoreImage } from '@/components/StoreImage';
 import { Seo } from '@/components/Seo';
@@ -8,7 +9,8 @@ import { formatPrice } from '@/lib/utils';
 import { groupCartItems } from '@/lib/cart';
 
 export function Cart() {
-  const { items, updateQty, removeItem, subtotal, clear, itemCount } = useCart();
+  const { items, updateQty, removeItem, clear, itemCount } = useCart();
+  const { byLine, adjustedSubtotal, quantitySavings, nudges } = useCartPromos();
   const config = useStore();
   const isWholesale = useStoreType() === 'wholesale';
   const minQty = isWholesale ? config.minOrderQuantity : 0;
@@ -67,7 +69,18 @@ export function Cart() {
                   ) : (
                     <span className="text-[13px] font-semibold uppercase tracking-wide text-subtle">{row.units} unidades</span>
                   )}
-                  <span className="text-[16px] font-bold text-text">{formatPrice(row.lineTotal)}</span>
+                  {(() => {
+                    const r = byLine.get(row.removeKeys[0]);
+                    if (r?.active) {
+                      return (
+                        <span className="flex items-baseline gap-2">
+                          <span className="text-[13px] text-subtle line-through">{formatPrice(row.lineTotal)}</span>
+                          <span className="text-[16px] font-bold text-accent">{formatPrice(r.unitPriceFinal * row.units)}</span>
+                        </span>
+                      );
+                    }
+                    return <span className="text-[16px] font-bold text-text">{formatPrice(row.lineTotal)}</span>;
+                  })()}
                 </div>
               </div>
             </div>
@@ -79,10 +92,18 @@ export function Cart() {
 
         <aside className="h-fit border border-line p-6">
           <h2 className="mb-4 font-heading text-[18px] font-bold text-text">Resumen</h2>
+          {nudges.map((n) => (
+            <div key={n.key} className="mb-3 rounded-lg border border-dashed border-accent/40 bg-accent/5 px-3 py-2 text-[12px] font-semibold text-accent">
+              Agregá {n.missing} más y ahorrá — {n.message}
+            </div>
+          ))}
           <div className="flex items-center justify-between border-b border-line pb-4">
             <span className="text-[14px] text-muted">Subtotal</span>
-            <span className="text-[20px] font-extrabold text-text">{formatPrice(subtotal)}</span>
+            <span className="text-[20px] font-extrabold text-text">{formatPrice(adjustedSubtotal)}</span>
           </div>
+          {quantitySavings > 0 && (
+            <p className="pt-3 text-right text-[12px] font-semibold text-accent">Ahorrás {formatPrice(quantitySavings)} por cantidad</p>
+          )}
           {minQty > 0 && (
             <p className={`pt-4 text-[12px] font-semibold ${minOk ? 'text-emerald-600' : 'text-amber-600'}`}>
               {minOk

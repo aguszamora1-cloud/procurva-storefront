@@ -540,6 +540,9 @@ export interface CartItem {
   product_id: string;
   variant_id: string;
   name: string;
+  // Categorías del producto (para promos por cantidad con scope categoría).
+  // Opcional: carritos viejos no la tienen -> no cuentan para promos por categoría.
+  categories?: string[] | null;
   size: string | null;
   color: string | null;
   unit_price: number;

@@ -21,6 +21,11 @@ export interface Promotion {
   company_id: string;
   name: string;
   description: string | null;
+  // Tipo: 'automatic' (se aplica siempre) o 'quantity' (al llevar min_quantity+).
+  // Campos viejos sin la columna llegan como undefined -> se tratan como 'automatic'.
+  promo_type?: 'automatic' | 'quantity' | null;
+  min_quantity?: number | null;
+  quantity_message?: string | null;
   discount_type: 'percentage' | 'fixed';
   discount_value_minorista: number;
   discount_value_mayorista: number;
@@ -49,6 +54,11 @@ export interface PromoResult {
   savings: number;
   /** % de descuento sobre el original (para el badge "-X%"). */
   discountPct: number;
+}
+
+/** ¿Es una promo por cantidad? (las viejas sin promo_type son 'automatic'). */
+export function isQuantityPromo(promo: Promotion): boolean {
+  return promo.promo_type === 'quantity';
 }
 
 /** Valor de descuento de la promo según el tipo de tienda. */
@@ -106,6 +116,7 @@ export function getPromotionalPrice(
 ): PromoResult {
   let best: { promo: Promotion; finalPrice: number } | null = null;
   for (const promo of promotions) {
+    if (isQuantityPromo(promo)) continue; // las de cantidad se aplican en el carrito, no per-unit
     if (promoDiscountValue(promo, storeType) <= 0) continue;
     if (!promoAppliesToProduct(promo, product)) continue;
     const finalPrice = applyPromoToPrice(originalPrice, promo, storeType);
@@ -118,6 +129,136 @@ export function getPromotionalPrice(
   return { finalPrice: best.finalPrice, promo: best.promo, savings, discountPct };
 }
 
+// ============================================================================
+// Promociones POR CANTIDAD (promo_type='quantity')
+// El descuento NO se aplica per-unit: se activa cuando el cliente lleva
+// min_quantity o más unidades. Por producto cuenta la qty de ese producto; por
+// categoría suma TODAS las unidades de la categoría en el carrito.
+// ============================================================================
+
+/** Rank de especificidad del scope (más específico gana). */
+const scopeRank = (p: Promotion): number => (p.scope === 'products' ? 0 : p.scope === 'categories' ? 1 : 2);
+
+/** Mejor promo POR CANTIDAD aplicable a un producto (para badge/banner condicional). */
+export function quantityPromoForProduct(
+  product: Pick<Product, 'id' | 'categories'>,
+  promotions: Promotion[],
+  storeType: StoreType,
+): Promotion | null {
+  let best: Promotion | null = null;
+  let bestV = 0;
+  for (const promo of promotions) {
+    if (!isQuantityPromo(promo)) continue;
+    const v = promoDiscountValue(promo, storeType);
+    if (v <= 0 || !promoAppliesToProduct(promo, product)) continue;
+    if (!best || scopeRank(promo) < scopeRank(best) || (scopeRank(promo) === scopeRank(best) && v > bestV)) {
+      best = promo;
+      bestV = v;
+    }
+  }
+  return best;
+}
+
+/** Mensaje a mostrar para una promo por cantidad (el del admin o uno autogenerado). */
+export function quantityPromoMessage(promo: Promotion, storeType: StoreType): string {
+  const custom = (promo.quantity_message ?? '').trim();
+  if (custom) return custom;
+  const min = promo.min_quantity ?? 2;
+  const v = promoDiscountValue(promo, storeType);
+  if (promo.discount_type === 'fixed') return `Llevá ${min} y ahorrá $${Math.round(v).toLocaleString('es-AR')} por unidad`;
+  return `Llevá ${min} y ahorrá un ${v}%`;
+}
+
+/** Línea de carrito (forma mínima) que entra al cálculo de promos por cantidad. */
+export interface QtyPromoCartLine {
+  key: string;
+  productId: string;
+  categories: string[];
+  qty: number;
+  /** Precio unitario actual (puede ya incluir una promo automática). */
+  unitPriceBase: number;
+  /** Precio de lista sin ninguna promo (base para recalcular el descuento por cantidad). */
+  unitPriceOriginal: number;
+}
+
+/** Resultado por línea del cálculo de promos por cantidad. */
+export interface QtyPromoLineResult {
+  /** Promo que define el estado (activa si llega al mínimo; si no, la más cercana para el nudge). */
+  promo: Promotion | null;
+  active: boolean;
+  /** Unidades que faltan para activar la promo más cercana (0 si está activa o no hay promo). */
+  missing: number;
+  /** Precio unitario final a cobrar (el mejor entre la promo automática y la de cantidad). */
+  unitPriceFinal: number;
+  /** Precio de lista para tachar cuando hay descuento. */
+  unitPriceOriginal: number;
+}
+
+const matchesLine = (promo: Promotion, line: QtyPromoCartLine): boolean =>
+  promoAppliesToProduct(promo, { id: line.productId, categories: line.categories });
+
+/**
+ * Calcula las promos por cantidad sobre TODO el carrito. Devuelve un mapa por
+ * `key` de línea. Para scope categoría, la cantidad mínima se evalúa sumando
+ * todas las unidades de la categoría en el carrito (no una sola línea).
+ */
+export function computeQuantityPromos(
+  lines: QtyPromoCartLine[],
+  promotions: Promotion[],
+  storeType: StoreType,
+): Map<string, QtyPromoLineResult> {
+  const qPromos = promotions.filter((p) => isQuantityPromo(p) && promoDiscountValue(p, storeType) > 0);
+  // Cantidad total en scope de cada promo (sumando todas las líneas que matchean).
+  const totalForPromo = new Map<string, number>();
+  for (const promo of qPromos) {
+    let total = 0;
+    for (const line of lines) if (matchesLine(promo, line)) total += line.qty;
+    totalForPromo.set(promo.id, total);
+  }
+
+  const out = new Map<string, QtyPromoLineResult>();
+  for (const line of lines) {
+    const applicable = qPromos.filter((p) => matchesLine(p, line));
+    // Promo activa que deje el mejor precio.
+    let activeBest: { promo: Promotion; finalUnit: number } | null = null;
+    // Promo no activa más cercana al mínimo (para el nudge).
+    let nudge: { promo: Promotion; missing: number } | null = null;
+
+    for (const promo of applicable) {
+      const total = totalForPromo.get(promo.id) ?? 0;
+      const min = promo.min_quantity ?? 2;
+      if (total >= min) {
+        const finalUnit = applyPromoToPrice(line.unitPriceOriginal, promo, storeType);
+        if (!activeBest || finalUnit < activeBest.finalUnit) activeBest = { promo, finalUnit };
+      } else {
+        const missing = min - total;
+        if (!nudge || missing < nudge.missing) nudge = { promo, missing };
+      }
+    }
+
+    if (activeBest) {
+      // El precio final es el mejor entre la promo automática (ya en base) y la de cantidad.
+      const finalUnit = Math.min(line.unitPriceBase, activeBest.finalUnit);
+      out.set(line.key, {
+        promo: activeBest.promo,
+        active: true,
+        missing: 0,
+        unitPriceFinal: finalUnit,
+        unitPriceOriginal: line.unitPriceOriginal,
+      });
+    } else if (nudge) {
+      out.set(line.key, {
+        promo: nudge.promo,
+        active: false,
+        missing: nudge.missing,
+        unitPriceFinal: line.unitPriceBase,
+        unitPriceOriginal: line.unitPriceOriginal,
+      });
+    }
+  }
+  return out;
+}
+
 /** Mejor promo aplicable a un producto (para badge/countdown), sin un precio puntual. */
 export function bestPromoForProduct(
   product: Pick<Product, 'id' | 'categories'>,
@@ -126,6 +267,7 @@ export function bestPromoForProduct(
 ): Promotion | null {
   let best: Promotion | null = null;
   for (const promo of promotions) {
+    if (isQuantityPromo(promo)) continue; // las de cantidad tienen su propio badge condicional
     const v = promoDiscountValue(promo, storeType);
     if (v <= 0 || !promoAppliesToProduct(promo, product)) continue;
     if (!best) {

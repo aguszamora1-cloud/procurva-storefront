@@ -2,12 +2,14 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useCartPromos } from '@/hooks/useCartPromos';
 import { StoreImage } from './StoreImage';
 import { formatPrice } from '@/lib/utils';
 import { groupCartItems } from '@/lib/cart';
 
 export function CartDrawer() {
-  const { items, isOpen, close, updateQty, removeItem, subtotal, itemCount } = useCart();
+  const { items, isOpen, close, updateQty, removeItem, itemCount } = useCart();
+  const { byLine, adjustedSubtotal, quantitySavings, nudges } = useCartPromos();
   const rows = groupCartItems(items);
 
   useEffect(() => {
@@ -86,7 +88,18 @@ export function CartDrawer() {
                     ) : (
                       <span className="text-[12px] font-semibold uppercase tracking-wide text-subtle">{row.units} u.</span>
                     )}
-                    <span className="text-[14px] font-bold text-text">{formatPrice(row.lineTotal)}</span>
+                    {(() => {
+                      const r = byLine.get(row.removeKeys[0]);
+                      if (r?.active) {
+                        return (
+                          <span className="flex items-baseline gap-1.5">
+                            <span className="text-[12px] text-subtle line-through">{formatPrice(row.lineTotal)}</span>
+                            <span className="text-[14px] font-bold text-accent">{formatPrice(r.unitPriceFinal * row.units)}</span>
+                          </span>
+                        );
+                      }
+                      return <span className="text-[14px] font-bold text-text">{formatPrice(row.lineTotal)}</span>;
+                    })()}
                   </div>
                 </div>
               </div>
@@ -96,10 +109,19 @@ export function CartDrawer() {
 
         {items.length > 0 && (
           <div className="border-t border-line px-6 py-5">
+            {/* Nudges: promos por cantidad a las que les falta poco para activarse. */}
+            {nudges.map((n) => (
+              <div key={n.key} className="mb-3 rounded-lg border border-dashed border-accent/40 bg-accent/5 px-3 py-2 text-[12px] font-semibold text-accent">
+                Agregá {n.missing} más y ahorrá — {n.message}
+              </div>
+            ))}
             <div className="mb-4 flex items-center justify-between">
               <span className="text-[11px] font-semibold uppercase tracking-[1.5px] text-muted">Subtotal</span>
-              <span className="text-[20px] font-extrabold text-text">{formatPrice(subtotal)}</span>
+              <span className="text-[20px] font-extrabold text-text">{formatPrice(adjustedSubtotal)}</span>
             </div>
+            {quantitySavings > 0 && (
+              <p className="-mt-3 mb-4 text-right text-[12px] font-semibold text-accent">Ahorrás {formatPrice(quantitySavings)}</p>
+            )}
             <Link
               to="/carrito"
               onClick={close}

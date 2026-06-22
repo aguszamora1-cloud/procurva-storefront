@@ -4,6 +4,8 @@ import { useStoreStatus } from '@/context/StoreProvider';
 import {
   bestPromoForProduct,
   getPromotionalPrice,
+  quantityPromoForProduct,
+  quantityPromoMessage,
   type Promotion,
   type PromoResult,
 } from '@/lib/promotions';
@@ -22,6 +24,10 @@ interface PromotionsValue {
   promoForProduct: (product: Pick<Product, 'id' | 'categories'>) => Promotion | null;
   /** Precio promocional de un precio de referencia para un producto (storeType-aware). */
   priceFor: (originalPrice: number, product: Pick<Product, 'id' | 'categories'>) => PromoResult;
+  /** Mejor promo POR CANTIDAD aplicable a un producto (badge/banner condicional). */
+  quantityPromoFor: (product: Pick<Product, 'id' | 'categories'>) => Promotion | null;
+  /** Mensaje de la promo por cantidad de un producto (o null si no tiene). */
+  quantityMessageFor: (product: Pick<Product, 'id' | 'categories'>) => string | null;
   /** Promos con banner de tienda completa (scope 'all' + banner_image_url). */
   bannerPromotions: Promotion[];
 }
@@ -31,6 +37,8 @@ const PromotionsContext = createContext<PromotionsValue>({
   loading: false,
   promoForProduct: () => null,
   priceFor: (p) => ({ finalPrice: p, promo: null, savings: 0, discountPct: 0 }),
+  quantityPromoFor: () => null,
+  quantityMessageFor: () => null,
   bannerPromotions: [],
 });
 
@@ -84,14 +92,28 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
     [promotions, effectiveStoreType],
   );
 
+  const quantityPromoFor = useCallback(
+    (product: Pick<Product, 'id' | 'categories'>) => quantityPromoForProduct(product, promotions, effectiveStoreType),
+    [promotions, effectiveStoreType],
+  );
+
+  const quantityMessageFor = useCallback(
+    (product: Pick<Product, 'id' | 'categories'>) => {
+      const promo = quantityPromoForProduct(product, promotions, effectiveStoreType);
+      return promo ? quantityPromoMessage(promo, effectiveStoreType) : null;
+    },
+    [promotions, effectiveStoreType],
+  );
+
   const bannerPromotions = useMemo(
-    () => promotions.filter((p) => p.scope === 'all' && (p.banner_image_url ?? '').trim().length > 0),
+    // Solo banners de promos AUTOMÁTICAS (las de cantidad no muestran banner de tienda completa).
+    () => promotions.filter((p) => p.promo_type !== 'quantity' && p.scope === 'all' && (p.banner_image_url ?? '').trim().length > 0),
     [promotions],
   );
 
   const value = useMemo<PromotionsValue>(
-    () => ({ promotions, loading, promoForProduct, priceFor, bannerPromotions }),
-    [promotions, loading, promoForProduct, priceFor, bannerPromotions],
+    () => ({ promotions, loading, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, bannerPromotions }),
+    [promotions, loading, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, bannerPromotions],
   );
 
   return <PromotionsContext.Provider value={value}>{children}</PromotionsContext.Provider>;
