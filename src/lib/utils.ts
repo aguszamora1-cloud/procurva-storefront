@@ -124,6 +124,60 @@ export function totalStock(product: Product): number {
   return product.product_variants.reduce((sum, v) => sum + Math.max(0, v.stock ?? 0), 0);
 }
 
+/**
+ * Convierte la lista de productos en las "cards" del catálogo. Los productos
+ * marcados con display_variants_separately se "explotan" en una virtual card por
+ * color (estilo Zara/Nike): mismo `id` (para el link y los lookups por id), pero
+ * con las variantes filtradas a ese color, la foto del color y el nombre
+ * "{name} - {color}". El resto pasa sin cambios.
+ *
+ * - Imagen del color: image_url de la primera variante de ese color con foto;
+ *   si ninguna tiene, cae a la imagen principal del producto.
+ * - Stock: como las variantes quedan filtradas al color, hasStock/totalStock
+ *   reflejan el stock de ese color. Las cards sin stock van al final (sort
+ *   estable por hasStock) igual que el resto del catálogo; dentro del grupo con
+ *   stock, los colores de un mismo producto quedan juntos (el explode los emite
+ *   consecutivos y el sort es estable).
+ *
+ * Sólo para el render del grid: NO usar en facetas de filtros ni en conteos de
+ * categorías (esos derivan del producto crudo y se inflarían).
+ */
+export function toCatalogCards(products: Product[]): Product[] {
+  const cards: Product[] = [];
+  for (const p of products) {
+    if (!p.display_variants_separately) {
+      cards.push(p);
+      continue;
+    }
+    // Colores únicos, en el orden en que aparecen las variantes.
+    const colors: string[] = [];
+    for (const v of p.product_variants) {
+      if (v.color && !colors.includes(v.color)) colors.push(v.color);
+    }
+    // Con 0 o 1 color no tiene sentido explotar: card normal.
+    if (colors.length <= 1) {
+      cards.push(p);
+      continue;
+    }
+    for (const color of colors) {
+      const colorVariants = p.product_variants.filter((v) => v.color === color);
+      const colorImg = colorVariants.find((v) => v.image_url)?.image_url ?? mainImage(p);
+      cards.push({
+        ...p,
+        name: `${p.name} - ${color}`,
+        image_url: colorImg,
+        images: null, // mainImage() cae a image_url → la foto del color
+        product_variants: colorVariants,
+        variant_color: color,
+        sibling_colors: colors.filter((c) => c !== color),
+        card_key: `${p.id}::${color}`,
+      });
+    }
+  }
+  // Agotadas al fondo (sort estable → no altera el orden dentro de cada grupo).
+  return cards.slice().sort((a, b) => Number(hasStock(b)) - Number(hasStock(a)));
+}
+
 /** Categorías de un producto, defensivo ante datos viejos. */
 export function productCategories(product: Pick<Product, 'categories'>): string[] {
   if (Array.isArray(product.categories)) return product.categories.filter(Boolean);

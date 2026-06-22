@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { Product } from '@/lib/types';
 import { ProductCard } from './ProductCard';
-import { mainImage } from '@/lib/utils';
+import { mainImage, toCatalogCards } from '@/lib/utils';
 import { transformedSrc } from '@/lib/images';
 
 /**
@@ -43,16 +43,19 @@ function useViewportImagePrefetch(products: Product[]) {
 }
 
 export function ProductGrid({ products }: { products: Product[] }) {
-  const setRef = useViewportImagePrefetch(products);
+  // Explota los productos con display_variants_separately en una card por color.
+  // Los productos normales pasan sin cambios.
+  const cards = useMemo(() => toCatalogCards(products), [products]);
+  const setRef = useViewportImagePrefetch(cards);
 
-  if (products.length === 0) {
+  if (cards.length === 0) {
     return <p className="py-16 text-center text-[14px] text-subtle">No hay productos para mostrar.</p>;
   }
   return (
     <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-5">
-      {products.map((p, i) => (
+      {cards.map((p, i) => (
         // La primera fila carga eager (mejora LCP); el resto lazy + prefetch.
-        <div key={p.id} ref={setRef(i)} data-idx={i}>
+        <div key={p.card_key ?? p.id} ref={setRef(i)} data-idx={i}>
           <ProductCard product={p} priority={i < 4} />
         </div>
       ))}

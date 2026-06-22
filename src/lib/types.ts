@@ -86,8 +86,20 @@ export interface Product {
   pack_only_sale: boolean | null;
   // Marca de producto destacado (sección "Destacados" del home).
   is_featured: boolean | null;
+  // Si true, el storefront muestra cada color como una card separada en el catálogo.
+  display_variants_separately?: boolean | null;
   created_at: string | null;
   product_variants: Variant[];
+  // ── Campos sintéticos de una "virtual card" por color (los agrega
+  // toCatalogCards cuando display_variants_separately está activo). En un
+  // producto normal vienen undefined. El `id` sigue siendo el real (para el
+  // link y los lookups por id); estos campos sólo afectan el render de la card. ──
+  /** Color de esta virtual card. */
+  variant_color?: string | null;
+  /** Otros colores del mismo producto, para los swatches de la card. */
+  sibling_colors?: string[] | null;
+  /** key estable para el grid (id real + color), evita colisión de keys. */
+  card_key?: string;
 }
 
 /** Precio por cantidad de curvas (mayorista). product_curve_price_tiers. */

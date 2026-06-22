@@ -9,10 +9,15 @@ import { PriceDisplay } from './PriceDisplay';
 import { WholesalePriceTable } from './WholesalePriceTable';
 import { StoreImage } from './StoreImage';
 import { CardBadge } from './CardBadge';
-import { badgeColor, getPriceInfo, mainImage, totalStock } from '@/lib/utils';
+import { badgeColor, colorToHex, getPriceInfo, mainImage, totalStock } from '@/lib/utils';
 
 export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
   const image = mainImage(product);
+  // Virtual card por color: el link al detalle pre-selecciona ese color.
+  const detailHref = product.variant_color
+    ? `/producto/${product.id}?color=${encodeURIComponent(product.variant_color)}`
+    : `/producto/${product.id}`;
+  const siblingColors = product.variant_color ? product.sibling_colors ?? [] : [];
   const { comparePrice, compareDiscountPct } = getPriceInfo(product);
   const onSale = Boolean(comparePrice && compareDiscountPct > 0); // oferta vs precio de lista
   const isWholesale = useStoreType() === 'wholesale';
@@ -40,7 +45,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
     >
       {/* Imagen */}
       <div className="relative aspect-[3/4] overflow-hidden bg-secondary">
-        <Link to={`/producto/${product.id}`} className="block h-full w-full">
+        <Link to={detailHref} className="block h-full w-full">
           {image ? (
             <StoreImage
               src={image}
@@ -85,7 +90,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
 
       {/* Contenido */}
       <div className="flex flex-1 flex-col p-2.5 md:p-4">
-        <Link to={`/producto/${product.id}`} className="block">
+        <Link to={detailHref} className="block">
           <h3 className="mb-1.5 text-[14px] font-semibold leading-[1.3] tracking-[-0.01em] text-on-surface transition-colors group-hover:text-accent md:text-[15px]">
             {product.name}
           </h3>
@@ -102,11 +107,31 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           )}
         </Link>
 
+        {/* Swatches de los otros colores del mismo producto (modo "card por color").
+            Fuera del <Link> de arriba para no anidar links. */}
+        {siblingColors.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {siblingColors.slice(0, 5).map((c) => (
+              <Link
+                key={c}
+                to={`/producto/${product.id}?color=${encodeURIComponent(c)}`}
+                title={c}
+                aria-label={`Ver ${c}`}
+                className="h-4 w-4 rounded-full border border-line ring-1 ring-inset ring-black/5 transition-transform hover:scale-110"
+                style={{ backgroundColor: colorToHex(c) }}
+              />
+            ))}
+            {siblingColors.length > 5 && (
+              <span className="text-[11px] text-subtle">+{siblingColors.length - 5}</span>
+            )}
+          </div>
+        )}
+
         {/* Mayorista: el flujo suelto/curva vive en el detalle → CTA que navega ahí. */}
         {isWholesale && (
           <div className="mt-3">
             <Link
-              to={`/producto/${product.id}`}
+              to={detailHref}
               className="inline-flex w-full items-center justify-center gap-2 bg-primary py-[14px] text-[14px] font-bold text-on-primary transition-colors duration-200 hover:bg-accent hover:text-on-accent"
             >
               Comprar
