@@ -206,6 +206,25 @@ async function triggerAutoConfirm(catalogOrderId: string): Promise<void> {
 }
 
 /**
+ * Extrae un mensaje legible del error crudo que devuelve la API de MercadoPago.
+ * `detail` puede ser un string JSON (`{"message":"...","cause":[{"description":"..."}]}`)
+ * o texto plano. Devuelve null si no hay nada útil.
+ */
+function extractMpError(detail: unknown): string | null {
+  if (!detail || typeof detail !== 'string') return null;
+  try {
+    const j = JSON.parse(detail);
+    const cause = Array.isArray(j?.cause) && j.cause.length
+      ? j.cause.map((c: any) => c?.description || c?.code).filter(Boolean).join(' · ')
+      : '';
+    const msg = cause || j?.message || j?.error || '';
+    return msg ? `MercadoPago: ${msg}` : null;
+  } catch {
+    return detail.length > 200 ? null : `MercadoPago: ${detail}`;
+  }
+}
+
+/**
  * Llama a la Edge Function `create-preference` (service_role: lee mp_credentials
  * del tenant y arma la preferencia de Checkout Pro). Le pasa `return_base` con
  * el origin del storefront para que MP redirija a /checkout/success|failure|pending
@@ -225,8 +244,14 @@ export async function startMercadoPagoCheckout(catalogOrderId: string): Promise<
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data?.init_point) {
     console.error('[orders] create-preference falló', res.status, data);
+    // `detail` trae el error crudo de la API de MercadoPago (lo que de verdad
+    // está fallando). Lo mostramos para que el problema sea accionable en vez
+    // del genérico "No pudimos iniciar el pago".
+    const mpMsg = extractMpError(data?.detail);
     throw new Error(
-      data?.error || 'No pudimos iniciar el pago con MercadoPago. Probá de nuevo o pagá por WhatsApp.',
+      mpMsg ||
+        data?.error ||
+        'No pudimos iniciar el pago con MercadoPago. Probá de nuevo o pagá por WhatsApp.',
     );
   }
   return data.init_point as string;
