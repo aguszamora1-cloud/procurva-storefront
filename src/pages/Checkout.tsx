@@ -11,9 +11,9 @@ import { formatPrice } from '@/lib/utils';
 import { cartLineKey, groupCartItems } from '@/lib/cart';
 import { applyPromoToPrice } from '@/lib/promotions';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
-import { createCatalogOrder, startMercadoPagoCheckout, type CustomerInfo } from '@/lib/orders';
+import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, type CustomerInfo } from '@/lib/orders';
 import { expandMethod, methodCoversPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
-import { validateCoupon, registerCouponUse, computeDiscount, type CouponRecord } from '@/lib/coupons';
+import { validateCoupon, registerCouponUse, computeDiscount, eligibleSubtotal, eligibleItems, type CouponRecord } from '@/lib/coupons';
 
 const emptyForm: CustomerInfo = {
   name: '',
@@ -96,25 +96,29 @@ export function Checkout() {
   const [selectedMethodId, setSelectedMethodId] = useState('');
   const [cpInput, setCpInput] = useState(''); // CP que el cliente está tipeando
   const [appliedCp, setAppliedCp] = useState(''); // CP confirmado ('' = todavía no calculó)
-  const [loading, setLoading] = useState<null | 'mp' | 'wa'>(null);
+  const [loading, setLoading] = useState<null | 'mp' | 'wa' | 'gc'>(null);
   const [error, setError] = useState('');
 
   // Método de pago elegido. 'transferencia'/'efectivo' = contado (con descuento si
   // hay); 'tarjeta' = precio de tarjeta. La tarjeta requiere Mercado Pago.
-  type PayMethod = 'transferencia' | 'efectivo' | 'tarjeta';
+  // 'gocuotas' = cuotas sin interés con débito (precio de contado).
+  type PayMethod = 'transferencia' | 'efectivo' | 'tarjeta' | 'gocuotas';
   const mpEnabled = config.mercadopagoEnabled;
+  const gcEnabled = config.gocuotasEnabled;
   const waEnabled = Boolean(config.whatsapp);
   // Métodos disponibles según lo que el negocio tenga configurado:
   //  - transferencia: contado; va a MP si está habilitado, si no se coordina por WhatsApp.
   //  - efectivo: contado; siempre se coordina por WhatsApp.
   //  - tarjeta: precio tarjeta; sólo si hay Mercado Pago.
+  //  - gocuotas: contado (débito en cuotas sin interés); sólo si hay GoCuotas.
   const payMethods = useMemo<PayMethod[]>(() => {
     const list: PayMethod[] = [];
     if (mpEnabled || waEnabled) list.push('transferencia');
     if (waEnabled) list.push('efectivo');
     if (mpEnabled) list.push('tarjeta');
+    if (gcEnabled) list.push('gocuotas');
     return list;
-  }, [mpEnabled, waEnabled]);
+  }, [mpEnabled, gcEnabled, waEnabled]);
   const [payMethod, setPayMethod] = useState<PayMethod>('transferencia');
 
   // Si el método elegido deja de estar disponible, caé al primero disponible.
@@ -122,10 +126,18 @@ export function Checkout() {
     setPayMethod((prev) => (payMethods.includes(prev) ? prev : payMethods[0] ?? 'transferencia'));
   }, [payMethods]);
 
-  // ¿El método actual se cobra online por Mercado Pago? tarjeta siempre; transferencia
-  // si hay MP; efectivo nunca.
-  const routing: 'mp' | 'wa' =
-    payMethod === 'tarjeta' ? 'mp' : payMethod === 'transferencia' && mpEnabled ? 'mp' : 'wa';
+  // Ruteo del cobro: 'mp' (Mercado Pago), 'gc' (GoCuotas) o 'wa' (WhatsApp).
+  // tarjeta -> MP siempre; gocuotas -> GoCuotas; transferencia -> MP si hay, si no WA;
+  // efectivo -> WA.
+  const routing: 'mp' | 'gc' | 'wa' =
+    payMethod === 'tarjeta'
+      ? 'mp'
+      : payMethod === 'gocuotas'
+        ? 'gc'
+        : payMethod === 'transferencia' && mpEnabled
+          ? 'mp'
+          : 'wa';
+  // GoCuotas es débito: usa precio de contado (igual que transferencia/efectivo).
   const priceMode: 'cash' | 'card' = payMethod === 'tarjeta' ? 'card' : 'cash';
 
   // Carga dinámica de los métodos de envío configurados por el negocio.
@@ -232,11 +244,23 @@ export function Checkout() {
   // Descuento recalculado en vivo contra el subtotal actual (cambia con el
   // método de pago: contado vs tarjeta). Si el subtotal cae por debajo de la
   // compra mínima del cupón, el descuento es 0 (sin romper nada).
+  // El descuento se calcula sobre el SUBTOTAL ELEGIBLE: si el cupón tiene alcance
+  // acotado (productos/categorías), sólo descuenta sobre esos items; el resto se
+  // cobra a precio normal. La compra mínima se evalúa sobre el subtotal total.
   const discountAmount = useMemo(() => {
     if (!appliedCoupon) return 0;
     if (appliedCoupon.min_subtotal && itemsSubtotal < appliedCoupon.min_subtotal) return 0;
-    return Math.round(computeDiscount(appliedCoupon, itemsSubtotal));
-  }, [appliedCoupon, itemsSubtotal]);
+    const elig = eligibleSubtotal(appliedCoupon, pricedItems, priceMode);
+    return Math.round(computeDiscount(appliedCoupon, elig));
+  }, [appliedCoupon, itemsSubtotal, pricedItems, priceMode]);
+
+  // Productos del carrito alcanzados por el cupón (para el desglose cuando aplica
+  // parcialmente). Vacío si el alcance es 'all'.
+  const couponEligibleNames = useMemo(() => {
+    if (!appliedCoupon || (appliedCoupon.applies_to ?? 'all') === 'all') return [];
+    return Array.from(new Set(eligibleItems(appliedCoupon, pricedItems).map((it) => it.name)));
+  }, [appliedCoupon, pricedItems]);
+  const couponIsPartial = couponEligibleNames.length > 0 && couponEligibleNames.length < pricedItems.length;
 
   const orderTotal = Math.max(0, itemsSubtotal - discountAmount) + shippingCost;
 
@@ -247,7 +271,7 @@ export function Checkout() {
     const sub = mode === 'cash' ? cashSubtotal : cardSubtotal;
     let disc = 0;
     if (appliedCoupon && !(appliedCoupon.min_subtotal && sub < appliedCoupon.min_subtotal)) {
-      disc = Math.round(computeDiscount(appliedCoupon, sub));
+      disc = Math.round(computeDiscount(appliedCoupon, eligibleSubtotal(appliedCoupon, pricedItems, mode)));
     }
     return Math.max(0, sub - disc) + shippingCost;
   };
@@ -257,7 +281,11 @@ export function Checkout() {
     if (!code) return;
     setCouponStatus('loading');
     setCouponError('');
-    const res = await validateCoupon(config.companyId, code, itemsSubtotal);
+    const res = await validateCoupon(config.companyId, code, itemsSubtotal, {
+      storeType: effStoreType,
+      items: pricedItems,
+      mode: priceMode,
+    });
     if (!res.ok) {
       setAppliedCoupon(null);
       setCouponError(res.error);
@@ -310,7 +338,7 @@ export function Checkout() {
     if (minMissing > 0) return `Pedido mínimo: ${minQty} unidades. Te faltan ${minMissing} unidades.`;
     if (!form.name.trim()) return 'Ingresá tu nombre.';
     if (!form.phone.trim()) return 'Ingresá tu teléfono.';
-    if (requireEmail && !form.email.trim()) return 'Para pagar con MercadoPago necesitamos tu email.';
+    if (requireEmail && !form.email.trim()) return 'Para pagar online necesitamos tu email.';
     if (requiresAddress) {
       if (!form.address?.trim()) return 'Ingresá tu dirección de envío.';
       if (!form.city?.trim()) return 'Ingresá la ciudad.';
@@ -322,14 +350,20 @@ export function Checkout() {
 
   // Etiqueta legible del método elegido (se guarda en catalog_orders.payment_method
   // y se muestra en el mensaje de WhatsApp).
-  const payLabel: 'Transferencia' | 'Efectivo' | 'Tarjeta' =
-    payMethod === 'tarjeta' ? 'Tarjeta' : payMethod === 'transferencia' ? 'Transferencia' : 'Efectivo';
+  const payLabel: 'Transferencia' | 'Efectivo' | 'Tarjeta' | 'GoCuotas' =
+    payMethod === 'tarjeta'
+      ? 'Tarjeta'
+      : payMethod === 'gocuotas'
+        ? 'GoCuotas'
+        : payMethod === 'transferencia'
+          ? 'Transferencia'
+          : 'Efectivo';
 
-  // Acción única de pago: persiste el pedido y lo rutea a Mercado Pago o WhatsApp
-  // según el método elegido. Para MP se pide email; create-preference necesita la
-  // orden en 'pending' (por eso createCatalogOrder NO auto-confirma cuando viaMercadoPago).
+  // Acción única de pago: persiste el pedido y lo rutea a Mercado Pago, GoCuotas o
+  // WhatsApp según el método elegido. Las pasarelas online (MP/GoCuotas) piden email
+  // y necesitan la orden en 'pending' (por eso createCatalogOrder NO auto-confirma).
   async function handlePay() {
-    const v = validate(routing === 'mp');
+    const v = validate(routing !== 'wa');
     if (v) { setError(v); return; }
     setLoading(routing);
     setError('');
@@ -349,7 +383,7 @@ export function Checkout() {
       // storeType puede ser null mientras resuelve el tenant; por defecto minorista.
       const orderId = await createCatalogOrder(
         config, pricedItems, orderTotal, customer, payLabel, storeType ?? 'retail',
-        { priceMode, viaMercadoPago: routing === 'mp', discount },
+        { priceMode, viaMercadoPago: routing !== 'wa', discount },
       );
 
       // Registrá el uso del cupón (incrementa used_count + fila de tracking).
@@ -361,6 +395,13 @@ export function Checkout() {
         const initPoint = await startMercadoPagoCheckout(orderId);
         // Redirige a MercadoPago Checkout Pro. El carrito se limpia al volver a /checkout/success.
         window.location.href = initPoint;
+        return;
+      }
+
+      if (routing === 'gc') {
+        const urlInit = await startGoCuotasCheckout(orderId);
+        // Redirige a la UI de GoCuotas. El carrito se limpia al volver a /checkout/success.
+        window.location.href = urlInit;
         return;
       }
 
@@ -605,6 +646,11 @@ export function Checkout() {
                         <p className="text-[11px] text-emerald-600">
                           {appliedCoupon.discount_type === 'percent' ? `-${appliedCoupon.discount_value}% ` : ''}(-{formatPrice(discountAmount)})
                         </p>
+                        {couponIsPartial && (
+                          <p className="mt-0.5 text-[11px] leading-snug text-emerald-600">
+                            Aplica sólo a: {couponEligibleNames.join(', ')}. El resto de los productos se cobran a precio normal.
+                          </p>
+                        )}
                       </>
                     ) : (
                       <p className="text-[12px] font-semibold text-amber-700">
@@ -696,16 +742,25 @@ export function Checkout() {
                   {payMethods.map((m) => {
                     const selected = payMethod === m;
                     const isCash = m !== 'tarjeta';
-                    const label = m === 'tarjeta' ? 'Tarjeta' : m === 'transferencia' ? 'Transferencia' : 'Efectivo';
+                    const label =
+                      m === 'tarjeta'
+                        ? 'Tarjeta'
+                        : m === 'gocuotas'
+                          ? 'GoCuotas'
+                          : m === 'transferencia'
+                            ? 'Transferencia'
+                            : 'Efectivo';
                     const sub =
                       m === 'tarjeta'
                         ? config.cardPaymentText ||
                           (config.installmentsCount > 1 ? `Hasta ${config.installmentsCount} cuotas` : 'Pago con tarjeta')
-                        : m === 'transferencia'
-                          ? mpEnabled
-                            ? 'Pago online con Mercado Pago'
-                            : 'Coordinamos la transferencia por WhatsApp'
-                          : 'Lo coordinamos por WhatsApp';
+                        : m === 'gocuotas'
+                          ? 'Cuotas sin interés con tarjeta de débito'
+                          : m === 'transferencia'
+                            ? mpEnabled
+                              ? 'Pago online con Mercado Pago'
+                              : 'Coordinamos la transferencia por WhatsApp'
+                            : 'Lo coordinamos por WhatsApp';
                     const methodTotal = totalForMode(isCash ? 'cash' : 'card');
                     return (
                       <button
@@ -752,12 +807,14 @@ export function Checkout() {
                 type="button"
                 onClick={handlePay}
                 disabled={loading !== null}
-                className={`flex w-full items-center justify-center gap-2 rounded-[10px] py-4 text-[14px] font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 ${routing === 'mp' ? 'bg-[#009ee3] hover:scale-[1.01]' : 'bg-[#25D366] hover:brightness-105'}`}
+                className={`flex w-full items-center justify-center gap-2 rounded-[10px] py-4 text-[14px] font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 ${routing === 'mp' ? 'bg-[#009ee3] hover:scale-[1.01]' : routing === 'gc' ? 'bg-[#7c3aed] hover:scale-[1.01]' : 'bg-[#25D366] hover:brightness-105'}`}
               >
                 {loading !== null ? (
-                  <><Spinner size={16} /> {routing === 'mp' ? 'Redirigiendo…' : 'Procesando…'}</>
+                  <><Spinner size={16} /> {routing === 'wa' ? 'Procesando…' : 'Redirigiendo…'}</>
                 ) : routing === 'mp' ? (
                   'Pagar con Mercado Pago'
+                ) : routing === 'gc' ? (
+                  'Pagar con GoCuotas'
                 ) : (
                   'Confirmar pedido por WhatsApp'
                 )}
