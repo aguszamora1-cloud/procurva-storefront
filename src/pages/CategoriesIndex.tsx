@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Tag } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useStore } from '@/context/StoreProvider';
@@ -37,14 +38,14 @@ export function CategoriesIndex() {
         <div className={`grid gap-2 lg:gap-5 ${categoryGridCols(categories.length)}`}>
           {categories.map((cat) => {
             const p = products.find((prod) => productCategories(prod).includes(cat.name));
-            const img = p ? mainImage(p) : null;
+            const img = cat.imageUrl ?? (p ? mainImage(p) : null);
             return (
               <Link
                 key={cat.name}
                 to={`/categoria/${encodeURIComponent(cat.name)}`}
-                className="group relative aspect-square overflow-hidden bg-secondary"
+                className="group relative aspect-square max-h-[55vw] sm:max-h-[320px] lg:max-h-[380px] overflow-hidden bg-secondary"
               >
-                {img && (
+                {img ? (
                   <StoreImage
                     src={img}
                     alt={cat.name}
@@ -53,6 +54,10 @@ export function CategoriesIndex() {
                     height={600}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Tag className="h-8 w-8 text-on-surface/15" />
+                  </div>
                 )}
                 <div className="absolute inset-0 flex flex-col items-start justify-end bg-gradient-to-t from-black/65 via-black/10 to-transparent p-4">
                   <span className="font-heading text-[15px] font-bold uppercase tracking-[0.5px] text-white md:text-[17px]">

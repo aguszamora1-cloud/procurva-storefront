@@ -7,12 +7,15 @@ import type { Product } from '@/lib/types';
 export interface CategoryInfo {
   name: string;
   count: number;
+  /** Imagen propia asignada en el admin; si es null, el render cae a la foto del primer producto. */
+  imageUrl: string | null;
 }
 
 interface OrderRow {
   category_name: string;
   sort_order: number | null;
   visible: boolean | null;
+  image_url: string | null;
 }
 
 /**
@@ -34,7 +37,7 @@ export function useCategories(products: Product[]): {
     (async () => {
       const { data } = await supabase
         .from('catalog_category_order')
-        .select('category_name, sort_order, visible')
+        .select('category_name, sort_order, visible, image_url')
         .eq('company_id', companyId)
         .order('sort_order', { ascending: true });
       if (cancelled) return;
@@ -62,12 +65,12 @@ export function useCategories(products: Product[]): {
       // en su página).
       return order
         .filter((o) => o.visible !== false)
-        .map((o) => ({ name: o.category_name, count: counts.get(o.category_name) ?? 0 }));
+        .map((o) => ({ name: o.category_name, count: counts.get(o.category_name) ?? 0, imageUrl: o.image_url ?? null }));
     }
 
     // Fallback: derivadas de productos, alfabético.
     return Array.from(counts.entries())
-      .map(([name, count]) => ({ name, count }))
+      .map(([name, count]) => ({ name, count, imageUrl: null }))
       .sort((a, b) => a.name.localeCompare(b.name, 'es'));
   }, [products, order]);
 

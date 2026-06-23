@@ -1,9 +1,9 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Tag } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import { categoryGridCols, mainImage, productCategories } from '@/lib/utils';
-import { useCategories } from '@/hooks/useCategories';
+import { useCategories, type CategoryInfo } from '@/hooks/useCategories';
 import { useStore } from '@/context/StoreProvider';
 import { SectionHeader } from '@/components/SectionHeader';
 
@@ -12,21 +12,27 @@ function categoryImage(products: Product[], category: string): string | null {
   return p ? mainImage(p) : null;
 }
 
-/** Tarjeta de categoría (imagen + nombre sobre degradado). */
-function CategoryTile({ cat, products, className = '' }: { cat: { name: string }; products: Product[]; className?: string }) {
-  const img = categoryImage(products, cat.name);
+// Tope de altura: sin esto, con 1-2 categorías el grid usa pocas columnas y la
+// card a aspect-square ocupa todo el ancho → un cuadro gigante en vertical.
+const TILE_CLS =
+  'group relative aspect-square max-h-[55vw] sm:max-h-[320px] lg:max-h-[380px] overflow-hidden bg-secondary';
+
+/** Tarjeta de categoría (imagen propia o foto del primer producto, + nombre sobre degradado). */
+function CategoryTile({ cat, products, className = '' }: { cat: CategoryInfo; products: Product[]; className?: string }) {
+  const img = cat.imageUrl ?? categoryImage(products, cat.name);
   return (
-    <Link
-      to={`/categoria/${encodeURIComponent(cat.name)}`}
-      className={`group relative aspect-square overflow-hidden bg-secondary ${className}`}
-    >
-      {img && (
+    <Link to={`/categoria/${encodeURIComponent(cat.name)}`} className={`${TILE_CLS} ${className}`}>
+      {img ? (
         <img
           src={img}
           alt={cat.name}
           loading="lazy"
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Tag className="h-8 w-8 text-on-surface/15" />
+        </div>
       )}
       <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/65 via-black/10 to-transparent p-4">
         <span className="font-heading text-[15px] font-bold uppercase tracking-[0.5px] text-white md:text-[17px]">
