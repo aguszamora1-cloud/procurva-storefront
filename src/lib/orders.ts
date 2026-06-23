@@ -11,6 +11,10 @@ export interface CustomerInfo {
   province?: string;
   zip?: string;
   notes?: string;
+  // Horario en que el cliente puede recibir (envío) o retirar (pickup) el pedido.
+  // Texto libre, obligatorio en el checkout. Se propaga a meta.shipping_time_range
+  // en la orden real, que es de donde lo lee el detalle de venta del ERP.
+  deliveryTime?: string;
 }
 
 /**
@@ -111,6 +115,7 @@ export async function createCatalogOrder(
     items: mapItems(items, opts.priceMode),
     total,
     notes: customer.notes || null,
+    delivery_time_range: customer.deliveryTime?.trim() || null,
     status: 'pending',
     shipping_method: hasAddress ? 'Envío' : 'Retiro',
     shipping_address: shippingAddress,

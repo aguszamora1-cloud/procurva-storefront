@@ -24,6 +24,7 @@ const emptyForm: CustomerInfo = {
   province: '',
   zip: '',
   notes: '',
+  deliveryTime: '',
 };
 
 // Método por defecto si el negocio no configuró ninguno: SÓLO envío a domicilio.
@@ -373,6 +374,11 @@ export function Checkout() {
       if (!form.zip?.trim()) return 'Ingresá el código postal.';
       if (!form.province?.trim()) return 'Ingresá la provincia.';
     }
+    if (!form.deliveryTime?.trim()) {
+      return requiresAddress
+        ? 'Indicá un horario para recibir el pedido.'
+        : 'Indicá un horario para retirar el pedido.';
+    }
     return '';
   }
 
@@ -607,6 +613,19 @@ export function Checkout() {
                 </label>
               </div>
             )}
+
+            {/* Horario para recibir / retirar — obligatorio, sirve para coordinar la entrega */}
+            <label className="mt-4 flex flex-col gap-1.5">
+              <span className={labelCls}>
+                {requiresAddress ? 'Horario para recibir el pedido *' : 'Horario para retirar el pedido *'}
+              </span>
+              <input
+                className={inputCls}
+                value={form.deliveryTime}
+                onChange={set('deliveryTime')}
+                placeholder="Ej: de 9 a 13 hs, o después de las 18"
+              />
+            </label>
           </div>
 
           {/* 3. Notas (opcional) — colapsada por defecto */}
