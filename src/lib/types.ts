@@ -329,6 +329,20 @@ export interface RawCatalogSettings {
   // Pagos
   payment_methods_icons?: string[];
   mercadopago_enabled?: boolean;
+  // Habilita GoCuotas (cuotas sin interés con débito) en el checkout del storefront.
+  gocuotas_enabled?: boolean;
+  // Transferencia bancaria directa: snapshot de la cuenta destino del ecommerce
+  // (lo escribe el admin de ProCurva). Si transfer_enabled y hay datos, el
+  // checkout muestra alias/CBU/titular + CUIT con botones de copiar/comprobante.
+  transfer_enabled?: boolean;
+  transfer_account?: {
+    name?: string;
+    alias?: string;
+    cbu?: string;
+    holder?: string;
+    cuit?: string;
+    details?: string;
+  } | null;
   // Newsletter (Extra PRO): textos del formulario.
   newsletter_config?: {
     title?: string;
@@ -506,6 +520,19 @@ export interface StoreConfig {
   paymentMethods: string[];
   // Pagos online (MercadoPago Checkout Pro). true si el comercio conectó su MP.
   mercadopagoEnabled: boolean;
+  // Pagos en cuotas con GoCuotas. true si el comercio lo habilitó en el editor.
+  gocuotasEnabled: boolean;
+  // Cuenta para transferencia bancaria directa (snapshot del admin). null si el
+  // comercio no asignó cuenta destino o no cargó ningún dato (alias/CBU/details):
+  // en ese caso el checkout cae al flujo de Transferencia anterior (MP/WhatsApp).
+  transferAccount: {
+    name: string;
+    alias: string;
+    cbu: string;
+    holder: string;
+    cuit: string;
+    details: string;
+  } | null;
   // SEO
   metaTitle: string;
   metaDescription: string;

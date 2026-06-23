@@ -44,7 +44,12 @@ export function buildWhatsappOrderWithCustomer(
   customer: CustomerInfo,
   // Método de pago elegido: ajusta los precios mostrados (contado vs tarjeta) y
   // se aclara en el mensaje. Default 'Efectivo' (contado).
-  paymentMethod: 'Transferencia' | 'Efectivo' | 'Tarjeta' = 'Efectivo',
+  // GoCuotas no llega por este camino (se redirige antes), pero el tipo lo incluye
+  // para aceptar la etiqueta común del checkout. Cuenta como contado (no 'Tarjeta').
+  paymentMethod: 'Transferencia' | 'Efectivo' | 'Tarjeta' | 'GoCuotas' = 'Efectivo',
+  // Referencia corta del pedido ya creado (opcional). Si se pasa, se cita en el
+  // mensaje; en transferencia además se le pide al cliente que mande el comprobante.
+  orderRef?: string,
 ): string {
   if (!config.whatsapp || items.length === 0) return '';
 
@@ -74,10 +79,12 @@ export function buildWhatsappOrderWithCustomer(
     '',
     `Total: ${formatPrice(subtotal)}`,
     `Pago: ${paymentMethod}`,
+    ...(orderRef ? [`Pedido: #${orderRef}`] : []),
     '',
     'Mis datos:',
     ...datos,
     ...(customer.notes ? ['', `Notas: ${customer.notes}`] : []),
+    ...(orderRef && paymentMethod === 'Transferencia' ? ['', 'Te envío el comprobante de la transferencia.'] : []),
   ].join('\n');
 
   return whatsappLink(config.whatsapp, message);

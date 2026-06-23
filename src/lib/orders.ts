@@ -19,7 +19,7 @@ export interface CustomerInfo {
  * create-preference como mp-catalog-webhook).
  */
 /** Método de pago elegido en el checkout (etiqueta que se guarda en catalog_orders). */
-export type PaymentMethodLabel = 'Transferencia' | 'Efectivo' | 'Tarjeta';
+export type PaymentMethodLabel = 'Transferencia' | 'Efectivo' | 'Tarjeta' | 'GoCuotas';
 
 /**
  * Precio unitario según el método: 'cash' (efectivo/transferencia) usa el precio
@@ -71,9 +71,14 @@ export async function createCatalogOrder(
   opts: {
     // 'cash' (efectivo/transferencia, con descuento de contado) o 'card' (tarjeta).
     priceMode: 'cash' | 'card';
-    // true si el pago se cobra online por Mercado Pago. Si es true NO se
-    // auto-confirma (create-preference necesita la orden en 'pending').
+    // true si el pago se cobra online por una pasarela (Mercado Pago o GoCuotas).
+    // Si es true NO se auto-confirma: la pasarela exige la orden en 'pending' y
+    // la confirma su propio webhook al aprobarse el pago.
     viaMercadoPago: boolean;
+    // Transferencia bancaria directa: el pedido queda pendiente de pago y NO se
+    // auto-confirma (no se descuenta stock en firme) hasta que el comercio
+    // verifica el comprobante manualmente.
+    manualTransfer?: boolean;
     // Cupón aplicado (opcional). El `total` que se pasa ya viene con el
     // descuento restado; estos campos son para el desglose y el tracking.
     discount?: {
@@ -151,7 +156,7 @@ export async function createCatalogOrder(
   // crea mp-catalog-webhook recién cuando el pago se aprueba (descuenta stock
   // + registra la transacción). El auto-confirm queda para WhatsApp (cobro
   // coordinado, sin pago online que dispare webhook).
-  if (!opts.viaMercadoPago) {
+  if (!opts.viaMercadoPago && !opts.manualTransfer) {
     await triggerAutoConfirm(effectiveOrderId);
   }
 
@@ -255,4 +260,34 @@ export async function startMercadoPagoCheckout(catalogOrderId: string): Promise<
     );
   }
   return data.init_point as string;
+}
+
+/**
+ * Llama a la Edge Function `gocuotas-checkout` (service_role: lee
+ * gocuotas_credentials del tenant, se autentica con GoCuotas y crea el checkout).
+ * Le pasa `return_base` con el origin del storefront para las URLs de retorno
+ * (/checkout/success|failure de ESTA tienda). Devuelve la `url_init` (URL de pago
+ * de GoCuotas). Como create-preference, exige la orden en 'pending' (por eso
+ * createCatalogOrder NO auto-confirma cuando el pago va por una pasarela online).
+ */
+export async function startGoCuotasCheckout(catalogOrderId: string): Promise<string> {
+  const baseUrl = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
+  const res = await fetch(`${baseUrl}/functions/v1/gocuotas-checkout`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      catalog_order_id: catalogOrderId,
+      return_base: window.location.origin,
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data?.url_init) {
+    console.error('[orders] gocuotas-checkout falló', res.status, data);
+    throw new Error(
+      data?.error ||
+        'No pudimos iniciar el pago con GoCuotas. Probá de nuevo o elegí otro medio de pago.',
+    );
+  }
+  return data.url_init as string;
 }

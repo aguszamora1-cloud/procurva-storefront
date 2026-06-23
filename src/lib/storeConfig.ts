@@ -203,6 +203,23 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     showPoweredBy: bool(s.show_powered_by, true),
     paymentMethods: Array.isArray(s.payment_methods_icons) ? s.payment_methods_icons : [],
     mercadopagoEnabled: bool(s.mercadopago_enabled, false),
+    gocuotasEnabled: bool(s.gocuotas_enabled, false),
+    // Transferencia bancaria directa. Cae a null si no está habilitada o si no hay
+    // NINGÚN dato (ni estructurado ni texto libre): el checkout mantiene su flujo
+    // anterior y no muestra un bloque vacío.
+    transferAccount: (() => {
+      const t = s.transfer_account;
+      if (!s.transfer_enabled || !t) return null;
+      const acc = {
+        name: str(t.name),
+        alias: str(t.alias),
+        cbu: str(t.cbu),
+        holder: str(t.holder),
+        cuit: str(t.cuit),
+        details: str(t.details),
+      };
+      return (acc.alias || acc.cbu || acc.holder || acc.cuit || acc.details) ? acc : null;
+    })(),
 
     metaTitle: firstStr(s.meta_title, companyName),
     metaDescription: str(s.meta_description),
