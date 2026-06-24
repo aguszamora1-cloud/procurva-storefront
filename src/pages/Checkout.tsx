@@ -198,6 +198,9 @@ export function Checkout() {
     [availableMethods, selectedMethodId],
   );
   const requiresAddress = selectedMethod?.requiresAddress ?? false;
+  // Sólo es retiro en local cuando hay un método de retiro efectivamente elegido.
+  // Si todavía no se calculó el envío (o el método es a domicilio) el horario es para RECIBIR.
+  const isPickup = !!selectedMethod && !selectedMethod.requiresAddress;
 
   function applyCp() {
     const cp = cpInput.trim();
@@ -375,9 +378,9 @@ export function Checkout() {
       if (!form.province?.trim()) return 'Ingresá la provincia.';
     }
     if (!form.deliveryTime?.trim()) {
-      return requiresAddress
-        ? 'Indicá un horario para recibir el pedido.'
-        : 'Indicá un horario para retirar el pedido.';
+      return isPickup
+        ? 'Indicá un horario para retirar el pedido.'
+        : 'Indicá un horario para recibir el pedido.';
     }
     return '';
   }
@@ -617,7 +620,7 @@ export function Checkout() {
             {/* Horario para recibir / retirar — obligatorio, sirve para coordinar la entrega */}
             <label className="mt-4 flex flex-col gap-1.5">
               <span className={labelCls}>
-                {requiresAddress ? 'Horario para recibir el pedido *' : 'Horario para retirar el pedido *'}
+                {isPickup ? 'Horario para retirar el pedido *' : 'Horario para recibir el pedido *'}
               </span>
               <input
                 className={inputCls}
