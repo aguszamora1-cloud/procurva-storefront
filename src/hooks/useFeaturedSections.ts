@@ -41,17 +41,19 @@ export function useFeaturedSections(): FeaturedSections {
     setState((s) => ({ ...s, loading: true }));
 
     (async () => {
-      const { data, error } = await supabase
-        .from('storefront_featured_products')
-        .select('section, product_id, position')
-        .eq('company_id', companyId)
-        .eq('channel', channel)
-        .order('position', { ascending: true });
+      // RPC pública (SECURITY DEFINER) que lee los pins de storefront_featured_products
+      // sin exponer la tabla a anon. Devuelve filas {section, product_id, pin_position},
+      // ya ordenadas por posición (acá solo agrupamos por sección).
+      const { data, error } = await supabase.rpc('get_home_section_pins', {
+        p_company_id: companyId,
+        p_channel: channel,
+      });
 
       if (cancelled) return;
 
       if (error) {
-        // Tabla inexistente o sin permiso anon: el Home cae al fallback por flags.
+        // RPC inexistente (migración sin aplicar) o sin permiso: el Home cae al
+        // fallback por flags para no quedar sin secciones.
         console.warn('[useFeaturedSections] no disponible, usando fallback', error.message);
         setState({ ...EMPTY, loading: false, ok: false });
         return;
