@@ -442,19 +442,25 @@ export function Checkout() {
         return;
       }
 
-      // WhatsApp: el pedido ya quedó registrado. En transferencia directa NO se
-      // auto-confirma (queda pendiente de pago) y el mensaje cita el N° de pedido +
-      // el monto de contado para que el cliente mande el comprobante. Guardamos el
-      // slice por si el id no viene en formato UUID largo.
+      // Transferencia bancaria directa: el pedido queda registrado (pendiente de
+      // pago) y la confirmación se resuelve enteramente en la pantalla de éxito,
+      // que muestra los datos para transferir + el monto. NO se abre WhatsApp:
+      // el cliente transfiere y manda el comprobante por su cuenta.
+      if (transferManual) {
+        navigate(`/checkout/success?order=${orderId}&transfer=1&total=${Math.round(transferTotal)}`);
+        return;
+      }
+
+      // Resto de métodos por WhatsApp (efectivo, o transferencia sin cuenta cargada):
+      // el pedido ya quedó registrado y el mensaje cita el N° de pedido + el monto
+      // para coordinar. Guardamos el slice por si el id no viene en UUID largo.
       const orderRef =
         typeof orderId === 'string' && orderId.length >= 8
           ? orderId.slice(0, 8).toUpperCase()
           : orderId
             ? String(orderId).toUpperCase()
             : undefined;
-      const href = transferManual
-        ? buildWhatsappOrderWithCustomer(config, pricedItems, transferTotal, customer, 'Transferencia', orderRef)
-        : buildWhatsappOrderWithCustomer(config, pricedItems, orderTotal, customer, payLabel);
+      const href = buildWhatsappOrderWithCustomer(config, pricedItems, orderTotal, customer, payLabel, orderRef);
       if (href) window.open(href, '_blank', 'noopener');
       navigate(`/checkout/success?order=${orderId}`);
     } catch (e: any) {
