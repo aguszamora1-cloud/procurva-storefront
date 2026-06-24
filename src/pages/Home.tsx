@@ -1,6 +1,8 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useMemo, type ReactNode } from 'react';
 import { useStore } from '@/context/StoreProvider';
 import { useProducts } from '@/hooks/useProducts';
+import { useFeaturedSections } from '@/hooks/useFeaturedSections';
+import { usePromotions } from '@/context/PromotionsContext';
 import { Seo } from '@/components/Seo';
 import { Hero } from '@/components/Hero';
 import { TrustBadges } from '@/components/TrustBadges';
@@ -26,6 +28,7 @@ const DEFAULT_SECTION_ORDER = [
   'categories',
   'featured',
   'new_arrivals',
+  'offers',
   'outfits',
   'upsell',
   'probador',
@@ -34,16 +37,57 @@ const DEFAULT_SECTION_ORDER = [
   'newsletter',
 ];
 
+// Resuelve los productos de una sección: si la tabla storefront_featured_products
+// está disponible (ok), usa esos product_id ordenados (membresía + orden); si no,
+// cae al criterio viejo por flag. Sólo incluye productos presentes en el catálogo
+// cargado (visibles, con precio del canal).
+function pickSection<T extends { id: string }>(
+  products: T[],
+  orderedIds: string[],
+  ok: boolean,
+  flagFn: (p: T) => boolean,
+): T[] {
+  if (ok) {
+    const byId = new Map(products.map((p) => [p.id, p]));
+    return orderedIds.map((id) => byId.get(id)).filter((p): p is T => Boolean(p)).slice(0, 12);
+  }
+  return products.filter(flagFn).slice(0, 8);
+}
+
 export function Home() {
   const config = useStore();
   const { products, isLoading } = useProducts();
   const { sections: customSections } = useCustomSections();
+  // Fuente de verdad de las secciones: storefront_featured_products (por canal),
+  // gestionada desde el panel "Organizar" del admin.
+  const fs = useFeaturedSections();
+  const { promoForProduct } = usePromotions();
 
-  // Destacados: sólo los marcados is_featured en ProCurva (máx 8).
-  const featured = products.filter((p) => p.is_featured).slice(0, 8);
-  // Nuevos ingresos: sólo los marcados is_new_arrival (máx 8). Un producto puede
-  // estar en ambas secciones si el dueño marcó los dos flags.
-  const newArrivals = products.filter((p) => p.is_new_arrival).slice(0, 8);
+  // Destacados y Nuevos ingresos: membresía + orden vienen de
+  // storefront_featured_products. Si la tabla no está disponible (fs.ok=false),
+  // caemos al criterio viejo por flags para no dejar el home vacío.
+  const featured = useMemo(
+    () => pickSection(products, fs.featured, fs.ok, (p) => !!p.is_featured),
+    [products, fs.featured, fs.ok],
+  );
+  const newArrivals = useMemo(
+    () => pickSection(products, fs.newArrivals, fs.ok, (p) => !!p.is_new_arrival),
+    [products, fs.newArrivals, fs.ok],
+  );
+  // Ofertas: la membresía se DERIVA de las promociones activas; el orden (si hay)
+  // sale de storefront_featured_products (section 'offers').
+  const offers = useMemo(() => {
+    const withPromo = products.filter((p) => promoForProduct(p) !== null);
+    if (fs.offersOrder.length > 0) {
+      const pos = new Map(fs.offersOrder.map((id, i) => [id, i]));
+      withPromo.sort(
+        (a, b) =>
+          (pos.has(a.id) ? (pos.get(a.id) as number) : Number.MAX_SAFE_INTEGER) -
+          (pos.has(b.id) ? (pos.get(b.id) as number) : Number.MAX_SAFE_INTEGER),
+      );
+    }
+    return withPromo.slice(0, 12);
+  }, [products, promoForProduct, fs.offersOrder]);
 
   const productSkeleton = (
     <div className="mx-auto max-w-none px-6 py-10 md:py-24">
@@ -69,6 +113,11 @@ export function Home() {
       config.sections.newArrivals && !isLoading
         ? <ProductsSection label="Recién llegados" title="Nuevos ingresos" products={newArrivals} linkTo="/productos" />
         : null,
+    // Ofertas: se muestra sólo si hay productos en promoción para el canal. El
+    // orden se gestiona desde el panel "Organizar"; la membresía sale de las promos.
+    offers: !isLoading && offers.length > 0
+      ? <ProductsSection label="Aprovechá" title="Ofertas" products={offers} linkTo="/productos" />
+      : null,
     // Outfits son exclusivos de la tienda minorista (no aplican a mayorista).
     outfits: config.storeType !== 'wholesale' && config.isPro && config.sections.outfits ? <OutfitsSection /> : null,
     stories: config.isPro && config.sections.stories ? <StoriesSection /> : null,
