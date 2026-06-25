@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { Seo } from '@/components/Seo';
 import { Spinner } from '@/components/Spinner';
 import { formatPrice } from '@/lib/utils';
-import { cartLineKey, groupCartItems } from '@/lib/cart';
+import { cartLineKey, groupCartItems, evalMinOrder } from '@/lib/cart';
 import { applyPromoToPrice } from '@/lib/promotions';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, type CustomerInfo } from '@/lib/orders';
@@ -86,8 +86,9 @@ export function Checkout() {
 
   // Subtotal de tarjeta/lista ya con las promos por cantidad aplicadas.
   const cardSubtotal = useMemo(() => pricedItems.reduce((s, i) => s + i.unit_price * i.qty, 0), [pricedItems]);
-  const minQty = isWholesale ? config.minOrderQuantity : 0;
-  const minMissing = minQty > 0 ? Math.max(0, minQty - itemCount) : 0;
+  // Mínimo de compra mayorista (unidades / monto / ambos). El monto se mide sobre
+  // el subtotal de mercadería a precio de lista (cardSubtotal), sin envío.
+  const min = evalMinOrder(config, isWholesale, itemCount, cardSubtotal);
   const navigate = useNavigate();
 
   const [form, setForm] = useState<CustomerInfo>(emptyForm);
@@ -377,7 +378,10 @@ export function Checkout() {
   }
 
   function validate(requireEmail: boolean): string {
-    if (minMissing > 0) return `Pedido mínimo: ${minQty} unidades. Te faltan ${minMissing} unidades.`;
+    if (!min.ok) {
+      if (!min.unitsOk) return `Pedido mínimo: ${min.minUnits} unidades. Te faltan ${min.missingUnits} unidades.`;
+      return `Compra mínima: ${formatPrice(min.minAmount)}. Te faltan ${formatPrice(min.missingAmount)}.`;
+    }
     if (!form.name.trim()) return 'Ingresá tu nombre.';
     if (!form.phone.trim()) return 'Ingresá tu teléfono.';
     if (requireEmail && !form.email.trim()) return 'Para pagar online necesitamos tu email.';
@@ -718,12 +722,21 @@ export function Checkout() {
               ))}
             </div>
 
-            {minQty > 0 && (
-              <p className={`pt-3 text-[12px] font-semibold ${minMissing === 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                {minMissing === 0
-                  ? `✓ Mínimo de compra alcanzado (${minQty} u.)`
-                  : `Pedido mínimo: ${minQty} unidades. Te faltan ${minMissing}.`}
-              </p>
+            {min.active && (
+              <div className={`pt-3 text-[12px] font-semibold ${min.ok ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {min.ok ? (
+                  <p>✓ Mínimo de compra alcanzado</p>
+                ) : (
+                  <div className="space-y-0.5">
+                    {!min.unitsOk && (
+                      <p>Pedido mínimo: {min.minUnits} unidades. Te faltan {min.missingUnits}.</p>
+                    )}
+                    {!min.amountOk && (
+                      <p>Compra mínima: {formatPrice(min.minAmount)}. Te faltan {formatPrice(min.missingAmount)}.</p>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* 4. Cupón */}

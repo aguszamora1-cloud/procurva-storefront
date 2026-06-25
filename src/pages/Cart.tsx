@@ -6,15 +6,16 @@ import { useStore, useStoreType } from '@/context/StoreProvider';
 import { StoreImage } from '@/components/StoreImage';
 import { Seo } from '@/components/Seo';
 import { formatPrice } from '@/lib/utils';
-import { groupCartItems } from '@/lib/cart';
+import { groupCartItems, evalMinOrder } from '@/lib/cart';
 
 export function Cart() {
   const { items, updateQty, removeItem, clear, itemCount } = useCart();
   const { byLine, adjustedSubtotal, quantitySavings, nudges } = useCartPromos();
   const config = useStore();
   const isWholesale = useStoreType() === 'wholesale';
-  const minQty = isWholesale ? config.minOrderQuantity : 0;
-  const minOk = minQty <= 0 || itemCount >= minQty;
+  // El monto del mínimo se mide sobre el subtotal de mercadería (con promos por
+  // cantidad, a precio de lista, sin envío) — el mismo número del "Subtotal".
+  const min = evalMinOrder(config, isWholesale, itemCount, adjustedSubtotal);
   const rows = groupCartItems(items);
   const seo = <Seo title={`Carrito · ${config.name}`} slug={config.slug} noindex />;
 
@@ -104,15 +105,24 @@ export function Cart() {
           {quantitySavings > 0 && (
             <p className="pt-3 text-right text-[12px] font-semibold text-accent">Ahorrás {formatPrice(quantitySavings)} por cantidad</p>
           )}
-          {minQty > 0 && (
-            <p className={`pt-4 text-[12px] font-semibold ${minOk ? 'text-emerald-600' : 'text-amber-600'}`}>
-              {minOk
-                ? `✓ Mínimo de compra alcanzado (${minQty} u.)`
-                : `Pedido mínimo: ${minQty} unidades. Te faltan ${minQty - itemCount}.`}
-            </p>
+          {min.active && (
+            <div className={`pt-4 text-[12px] font-semibold ${min.ok ? 'text-emerald-600' : 'text-amber-600'}`}>
+              {min.ok ? (
+                <p>✓ Mínimo de compra alcanzado</p>
+              ) : (
+                <div className="space-y-0.5">
+                  {!min.unitsOk && (
+                    <p>Pedido mínimo: {min.minUnits} unidades. Te faltan {min.missingUnits}.</p>
+                  )}
+                  {!min.amountOk && (
+                    <p>Compra mínima: {formatPrice(min.minAmount)}. Te faltan {formatPrice(min.missingAmount)}.</p>
+                  )}
+                </div>
+              )}
+            </div>
           )}
           <p className="py-4 text-[12px] text-subtle">El envío se coordina al finalizar la compra.</p>
-          {minOk ? (
+          {min.ok ? (
             <Link
               to="/checkout"
               className="block w-full rounded-[10px] bg-accent py-4 text-center text-[14px] font-bold text-on-accent transition-all hover:scale-[1.01]"
@@ -125,7 +135,7 @@ export function Cart() {
               disabled
               className="block w-full cursor-not-allowed rounded-[10px] bg-primary py-4 text-center text-[14px] font-bold text-on-primary opacity-40"
             >
-              Faltan {minQty - itemCount} unidades
+              {!min.unitsOk ? `Faltan ${min.missingUnits} unidades` : `Faltan ${formatPrice(min.missingAmount)}`}
             </button>
           )}
           <Link to="/productos" className="mt-3 block text-center text-[12px] text-subtle hover:text-accent">

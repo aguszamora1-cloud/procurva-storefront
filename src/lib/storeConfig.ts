@@ -99,6 +99,9 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
           ? 'wholesale'
           : 'retail',
     minOrderQuantity: typeof s.min_order_quantity === 'number' && s.min_order_quantity > 0 ? s.min_order_quantity : 0,
+    minOrderAmount: typeof s.min_order_amount === 'number' && s.min_order_amount > 0 ? s.min_order_amount : 0,
+    minOrderMode:
+      s.min_order_mode === 'amount' || s.min_order_mode === 'both' ? s.min_order_mode : 'units',
     policyShipping: str(s.envio_politica),
     policyReturns: str(s.cambios_politica),
     policyPayments: str(s.pagos_politica),

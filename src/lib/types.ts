@@ -254,8 +254,14 @@ export interface RawCatalogSettings {
   whatsapp?: string;
   // Modo de venta de la tienda (seam para la fase de render mayorista).
   sale_mode?: 'retail' | 'wholesale' | 'both';
-  // Mínimo de compra (unidades totales) para la tienda mayorista.
+  // Mínimo de compra para la tienda mayorista. Tres criterios posibles:
+  //  - 'units'  → mínimo por cantidad de unidades (min_order_quantity)
+  //  - 'amount' → mínimo por monto del carrito (min_order_amount)
+  //  - 'both'   → deben cumplirse ambos a la vez
+  // min_order_quantity se conserva con su semántica histórica (default 'units').
   min_order_quantity?: number;
+  min_order_amount?: number;
+  min_order_mode?: 'units' | 'amount' | 'both';
   // Políticas de la tienda (acordeones en el detalle).
   envio_politica?: string;
   cambios_politica?: string;
@@ -435,8 +441,11 @@ export interface StoreConfig {
   // Tipo de tienda resuelta + modo de venta (seam para la fase de render mayorista).
   storeType: StoreType;
   saleMode: 'retail' | 'wholesale' | 'both';
-  // Mínimo de compra (unidades) en mayorista. 0 = sin mínimo.
+  // Mínimo de compra en mayorista. 0 = sin mínimo. El modo define qué criterio
+  // se exige (unidades, monto, o ambos). Retail ignora estos valores.
   minOrderQuantity: number;
+  minOrderAmount: number;
+  minOrderMode: 'units' | 'amount' | 'both';
   // Políticas de la tienda (acordeones del detalle). '' = no mostrar.
   policyShipping: string;
   policyReturns: string;

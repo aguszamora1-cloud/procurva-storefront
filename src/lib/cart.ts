@@ -11,6 +11,54 @@ export function cartLineKey(item: Pick<CartItem, 'variant_id' | 'source' | 'pack
   return `${item.variant_id}::${item.source ?? 'suelto'}`;
 }
 
+/**
+ * Resultado de evaluar el mínimo de compra mayorista contra el estado actual del
+ * carrito. `active` indica que hay algún mínimo configurado y aplica (tienda
+ * mayorista); `ok` que se cumple el criterio elegido. Los `missing*` son cuánto
+ * falta de cada dimensión (0 si esa dimensión ya está OK o no se exige).
+ */
+export interface MinOrderEval {
+  active: boolean;
+  ok: boolean;
+  mode: 'units' | 'amount' | 'both';
+  minUnits: number;
+  minAmount: number;
+  unitsOk: boolean;
+  amountOk: boolean;
+  missingUnits: number;
+  missingAmount: number;
+}
+
+/**
+ * Evalúa el mínimo de compra de la tienda mayorista. Solo aplica cuando
+ * `isWholesale`; retail nunca tiene mínimo. Según `minOrderMode` se exige el
+ * mínimo por unidades, por monto, o ambos a la vez. El `amount` es el subtotal
+ * de mercadería del carrito (a precio de lista, sin envío). Pura — sin formato.
+ */
+export function evalMinOrder(
+  cfg: { minOrderQuantity: number; minOrderAmount: number; minOrderMode: 'units' | 'amount' | 'both' },
+  isWholesale: boolean,
+  units: number,
+  amount: number,
+): MinOrderEval {
+  const mode = cfg.minOrderMode || 'units';
+  const minUnits = isWholesale && (mode === 'units' || mode === 'both') ? Math.max(0, cfg.minOrderQuantity || 0) : 0;
+  const minAmount = isWholesale && (mode === 'amount' || mode === 'both') ? Math.max(0, cfg.minOrderAmount || 0) : 0;
+  const unitsOk = minUnits <= 0 || units >= minUnits;
+  const amountOk = minAmount <= 0 || amount >= minAmount;
+  return {
+    active: minUnits > 0 || minAmount > 0,
+    ok: unitsOk && amountOk,
+    mode,
+    minUnits,
+    minAmount,
+    unitsOk,
+    amountOk,
+    missingUnits: unitsOk ? 0 : minUnits - units,
+    missingAmount: amountOk ? 0 : minAmount - amount,
+  };
+}
+
 /** Fila de display del carrito (agrupa las curvas en una sola línea por producto+color). */
 export interface CartDisplayRow {
   key: string;
