@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, X, ArrowLeft, Plus } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
@@ -99,6 +99,12 @@ export function Checkout() {
   const [appliedCp, setAppliedCp] = useState(''); // CP confirmado ('' = todavía no calculó)
   const [loading, setLoading] = useState<null | 'mp' | 'wa' | 'gc'>(null);
   const [error, setError] = useState('');
+  // Candado sincrónico anti doble-submit. `disabled={loading !== null}` no alcanza:
+  // el estado recién deshabilita el botón tras el re-render, y un doble-tap en
+  // mobile dispara onClick dos veces antes de eso => dos createCatalogOrder con
+  // ids distintos => dos pedidos (y dos auto-confirm/descuentos de stock en plan
+  // Profesional). Este ref bloquea el segundo handlePay en el mismo tick.
+  const submitLockRef = useRef(false);
   const [copied, setCopied] = useState(''); // clave del dato recién copiado (feedback)
 
   // Método de pago elegido. 'transferencia'/'efectivo' = contado (con descuento si
@@ -400,8 +406,13 @@ export function Checkout() {
   // WhatsApp según el método elegido. Las pasarelas online (MP/GoCuotas) piden email
   // y necesitan la orden en 'pending' (por eso createCatalogOrder NO auto-confirma).
   async function handlePay() {
+    // Candado sincrónico: si ya hay un submit en curso, ignorá el segundo click
+    // (doble-tap mobile). Se libera solo en los caminos que NO navegan/redirigen
+    // (error, o WhatsApp que abre pestaña y se queda en la página).
+    if (submitLockRef.current) return;
     const v = validate(routing !== 'wa');
     if (v) { setError(v); return; }
+    submitLockRef.current = true;
     setLoading(routing);
     setError('');
     try {
@@ -466,6 +477,8 @@ export function Checkout() {
     } catch (e: any) {
       setError(e?.message || 'Hubo un problema al procesar tu pedido.');
       setLoading(null);
+      // Liberamos el candado para que pueda reintentar tras el error.
+      submitLockRef.current = false;
     }
   }
 
