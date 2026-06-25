@@ -179,15 +179,19 @@ export function Checkout() {
 
   // ¿Hay métodos de envío a domicilio? Si sólo hay retiro en local no pedimos CP.
   const hasDeliveryMethods = useMemo(() => methods.some((m) => m.requiresAddress), [methods]);
-  // El input de CP gatea los envíos: hasta no calcular no se muestra ningún método de envío.
-  const showCpGate = hasDeliveryMethods && !appliedCp;
+  // El CP sólo gatea los envíos A DOMICILIO; el retiro en local no lo necesita.
+  const needsCpForDelivery = hasDeliveryMethods && !appliedCp;
 
-  // Métodos disponibles según el CP: retiro en local siempre; envíos sólo si cubren la zona.
+  // Métodos disponibles: retiro en local SIEMPRE (sin pedir CP); envíos a domicilio
+  // sólo cuando el cliente calculó el CP y el método cubre la zona.
   const cpNum = useMemo(() => (appliedCp ? normalizePostalCode(appliedCp) : null), [appliedCp]);
   const availableMethods = useMemo(() => {
-    if (showCpGate) return [];
-    return methods.filter((m) => methodCoversPostalCode(m, cpNum));
-  }, [methods, cpNum, showCpGate]);
+    return methods.filter((m) => {
+      if (!m.requiresAddress) return true;      // retiro: no depende del CP
+      if (!cpNum) return false;                 // envío: requiere CP calculado
+      return methodCoversPostalCode(m, cpNum);
+    });
+  }, [methods, cpNum]);
 
   // Mantené la selección si sigue disponible; si no, elegí la primera opción disponible.
   useEffect(() => {
@@ -377,6 +381,19 @@ export function Checkout() {
     if (!form.name.trim()) return 'Ingresá tu nombre.';
     if (!form.phone.trim()) return 'Ingresá tu teléfono.';
     if (requireEmail && !form.email.trim()) return 'Para pagar online necesitamos tu email.';
+    // El cliente tiene que elegir CÓMO recibe el pedido antes de pagar. El retiro en
+    // local está siempre disponible (sin CP); los envíos a domicilio aparecen recién al
+    // calcular el CP. Sin esto, quien ignora el CP completaba la compra sin método ni
+    // dirección y el pedido entraba como "Retiro / sin dirección" aunque quisiera envío.
+    if (availableMethods.length > 0 && !selectedMethod) {
+      return 'Elegí un método de envío o retiro en local.';
+    }
+    // Tienda con envío a domicilio y CP sin calcular: no hay método para elegir todavía.
+    // (Si ya calculó y la zona no tiene cobertura, no bloqueamos: el flujo lo manda a
+    // coordinar por WhatsApp con el aviso "No hay envíos disponibles para tu zona".)
+    if (needsCpForDelivery && availableMethods.length === 0) {
+      return 'Ingresá tu código postal para calcular el envío.';
+    }
     if (requiresAddress) {
       if (!form.address?.trim()) return 'Ingresá tu dirección de envío.';
       if (!form.city?.trim()) return 'Ingresá la ciudad.';
@@ -533,11 +550,53 @@ export function Checkout() {
           <div className="mt-9">
             <SectionHeading n={2}>Envío</SectionHeading>
 
-            {showCpGate ? (
-              /* Paso 1: pedimos el CP antes de mostrar los envíos disponibles */
-              <div className="max-w-[440px]">
+            {/* CP confirmado: lo mostramos con opción de cambiarlo (recalcula los envíos) */}
+            {appliedCp && (
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
+                <span className="text-muted">Enviando al CP</span>
+                <span className="font-semibold text-text">{appliedCp}</span>
+                <button type="button" onClick={changeCp} className="text-[12px] uppercase tracking-wide text-accent underline">Cambiar</button>
+              </div>
+            )}
+
+            {/* Ningún envío cubre la zona — el retiro en local, si existe, igual aparece abajo */}
+            {noDeliveryForZone && (
+              <p className="mb-3 rounded-[8px] bg-amber-50 px-3 py-2 text-[13px] font-medium text-amber-800">
+                No hay envíos disponibles para tu zona. Contactanos por WhatsApp.
+              </p>
+            )}
+
+            {/* Métodos disponibles: el retiro en local aparece siempre (sin CP);
+                los envíos a domicilio se suman al calcular el código postal. */}
+            {availableMethods.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {availableMethods.map((m) => {
+                  const selected = m.id === selectedMethodId;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => { setSelectedMethodId(m.id); setError(''); }}
+                      className={`rounded-[8px] border px-4 py-2 text-[13px] font-semibold transition-colors ${
+                        selected ? 'border-accent bg-accent text-on-accent' : 'border-line text-muted hover:border-text'
+                      }`}
+                    >
+                      {m.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Código postal: revela los envíos a domicilio. NO bloquea el retiro en local. */}
+            {needsCpForDelivery && (
+              <div className="mt-3 max-w-[440px]">
                 <label className="flex flex-col gap-1.5">
-                  <span className={labelCls}>Código postal</span>
+                  <span className={labelCls}>
+                    {availableMethods.length > 0
+                      ? '¿Preferís envío a domicilio? Ingresá tu código postal'
+                      : 'Ingresá tu código postal para calcular el envío'}
+                  </span>
                   <div className="flex gap-2">
                     <input
                       className={inputCls}
@@ -565,53 +624,17 @@ export function Checkout() {
                   ¿No sabés tu código postal?
                 </a>
               </div>
-            ) : (
-              <>
-                {/* CP confirmado: lo mostramos con opción de cambiarlo (recalcula los envíos) */}
-                {appliedCp && (
-                  <div className="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
-                    <span className="text-muted">Enviando al CP</span>
-                    <span className="font-semibold text-text">{appliedCp}</span>
-                    <button type="button" onClick={changeCp} className="text-[12px] uppercase tracking-wide text-accent underline">Cambiar</button>
-                  </div>
-                )}
+            )}
 
-                {/* Ningún envío cubre la zona — el retiro en local, si existe, igual aparece abajo */}
-                {noDeliveryForZone && (
-                  <p className="mb-3 rounded-[8px] bg-amber-50 px-3 py-2 text-[13px] font-medium text-amber-800">
-                    No hay envíos disponibles para tu zona. Contactanos por WhatsApp.
-                  </p>
-                )}
+            {/* Tiempo estimado / mensaje del método seleccionado */}
+            {etaText && <p className="mt-3 text-[13px] font-medium text-text">{etaText}</p>}
 
-                <div className="flex flex-wrap gap-2">
-                  {availableMethods.map((m) => {
-                    const selected = m.id === selectedMethodId;
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => { setSelectedMethodId(m.id); setError(''); }}
-                        className={`rounded-[8px] border px-4 py-2 text-[13px] font-semibold transition-colors ${
-                          selected ? 'border-accent bg-accent text-on-accent' : 'border-line text-muted hover:border-text'
-                        }`}
-                      >
-                        {m.name}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Tiempo estimado / mensaje del método seleccionado */}
-                {etaText && <p className="mt-3 text-[13px] font-medium text-text">{etaText}</p>}
-
-                {/* Retiro en local: mostramos la dirección del local si está cargada */}
-                {selectedMethod && !requiresAddress && selectedMethod.pickupAddress && (
-                  <p className="mt-1 text-[13px] text-muted">
-                    <span className="text-subtle">Retirás en: </span>
-                    <span className="font-medium text-text">{selectedMethod.pickupAddress}</span>
-                  </p>
-                )}
-              </>
+            {/* Retiro en local: mostramos la dirección del local si está cargada */}
+            {selectedMethod && !requiresAddress && selectedMethod.pickupAddress && (
+              <p className="mt-1 text-[13px] text-muted">
+                <span className="text-subtle">Retirás en: </span>
+                <span className="font-medium text-text">{selectedMethod.pickupAddress}</span>
+              </p>
             )}
 
             {/* Campos de dirección: sólo si el método requiere envío a domicilio */}
