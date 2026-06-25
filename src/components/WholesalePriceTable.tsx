@@ -37,7 +37,7 @@ export function WholesalePriceTable({
         return (
           <div key={`${r.label}-${i}`} className="flex items-center justify-between gap-2">
             <span className="flex items-center gap-1.5">
-              <span className={`text-[13px] ${r.best ? 'font-bold text-accent' : 'font-medium text-muted'}`}>{r.label}</span>
+              <span className={`text-[14px] ${r.best ? 'font-bold text-accent' : 'font-medium text-muted'}`}>{r.label}</span>
               {r.best && (
                 <span className="rounded bg-accent px-2 py-[3px] text-[9px] font-bold uppercase leading-none tracking-wide text-on-accent">
                   Mejor precio
@@ -46,7 +46,13 @@ export function WholesalePriceTable({
             </span>
             <span className="flex items-baseline gap-1.5">
               {onPromo && <span className="text-[12px] font-medium text-subtle line-through">{formatPrice(r.price)}</span>}
-              <span className={`text-[14px] ${onPromo || r.best ? 'font-extrabold text-accent' : 'font-semibold text-text'}`}>
+              <span
+                className={
+                  onPromo || r.best
+                    ? 'text-[15px] font-extrabold text-accent'
+                    : 'text-[14px] font-semibold text-text'
+                }
+              >
                 {formatPrice(promoPrice)}
               </span>
             </span>

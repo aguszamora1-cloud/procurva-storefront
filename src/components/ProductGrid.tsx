@@ -52,10 +52,10 @@ export function ProductGrid({ products }: { products: Product[] }) {
     return <p className="py-16 text-center text-[14px] text-subtle">No hay productos para mostrar.</p>;
   }
   return (
-    <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-5">
+    <div className="grid grid-cols-2 items-stretch gap-2 lg:grid-cols-4 lg:gap-5">
       {cards.map((p, i) => (
         // La primera fila carga eager (mejora LCP); el resto lazy + prefetch.
-        <div key={p.card_key ?? p.id} ref={setRef(i)} data-idx={i}>
+        <div key={p.card_key ?? p.id} ref={setRef(i)} data-idx={i} className="h-full">
           <ProductCard product={p} priority={i < 4} />
         </div>
       ))}

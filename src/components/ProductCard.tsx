@@ -39,7 +39,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
   // de compra). Mayorista conserva su tarjeta y el flujo suelto/curva del detalle.
   return (
     <article
-      className={`group flex flex-col overflow-hidden bg-background${
+      className={`group flex h-full flex-col overflow-hidden bg-background${
         isWholesale ? ' border border-line-soft transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover' : ''
       }`}
     >
@@ -91,7 +91,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
       {/* Contenido */}
       <div className="flex flex-1 flex-col p-2.5 md:p-4">
         <Link to={detailHref} className="block">
-          <h3 className="mb-1.5 text-[14px] font-semibold leading-[1.3] tracking-[-0.01em] text-on-surface transition-colors group-hover:text-accent md:text-[15px]">
+          <h3 className="mb-1.5 text-[15px] font-bold uppercase leading-[1.3] tracking-[0.02em] text-on-surface transition-colors group-hover:text-accent">
             {product.name}
           </h3>
           {isWholesale ? (
@@ -108,28 +108,30 @@ export function ProductCard({ product, priority = false }: { product: Product; p
         </Link>
 
         {/* Swatches de los otros colores del mismo producto (modo "card por color").
-            Fuera del <Link> de arriba para no anidar links. */}
-        {siblingColors.length > 0 && (
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            {siblingColors.slice(0, 5).map((c) => (
+            Fuera del <Link> de arriba para no anidar links. El contenedor reserva su
+            alto SIEMPRE (con o sin colores) para que el footer arranque a la misma
+            altura en todas las tarjetas de la fila. */}
+        <div className="mt-2 flex min-h-[20px] flex-wrap items-center gap-1.5">
+          {siblingColors.length > 0 &&
+            siblingColors.slice(0, 5).map((c) => (
               <Link
                 key={c}
                 to={`/producto/${product.id}?color=${encodeURIComponent(c)}`}
                 title={c}
                 aria-label={`Ver ${c}`}
-                className="h-4 w-4 rounded-full border border-line ring-1 ring-inset ring-black/5 transition-transform hover:scale-110"
+                className="h-5 w-5 rounded-full border border-line ring-1 ring-inset ring-black/5 transition-transform hover:scale-110"
                 style={{ backgroundColor: colorToHex(c) }}
               />
             ))}
-            {siblingColors.length > 5 && (
-              <span className="text-[11px] text-subtle">+{siblingColors.length - 5}</span>
-            )}
-          </div>
-        )}
+          {siblingColors.length > 5 && (
+            <span className="text-[11px] text-subtle">+{siblingColors.length - 5}</span>
+          )}
+        </div>
 
-        {/* Mayorista: el flujo suelto/curva vive en el detalle → CTA que navega ahí. */}
+        {/* Mayorista: el flujo suelto/curva vive en el detalle → CTA que navega ahí.
+            mt-auto lo pega al fondo para emparejar el footer entre tarjetas. */}
         {isWholesale && (
-          <div className="mt-3">
+          <div className="mt-auto pt-3">
             <Link
               to={detailHref}
               className="inline-flex w-full items-center justify-center gap-2 bg-primary py-[14px] text-[14px] font-bold text-on-primary transition-colors duration-200 hover:bg-accent hover:text-on-accent"
