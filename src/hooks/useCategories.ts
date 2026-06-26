@@ -65,7 +65,12 @@ export function useCategories(products: Product[]): {
       // en su página).
       return order
         .filter((o) => o.visible !== false)
-        .map((o) => ({ name: o.category_name, count: counts.get(o.category_name) ?? 0, imageUrl: o.image_url ?? null }));
+        .map((o) => ({ name: o.category_name, count: counts.get(o.category_name) ?? 0, imageUrl: o.image_url ?? null }))
+        // Ocultamos categorías "fantasma": sin productos Y sin imagen propia. Son
+        // filas huérfanas en catalog_category_order (de productos renombrados o
+        // borrados) que el admin ya no lista pero acá seguían apareciendo vacías.
+        // Si la categoría tiene imagen propia, la respetamos (vacía intencional).
+        .filter((c) => c.count > 0 || c.imageUrl);
     }
 
     // Fallback: derivadas de productos, alfabético.
