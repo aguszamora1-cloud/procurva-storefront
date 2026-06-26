@@ -63,7 +63,7 @@ export function useCategories(products: Product[]): {
       // productos con stock. Las inactivas (visible === false) sí quedan ocultas.
       // El count puede ser 0: la categoría se muestra igual (con mensaje de vacía
       // en su página).
-      return order
+      const ordered = order
         .filter((o) => o.visible !== false)
         .map((o) => ({ name: o.category_name, count: counts.get(o.category_name) ?? 0, imageUrl: o.image_url ?? null }))
         // Ocultamos categorías "fantasma": sin productos Y sin imagen propia. Son
@@ -71,6 +71,19 @@ export function useCategories(products: Product[]): {
         // borrados) que el admin ya no lista pero acá seguían apareciendo vacías.
         // Si la categoría tiene imagen propia, la respetamos (vacía intencional).
         .filter((c) => c.count > 0 || c.imageUrl);
+
+      // Unión con las categorías REALES de productos que no están en
+      // catalog_category_order. Sin esto, si la tabla de orden quedó
+      // desincronizada (p.ej. sólo con una fila "Otros" huérfana), las
+      // categorías con productos no aparecerían y el storefront mostraría
+      // "No hay categorías para mostrar" aunque haya productos categorizados.
+      const known = new Set(order.map((o) => o.category_name));
+      const extra = Array.from(counts.entries())
+        .filter(([name, count]) => count > 0 && !known.has(name))
+        .map(([name, count]) => ({ name, count, imageUrl: null }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+
+      return [...ordered, ...extra];
     }
 
     // Fallback: derivadas de productos, alfabético.
