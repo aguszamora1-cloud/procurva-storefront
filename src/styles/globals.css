@@ -192,8 +192,12 @@ html {
     animation: marquee 30s linear infinite;
     will-change: transform;
   }
-  .animate-marquee:hover {
-    animation-play-state: paused;
+  /* Solo pausar con mouse real: en touch el :hover se "pega" al scrollear
+     y la franja se traba/frena. Limitamos la pausa a punteros finos (desktop). */
+  @media (hover: hover) and (pointer: fine) {
+    .animate-marquee:hover {
+      animation-play-state: paused;
+    }
   }
 
   @keyframes fade-in {
