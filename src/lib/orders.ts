@@ -38,15 +38,19 @@ function mapItems(items: CartItem[], priceMode: 'cash' | 'card') {
   return items.map((i) => ({
     name: i.name,
     product_id: i.product_id,
-    variant_id: i.variant_id,
+    // Curva surtida: sin variante (la asigna el server al confirmar).
+    variant_id: i.source === 'curva_surtida' ? null : i.variant_id,
     image_url: i.image_url,
     size: i.size,
     color: i.color,
     quantity: i.qty,
     price: itemPrice(i, priceMode),
-    // 'suelto' (retail y compra suelta mayorista), 'curva' o 'pack' (mayorista).
+    // 'suelto' (retail y compra suelta mayorista), 'curva', 'curva_surtida' o 'pack'.
     source: i.source ?? 'suelto',
-    ...(i.source === 'curva' && i.curves ? { curves: i.curves } : {}),
+    ...((i.source === 'curva' || i.source === 'curva_surtida') && i.curves ? { curves: i.curves } : {}),
+    // Curva surtida: el server explota las variantes al confirmar; le pasamos el
+    // precio por unidad del tier para que cada variante lleve ese precio.
+    ...(i.source === 'curva_surtida' ? { curve_price_per_unit: i.curve_price_per_unit ?? itemPrice(i, priceMode) } : {}),
     ...(i.source === 'pack' ? { pack_id: i.packId, pack_label: i.packLabel, packs: i.packs } : {}),
     // Promoción automática aplicada (si la hubo). `price` ya viene con el
     // descuento; estos campos quedan en catalog_orders.items para trackear

@@ -6,8 +6,10 @@ import type { CartItem } from './types';
  * clave incluye el source (y el packId en packs). En retail (source undefined →
  * 'suelto') es idéntico al comportamiento previo.
  */
-export function cartLineKey(item: Pick<CartItem, 'variant_id' | 'source' | 'packId'>): string {
+export function cartLineKey(item: Pick<CartItem, 'variant_id' | 'source' | 'packId' | 'lineId' | 'product_id'>): string {
   if (item.source === 'pack') return `${item.variant_id}::pack::${item.packId ?? ''}`;
+  // Curva surtida: sin variant_id; cada línea es única (lineId) y no se fusiona.
+  if (item.source === 'curva_surtida') return `surtida::${item.lineId ?? item.product_id}`;
   return `${item.variant_id}::${item.source ?? 'suelto'}`;
 }
 
@@ -66,7 +68,7 @@ export interface CartDisplayRow {
   name: string;
   image: string | null;
   detail: string;
-  source: 'suelto' | 'curva' | 'pack';
+  source: 'suelto' | 'curva' | 'curva_surtida' | 'pack';
   units: number;
   lineTotal: number;
   // lineKeys que componen la fila (para eliminar; una curva agrupa varias variantes).
@@ -89,6 +91,22 @@ export function groupCartItems(items: CartItem[]): CartDisplayRow[] {
     if (it.source === 'curva') {
       const gk = `${it.product_id}::${it.color ?? ''}`;
       (curveGroups.get(gk) ?? curveGroups.set(gk, []).get(gk)!).push(it);
+    } else if (it.source === 'curva_surtida') {
+      // Curva surtida: una fila propia por línea (no agrupa). Los colores se
+      // asignan al confirmar, así que la fila no es editable inline.
+      const curves = it.curves ?? 1;
+      rows.push({
+        key: cartLineKey(it),
+        productId: it.product_id,
+        name: it.name,
+        image: it.image_url,
+        detail: `${curves} ${curves === 1 ? 'curva surtida' : 'curvas surtidas'} · colores a asignar`,
+        source: 'curva_surtida',
+        units: it.qty,
+        lineTotal: it.unit_price * it.qty,
+        removeKeys: [cartLineKey(it)],
+        editable: false,
+      });
     } else if (it.source === 'pack') {
       const gk = `${it.product_id}::${it.packId ?? ''}`;
       (packGroups.get(gk) ?? packGroups.set(gk, []).get(gk)!).push(it);

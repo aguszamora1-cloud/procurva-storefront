@@ -84,6 +84,9 @@ export interface Product {
   catalog_badge_color: string | null;
   catalog_badge_visible: boolean | null;
   pack_only_sale: boolean | null;
+  // Habilita la "curva surtida" (color por talle según stock) en el detalle
+  // mayorista. Default false; si no viene en el SELECT se trata como apagada.
+  curva_surtida_enabled?: boolean | null;
   // Marca de producto destacado (sección "Destacados" del home).
   is_featured: boolean | null;
   // Marca de "Nuevo Ingreso" (sección "Nuevos Ingresos" del home).
@@ -616,10 +619,18 @@ export interface CartItem {
   unit_price_cash?: number;
   qty: number;
   image_url: string | null;
-  // Modo de compra mayorista. 'suelto' (default), 'curva' o 'pack'. Retail no lo setea.
-  source?: 'suelto' | 'curva' | 'pack';
-  // Cantidad de curvas elegida (solo source==='curva'), para agrupar/mostrar en el carrito.
+  // Modo de compra mayorista. 'suelto' (default), 'curva', 'curva_surtida' o 'pack'.
+  // Retail no lo setea. 'curva_surtida' = curva con color por talle asignado
+  // server-side al confirmar (NO trae variant_id; el cliente solo elige cantidad).
+  source?: 'suelto' | 'curva' | 'curva_surtida' | 'pack';
+  // Cantidad de curvas elegida (source==='curva' o 'curva_surtida'), para agrupar/mostrar.
   curves?: number;
+  // Precio por unidad del tier (solo source==='curva_surtida'). Viaja al staging
+  // para que el server lo use al explotar las variantes surtidas.
+  curve_price_per_unit?: number;
+  // Id único de línea (solo source==='curva_surtida'): cada curva surtida es una
+  // línea propia que NO se fusiona con otras (no tiene variant_id para distinguirlas).
+  lineId?: string;
   // Datos del pack (solo source==='pack'), para agrupar/mostrar y recalcular precio.
   packId?: string;
   packLabel?: string;

@@ -13,6 +13,7 @@ import {
   expandCurve,
   itemsPerCurve,
   maxCurvesAvailable,
+  pickCurveTier,
   sizesOfColor,
   sizeStock,
   sortedTiers,
@@ -30,7 +31,7 @@ import {
 import { applyPromoToPrice, type Promotion } from '@/lib/promotions';
 import type { CartItem, Product } from '@/lib/types';
 
-type PanelTab = 'sueltos' | 'curva' | 'pack';
+type PanelTab = 'sueltos' | 'curva' | 'surtida' | 'pack';
 
 /**
  * Panel de compra MAYORISTA del detalle (réplica de procurva2/PublicCatalog.tsx):
@@ -74,18 +75,23 @@ export function WholesalePurchasePanel({
   const colors = useMemo(() => colorsOf(product), [product]);
   const fallbackImg = images[0] ?? mainImage(product);
   const curveTabAvailable = tiers.length > 0 && !product.pack_only_sale;
+  // Curva surtida: misma curva pero con color por talle asignado por el negocio.
+  // Aparece solo si el producto la tiene activada en su ficha (flag por producto)
+  // y existe la curva (tiers). El color por talle lo surte el server al confirmar.
+  const surtidaTabAvailable = curveTabAvailable && product.curva_surtida_enabled === true;
   // Talles sueltos: disponibles salvo que el producto sea solo-pack.
   const sueltoTabAvailable = !product.pack_only_sale;
   const packTabAvailable = packs.length > 0;
 
-  // Tabs visibles según lo que tenga el producto (suelto / curva / pack).
+  // Tabs visibles según lo que tenga el producto (suelto / curva / surtida / pack).
   const availableTabs = useMemo(() => {
     const t: Array<[PanelTab, string]> = [];
     if (sueltoTabAvailable) t.push(['sueltos', 'Talles sueltos']);
     if (curveTabAvailable) t.push(['curva', 'Por curva']);
+    if (surtidaTabAvailable) t.push(['surtida', 'Curva surtida']);
     if (packTabAvailable) t.push(['pack', 'Por pack']);
     return t;
-  }, [sueltoTabAvailable, curveTabAvailable, packTabAvailable]);
+  }, [sueltoTabAvailable, curveTabAvailable, surtidaTabAvailable, packTabAvailable]);
 
   const [tab, setTab] = useState<PanelTab>(() => (product.pack_only_sale && packs.length > 0 ? 'pack' : 'sueltos'));
   // Pre-seleccionamos un color (el primero) así el selector de talles aparece de
@@ -94,6 +100,7 @@ export function WholesalePurchasePanel({
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [tierIdx, setTierIdx] = useState<number | null>(null); // -1 = "más curvas" (custom)
   const [customCurves, setCustomCurves] = useState(0);
+  const [surtidaCurves, setSurtidaCurves] = useState(1); // cantidad de curvas surtidas
   const [packId, setPackId] = useState<string | null>(null);
   const [packCount, setPackCount] = useState(1);
   const [openPolicy, setOpenPolicy] = useState<string | null>(null);
@@ -138,6 +145,12 @@ export function WholesalePurchasePanel({
   useEffect(() => {
     if (tab === 'curva' && color && !canCurve) setTab('sueltos');
   }, [tab, color, canCurve]);
+
+  // Curva surtida: precio del tier para la cantidad elegida + unidades totales.
+  // No valida stock client-side: los colores se surten server-side al confirmar.
+  const surtidaTier = useMemo(() => pickCurveTier(tiers, surtidaCurves), [tiers, surtidaCurves]);
+  const surtidaPrice = surtidaTier?.price_per_unit ?? wholesalePrice;
+  const surtidaUnits = surtidaCurves * itemsPer;
 
   const activeTier = tab === 'curva' ? (tierIdx === -1 ? lastTier : tierIdx !== null ? tiers[tierIdx] : null) : null;
   const selectedCurves = tierIdx === -1 ? customCurves : activeTier?.curve_quantity ?? 0;
@@ -235,6 +248,27 @@ export function WholesalePurchasePanel({
           ...promoTag(activeTierPrice || wholesalePrice),
         });
       }
+    } else if (tab === 'surtida') {
+      // Curva surtida: NO se explota en el cliente (no hay colores todavía). Va
+      // como UN item especial sin variant_id; el server asigna los colores según
+      // stock al promover el pedido. qty = unidades totales (curvas × ítems/curva).
+      if (surtidaCurves <= 0 || itemsPer <= 0) return;
+      const price = surtidaPrice || wholesalePrice;
+      addItem({
+        product_id: product.id,
+        variant_id: '',
+        lineId: crypto.randomUUID(),
+        name: product.name,
+        size: null,
+        color: null,
+        unit_price: d(price),
+        qty: surtidaUnits,
+        image_url: fallbackImg,
+        source: 'curva_surtida',
+        curves: surtidaCurves,
+        curve_price_per_unit: d(price),
+        ...promoTag(price),
+      });
     } else {
       // pack
       if (!selectedPack || packCount < 1 || packUnitPrice <= 0) return;
@@ -252,10 +286,13 @@ export function WholesalePurchasePanel({
       ? totalSueltosUnits > 0
       : tab === 'curva'
         ? !!activeTier && selectedCurves > 0
-        : !!selectedPack && packCount > 0 && packUnitPrice > 0;
+        : tab === 'surtida'
+          ? surtidaCurves > 0
+          : !!selectedPack && packCount > 0 && packUnitPrice > 0;
   // El pack trae su propia distribución (color incluido): no exige elegir color del producto.
+  // La curva surtida tampoco: el color y el stock se resuelven server-side al confirmar.
   const canSubmit =
-    tab === 'pack'
+    tab === 'pack' || tab === 'surtida'
       ? hasSelection
       : (!needColor || !!color) && hasSelection && (tab === 'sueltos' || curveStockOk);
 
@@ -281,8 +318,9 @@ export function WholesalePurchasePanel({
         </div>
       )}
 
-      {/* Color con dots reales (el pack trae su propia distribución → no aplica) */}
-      {needColor && tab !== 'pack' && (
+      {/* Color con dots reales. El pack trae su distribución y la curva surtida
+          asigna los colores server-side → en ambos no se elige color. */}
+      {needColor && tab !== 'pack' && tab !== 'surtida' && (
         <div>
           <p className="mb-2.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">
             Color{color && <span className="text-text">: {color}</span>}
@@ -531,6 +569,61 @@ export function WholesalePurchasePanel({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {tab === 'surtida' && (
+        <div className="space-y-3">
+          <p className="text-[13px] font-medium text-subtle">{curveCompositionText(dist)} — colores surtidos por el negocio</p>
+
+          {/* Aviso: colores asignados al confirmar */}
+          <div className="flex items-start gap-2 rounded-md border border-line bg-secondary px-3 py-2.5 text-[12px] font-medium leading-snug text-muted">
+            <AlertCircle size={15} className="mt-px flex-none" />
+            <span>Los colores se asignan según disponibilidad al confirmar tu pedido.</span>
+          </div>
+
+          {/* Selector de cantidad de curvas */}
+          <div className="flex items-center justify-between border-t border-line pt-3">
+            <span className="text-[14px] font-medium text-muted">Cantidad de curvas</span>
+            <div className="inline-flex items-center overflow-hidden rounded-md border border-line">
+              <button
+                type="button"
+                aria-label="Restar curva"
+                onClick={() => setSurtidaCurves((c) => Math.max(1, c - 1))}
+                disabled={surtidaCurves <= 1}
+                className="flex h-[34px] w-[34px] items-center justify-center text-text disabled:opacity-40"
+              >
+                <Minus size={14} />
+              </button>
+              <span className="min-w-[40px] text-center text-[15px] font-medium text-text">{surtidaCurves}</span>
+              <button
+                type="button"
+                aria-label="Sumar curva"
+                onClick={() => setSurtidaCurves((c) => c + 1)}
+                className="flex h-[34px] w-[34px] items-center justify-center text-text"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Resumen: precio por unidad (tier) + total estimado */}
+          <div className="flex items-center justify-between border-t border-line pt-3">
+            <span className="text-[14px] font-medium text-muted">
+              {surtidaCurves} {surtidaCurves === 1 ? 'curva' : 'curvas'} · {surtidaUnits} un.
+            </span>
+            <div className="text-right">
+              <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
+              <p className="flex items-baseline justify-end gap-1">
+                {promo && d(surtidaPrice) < surtidaPrice && (
+                  <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(surtidaPrice)}</span>
+                )}
+                <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(surtidaPrice))}</span>
+                <span className="text-[13px] font-medium text-subtle">c/u</span>
+              </p>
+              <p className="mt-1.5 text-[18px] font-bold text-text">Total estimado: {formatPrice(surtidaUnits * d(surtidaPrice))}</p>
+            </div>
+          </div>
         </div>
       )}
 

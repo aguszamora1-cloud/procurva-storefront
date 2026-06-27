@@ -10,7 +10,7 @@ interface ProductState {
   reload: () => void;
 }
 
-const PRODUCT_COLUMNS = `
+const PRODUCT_COLUMNS_BASE = `
   id, company_id, name, description,
   retail_price, retail_price_transfer, retail_price_card, compare_at_price, wholesale_price,
   image_url, images, categories,
@@ -18,6 +18,9 @@ const PRODUCT_COLUMNS = `
   pack_only_sale, created_at,
   product_variants ( id, product_id, company_id, size, color, stock, price, sku, image_url )
 `;
+// curva_surtida_enabled va aparte: si la migración todavía no se aplicó la query
+// falla y caemos a BASE (sin romper el detalle; la curva surtida no se ofrece).
+const PRODUCT_COLUMNS = `${PRODUCT_COLUMNS_BASE}, curva_surtida_enabled`;
 
 /** Un producto por id, scoped al tenant actual. */
 export function useProduct(productId: string | undefined): ProductState {
@@ -37,12 +40,22 @@ export function useProduct(productId: string | undefined): ProductState {
     setError(null);
 
     (async () => {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('products')
         .select(PRODUCT_COLUMNS)
         .eq('company_id', companyId)
         .eq('id', productId)
         .maybeSingle();
+
+      // Fallback si la columna opcional aún no existe (migración sin aplicar).
+      if (error && /curva_surtida_enabled/i.test(error.message)) {
+        ({ data, error } = await supabase
+          .from('products')
+          .select(PRODUCT_COLUMNS_BASE)
+          .eq('company_id', companyId)
+          .eq('id', productId)
+          .maybeSingle());
+      }
 
       if (cancelled) return;
       if (error) {
