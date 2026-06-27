@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
-import { useStore } from '@/context/StoreProvider';
+import { useStore, useStoreStatus } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
 
@@ -13,10 +13,12 @@ const drawerLink = ({ isActive }: { isActive: boolean }) =>
 interface CategoryOrderRow {
   category_name: string;
   visible: boolean | null;
+  image_url: string | null;
 }
 
 export function Navbar() {
   const config = useStore();
+  const { storeType } = useStoreStatus();
   const { itemCount, open } = useCart();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -31,26 +33,61 @@ export function Navbar() {
     { label: 'PRODUCTOS', to: '/productos', end: false },
   ];
 
-  // Subcategorías del menú: categorías activas del comercio (tabla liviana,
-  // un solo fetch mientras el navbar está montado).
+  // Subcategorías del menú. Misma lógica que la página /categorias (useCategories):
+  // las categorías viven en products.categories; catalog_category_order solo aporta
+  // orden/visibilidad. Hacemos UNIÓN para no depender de que esa tabla esté
+  // sincronizada: filas ordenadas/visibles con productos (o imagen propia) +
+  // categorías reales de productos que no estén en la tabla. Sin esto, una fila
+  // huérfana "Otros" (0 productos) sería lo único que se mostraría en el menú.
   useEffect(() => {
     const cid = config.companyId;
     if (!cid) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from('catalog_category_order')
-        .select('category_name, sort_order, visible')
-        .eq('company_id', cid)
-        .order('sort_order', { ascending: true });
+      // En mayorista los productos se filtran por wholesale_price>0 (igual que useProducts).
+      const priceCol = storeType === 'wholesale' ? 'wholesale_price' : 'retail_price';
+      const [orderRes, prodRes] = await Promise.all([
+        supabase
+          .from('catalog_category_order')
+          .select('category_name, sort_order, visible, image_url')
+          .eq('company_id', cid)
+          .order('sort_order', { ascending: true }),
+        supabase
+          .from('products')
+          .select('categories')
+          .eq('company_id', cid)
+          .eq('catalog_visible', true)
+          .gt(priceCol, 0),
+      ]);
       if (cancelled) return;
-      const rows = (data as CategoryOrderRow[] | null) ?? [];
-      setCategories(rows.filter((r) => r.visible !== false).map((r) => r.category_name));
+
+      // Conteo por categoría a partir de los productos visibles.
+      const counts = new Map<string, number>();
+      for (const p of (prodRes.data as { categories: string[] | null }[] | null) ?? []) {
+        for (const c of Array.isArray(p.categories) ? p.categories : []) {
+          counts.set(c, (counts.get(c) ?? 0) + 1);
+        }
+      }
+
+      const rows = (orderRes.data as CategoryOrderRow[] | null) ?? [];
+      const known = new Set(rows.map((r) => r.category_name));
+      // Ordenadas: visibles y con productos (o imagen propia → vacía intencional).
+      const ordered = rows
+        .filter((r) => r.visible !== false)
+        .filter((r) => (counts.get(r.category_name) ?? 0) > 0 || r.image_url)
+        .map((r) => r.category_name);
+      // Reales no listadas en la tabla, alfabético.
+      const extra = Array.from(counts.entries())
+        .filter(([name, count]) => count > 0 && !known.has(name))
+        .map(([name]) => name)
+        .sort((a, b) => a.localeCompare(b, 'es'));
+
+      setCategories([...ordered, ...extra]);
     })();
     return () => {
       cancelled = true;
     };
-  }, [config.companyId]);
+  }, [config.companyId, storeType]);
 
   // Cerrar el menú al cambiar de ruta (anima la salida porque queda montado).
   useEffect(() => {
