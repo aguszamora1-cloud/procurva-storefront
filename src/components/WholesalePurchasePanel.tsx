@@ -6,7 +6,6 @@ import { useCart } from '@/context/CartContext';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
 import { colorToHex, formatPrice, mainImage } from '@/lib/utils';
 import {
-  canOfferCurve,
   colorsOf,
   curveCompositionText,
   curveMissingSizes,
@@ -141,10 +140,11 @@ export function WholesalePurchasePanel({
   const baseTier = tiers.find((t) => t.curve_quantity === 1) ?? tiers[0] ?? null;
   const basePrice = baseTier?.price_per_unit ?? 0;
 
-  const canCurve = canOfferCurve(product, color, tiers, dist);
-  useEffect(() => {
-    if (tab === 'curva' && color && !canCurve) setTab('sueltos');
-  }, [tab, color, canCurve]);
+  // Nota: NO rebotamos el tab 'curva' cuando el color elegido no tiene stock para
+  // armar la curva. El tab muestra adentro el aviso "No hay stock suficiente para
+  // armar una curva en este color" (con los tiers en gris) y el botón de agregar
+  // queda bloqueado por `curveStockOk`. Rebotar a 'sueltos' hacía que el tab
+  // "no se apretara" sin explicar el motivo.
 
   // Curva surtida: precio del tier para la cantidad elegida + unidades totales.
   // No valida stock client-side: los colores se surten server-side al confirmar.
