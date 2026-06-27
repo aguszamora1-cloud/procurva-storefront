@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, X, ArrowLeft, Plus } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
+import { useMetaPixel } from '@/hooks/useMetaPixel';
+import { stashPendingPurchase } from '@/lib/metaPixel';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { supabase } from '@/lib/supabase';
 import { Seo } from '@/components/Seo';
@@ -53,6 +55,7 @@ function SectionHeading({ n, children }: { n: number; children: React.ReactNode 
 export function Checkout() {
   const { items, subtotal, itemCount } = useCart();
   const { byLine } = useCartPromos();
+  const { trackInitiateCheckout } = useMetaPixel();
   const config = useStore();
   const storeType = useStoreType();
   const isWholesale = storeType === 'wholesale';
@@ -90,6 +93,19 @@ export function Checkout() {
   // el subtotal de mercadería a precio de lista (cardSubtotal), sin envío.
   const min = evalMinOrder(config, isWholesale, itemCount, cardSubtotal);
   const navigate = useNavigate();
+
+  // Meta Pixel: InitiateCheckout una sola vez al entrar al checkout con carrito.
+  const initiateCheckoutFired = useRef(false);
+  useEffect(() => {
+    if (initiateCheckoutFired.current || items.length === 0) return;
+    initiateCheckoutFired.current = true;
+    trackInitiateCheckout({
+      contentIds: Array.from(new Set(items.map((i) => i.product_id))),
+      value: subtotal,
+      numItems: itemCount,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, subtotal, itemCount]);
 
   const [form, setForm] = useState<CustomerInfo>(emptyForm);
   const [floor, setFloor] = useState(''); // Piso / Depto (opcional)
@@ -460,7 +476,22 @@ export function Checkout() {
         await registerCouponUse(appliedCoupon.id, orderId, discountAmount);
       }
 
+      // Meta Pixel: dejamos lista la compra para disparar Purchase al volver de
+      // la pasarela (MP/GoCuotas), que son los flujos que confirman pago. Sólo
+      // si el tenant tiene pixel cargado. La transferencia directa y el cierre
+      // por WhatsApp no confirman pago acá, así que no generan Purchase.
+      const stashPurchaseForPixel = () => {
+        if (!config.metaPixelId) return;
+        stashPendingPurchase({
+          orderId: String(orderId),
+          value: Math.round(orderTotal),
+          contentIds: Array.from(new Set(pricedItems.map((i) => i.product_id))),
+          numItems: itemCount,
+        });
+      };
+
       if (routing === 'mp') {
+        stashPurchaseForPixel();
         const initPoint = await startMercadoPagoCheckout(orderId);
         // Redirige a MercadoPago Checkout Pro. El carrito se limpia al volver a /checkout/success.
         window.location.href = initPoint;
@@ -468,6 +499,7 @@ export function Checkout() {
       }
 
       if (routing === 'gc') {
+        stashPurchaseForPixel();
         const urlInit = await startGoCuotasCheckout(orderId);
         // Redirige a la UI de GoCuotas. El carrito se limpia al volver a /checkout/success.
         window.location.href = urlInit;

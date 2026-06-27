@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStore } from '@/context/StoreProvider';
+import { flushPendingPurchase } from '@/lib/metaPixel';
 import { Seo } from '@/components/Seo';
 import { formatPrice } from '@/lib/utils';
 
@@ -128,6 +129,24 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
   useEffect(() => {
     if (variant === 'success') clear();
   }, [variant, clear]);
+
+  // Meta Pixel: disparamos Purchase si quedó una compra pendiente (la dejó el
+  // checkout antes de redirigir a la pasarela). Reintentamos un rato corto por
+  // si el pixel todavía está cargando al volver de Mercado Pago / GoCuotas.
+  useEffect(() => {
+    if (variant !== 'success') return;
+    let timer: number | undefined;
+    let tries = 0;
+    const attempt = () => {
+      if (flushPendingPurchase()) return; // disparó, o no había nada pendiente
+      if (++tries > 20) return; // ~2s esperando a que cargue el pixel
+      timer = window.setTimeout(attempt, 100);
+    };
+    timer = window.setTimeout(attempt, 0);
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [variant]);
 
   return (
     <div className="mx-auto flex max-w-[640px] flex-col items-center gap-5 px-6 py-24 text-center">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronDown, Eye, Ruler, Tag, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
+import { useMetaPixel } from '@/hooks/useMetaPixel';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { usePromotions } from '@/context/PromotionsContext';
@@ -40,6 +41,7 @@ export function ProductDetail() {
   const config = useStore();
   const isWholesale = useStoreType() === 'wholesale';
   const { addItem } = useCart();
+  const { trackViewContent, trackAddToCart } = useMetaPixel();
   const { priceFor, promoForProduct, quantityPromoFor, quantityMessageFor } = usePromotions();
   const { sections: pdSections } = useProductDetailCustomSections();
 
@@ -105,6 +107,15 @@ export function ProductDetail() {
       setSelectedColor(colorParam);
     }
   }, [colorParam, colors, selectedColor]);
+
+  // Meta Pixel: ViewContent al abrir el detalle (una vez por producto). Usamos
+  // el precio prominente de lista; no-op si el tenant no tiene pixel.
+  useEffect(() => {
+    if (!product) return;
+    const { mainPrice } = getPriceInfo(product);
+    trackViewContent({ contentId: product.id, name: product.name, value: mainPrice });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
 
   if (isLoading) {
     return (
@@ -188,6 +199,8 @@ export function ProductDetail() {
       qty: 1,
       image_url: variant.image_url ?? images[0] ?? null,
     });
+    // Meta Pixel: AddToCart con el precio efectivamente agregado (ya con promo).
+    trackAddToCart({ contentId: product.id, name: product.name, value: finalPrice });
   };
 
   const inquiry = buildWhatsappInquiry(config, product.name);
