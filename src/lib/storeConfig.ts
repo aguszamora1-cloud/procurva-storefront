@@ -130,6 +130,18 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     // Modo de visualización de la sección de categorías. Default 'grid'.
     categoriesDisplayMode: s.categories_display_mode === 'carousel' ? 'carousel' : 'grid',
 
+    // Diseño de la sección de categorías. Columns default 3; cardStyle default 'overlay'.
+    categoriesSection: {
+      columns: ((): 2 | 3 | 4 => {
+        const c = s.categories_section?.columns;
+        return c === 2 || c === 3 || c === 4 ? c : 3;
+      })(),
+      cardStyle: ((): 'overlay' | 'below' | 'full' => {
+        const v = s.categories_section?.card_style;
+        return v === 'below' || v === 'full' ? v : 'overlay';
+      })(),
+    },
+
     topBarText: str(s.top_bar_text),
     topBarAnimated: bool(s.top_bar_animated, false),
     tagline: str(s.tagline),
