@@ -20,7 +20,7 @@ const PRODUCT_COLUMNS_BASE = `
 `;
 // curva_surtida_enabled va aparte: si la migración todavía no se aplicó la query
 // falla y caemos a BASE (sin romper el detalle; la curva surtida no se ofrece).
-const PRODUCT_COLUMNS = `${PRODUCT_COLUMNS_BASE}, curva_surtida_enabled`;
+const PRODUCT_COLUMNS = `${PRODUCT_COLUMNS_BASE}, curva_surtida_enabled, free_shipping`;
 
 /** Un producto por id, scoped al tenant actual. */
 export function useProduct(productId: string | undefined): ProductState {

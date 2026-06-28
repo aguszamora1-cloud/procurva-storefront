@@ -5,8 +5,10 @@ import type { CurvePriceTier, ProductPack } from '@/lib/types';
 /**
  * Tabla de precios escalonados mayoristas: "Por talle" (wholesale_price) + una fila
  * por tier de curva + una fila por cada escalón de los packs habilitados (media
- * docena / docena / bulto). El mejor precio (menor $/u de todos) se resalta con un
- * badge pill en color acento. Usa la tipografía del sitio (hereda font-body).
+ * docena / docena / bulto). El mejor precio (menor $/u de todos) se resalta como una
+ * fila entera con fondo gris suave, label + subtítulo "MEJOR PRECIO" a la izquierda y
+ * el monto (un punto más grande) a la derecha — robusto a cualquier tipografía.
+ * Todos los montos usan cifras tabulares (tabular-nums) para alinearse parejos.
  */
 export function WholesalePriceTable({
   wholesalePrice,
@@ -34,25 +36,33 @@ export function WholesalePriceTable({
       {rows.map((r, i) => {
         const promoPrice = discount ? discount(r.price) : r.price;
         const onPromo = discount != null && promoPrice < r.price;
+
+        // Fila del mejor precio: bloque resaltado con fondo gris suave. El fondo
+        // se extiende un poco hacia los lados (-mx) sin tocar el borde de la card.
+        if (r.best) {
+          return (
+            <div
+              key={`${r.label}-${i}`}
+              className="-mx-1.5 flex items-center justify-between gap-2 rounded-md bg-secondary px-1.5 py-1.5"
+            >
+              <span className="flex flex-col leading-tight">
+                <span className="text-[13px] font-semibold text-on-surface">{r.label}</span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.3px] text-subtle">Mejor precio</span>
+              </span>
+              <span className="flex items-baseline gap-1.5">
+                {onPromo && <span className="text-[12px] font-medium text-subtle line-through tabular-nums">{formatPrice(r.price)}</span>}
+                <span className="text-[15px] font-bold text-on-surface tabular-nums">{formatPrice(promoPrice)}</span>
+              </span>
+            </div>
+          );
+        }
+
         return (
           <div key={`${r.label}-${i}`} className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5">
-              <span className={`text-[14px] ${r.best ? 'font-bold text-accent' : 'font-medium text-muted'}`}>{r.label}</span>
-              {r.best && (
-                <span className="rounded bg-accent px-2 py-[3px] text-[9px] font-bold uppercase leading-none tracking-wide text-on-accent">
-                  Mejor precio
-                </span>
-              )}
-            </span>
+            <span className="text-[14px] font-medium text-muted">{r.label}</span>
             <span className="flex items-baseline gap-1.5">
-              {onPromo && <span className="text-[12px] font-medium text-subtle line-through">{formatPrice(r.price)}</span>}
-              <span
-                className={
-                  onPromo || r.best
-                    ? 'text-[15px] font-extrabold text-accent'
-                    : 'text-[14px] font-semibold text-text'
-                }
-              >
+              {onPromo && <span className="text-[12px] font-medium text-subtle line-through tabular-nums">{formatPrice(r.price)}</span>}
+              <span className={onPromo ? 'text-[14px] font-semibold text-accent tabular-nums' : 'text-[14px] font-semibold text-text tabular-nums'}>
                 {formatPrice(promoPrice)}
               </span>
             </span>
