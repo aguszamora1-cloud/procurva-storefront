@@ -205,6 +205,46 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     trustBadgesBgColor: firstStr(s.trust_badges_bg_color),
     trustBadgesTextColor: firstStr(s.trust_badges_text_color) || '#000000',
 
+    // Badges de las product cards. Defaults pensados para no cambiar el aspecto
+    // de tiendas existentes: lowStock/discount/freeShipping activos (freeShipping
+    // no aparece hasta marcar un producto), "Nuevo" apagado por defecto.
+    badges: (() => {
+      const b = s.badges ?? {};
+      const num = (v: unknown, d: number) => (typeof v === 'number' && v > 0 ? v : d);
+      const POSITIONS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const;
+      return {
+        // Globales. Defaults conservadores para no alterar tiendas existentes.
+        style: b.style === 'glass' || b.style === 'outline' ? b.style : 'solid',
+        position: (POSITIONS as readonly string[]).includes(b.position as string)
+          ? (b.position as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right')
+          : 'top-left',
+        showIcons: bool(b.show_icons, true),
+        lowStock: {
+          enabled: bool(b.low_stock?.enabled, true),
+          color: firstStr(b.low_stock?.color) || '#EF4444',
+          label: firstStr(b.low_stock?.label) || 'Últimas unidades',
+          threshold: num(b.low_stock?.threshold, 5),
+        },
+        new: {
+          enabled: bool(b.new?.enabled, false),
+          color: firstStr(b.new?.color) || '#2563EB',
+          label: firstStr(b.new?.label) || 'Nuevo',
+          windowDays: num(b.new?.window_days, 14),
+        },
+        freeShipping: {
+          enabled: bool(b.free_shipping?.enabled, true),
+          color: firstStr(b.free_shipping?.color) || '#16A34A',
+          label: firstStr(b.free_shipping?.label) || 'Envío gratis',
+        },
+        discount: {
+          enabled: bool(b.discount?.enabled, true),
+          // Vacío → la card cae al color de acento (comportamiento histórico).
+          color: firstStr(b.discount?.color),
+          label: firstStr(b.discount?.label) || '% OFF',
+        },
+      };
+    })(),
+
     purchaseFlowEnabled: bool(s.purchase_flow_enabled, true),
     purchaseFlowSteps: parsePurchaseFlowSteps(s.purchase_flow_steps),
 

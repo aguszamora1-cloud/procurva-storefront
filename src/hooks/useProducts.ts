@@ -22,7 +22,7 @@ const COLS_BASE = `
   pack_only_sale, created_at,
   product_variants ( id, product_id, company_id, size, color, stock, price, sku, image_url )
 `;
-const PRODUCT_COLUMNS = `${COLS_BASE}, is_featured, is_new_arrival, display_variants_separately, curva_surtida_enabled`;
+const PRODUCT_COLUMNS = `${COLS_BASE}, is_featured, is_new_arrival, display_variants_separately, curva_surtida_enabled, free_shipping`;
 
 /**
  * Productos visibles del tenant con sus variantes. Filtra por company_id y
@@ -60,7 +60,7 @@ export function useProducts(): ProductsState {
       let { data, error } = await runQuery(PRODUCT_COLUMNS);
       // Si alguna columna opcional todavía no existe (migración sin aplicar),
       // reintentamos con COLS_BASE para no dejar el home sin productos.
-      if (error && /is_featured|is_new_arrival|display_variants_separately|curva_surtida_enabled/i.test(error.message)) {
+      if (error && /is_featured|is_new_arrival|display_variants_separately|curva_surtida_enabled|free_shipping/i.test(error.message)) {
         ({ data, error } = await runQuery(COLS_BASE));
       }
 

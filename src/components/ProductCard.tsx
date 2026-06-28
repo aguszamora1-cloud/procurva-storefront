@@ -1,15 +1,25 @@
 import { Link } from 'react-router-dom';
-import { Zap } from 'lucide-react';
 import { useStoreType } from '@/context/StoreProvider';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
 import { usePromotions } from '@/context/PromotionsContext';
 import { applyPromoToPrice } from '@/lib/promotions';
+import { useProductBadges } from '@/hooks/useProductBadges';
 import type { Product } from '@/lib/types';
 import { PriceDisplay } from './PriceDisplay';
 import { WholesalePriceTable } from './WholesalePriceTable';
 import { StoreImage } from './StoreImage';
 import { CardBadge } from './CardBadge';
-import { badgeColor, colorToHex, getPriceInfo, mainImage, totalStock } from '@/lib/utils';
+import { colorToHex, mainImage } from '@/lib/utils';
+
+// Clases del contenedor de badges según la esquina elegida. En las esquinas
+// inferiores se apila hacia arriba (flex-col-reverse) para no desbordar la card.
+// Strings completos para que Tailwind los detecte en build.
+const BADGE_POSITION_CLASSES: Record<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right', string> = {
+  'top-left': 'left-2 top-2 md:left-3 md:top-3 items-start flex-col',
+  'top-right': 'right-2 top-2 md:right-3 md:top-3 items-end flex-col',
+  'bottom-left': 'left-2 bottom-2 md:left-3 md:bottom-3 items-start flex-col-reverse',
+  'bottom-right': 'right-2 bottom-2 md:right-3 md:bottom-3 items-end flex-col-reverse',
+};
 
 export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
   const image = mainImage(product);
@@ -18,22 +28,15 @@ export function ProductCard({ product, priority = false }: { product: Product; p
     ? `/producto/${product.id}?color=${encodeURIComponent(product.variant_color)}`
     : `/producto/${product.id}`;
   const siblingColors = product.variant_color ? product.sibling_colors ?? [] : [];
-  const { comparePrice, compareDiscountPct } = getPriceInfo(product);
-  const onSale = Boolean(comparePrice && compareDiscountPct > 0); // oferta vs precio de lista
   const isWholesale = useStoreType() === 'wholesale';
   const { curveTiers, productPacks } = useWholesalePricing();
-  const { promoForProduct, quantityPromoFor } = usePromotions();
-  // Promoción automática vigente para este producto (descuento del modo actual).
+  const { promoForProduct } = usePromotions();
+  // Promoción automática vigente: en mayorista descuenta cada precio por unidad.
   const promo = promoForProduct(product);
-  // Promo por cantidad (no descuenta hasta llegar al mínimo en el carrito; solo badge).
-  const qtyPromo = quantityPromoFor(product);
-  // En mayorista, descontamos cada precio por unidad de la tabla de curvas/packs.
   const wholesaleDiscount = promo ? (p: number) => applyPromoToPrice(p, promo, 'wholesale') : undefined;
 
-  const stock = totalStock(product);
-  const outOfStock = stock <= 0;
-  const lowStock = stock > 0 && stock <= 5;
-  const showBadge = product.catalog_badge_visible && product.catalog_badge_text;
+  // Badges (estilo/posición/íconos + candidatos por prioridad) desde config.badges.
+  const { outOfStock, badges: visibleBadges, style: badgeStyle, position: badgePosition, showIcons } = useProductBadges(product);
 
   // Minorista: catálogo limpio (foto + nombre + precio, sin recuadro ni acciones
   // de compra). Mayorista conserva su tarjeta y el flujo suelto/curva del detalle.
@@ -65,26 +68,18 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           )}
         </Link>
 
-        {/* Badge — UNO solo por tarjeta. Prioridad: sin stock > descuento > badge del comercio > últimas unidades. */}
-        <div className="pointer-events-none absolute left-2 top-2 flex flex-col items-start gap-1.5 md:left-3 md:top-3">
+        {/* Badges — hasta 2 apilados en la esquina configurada. "Sin stock" excluyente. */}
+        <div className={`pointer-events-none absolute flex gap-1 ${BADGE_POSITION_CLASSES[badgePosition]}`}>
           {outOfStock ? (
-            <CardBadge bg="#525252">Sin stock</CardBadge>
-          ) : promo ? (
-            <CardBadge bg={promo.badge_color || 'var(--color-accent)'}>{promo.badge_text || 'PROMO'}</CardBadge>
-          ) : qtyPromo ? (
-            <CardBadge bg={qtyPromo.badge_color || 'var(--color-accent)'}>{qtyPromo.badge_text || 'PROMO'}</CardBadge>
-          ) : onSale && !isWholesale ? (
-            <CardBadge bg="var(--color-accent)" color="var(--color-on-accent)">
-              -{compareDiscountPct}%
-            </CardBadge>
-          ) : showBadge ? (
-            <CardBadge bg={badgeColor(product.catalog_badge_color)}>{product.catalog_badge_text}</CardBadge>
-          ) : lowStock ? (
-            <CardBadge bg="#EF4444" className="px-2.5 py-0.5 text-[10px]">
-              <Zap className="h-3 w-3" fill="currentColor" />
-              Últimas unidades
-            </CardBadge>
-          ) : null}
+            <CardBadge bg="#525252" variant={badgeStyle}>Sin stock</CardBadge>
+          ) : (
+            visibleBadges.map((b) => (
+              <CardBadge key={b.key} bg={b.bg} color={b.color} variant={badgeStyle}>
+                {showIcons && b.icon}
+                {b.label}
+              </CardBadge>
+            ))
+          )}
         </div>
       </div>
 

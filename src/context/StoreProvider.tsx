@@ -52,7 +52,7 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // v5: la resolución pasó a la RPC get_storefront_by_slug (dual store), la entrada
 // ahora guarda storeType/requiresPassword. v4 invalidó el TTL viejo; v3 sumó
 // newsletter_popup; v2 fue el fix de normalización del plan.
-const cacheKey = (slug: string) => `procurva_store_config_v5:${slug}`;
+const cacheKey = (slug: string) => `procurva_store_config_v6:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 

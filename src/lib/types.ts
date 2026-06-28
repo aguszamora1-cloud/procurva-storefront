@@ -93,6 +93,9 @@ export interface Product {
   is_new_arrival?: boolean | null;
   // Si true, el storefront muestra cada color como una card separada en el catálogo.
   display_variants_separately?: boolean | null;
+  // Envío gratis manual por producto (lo marca el comercio en la ficha). Si el
+  // badge global "Envío gratis" está activo y esto es true, la card lo muestra.
+  free_shipping?: boolean | null;
   created_at: string | null;
   product_variants: Variant[];
   // ── Campos sintéticos de una "virtual card" por color (los agrega
@@ -322,6 +325,20 @@ export interface RawCatalogSettings {
   trust_badges_bg_color?: string;
   // Color del texto e íconos de la barra de trust badges. Default #000000.
   trust_badges_text_color?: string;
+  // Badges de las product cards (Últimas unidades / Nuevo / Envío gratis /
+  // Descuento). Cada uno: on/off, color de fondo (texto por contraste) y label;
+  // low_stock/new con su parámetro propio. Lo escribe el panel Diseño → Badges.
+  badges?: {
+    // Globales (aplican a todos los badges por igual).
+    style?: 'solid' | 'glass' | 'outline';
+    position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    show_icons?: boolean;
+    // Por badge.
+    low_stock?: { enabled?: boolean; color?: string; label?: string; threshold?: number };
+    new?: { enabled?: boolean; color?: string; label?: string; window_days?: number };
+    free_shipping?: { enabled?: boolean; color?: string; label?: string };
+    discount?: { enabled?: boolean; color?: string; label?: string };
+  };
   // Flujo de compra ("Así funciona tu compra") en el detalle de producto.
   purchase_flow_enabled?: boolean;
   purchase_flow_steps?: PurchaseFlowStep[];
@@ -530,6 +547,19 @@ export interface StoreConfig {
   trustBadgesBgColor: string;
   // Color del texto e íconos de la barra de trust badges (independiente de --color-text).
   trustBadgesTextColor: string;
+  // Badges de las product cards, normalizados con defaults. El texto se resuelve
+  // por contraste sobre `color`. `discount.color` vacío = usa el color de acento.
+  badges: {
+    // Globales (estilo, esquina de anclaje y si se muestran los íconos).
+    style: 'solid' | 'glass' | 'outline';
+    position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+    showIcons: boolean;
+    // Por badge.
+    lowStock: { enabled: boolean; color: string; label: string; threshold: number };
+    new: { enabled: boolean; color: string; label: string; windowDays: number };
+    freeShipping: { enabled: boolean; color: string; label: string };
+    discount: { enabled: boolean; color: string; label: string };
+  };
   // Flujo de compra ("Así funciona tu compra") en el detalle de producto.
   purchaseFlowEnabled: boolean;
   purchaseFlowSteps: PurchaseFlowStep[];
