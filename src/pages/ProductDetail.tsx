@@ -23,7 +23,8 @@ import { ProductReviews } from '@/components/ProductReviews';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
 import { VirtualTryOn, mapFashnCategory } from '@/components/VirtualTryOn';
 import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSections';
-import { badgeColor, formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
+import { useProductBadges } from '@/hooks/useProductBadges';
+import { formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
 import type { Variant } from '@/lib/types';
 
@@ -44,6 +45,9 @@ export function ProductDetail() {
   const { trackViewContent, trackAddToCart } = useMetaPixel();
   const { priceFor, promoForProduct, quantityPromoFor, quantityMessageFor } = usePromotions();
   const { sections: pdSections } = useProductDetailCustomSections();
+  // Badges de la ficha: misma fuente de verdad que la grilla (config.badges +
+  // candidatos/prioridad). En el detalle se renderizan inline (sin esquina).
+  const { badges: detailBadges, style: badgeStyle, showIcons: badgeShowIcons } = useProductBadges(product);
 
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -205,7 +209,6 @@ export function ProductDetail() {
 
   const inquiry = buildWhatsappInquiry(config, product.name);
   const cats = Array.isArray(product.categories) ? product.categories.filter(Boolean) : [];
-  const stock = variant?.stock ?? null;
 
   return (
     <>
@@ -252,8 +255,15 @@ export function ProductDetail() {
         </div>
 
         <div className="space-y-6 md:min-w-0 md:flex-1">
-          {product.catalog_badge_visible && product.catalog_badge_text && (
-            <CardBadge glow bg={badgeColor(product.catalog_badge_color)}>{product.catalog_badge_text}</CardBadge>
+          {detailBadges.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {detailBadges.map((b) => (
+                <CardBadge key={b.key} bg={b.bg} color={b.color} variant={badgeStyle}>
+                  {badgeShowIcons && b.icon}
+                  {b.label}
+                </CardBadge>
+              ))}
+            </div>
           )}
           <h1 className="font-heading text-[26px] font-bold leading-[1.15] tracking-[-0.02em] text-text md:text-[32px]">
             {product.name}
@@ -351,12 +361,6 @@ export function ProductDetail() {
             <p className="flex animate-fade-in items-center gap-2 text-[14px] text-subtle">
               <Eye size={15} /> {viewersFromId(product.id)} personas están viendo este producto
             </p>
-          )}
-
-          {stock !== null && stock > 0 && stock <= 5 && (
-            <div className="animate-fade-in">
-              <CardBadge glow bg="#EF4444">⚡ ¡Últimas {stock} unidades!</CardBadge>
-            </div>
           )}
 
           <div className="space-y-3 pt-1">
