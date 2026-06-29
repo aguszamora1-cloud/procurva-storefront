@@ -196,16 +196,24 @@ export function Checkout() {
 
   // ¿Hay métodos de envío a domicilio? Si sólo hay retiro en local no pedimos CP.
   const hasDeliveryMethods = useMemo(() => methods.some((m) => m.requiresAddress), [methods]);
-  // El CP sólo gatea los envíos A DOMICILIO; el retiro en local no lo necesita.
-  const needsCpForDelivery = hasDeliveryMethods && !appliedCp;
 
-  // Métodos disponibles: retiro en local SIEMPRE (sin pedir CP); envíos a domicilio
-  // sólo cuando el cliente calculó el CP y el método cubre la zona.
-  const cpNum = useMemo(() => (appliedCp ? normalizePostalCode(appliedCp) : null), [appliedCp]);
+  // CP efectivo: el del calculador (appliedCp) o, si no, el que el cliente tipea en el
+  // campo de dirección (form.zip). Así puede completar la dirección sin pasar por el
+  // calculador cuando el envío es de cobertura total.
+  const cpNum = useMemo(() => {
+    const src = appliedCp || form.zip || '';
+    return src.trim() ? normalizePostalCode(src) : null;
+  }, [appliedCp, form.zip]);
+
+  // ¿Un método a domicilio cubre todo el país? Esos no dependen del CP para ofrecerse.
+  const coversEverywhere = (m: ShippingOption) => m.coversAllPostalCodes || m.postalCodeRanges.length === 0;
+
+  // Métodos disponibles: retiro en local SIEMPRE; envíos de cobertura total también
+  // (sin pedir CP); los envíos con zona acotada aparecen al calcular el CP y cubrir la zona.
   const availableMethods = useMemo(() => {
     return methods.filter((m) => {
-      if (!m.requiresAddress) return true;      // retiro: no depende del CP
-      if (!cpNum) return false;                 // envío: requiere CP calculado
+      if (!m.requiresAddress) return true;        // retiro: no depende del CP
+      if (!cpNum) return coversEverywhere(m);      // sin CP: solo los de cobertura total
       return methodCoversPostalCode(m, cpNum);
     });
   }, [methods, cpNum]);
@@ -225,6 +233,13 @@ export function Checkout() {
     [availableMethods, selectedMethodId],
   );
   const requiresAddress = selectedMethod?.requiresAddress ?? false;
+
+  // Calculador de CP independiente: sólo cuando hay envíos a domicilio pero todavía no
+  // hay uno seleccionado (ej.: la tienda sólo tiene envíos con zona acotada y hace falta
+  // el CP para revelarlos). Si ya hay un método a domicilio elegido, el CP se completa en
+  // el campo de la dirección, así que no mostramos el calculador aparte.
+  const needsCpForDelivery = hasDeliveryMethods && !requiresAddress && !appliedCp && !(form.zip || '').trim();
+
   // Sólo es retiro en local cuando hay un método de retiro efectivamente elegido.
   // Si todavía no se calculó el envío (o el método es a domicilio) el horario es para RECIBIR.
   const isPickup = !!selectedMethod && !selectedMethod.requiresAddress;
@@ -691,6 +706,18 @@ export function Checkout() {
                 <label className="flex flex-col gap-1.5">
                   <span className={labelCls}>Provincia *</span>
                   <input className={inputCls} value={form.province} onChange={set('province')} />
+                </label>
+                {/* Código postal: editable acá mismo. Si el cliente ya lo calculó arriba,
+                    viene precargado; si no, lo completa acá (y recalcula la cobertura). */}
+                <label className="flex flex-col gap-1.5">
+                  <span className={labelCls}>Código postal *</span>
+                  <input
+                    className={inputCls}
+                    value={form.zip}
+                    onChange={(e) => { setForm((f) => ({ ...f, zip: e.target.value })); setError(''); }}
+                    inputMode="numeric"
+                    placeholder="Ej: 2000"
+                  />
                 </label>
               </div>
             )}
