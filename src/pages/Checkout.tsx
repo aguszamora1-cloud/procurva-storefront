@@ -29,6 +29,35 @@ const emptyForm: CustomerInfo = {
   deliveryTime: '',
 };
 
+// Prefill local por dispositivo (sin backend, cero PII expuesta): guardamos los
+// datos REUTILIZABLES del cliente en localStorage tras una compra y autocompletamos
+// el checkout al volver (mismo navegador). NO se guardan notas ni horario (son por
+// pedido), ni la dirección con el piso ya fusionado. Clave por empresa.
+interface SavedCustomer {
+  name?: string; phone?: string; email?: string;
+  address?: string; city?: string; province?: string; zip?: string; floor?: string;
+}
+const savedCustomerKey = (companyId: string) => `procurva_checkout_customer:${companyId}`;
+
+function loadSavedCustomer(companyId: string): SavedCustomer | null {
+  try {
+    const raw = localStorage.getItem(savedCustomerKey(companyId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? (parsed as SavedCustomer) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCustomer(companyId: string, data: SavedCustomer): void {
+  try {
+    localStorage.setItem(savedCustomerKey(companyId), JSON.stringify(data));
+  } catch {
+    /* localStorage lleno o no disponible: ignorar (es solo conveniencia) */
+  }
+}
+
 // Método por defecto si el negocio no configuró ninguno: SÓLO envío a domicilio.
 // No incluimos "Retiro en local" como fallback: el retiro debe aparecer
 // únicamente si el negocio lo configuró explícitamente y activo
@@ -107,8 +136,15 @@ export function Checkout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, subtotal, itemCount]);
 
-  const [form, setForm] = useState<CustomerInfo>(emptyForm);
-  const [floor, setFloor] = useState(''); // Piso / Depto (opcional)
+  // Prefill desde localStorage (cliente que ya compró en este dispositivo). Notas y
+  // horario quedan vacíos siempre (son por pedido).
+  const [form, setForm] = useState<CustomerInfo>(() => {
+    const saved = loadSavedCustomer(config.companyId);
+    if (!saved) return emptyForm;
+    const { floor: _floor, ...rest } = saved;
+    return { ...emptyForm, ...rest, notes: '', deliveryTime: '' };
+  });
+  const [floor, setFloor] = useState(() => loadSavedCustomer(config.companyId)?.floor ?? ''); // Piso / Depto (opcional)
   const [showNotes, setShowNotes] = useState(false); // Sección "Notas" colapsada por defecto
   const [methods, setMethods] = useState<ShippingOption[]>([]);
   const [selectedMethodId, setSelectedMethodId] = useState('');
@@ -485,6 +521,15 @@ export function Checkout() {
         config, pricedItems, orderTotal, customer, payLabel, storeType ?? 'retail',
         { priceMode, viaMercadoPago: routing !== 'wa', discount, manualTransfer: transferManual },
       );
+
+      // Prefill local: guardamos los datos reutilizables para autocompletar la
+      // próxima compra desde este dispositivo (guardamos form.address SIN el piso
+      // fusionado, y el piso aparte, para no duplicarlo al recargar).
+      saveCustomer(config.companyId, {
+        name: form.name, phone: form.phone, email: form.email,
+        address: form.address, city: form.city, province: form.province, zip: form.zip,
+        floor,
+      });
 
       // Registrá el uso del cupón (incrementa used_count + fila de tracking).
       if (discount && appliedCoupon) {
