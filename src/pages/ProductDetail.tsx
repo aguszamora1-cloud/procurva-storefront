@@ -276,7 +276,9 @@ export function ProductDetail() {
             </div>
           )}
 
-          {isWholesale && <WholesalePurchasePanel product={product} images={images} promo={promo} />}
+          {isWholesale && (
+            <WholesalePurchasePanel product={product} images={images} promo={promo} onColorChange={setSelectedColor} />
+          )}
 
           {!isWholesale && (
           <>

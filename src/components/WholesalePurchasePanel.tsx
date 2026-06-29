@@ -44,10 +44,13 @@ export function WholesalePurchasePanel({
   product,
   images,
   promo = null,
+  onColorChange,
 }: {
   product: Product;
   images: string[];
   promo?: Promotion | null;
+  /** Avisa al detalle qué color está elegido para que la galería cambie la foto. */
+  onColorChange?: (color: string | null) => void;
 }) {
   const config = useStore();
   const { addItem, close } = useCart();
@@ -108,6 +111,12 @@ export function WholesalePurchasePanel({
   useEffect(() => {
     if (colors.length > 0 && !color) setColor(colors[0]);
   }, [colors, color]);
+
+  // Sincronizamos el color elegido con el detalle para que la galería muestre la
+  // foto de la variante de ese color (la misma lógica "Imagen por color" del retail).
+  useEffect(() => {
+    onColorChange?.(color);
+  }, [color, onColorChange]);
 
   // Si el tab activo deja de estar disponible (datos async de packs/curva), caemos al primero.
   const tabKeys = availableTabs.map((t) => t[0]).join(',');
