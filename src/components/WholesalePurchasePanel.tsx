@@ -89,8 +89,14 @@ export function WholesalePurchasePanel({
     surtidaTiers.length > 0 &&
     dist.length > 0 &&
     !product.pack_only_sale;
-  // Talles sueltos: disponibles salvo que el producto sea solo-pack.
-  const sueltoTabAvailable = !product.pack_only_sale;
+  // Talles sueltos: requiere un PRECIO MAYORISTA propio (> 0). Si el negocio no
+  // cargó precio por mayor, no mostramos el selector de talles sueltos (así no se
+  // vende suelto al precio minorista de fallback ni a $0). Pensado para negocios
+  // que venden SOLO por curva/surtida/pack. Ojo: usamos product.wholesale_price,
+  // NO wholesalePrice (que cae a retail) — el fallback a retail es justo lo que
+  // queremos evitar acá. También se oculta si el producto es solo-pack.
+  const hasWholesaleLoosePrice = (product.wholesale_price ?? 0) > 0;
+  const sueltoTabAvailable = !product.pack_only_sale && hasWholesaleLoosePrice;
   const packTabAvailable = packs.length > 0;
 
   // Tabs visibles según lo que tenga el producto (suelto / curva / surtida / pack).
