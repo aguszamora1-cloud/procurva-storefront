@@ -109,5 +109,19 @@ export function useProductBadges(product: Product | null | undefined): ProductBa
     badges.push({ key: 'new', bg: color, color: contrastColor(color), label: cfg?.new?.label || 'Nuevo', icon: <Sparkles className="h-3 w-3" /> });
   }
 
-  return { outOfStock, badges: badges.slice(0, 2), style, position, showIcons };
+  // Dedup por label: si el comercio cargó un badge manual con el mismo texto que
+  // uno automático (ej: "ÚLTIMAS UNIDADES" a mano + "Últimas unidades" por stock
+  // bajo), no lo mostramos dos veces. Normalizamos a minúsculas/sin acentos/espacios
+  // colapsados y conservamos el primero (la lista ya viene ordenada por prioridad).
+  const normLabel = (s: string): string =>
+    s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/\s+/g, ' ').trim();
+  const seen = new Set<string>();
+  const deduped = badges.filter((b) => {
+    const key = normLabel(b.label);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return { outOfStock, badges: deduped.slice(0, 2), style, position, showIcons };
 }
