@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, MessageCircle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStore } from '@/context/StoreProvider';
 import { flushPendingPurchase } from '@/lib/metaPixel';
@@ -118,12 +118,23 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
   const totalParam = params.get('total');
   const transferAmount = totalParam ? Number(totalParam) : null;
 
+  // Pedido cerrado por WhatsApp (efectivo / transferencia sin cuenta cargada): el
+  // checkout YA registró el pedido y dejó el link de WhatsApp en sessionStorage. Acá
+  // confirmamos "Pedido registrado" + N° y ofrecemos un botón para mandarlo. No
+  // abrimos WhatsApp solos: que el cliente vea primero que su pedido quedó hecho.
+  const isWhatsapp = variant === 'success' && params.get('method') === 'wa';
+  const whatsappHref = isWhatsapp && orderId ? sessionStorage.getItem(`wa_order_${orderId}`) : null;
+
   const base = CONTENT[variant];
   const { icon: Icon, color } = base;
-  const title = isTransfer ? '¡Pedido registrado!' : base.title;
+  const title = isTransfer || isWhatsapp ? '¡Pedido registrado!' : base.title;
   const text = isTransfer
     ? 'Para confirmar tu pedido, transferí el monto a los siguientes datos y envianos el comprobante. En cuanto lo recibamos lo preparamos.'
-    : base.text;
+    : isWhatsapp
+      ? whatsappHref
+        ? 'Tu pedido quedó guardado. Envianoslo por WhatsApp para coordinar la entrega y el pago.'
+        : 'Tu pedido quedó registrado. Te vamos a contactar para coordinar la entrega y el pago.'
+      : base.text;
 
   // En una compra exitosa el carrito ya cumplió su función: lo vaciamos.
   useEffect(() => {
@@ -158,6 +169,17 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
         <p className="text-[12px] text-subtle">N° de pedido: {orderId.slice(0, 8).toUpperCase()}</p>
       )}
       {isTransfer && <TransferDetails amount={transferAmount} />}
+      {whatsappHref && (
+        <a
+          href={whatsappHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 inline-flex items-center justify-center gap-2.5 rounded-[10px] bg-[#25D366] px-8 py-4 text-[15px] font-bold uppercase tracking-[0.5px] text-white shadow-sm transition-transform hover:scale-[1.02]"
+        >
+          <MessageCircle size={20} strokeWidth={2.2} />
+          Enviar pedido por WhatsApp
+        </a>
+      )}
       <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
         {variant === 'failure' ? (
           <Link to="/checkout" className="rounded-[10px] bg-primary px-7 py-3.5 text-[14px] font-bold uppercase tracking-[0.5px] text-on-primary transition-all hover:bg-accent hover:text-on-accent">

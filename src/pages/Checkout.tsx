@@ -586,8 +586,15 @@ export function Checkout() {
             ? String(orderId).toUpperCase()
             : undefined;
       const href = buildWhatsappOrderWithCustomer(config, pricedItems, orderTotal, customer, payLabel, orderRef);
-      if (href) window.open(href, '_blank', 'noopener');
-      navigate(`/checkout/success?order=${orderId}`);
+      // NO abrimos WhatsApp acá con window.open: en mobile tapa la página (el
+      // cliente no ve la confirmación y cree que falló → reintenta y duplica) y el
+      // navegador suele bloquear el pop-up. En su lugar, llevamos al cliente a la
+      // pantalla de éxito (que confirma "Pedido registrado" + N°) y ahí ofrecemos un
+      // botón para enviar por WhatsApp: al ser un click real nunca se bloquea.
+      if (href) {
+        try { sessionStorage.setItem(`wa_order_${orderId}`, href); } catch { /* sessionStorage no disponible */ }
+      }
+      navigate(`/checkout/success?order=${orderId}&method=wa`);
     } catch (e: any) {
       setError(e?.message || 'Hubo un problema al procesar tu pedido.');
       setLoading(null);
