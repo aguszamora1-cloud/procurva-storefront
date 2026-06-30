@@ -159,7 +159,6 @@ export function Checkout() {
   // ids distintos => dos pedidos (y dos auto-confirm/descuentos de stock en plan
   // Profesional). Este ref bloquea el segundo handlePay en el mismo tick.
   const submitLockRef = useRef(false);
-  const [copied, setCopied] = useState(''); // clave del dato recién copiado (feedback)
 
   // Método de pago elegido. 'transferencia'/'efectivo' = contado (con descuento si
   // hay); 'tarjeta' = precio de tarjeta. La tarjeta requiere Mercado Pago.
@@ -375,17 +374,6 @@ export function Checkout() {
   // está seleccionada; lo calculamos explícito para el bloque y el mensaje de WhatsApp.
   const transferTotal = totalForMode('cash');
 
-  // Copia al portapapeles con feedback efímero ("Copiado").
-  const copy = (text: string, key: string) => {
-    if (!text) return;
-    navigator.clipboard
-      ?.writeText(text)
-      .then(() => {
-        setCopied(key);
-        setTimeout(() => setCopied(''), 1500);
-      })
-      .catch(() => {});
-  };
 
   async function applyCoupon() {
     const code = couponInput.trim();
@@ -1030,72 +1018,20 @@ export function Checkout() {
                   })}
                 </div>
 
-                {/* Datos bancarios para Transferencia directa (sólo si el comercio
-                    asignó una cuenta destino con datos). Estructurados si hay
-                    alias/CBU; si no, texto libre como fallback. Monto = contado. */}
-                {transferManual && transferAccount && (() => {
-                  const ta = transferAccount;
-                  const hasStructured = Boolean(ta.alias || ta.cbu);
-                  const copyBtn =
-                    'shrink-0 rounded-[7px] border border-line px-3 py-1.5 text-[12px] font-bold text-accent transition-colors hover:bg-accent hover:text-on-accent';
-                  return (
-                    <div className="mt-4 rounded-[12px] border border-accent/40 bg-accent/5 p-4">
-                      <p className="mb-3 text-[13px] font-bold text-text">Datos para la transferencia</p>
-                      <div className="space-y-2.5">
-                        {ta.alias && (
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Alias</p>
-                              <p className="truncate text-[14px] font-bold text-text">{ta.alias}</p>
-                            </div>
-                            <button type="button" onClick={() => copy(ta.alias, 'alias')} className={copyBtn}>
-                              {copied === 'alias' ? 'Copiado' : 'Copiar alias'}
-                            </button>
-                          </div>
-                        )}
-                        {ta.cbu && (
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">CBU / CVU</p>
-                              <p className="truncate text-[14px] font-bold text-text">{ta.cbu}</p>
-                            </div>
-                            <button type="button" onClick={() => copy(ta.cbu, 'cbu')} className={copyBtn}>
-                              {copied === 'cbu' ? 'Copiado' : 'Copiar CBU'}
-                            </button>
-                          </div>
-                        )}
-                        {ta.holder && (
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Titular</p>
-                            <p className="truncate text-[13px] font-medium text-text">{ta.holder}</p>
-                          </div>
-                        )}
-                        {ta.cuit && (
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">CUIT</p>
-                            <p className="truncate text-[13px] font-medium text-text">{ta.cuit}</p>
-                          </div>
-                        )}
-                        {!hasStructured && ta.details && (
-                          <div className="flex items-start justify-between gap-3">
-                            <p className="whitespace-pre-line text-[13px] text-text">{ta.details}</p>
-                            <button type="button" onClick={() => copy(ta.details, 'details')} className={copyBtn}>
-                              {copied === 'details' ? 'Copiado' : 'Copiar datos'}
-                            </button>
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between border-t border-line pt-2.5">
-                          <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Monto a transferir</span>
-                          <span className="text-[16px] font-extrabold text-text">{formatPrice(transferTotal)}</span>
-                        </div>
-                      </div>
-                      <p className="mt-3 text-[12px] leading-snug text-subtle">
-                        Confirmá el pedido, transferí el monto exacto y enviános el comprobante por WhatsApp. Queda como
-                        pendiente de pago hasta que lo verifiquemos.
-                      </p>
-                    </div>
-                  );
-                })()}
+                {/* Transferencia directa: NO mostramos alias/CBU acá (antes de confirmar).
+                    Si el cliente copiara los datos y transfiriera sin confirmar, el pedido
+                    no entraría al sistema. Los datos completos se muestran en la pantalla de
+                    éxito, una vez que el pedido quedó registrado. Acá solo anticipamos el monto. */}
+                {transferManual && transferAccount && (
+                  <div className="mt-4 rounded-[12px] border border-accent/40 bg-accent/5 p-4">
+                    <p className="text-[13px] font-bold text-text">Pago por transferencia</p>
+                    <p className="mt-1.5 text-[13px] leading-snug text-muted">
+                      Al confirmar el pedido te mostramos el alias y CBU para transferir{' '}
+                      <span className="font-semibold text-text">{formatPrice(transferTotal)}</span>. Queda como
+                      pendiente de pago hasta que envíes el comprobante por WhatsApp.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
