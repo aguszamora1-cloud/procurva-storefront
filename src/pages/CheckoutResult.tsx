@@ -132,7 +132,7 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
     ? 'Para confirmar tu pedido, transferí el monto a los siguientes datos y envianos el comprobante. En cuanto lo recibamos lo preparamos.'
     : isWhatsapp
       ? whatsappHref
-        ? 'Tu pedido quedó guardado. Envianoslo por WhatsApp para coordinar la entrega y el pago.'
+        ? 'Tu pedido quedó guardado. Coordiná el pago y la entrega con nosotros por WhatsApp.'
         : 'Tu pedido quedó registrado. Te vamos a contactar para coordinar la entrega y el pago.'
       : base.text;
 
@@ -177,7 +177,7 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
           className="mt-1 inline-flex items-center justify-center gap-2.5 rounded-[10px] bg-[#25D366] px-8 py-4 text-[15px] font-bold uppercase tracking-[0.5px] text-white shadow-sm transition-transform hover:scale-[1.02]"
         >
           <MessageCircle size={20} strokeWidth={2.2} />
-          Enviar pedido por WhatsApp
+          Coordinar pago por WhatsApp
         </a>
       )}
       <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
