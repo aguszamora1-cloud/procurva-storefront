@@ -15,6 +15,7 @@ import { applyPromoToPrice } from '@/lib/promotions';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, type CustomerInfo } from '@/lib/orders';
 import { expandMethod, methodCoversPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
+import { SHIPPING_ICONS } from '@/lib/shippingIcons';
 import { validateCoupon, registerCouponUse, computeDiscount, eligibleSubtotal, eligibleItems, type CouponRecord } from '@/lib/coupons';
 
 const emptyForm: CustomerInfo = {
@@ -64,7 +65,7 @@ function saveCustomer(companyId: string, data: SavedCustomer): void {
 // (isPickup: true). Mostrarlo por defecto hacía que llegaran pedidos como
 // "Retiro" sin dirección en tiendas que no ofrecen retiro.
 const FALLBACK_METHODS: ShippingOption[] = [
-  { id: 'envio', name: 'Envío a domicilio', requiresAddress: true, cost: null, icon: '🚚', description: 'Envío a todo el país', coversAllPostalCodes: true, postalCodeRanges: [] },
+  { id: 'envio', name: 'Envío a domicilio', requiresAddress: true, cost: null, icon: 'truck', description: 'Envío a todo el país', coversAllPostalCodes: true, postalCodeRanges: [] },
 ];
 
 // Encabezado de sección numerado: círculo con el número + título + divider sutil.
@@ -603,10 +604,11 @@ export function Checkout() {
   const etaText = selectedMethod
     ? selectedMethod.requiresAddress
       ? selectedMethod.eta
-        ? `📦 Llega en ${selectedMethod.eta}`
+        ? `Llega en ${selectedMethod.eta}`
         : null
-      : `🏪 ${selectedMethod.eta || 'Retirá en el local sin esperas'}`
+      : selectedMethod.eta || 'Retirá en el local sin esperas'
     : null;
+  const EtaIcon = selectedMethod ? SHIPPING_ICONS[selectedMethod.icon] : null;
 
   return (
     <div className="mx-auto max-w-[1200px] px-5 py-6 sm:px-6 md:py-12">
@@ -723,7 +725,11 @@ export function Checkout() {
             )}
 
             {/* Tiempo estimado / mensaje del método seleccionado */}
-            {etaText && <p className="mt-3 text-[13px] font-medium text-text">{etaText}</p>}
+            {etaText && EtaIcon && (
+              <p className="mt-3 flex items-center gap-1.5 text-[13px] font-medium text-text">
+                <EtaIcon className="h-4 w-4 shrink-0 text-muted" />{etaText}
+              </p>
+            )}
 
             {/* Retiro en local: mostramos la dirección del local si está cargada */}
             {selectedMethod && !requiresAddress && selectedMethod.pickupAddress && (

@@ -1,5 +1,8 @@
 import { supabase } from './supabase';
 
+/** Identificador del ícono (lucide-react) con que se ilustra el método. */
+export type ShippingIconName = 'truck' | 'store' | 'bike' | 'package';
+
 /** Método de envío normalizado, derivado de companies.settings.shippingMethods. */
 export interface ShippingOption {
   id: string;
@@ -12,8 +15,8 @@ export interface ShippingOption {
   cost: number | null;
   /** Tiempo estimado de entrega (opcional). */
   eta?: string;
-  /** Emoji ilustrativo del método. */
-  icon: string;
+  /** Ícono ilustrativo del método (clave de lucide-react). */
+  icon: ShippingIconName;
   /** Descripción corta para mostrar bajo el nombre. */
   description: string;
   /** Cubre todo el país: disponible para cualquier CP (transportadoras nacionales). */
@@ -68,10 +71,10 @@ export function methodCoversPostalCode(m: ShippingOption, cp: number | null): bo
   return m.postalCodeRanges.some(([a, b]) => cp >= a && cp <= b);
 }
 
-function iconFor(isPickup: boolean, type: unknown): string {
-  if (isPickup) return '🏪';
-  if (type === 'empresa') return '📦';
-  return '🚚';
+function iconFor(isPickup: boolean, type: unknown): ShippingIconName {
+  if (isPickup) return 'store'; // retiro en local
+  if (type === 'cadete') return 'bike'; // logística propia
+  return 'package';
 }
 
 function descriptionFor(isPickup: boolean, allowedCities: unknown): string {
@@ -136,8 +139,8 @@ export function expandMethod(m: any): ShippingOption[] {
         requiresAddress: true,
         cost: variantCost(m.homeDeliveryCost, m.cost),
         eta,
-        icon: '📦',
-        description: 'Te lo enviamos a tu domicilio',
+        icon: 'truck',
+        description: '',
         coversAllPostalCodes,
         postalCodeRanges,
       },
@@ -147,8 +150,8 @@ export function expandMethod(m: any): ShippingOption[] {
         requiresAddress: true,
         cost: variantCost(m.branchCost, m.cost),
         eta,
-        icon: '🏢',
-        description: `Retiralo en una sucursal de ${baseName}`,
+        icon: 'store',
+        description: '',
         coversAllPostalCodes,
         postalCodeRanges,
       },

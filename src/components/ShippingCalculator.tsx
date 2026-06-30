@@ -3,6 +3,7 @@ import { useStore } from '@/context/StoreProvider';
 import { Spinner } from '@/components/Spinner';
 import { formatPrice, whatsappLink } from '@/lib/utils';
 import { etaBadgeColors, fetchShippingOptions, methodCoversPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
+import { SHIPPING_ICONS } from '@/lib/shippingIcons';
 
 type Status = 'idle' | 'loading' | 'done' | 'empty' | 'error';
 
@@ -89,6 +90,7 @@ export function ShippingCalculator() {
         <div className="mt-4 space-y-2">
           {options.map((o) => {
             const badge = o.eta ? etaBadgeColors(o.eta) : null;
+            const Icon = SHIPPING_ICONS[o.icon];
             return (
               <div
                 key={o.id}
@@ -97,10 +99,10 @@ export function ShippingCalculator() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[14px] font-bold text-text">
-                      <span className="mr-1.5">{o.icon}</span>{o.name}
+                    <p className="flex items-center gap-1.5 text-[14px] font-bold text-text">
+                      <Icon className="h-4 w-4 shrink-0 text-muted" />{o.name}
                     </p>
-                    <p className="mt-0.5 text-[12px] text-muted">{o.description}</p>
+                    {o.description && <p className="mt-0.5 text-[12px] text-muted">{o.description}</p>}
                     {o.eta && badge && (
                       <span
                         className="mt-1.5 inline-block rounded px-2 py-0.5 text-[11px] font-semibold"
