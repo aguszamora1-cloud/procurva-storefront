@@ -430,7 +430,7 @@ export function ProductDetail() {
 
       {/* Reseñas (Extra PRO): las mismas reseñas del home (social proof). El componente se autooculta si no hay reseñas. */}
       {config.isPro && config.sections.productReviews && (
-        <div className="mx-auto max-w-[1200px] px-6 pb-4">
+        <div className="px-6 pb-4 md:px-10 lg:px-16">
           <ProductReviews />
         </div>
       )}

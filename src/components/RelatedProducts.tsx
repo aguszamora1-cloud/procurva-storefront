@@ -11,7 +11,7 @@ export function RelatedProducts({ product }: { product: Product }) {
   const { related } = useRelatedProducts(product, 4);
   if (related.length < 2) return null;
   return (
-    <section className="mx-auto max-w-[1200px] border-t border-line px-6 py-12 md:py-16">
+    <section className="border-t border-line px-6 py-12 md:px-10 md:py-16 lg:px-16">
       <SectionHeader label="Productos relacionados" title="También te puede gustar" />
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-5">
         {related.map((p) => (
