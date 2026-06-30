@@ -54,7 +54,7 @@ export function WholesalePurchasePanel({
 }) {
   const config = useStore();
   const { addItem, close } = useCart();
-  const { curveTiers, curveDistributions, productPacks } = useWholesalePricing();
+  const { curveTiers, curvaSurtidaTiers, curveDistributions, productPacks } = useWholesalePricing();
   const navigate = useNavigate();
 
   // Descuento de la promoción mayorista vigente, por unidad. Si no hay promo, identidad.
@@ -71,16 +71,24 @@ export function WholesalePurchasePanel({
       : {};
 
   const tiers = useMemo(() => sortedTiers(curveTiers[product.id] ?? []), [curveTiers, product.id]);
+  // Precio propio de la curva surtida (tabla aparte, NO los tiers de mismo color).
+  const surtidaTiers = useMemo(() => sortedTiers(curvaSurtidaTiers[product.id] ?? []), [curvaSurtidaTiers, product.id]);
   const dist = curveDistributions[product.id] ?? [];
   const packs = useMemo(() => activePacks(productPacks[product.id] ?? []), [productPacks, product.id]);
   const wholesalePrice = product.wholesale_price ?? product.retail_price ?? 0;
   const colors = useMemo(() => colorsOf(product), [product]);
   const fallbackImg = images[0] ?? mainImage(product);
   const curveTabAvailable = tiers.length > 0 && !product.pack_only_sale;
-  // Curva surtida: misma curva pero con color por talle asignado por el negocio.
-  // Aparece solo si el producto la tiene activada en su ficha (flag por producto)
-  // y existe la curva (tiers). El color por talle lo surte el server al confirmar.
-  const surtidaTabAvailable = curveTabAvailable && product.curva_surtida_enabled === true;
+  // Curva surtida: misma DISTRIBUCIÓN de talles pero con su PROPIO precio. Aparece si:
+  //  - el producto la tiene activada (flag),
+  //  - existe distribución de talles (dist),
+  //  - y tiene precio de surtida cargado (surtidaTiers) — desacoplado del mismo color.
+  // El color por talle lo surte el server al confirmar.
+  const surtidaTabAvailable =
+    product.curva_surtida_enabled === true &&
+    surtidaTiers.length > 0 &&
+    dist.length > 0 &&
+    !product.pack_only_sale;
   // Talles sueltos: disponibles salvo que el producto sea solo-pack.
   const sueltoTabAvailable = !product.pack_only_sale;
   const packTabAvailable = packs.length > 0;
@@ -155,10 +163,16 @@ export function WholesalePurchasePanel({
   // queda bloqueado por `curveStockOk`. Rebotar a 'sueltos' hacía que el tab
   // "no se apretara" sin explicar el motivo.
 
-  // Curva surtida: precio del tier para la cantidad elegida + unidades totales.
-  // No valida stock client-side: los colores se surten server-side al confirmar.
-  const surtidaTier = useMemo(() => pickCurveTier(tiers, surtidaCurves), [tiers, surtidaCurves]);
-  const surtidaPrice = surtidaTier?.price_per_unit ?? wholesalePrice;
+  // Curva surtida: precio del tier PROPIO de surtida para la cantidad elegida +
+  // unidades totales. No valida stock client-side: los colores se surten
+  // server-side al confirmar. Usa surtidaTiers (NO los tiers de mismo color).
+  const surtidaTier = useMemo(() => pickCurveTier(surtidaTiers, surtidaCurves), [surtidaTiers, surtidaCurves]);
+  // Precio de surtida: SIN fallback silencioso a wholesalePrice. Si no hay tier de
+  // surtida válido (>0), queda null → el ítem NO se agrega y se muestra aviso
+  // (defensa en profundidad, coherente con el POS que bloquea sin tiers). En la
+  // práctica el tab no aparece sin tiers, así que esto solo cubre estados raros
+  // (carrito viejo, etc.): que falle RUIDOSO, no que invente un precio.
+  const surtidaPrice: number | null = surtidaTier && surtidaTier.price_per_unit > 0 ? surtidaTier.price_per_unit : null;
   const surtidaUnits = surtidaCurves * itemsPer;
 
   const activeTier = tab === 'curva' ? (tierIdx === -1 ? lastTier : tierIdx !== null ? tiers[tierIdx] : null) : null;
@@ -262,7 +276,10 @@ export function WholesalePurchasePanel({
       // como UN item especial sin variant_id; el server asigna los colores según
       // stock al promover el pedido. qty = unidades totales (curvas × ítems/curva).
       if (surtidaCurves <= 0 || itemsPer <= 0) return;
-      const price = surtidaPrice || wholesalePrice;
+      // Sin precio de surtida válido NO agregamos (no caemos a wholesalePrice en
+      // silencio). El botón ya queda deshabilitado por canSubmit + aviso inline.
+      if (surtidaPrice == null) return;
+      const price = surtidaPrice;
       addItem({
         product_id: product.id,
         variant_id: '',
@@ -301,9 +318,11 @@ export function WholesalePurchasePanel({
   // El pack trae su propia distribución (color incluido): no exige elegir color del producto.
   // La curva surtida tampoco: el color y el stock se resuelven server-side al confirmar.
   const canSubmit =
-    tab === 'pack' || tab === 'surtida'
+    tab === 'pack'
       ? hasSelection
-      : (!needColor || !!color) && hasSelection && (tab === 'sueltos' || curveStockOk);
+      : tab === 'surtida'
+        ? hasSelection && surtidaPrice != null
+        : (!needColor || !!color) && hasSelection && (tab === 'sueltos' || curveStockOk);
 
   const policies = [
     { key: 'envio', label: 'Envío', text: config.policyShipping },
@@ -616,23 +635,31 @@ export function WholesalePurchasePanel({
             </div>
           </div>
 
-          {/* Resumen: precio por unidad (tier) + total estimado */}
-          <div className="flex items-center justify-between border-t border-line pt-3">
-            <span className="text-[14px] font-medium text-muted">
-              {surtidaCurves} {surtidaCurves === 1 ? 'curva' : 'curvas'} · {surtidaUnits} un.
-            </span>
-            <div className="text-right">
-              <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
-              <p className="flex items-baseline justify-end gap-1">
-                {promo && d(surtidaPrice) < surtidaPrice && (
-                  <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(surtidaPrice)}</span>
-                )}
-                <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(surtidaPrice))}</span>
-                <span className="text-[13px] font-medium text-subtle">c/u</span>
-              </p>
-              <p className="mt-1.5 text-[18px] font-bold text-text">Total estimado: {formatPrice(surtidaUnits * d(surtidaPrice))}</p>
+          {/* Resumen: precio por unidad (tier) + total estimado. Solo si hay precio
+              de surtida válido; si no, aviso ruidoso (no se inventa wholesalePrice). */}
+          {surtidaPrice != null ? (
+            <div className="flex items-center justify-between border-t border-line pt-3">
+              <span className="text-[14px] font-medium text-muted">
+                {surtidaCurves} {surtidaCurves === 1 ? 'curva' : 'curvas'} · {surtidaUnits} un.
+              </span>
+              <div className="text-right">
+                <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
+                <p className="flex items-baseline justify-end gap-1">
+                  {promo && d(surtidaPrice) < surtidaPrice && (
+                    <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(surtidaPrice)}</span>
+                  )}
+                  <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(surtidaPrice))}</span>
+                  <span className="text-[13px] font-medium text-subtle">c/u</span>
+                </p>
+                <p className="mt-1.5 text-[18px] font-bold text-text">Total estimado: {formatPrice(surtidaUnits * d(surtidaPrice))}</p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-start gap-2 rounded-md border border-line bg-secondary px-3 py-2.5 text-[12px] font-medium leading-snug text-muted">
+              <AlertCircle size={15} className="mt-px flex-none" />
+              <span>Este producto todavía no tiene precio de curva surtida configurado. No se puede comprar por curva surtida por ahora.</span>
+            </div>
+          )}
         </div>
       )}
 

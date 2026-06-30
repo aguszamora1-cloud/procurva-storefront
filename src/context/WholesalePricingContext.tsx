@@ -11,6 +11,8 @@ import type { CurveDist, CurvePriceTier, ProductPack } from '@/lib/types';
  */
 interface WholesalePricingValue {
   curveTiers: Record<string, CurvePriceTier[]>;
+  // Precio propio de la curva surtida (independiente del de mismo color).
+  curvaSurtidaTiers: Record<string, CurvePriceTier[]>;
   curveDistributions: Record<string, CurveDist[]>;
   productPacks: Record<string, ProductPack[]>;
   loading: boolean;
@@ -18,6 +20,7 @@ interface WholesalePricingValue {
 
 const WholesalePricingContext = createContext<WholesalePricingValue>({
   curveTiers: {},
+  curvaSurtidaTiers: {},
   curveDistributions: {},
   productPacks: {},
   loading: false,
@@ -32,6 +35,7 @@ function groupBy<T extends { product_id: string }>(rows: T[]): Record<string, T[
 export function WholesalePricingProvider({ children }: { children: ReactNode }) {
   const { companyId, storeType } = useStoreStatus();
   const [curveTiers, setCurveTiers] = useState<Record<string, CurvePriceTier[]>>({});
+  const [curvaSurtidaTiers, setCurvaSurtidaTiers] = useState<Record<string, CurvePriceTier[]>>({});
   const [curveDistributions, setCurveDistributions] = useState<Record<string, CurveDist[]>>({});
   const [productPacks, setProductPacks] = useState<Record<string, ProductPack[]>>({});
   const [loading, setLoading] = useState(false);
@@ -39,6 +43,7 @@ export function WholesalePricingProvider({ children }: { children: ReactNode }) 
   useEffect(() => {
     if (storeType !== 'wholesale' || !companyId) {
       setCurveTiers({});
+      setCurvaSurtidaTiers({});
       setCurveDistributions({});
       setProductPacks({});
       return;
@@ -46,9 +51,14 @@ export function WholesalePricingProvider({ children }: { children: ReactNode }) 
     let cancelled = false;
     setLoading(true);
     (async () => {
-      const [tiersRes, curvesRes, packsRes] = await Promise.all([
+      const [tiersRes, surtidaTiersRes, curvesRes, packsRes] = await Promise.all([
         supabase
           .from('product_curve_price_tiers')
+          .select('product_id, curve_quantity, price_per_unit')
+          .eq('company_id', companyId)
+          .order('curve_quantity', { ascending: true }),
+        supabase
+          .from('product_curva_surtida_price_tiers')
           .select('product_id, curve_quantity, price_per_unit')
           .eq('company_id', companyId)
           .order('curve_quantity', { ascending: true }),
@@ -64,6 +74,7 @@ export function WholesalePricingProvider({ children }: { children: ReactNode }) 
       ]);
       if (cancelled) return;
       if (tiersRes.error) console.error('[WholesalePricing] curve tiers:', tiersRes.error);
+      if (surtidaTiersRes.error) console.error('[WholesalePricing] surtida tiers:', surtidaTiersRes.error);
       if (curvesRes.error) console.error('[WholesalePricing] curves:', curvesRes.error);
       if (packsRes.error) console.error('[WholesalePricing] packs:', packsRes.error);
 
@@ -118,6 +129,7 @@ export function WholesalePricingProvider({ children }: { children: ReactNode }) 
       }
 
       setCurveTiers(groupBy((tiersRes.data ?? []) as CurvePriceTier[]));
+      setCurvaSurtidaTiers(groupBy((surtidaTiersRes.data ?? []) as CurvePriceTier[]));
       setCurveDistributions(groupBy((curvesRes.data ?? []) as CurveDist[]));
       setProductPacks(packsByProduct);
       setLoading(false);
@@ -128,7 +140,7 @@ export function WholesalePricingProvider({ children }: { children: ReactNode }) 
   }, [companyId, storeType]);
 
   return (
-    <WholesalePricingContext.Provider value={{ curveTiers, curveDistributions, productPacks, loading }}>
+    <WholesalePricingContext.Provider value={{ curveTiers, curvaSurtidaTiers, curveDistributions, productPacks, loading }}>
       {children}
     </WholesalePricingContext.Provider>
   );
