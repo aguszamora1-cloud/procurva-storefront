@@ -44,9 +44,10 @@ export function buildWhatsappOrderWithCustomer(
   customer: CustomerInfo,
   // Método de pago elegido: ajusta los precios mostrados (contado vs tarjeta) y
   // se aclara en el mensaje. Default 'Efectivo' (contado).
-  // GoCuotas no llega por este camino (se redirige antes), pero el tipo lo incluye
-  // para aceptar la etiqueta común del checkout. Cuenta como contado (no 'Tarjeta').
-  paymentMethod: 'Transferencia' | 'Efectivo' | 'Tarjeta' | 'GoCuotas' = 'Efectivo',
+  // GoCuotas y 'Dinero en cuenta' no llegan por este camino (se redirigen a la
+  // pasarela antes), pero el tipo los incluye para aceptar la etiqueta común del
+  // checkout. Cuentan como contado (no 'Tarjeta').
+  paymentMethod: 'Transferencia' | 'Efectivo' | 'Tarjeta' | 'GoCuotas' | 'Dinero en cuenta' = 'Efectivo',
   // Referencia corta del pedido ya creado (opcional). Si se pasa, se cita en el
   // mensaje; en transferencia además se le pide al cliente que mande el comprobante.
   orderRef?: string,

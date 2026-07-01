@@ -170,7 +170,9 @@ export function Checkout() {
   // Método de pago elegido. 'transferencia'/'efectivo' = contado (con descuento si
   // hay); 'tarjeta' = precio de tarjeta. La tarjeta requiere Mercado Pago.
   // 'gocuotas' = cuotas sin interés con débito (precio de contado).
-  type PayMethod = 'transferencia' | 'efectivo' | 'tarjeta' | 'gocuotas';
+  // 'mp_cuenta' = dinero en cuenta de Mercado Pago (precio de contado, va a MP
+  // restringido a saldo en cuenta). Requiere Mercado Pago.
+  type PayMethod = 'transferencia' | 'efectivo' | 'tarjeta' | 'gocuotas' | 'mp_cuenta';
   const mpEnabled = config.mercadopagoEnabled;
   const gcEnabled = config.gocuotasEnabled;
   const waEnabled = Boolean(config.whatsapp);
@@ -179,11 +181,13 @@ export function Checkout() {
   //  - transferencia: contado; va a MP si está habilitado, si no se coordina por WhatsApp.
   //  - efectivo: contado; siempre se coordina por WhatsApp.
   //  - tarjeta: precio tarjeta; sólo si hay Mercado Pago.
+  //  - mp_cuenta: contado (dinero en cuenta de MP); sólo si hay Mercado Pago.
   //  - gocuotas: contado (débito en cuotas sin interés); sólo si hay GoCuotas.
   const payMethods = useMemo<PayMethod[]>(() => {
     const list: PayMethod[] = [];
     if (mpEnabled || waEnabled) list.push('transferencia');
     if (waEnabled) list.push('efectivo');
+    if (mpEnabled) list.push('mp_cuenta');
     if (mpEnabled) list.push('tarjeta');
     if (gcEnabled) list.push('gocuotas');
     return list;
@@ -202,11 +206,11 @@ export function Checkout() {
   const transferManual = payMethod === 'transferencia' && Boolean(transferAccount);
 
   // Ruteo del cobro: 'mp' (Mercado Pago), 'gc' (GoCuotas) o 'wa' (WhatsApp).
-  // tarjeta -> MP siempre; gocuotas -> GoCuotas; transferencia con cuenta cargada ->
-  // manual (wa, sin pasarela); transferencia sin cuenta -> MP si hay, si no WA;
-  // efectivo -> WA.
+  // tarjeta -> MP siempre; mp_cuenta (dinero en cuenta) -> MP siempre;
+  // gocuotas -> GoCuotas; transferencia con cuenta cargada -> manual (wa, sin
+  // pasarela); transferencia sin cuenta -> MP si hay, si no WA; efectivo -> WA.
   const routing: 'mp' | 'gc' | 'wa' =
-    payMethod === 'tarjeta'
+    payMethod === 'tarjeta' || payMethod === 'mp_cuenta'
       ? 'mp'
       : payMethod === 'gocuotas'
         ? 'gc'
@@ -215,7 +219,8 @@ export function Checkout() {
           : payMethod === 'transferencia' && mpEnabled
             ? 'mp'
             : 'wa';
-  // GoCuotas es débito: usa precio de contado (igual que transferencia/efectivo).
+  // Sólo la tarjeta usa el precio de tarjeta; el resto (incluido dinero en
+  // cuenta) va a precio de contado.
   const priceMode: 'cash' | 'card' = payMethod === 'tarjeta' ? 'card' : 'cash';
 
   // Carga dinámica de los métodos de envío configurados por el negocio.
@@ -484,14 +489,16 @@ export function Checkout() {
 
   // Etiqueta legible del método elegido (se guarda en catalog_orders.payment_method
   // y se muestra en el mensaje de WhatsApp).
-  const payLabel: 'Transferencia' | 'Efectivo' | 'Tarjeta' | 'GoCuotas' =
+  const payLabel: 'Transferencia' | 'Efectivo' | 'Tarjeta' | 'GoCuotas' | 'Dinero en cuenta' =
     payMethod === 'tarjeta'
       ? 'Tarjeta'
-      : payMethod === 'gocuotas'
-        ? 'GoCuotas'
-        : payMethod === 'transferencia'
-          ? 'Transferencia'
-          : 'Efectivo';
+      : payMethod === 'mp_cuenta'
+        ? 'Dinero en cuenta'
+        : payMethod === 'gocuotas'
+          ? 'GoCuotas'
+          : payMethod === 'transferencia'
+            ? 'Transferencia'
+            : 'Efectivo';
 
   // Acción única de pago: persiste el pedido y lo rutea a Mercado Pago, GoCuotas o
   // WhatsApp según el método elegido. Las pasarelas online (MP/GoCuotas) piden email
@@ -555,7 +562,9 @@ export function Checkout() {
 
       if (routing === 'mp') {
         stashPurchaseForPixel();
-        const initPoint = await startMercadoPagoCheckout(orderId);
+        // Dinero en cuenta: restringimos el checkout de MP a saldo en cuenta
+        // (sin tarjeta) porque cobra a precio de contado.
+        const initPoint = await startMercadoPagoCheckout(orderId, payMethod === 'mp_cuenta');
         // Redirige a MercadoPago Checkout Pro. El carrito se limpia al volver a /checkout/success.
         window.location.href = initPoint;
         return;
@@ -1016,24 +1025,28 @@ export function Checkout() {
                     const label =
                       m === 'tarjeta'
                         ? 'Tarjeta'
-                        : m === 'gocuotas'
-                          ? 'GoCuotas'
-                          : m === 'transferencia'
-                            ? 'Transferencia'
-                            : 'Efectivo';
+                        : m === 'mp_cuenta'
+                          ? 'Dinero en cuenta'
+                          : m === 'gocuotas'
+                            ? 'GoCuotas'
+                            : m === 'transferencia'
+                              ? 'Transferencia'
+                              : 'Efectivo';
                     const sub =
                       m === 'tarjeta'
                         ? config.cardPaymentText ||
                           (config.installmentsCount > 1 ? `Hasta ${config.installmentsCount} cuotas` : 'Pago con tarjeta')
-                        : m === 'gocuotas'
-                          ? 'Cuotas sin interés con tarjeta de débito'
-                          : m === 'transferencia'
-                            ? transferAccount
-                              ? 'Transferí y enviá el comprobante'
-                              : mpEnabled
-                                ? 'Pago online con Mercado Pago'
-                                : 'Coordinamos la transferencia por WhatsApp'
-                            : 'Lo coordinamos por WhatsApp';
+                        : m === 'mp_cuenta'
+                          ? 'Pagás con tu saldo de Mercado Pago'
+                          : m === 'gocuotas'
+                            ? 'Cuotas sin interés con tarjeta de débito'
+                            : m === 'transferencia'
+                              ? transferAccount
+                                ? 'Transferí y enviá el comprobante'
+                                : mpEnabled
+                                  ? 'Pago online con Mercado Pago'
+                                  : 'Coordinamos la transferencia por WhatsApp'
+                              : 'Lo coordinamos por WhatsApp';
                     const methodTotal = totalForMode(isCash ? 'cash' : 'card');
                     return (
                       <button

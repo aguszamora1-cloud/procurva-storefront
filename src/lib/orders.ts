@@ -23,7 +23,7 @@ export interface CustomerInfo {
  * create-preference como mp-catalog-webhook).
  */
 /** Método de pago elegido en el checkout (etiqueta que se guarda en catalog_orders). */
-export type PaymentMethodLabel = 'Transferencia' | 'Efectivo' | 'Tarjeta' | 'GoCuotas';
+export type PaymentMethodLabel = 'Transferencia' | 'Efectivo' | 'Tarjeta' | 'GoCuotas' | 'Dinero en cuenta';
 
 /**
  * Precio unitario según el método: 'cash' (efectivo/transferencia) usa el precio
@@ -243,8 +243,16 @@ function extractMpError(detail: unknown): string | null {
  * del tenant y arma la preferencia de Checkout Pro). Le pasa `return_base` con
  * el origin del storefront para que MP redirija a /checkout/success|failure|pending
  * de ESTA tienda. Devuelve el `init_point` (URL de pago de MP).
+ *
+ * `onlyAccountMoney`: si es true, la preferencia se restringe a "dinero en cuenta"
+ * (saldo de Mercado Pago) excluyendo tarjetas/efectivo. Se usa para el medio
+ * "Dinero en cuenta", que cobra a precio de contado y por eso NO debe permitir
+ * pagar con tarjeta (se estaría dando el precio de contado a quien paga en cuotas).
  */
-export async function startMercadoPagoCheckout(catalogOrderId: string): Promise<string> {
+export async function startMercadoPagoCheckout(
+  catalogOrderId: string,
+  onlyAccountMoney = false,
+): Promise<string> {
   const baseUrl = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
   const res = await fetch(`${baseUrl}/functions/v1/create-preference`, {
     method: 'POST',
@@ -252,6 +260,7 @@ export async function startMercadoPagoCheckout(catalogOrderId: string): Promise<
     body: JSON.stringify({
       catalog_order_id: catalogOrderId,
       return_base: window.location.origin,
+      only_account_money: onlyAccountMoney,
     }),
   });
 
