@@ -3,14 +3,28 @@ import { supabase } from './supabase';
 /** Identificador del ícono (lucide-react) con que se ilustra el método. */
 export type ShippingIconName = 'truck' | 'store' | 'bike' | 'package';
 
+/**
+ * Naturaleza del método, para agrupar y rotular en el checkout sin adivinar por el id:
+ * - 'local-pickup': retiro en el local del negocio (gratis, presencial, sin CP).
+ * - 'home': envío a domicilio (el paquete viaja hasta el cliente).
+ * - 'branch': retiro en sucursal de la transportadora (el paquete viaja hasta una sucursal).
+ */
+export type ShippingKind = 'local-pickup' | 'home' | 'branch';
+
 /** Método de envío normalizado, derivado de companies.settings.shippingMethods. */
 export interface ShippingOption {
   id: string;
   name: string;
+  /** Naturaleza del método (agrupación y copy en el checkout). */
+  kind: ShippingKind;
   /** true si el método necesita dirección (no es retiro en local). */
   requiresAddress: boolean;
-  /** Dirección del local (sólo retiro). */
+  /** Dirección del local (sólo retiro en local). */
   pickupAddress?: string;
+  /** Horarios de atención del local (sólo retiro en local; opcional). */
+  openingHours?: string;
+  /** "Listo para retirar" del local (sólo retiro en local; opcional). */
+  readyTime?: string;
   /** Costo: 0 = gratis, >0 = fijo, null = a coordinar con la tienda. */
   cost: number | null;
   /** Tiempo estimado de entrega (opcional). */
@@ -104,11 +118,19 @@ export function toShippingOption(m: any): ShippingOption {
   const cost = isPickup
     ? typeof rawCost === 'number' ? rawCost : 0
     : typeof rawCost === 'number' ? rawCost : null;
+  // Para retiro en local: "listo para retirar" (readyTime) con fallback a estimatedTime
+  // por compatibilidad con métodos cargados antes de existir el campo.
+  const readyTime = isPickup
+    ? (typeof m.readyTime === 'string' && m.readyTime.trim() ? m.readyTime.trim() : etaFor(m, true))
+    : undefined;
   return {
     id: String(m.id ?? m.name),
     name: String(m.name ?? 'Envío'),
+    kind: isPickup ? 'local-pickup' : 'home',
     requiresAddress: !isPickup,
-    pickupAddress: typeof m.pickupAddress === 'string' ? m.pickupAddress : undefined,
+    pickupAddress: typeof m.pickupAddress === 'string' && m.pickupAddress.trim() ? m.pickupAddress.trim() : undefined,
+    openingHours: isPickup && typeof m.openingHours === 'string' && m.openingHours.trim() ? m.openingHours.trim() : undefined,
+    readyTime,
     cost,
     eta: etaFor(m, isPickup),
     icon: iconFor(isPickup, m.type),
@@ -136,6 +158,7 @@ export function expandMethod(m: any): ShippingOption[] {
       {
         id: `${baseId}:domicilio`,
         name: `${baseName} (Envío a domicilio)`,
+        kind: 'home',
         requiresAddress: true,
         cost: variantCost(m.homeDeliveryCost, m.cost),
         eta,
@@ -147,6 +170,7 @@ export function expandMethod(m: any): ShippingOption[] {
       {
         id: `${baseId}:sucursal`,
         name: `${baseName} (Retiro en sucursal)`,
+        kind: 'branch',
         requiresAddress: true,
         cost: variantCost(m.branchCost, m.cost),
         eta,

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, X, ArrowLeft, Plus } from 'lucide-react';
+import { ShoppingBag, X, ArrowLeft, Plus, MapPin, Clock, PackageCheck, Info } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
 import { useMetaPixel } from '@/hooks/useMetaPixel';
@@ -65,8 +65,15 @@ function saveCustomer(companyId: string, data: SavedCustomer): void {
 // (isPickup: true). Mostrarlo por defecto hacía que llegaran pedidos como
 // "Retiro" sin dirección en tiendas que no ofrecen retiro.
 const FALLBACK_METHODS: ShippingOption[] = [
-  { id: 'envio', name: 'Envío a domicilio', requiresAddress: true, cost: null, icon: 'truck', description: 'Envío a todo el país', coversAllPostalCodes: true, postalCodeRanges: [] },
+  { id: 'envio', name: 'Envío a domicilio', kind: 'home', requiresAddress: true, cost: null, icon: 'truck', description: 'Envío a todo el país', coversAllPostalCodes: true, postalCodeRanges: [] },
 ];
+
+/** Etiqueta de precio por opción de entrega: 0 = "Gratis", null = "A coordinar", resto = precio. */
+function shippingPriceLabel(cost: number | null): { text: string; free: boolean } {
+  if (cost === 0) return { text: 'Gratis', free: true };
+  if (cost == null) return { text: 'A coordinar', free: false };
+  return { text: formatPrice(cost), free: false };
+}
 
 // Encabezado de sección numerado: círculo con el número + título + divider sutil.
 // Liviano (sin card pesada), igual que pide el diseño mobile-first.
@@ -253,6 +260,13 @@ export function Checkout() {
       return methodCoversPostalCode(m, cpNum);
     });
   }, [methods, cpNum]);
+
+  // Grupos del selector: "Retirar en el local" (retiro presencial, sin dirección) vs
+  // "Envío" (el paquete viaja: domicilio + retiro en sucursal del correo). El predicado
+  // es requiresAddress, así el grupo de retiro queda puro (solo puntos del negocio) y la
+  // sucursal del correo —que igual viaja y se filtra por CP— cae en "Envío".
+  const localPickupMethods = useMemo(() => availableMethods.filter((m) => !m.requiresAddress), [availableMethods]);
+  const deliveryMethods = useMemo(() => availableMethods.filter((m) => m.requiresAddress), [availableMethods]);
 
   // Mantené la selección si sigue disponible; si no, elegí la primera opción disponible.
   useEffect(() => {
@@ -596,14 +610,67 @@ export function Checkout() {
     'w-full rounded-[8px] border border-line bg-background px-3.5 py-2.5 text-[16px] text-text outline-none transition-colors focus:border-accent';
   const labelCls = 'text-[12px] font-semibold uppercase tracking-wide text-muted';
 
-  const etaText = selectedMethod
-    ? selectedMethod.requiresAddress
-      ? selectedMethod.eta
-        ? `Llega en ${selectedMethod.eta}`
-        : null
-      : selectedMethod.eta || 'Retirá en el local sin esperas'
-    : null;
-  const EtaIcon = selectedMethod ? SHIPPING_ICONS[selectedMethod.icon] : null;
+  // Card seleccionable de una opción de entrega. El detalle rico va dentro de la card
+  // (dirección/horarios/listo para retiro; aclaración de sucursal), no en líneas sueltas.
+  const renderMethodCard = (m: ShippingOption) => {
+    const selected = m.id === selectedMethodId;
+    const Icon = SHIPPING_ICONS[m.icon];
+    const price = shippingPriceLabel(m.cost);
+    return (
+      <button
+        key={m.id}
+        type="button"
+        onClick={() => { setSelectedMethodId(m.id); setError(''); }}
+        className={`w-full rounded-[10px] border px-4 py-3 text-left transition-colors ${
+          selected ? 'border-accent bg-accent/5' : 'border-line hover:border-text'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${selected ? 'text-accent' : 'text-muted'}`} />
+            <div>
+              <p className="text-[14px] font-semibold text-text">{m.name}</p>
+              {m.kind !== 'local-pickup' && m.eta && (
+                <p className="mt-0.5 text-[12px] text-muted">Llega en {m.eta}</p>
+              )}
+            </div>
+          </div>
+          <span className={`shrink-0 text-[14px] font-bold ${price.free ? 'text-[#27ae60]' : 'text-text'}`}>
+            {price.text}
+          </span>
+        </div>
+
+        {/* Retiro en el local: dirección, horarios y "listo para retirar" (cada línea si está cargada) */}
+        {m.kind === 'local-pickup' && (m.pickupAddress || m.openingHours || m.readyTime) && (
+          <div className="mt-2 space-y-1 pl-[30px]">
+            {m.pickupAddress && (
+              <p className="flex items-start gap-1.5 text-[12px] text-muted">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-subtle" /><span>{m.pickupAddress}</span>
+              </p>
+            )}
+            {m.openingHours && (
+              <p className="flex items-start gap-1.5 text-[12px] text-muted">
+                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-subtle" /><span>{m.openingHours}</span>
+              </p>
+            )}
+            {m.readyTime && (
+              <p className="flex items-start gap-1.5 text-[12px] text-muted">
+                <PackageCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-subtle" /><span>{m.readyTime}</span>
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Retiro en sucursal del correo: el paquete viaja, no es inmediato. Lo aclaramos. */}
+        {m.kind === 'branch' && (
+          <p className="mt-2 flex items-start gap-1.5 pl-[30px] text-[12px] text-muted">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-subtle" />
+            <span>El correo te avisa cuando tu pedido llega a la sucursal que elijas.</span>
+          </p>
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="mx-auto max-w-[1200px] px-5 py-6 sm:px-6 md:py-12">
@@ -659,25 +726,24 @@ export function Checkout() {
               </p>
             )}
 
-            {/* Métodos disponibles: el retiro en local aparece siempre (sin CP);
-                los envíos a domicilio se suman al calcular el código postal. */}
+            {/* Métodos agrupados por tipo. Cada bloque se muestra SÓLO si el negocio tiene
+                opciones de ese tipo (nada de secciones vacías). "Envío" incluye domicilio y
+                retiro en sucursal del correo (ambos viajan y se filtran por CP); el retiro en
+                el local aparece siempre, sin importar el CP. */}
             {availableMethods.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {availableMethods.map((m) => {
-                  const selected = m.id === selectedMethodId;
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => { setSelectedMethodId(m.id); setError(''); }}
-                      className={`rounded-[8px] border px-4 py-2 text-[13px] font-semibold transition-colors ${
-                        selected ? 'border-accent bg-accent text-on-accent' : 'border-line text-muted hover:border-text'
-                      }`}
-                    >
-                      {m.name}
-                    </button>
-                  );
-                })}
+              <div className="space-y-5">
+                {deliveryMethods.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-subtle">Envío</p>
+                    <div className="space-y-2">{deliveryMethods.map(renderMethodCard)}</div>
+                  </div>
+                )}
+                {localPickupMethods.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-subtle">Retirar en el local</p>
+                    <div className="space-y-2">{localPickupMethods.map(renderMethodCard)}</div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -717,21 +783,6 @@ export function Checkout() {
                   ¿No sabés tu código postal?
                 </a>
               </div>
-            )}
-
-            {/* Tiempo estimado / mensaje del método seleccionado */}
-            {etaText && EtaIcon && (
-              <p className="mt-3 flex items-center gap-1.5 text-[13px] font-medium text-text">
-                <EtaIcon className="h-4 w-4 shrink-0 text-muted" />{etaText}
-              </p>
-            )}
-
-            {/* Retiro en local: mostramos la dirección del local si está cargada */}
-            {selectedMethod && !requiresAddress && selectedMethod.pickupAddress && (
-              <p className="mt-1 text-[13px] text-muted">
-                <span className="text-subtle">Retirás en: </span>
-                <span className="font-medium text-text">{selectedMethod.pickupAddress}</span>
-              </p>
             )}
 
             {/* Campos de dirección: sólo si el método requiere envío a domicilio */}
