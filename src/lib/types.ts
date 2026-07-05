@@ -1,5 +1,7 @@
 // Tipos del dominio leídos del Supabase de ProCurva. Sólo lectura.
 
+import type { ProductLayout } from './productLayout';
+
 /** Imagen de producto: en `products.images` puede venir string o {url}. */
 export type ProductImage = string | { url?: string };
 
@@ -313,6 +315,11 @@ export interface RawCatalogSettings {
   section_trust_badges?: boolean;
   // Orden de las secciones del home (keys), configurado en el admin (drag & drop).
   sections_order?: string[];
+  // Layout personalizable de la ficha de producto (drag & drop del admin). Cada
+  // token es un id de bloque predefinido o una referencia `custom:<uuid>` a una
+  // sección custom del detalle. Ausente/null = layout por defecto (render legacy).
+  // Ver src/lib/productLayout.ts.
+  product_layout?: { right_column?: string[]; below_product?: string[] } | null;
   // Shipping promise
   shipping_promise_enabled?: boolean;
   shipping_promise_title?: string;
@@ -535,6 +542,9 @@ export interface StoreConfig {
   };
   // Orden de las secciones del home (keys del admin). Vacío = orden por defecto.
   sectionsOrder: string[];
+  // Layout de la ficha de producto resuelto (o null si el tenant no configuró
+  // uno). null = render legacy fijo (idéntico a antes). Ver productLayout.ts.
+  productLayout: ProductLayout | null;
   // Shipping
   shippingPromiseEnabled: boolean;
   shippingPromiseTitle: string;

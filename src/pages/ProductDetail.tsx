@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronDown, Eye, Ruler, Tag, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
@@ -17,7 +17,7 @@ import { PriceDisplay } from '@/components/PriceDisplay';
 import { WholesalePurchasePanel } from '@/components/WholesalePurchasePanel';
 import { PromoCountdown } from '@/components/PromoCountdown';
 import { CardBadge } from '@/components/CardBadge';
-import { ProductDetailCustomSlot } from '@/components/ProductDetailCustomSlot';
+import { ProductDetailCustomSlot, CustomSectionNode } from '@/components/ProductDetailCustomSlot';
 import { RelatedProducts } from '@/components/RelatedProducts';
 import { ProductReviews } from '@/components/ProductReviews';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
@@ -26,7 +26,80 @@ import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSe
 import { useProductBadges } from '@/hooks/useProductBadges';
 import { formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
-import type { Variant } from '@/lib/types';
+import { isCustomToken, customTokenId, type ProductLayout } from '@/lib/productLayout';
+import type { CustomSection, Product, ProductDetailSlot, StoreConfig, Variant } from '@/lib/types';
+
+/**
+ * Renderiza la zona "debajo del producto" (ancho completo) en el ORDEN del
+ * layout configurado. Recorre `layout.below_product`: cada token es un bloque
+ * predefinido (purchase_flow/reviews/related) o una referencia `custom:<id>` a
+ * una sección custom de ese slot; los tokens desconocidos se ignoran. Las custom
+ * sections visibles que no estén referenciadas se agregan al final (forward-compat
+ * para secciones creadas después de configurar el layout). Sólo se usa cuando el
+ * tenant configuró un layout; sin layout, ProductDetail cae al render legacy.
+ */
+function BelowProductBlocks({
+  layout,
+  product,
+  config,
+  sections,
+}: {
+  layout: ProductLayout;
+  product: Product;
+  config: StoreConfig;
+  sections: CustomSection[];
+}) {
+  const belowCustoms = sections.filter((s) => (s.content as { slot?: ProductDetailSlot }).slot === 'below_product');
+  const byId = new Map(belowCustoms.map((s) => [s.id, s]));
+  const referenced = new Set<string>();
+  const nodes: ReactNode[] = [];
+
+  for (const token of layout.below_product) {
+    if (isCustomToken(token)) {
+      const sec = byId.get(customTokenId(token));
+      if (sec) {
+        referenced.add(sec.id);
+        nodes.push(<CustomSectionNode key={token} section={sec} />);
+      }
+      continue;
+    }
+    switch (token) {
+      case 'purchase_flow':
+        nodes.push(
+          <div key="purchase_flow" className="mx-auto max-w-[1200px] px-6">
+            <PurchaseFlow />
+          </div>,
+        );
+        break;
+      case 'reviews':
+        if (config.isPro && config.sections.productReviews) {
+          nodes.push(
+            <div key="reviews" className="px-6 pb-4 md:px-10 lg:px-16">
+              <ProductReviews />
+            </div>,
+          );
+        }
+        break;
+      case 'related':
+        if (config.isPro && config.sections.upsell) {
+          nodes.push(<RelatedProducts key="related" product={product} />);
+        }
+        break;
+      // 'upsells' queda reservado para la lectura de product_recommendations (fase
+      // siguiente): hoy no renderiza nada. Cualquier otro token se ignora.
+      default:
+        break;
+    }
+  }
+
+  // Forward-compat: custom sections visibles de below_product que el layout aún no
+  // referencia (p. ej. creadas después). Se muestran al final para no perderlas.
+  for (const sec of belowCustoms) {
+    if (!referenced.has(sec.id)) nodes.push(<CustomSectionNode key={`unref-${sec.id}`} section={sec} />);
+  }
+
+  return <>{nodes}</>;
+}
 
 // "X personas viendo" determinístico (sin Math.random, para estabilidad).
 function viewersFromId(id: string): number {
@@ -411,7 +484,9 @@ export function ProductDetail() {
 
           {config.sections.trustBadges && <TrustBadges />}
 
-          <PurchaseFlow />
+          {/* Con layout configurado, "Así funciona tu compra" se renderiza en la
+              zona ordenable de abajo (below_product); sin layout, queda acá como siempre. */}
+          {!config.productLayout && <PurchaseFlow />}
 
           <ProductDetailCustomSlot sections={pdSections} slot="above_description" />
 
@@ -426,17 +501,32 @@ export function ProductDetail() {
         </div>
       </div>
 
-      <ProductDetailCustomSlot sections={pdSections} slot="below_product" />
+      {/* Zona "debajo del producto". Con layout configurado se respeta el orden
+          guardado (bloques + custom sections de este slot); sin layout, render
+          legacy fijo (idéntico a antes). Los slots above/below_description y
+          below_gallery siguen por el mecanismo legacy en ambos casos (híbrido). */}
+      {config.productLayout ? (
+        <BelowProductBlocks
+          layout={config.productLayout}
+          product={product}
+          config={config}
+          sections={pdSections}
+        />
+      ) : (
+        <>
+          <ProductDetailCustomSlot sections={pdSections} slot="below_product" />
 
-      {/* Reseñas (Extra PRO): las mismas reseñas del home (social proof). El componente se autooculta si no hay reseñas. */}
-      {config.isPro && config.sections.productReviews && (
-        <div className="px-6 pb-4 md:px-10 lg:px-16">
-          <ProductReviews />
-        </div>
+          {/* Reseñas (Extra PRO): las mismas reseñas del home (social proof). El componente se autooculta si no hay reseñas. */}
+          {config.isPro && config.sections.productReviews && (
+            <div className="px-6 pb-4 md:px-10 lg:px-16">
+              <ProductReviews />
+            </div>
+          )}
+
+          {/* Productos relacionados (sección "upsell" del admin, PRO) */}
+          {config.isPro && config.sections.upsell && <RelatedProducts product={product} />}
+        </>
       )}
-
-      {/* Productos relacionados (sección "upsell" del admin, PRO) */}
-      {config.isPro && config.sections.upsell && <RelatedProducts product={product} />}
 
       {/* Sticky bar mobile (solo retail; el panel mayorista tiene su propio CTA inline) */}
       {!isWholesale && showSticky && (

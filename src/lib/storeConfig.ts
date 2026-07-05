@@ -1,4 +1,5 @@
 import type { PurchaseFlowStep, RawCatalogSettings, ResolvedStorefront, StoreConfig } from './types';
+import { resolveProductLayoutOrNull } from './productLayout';
 
 /** Pasos por defecto del flujo de compra (si el comercio no configuró los suyos). */
 export const DEFAULT_PURCHASE_FLOW: PurchaseFlowStep[] = [
@@ -182,6 +183,8 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     sectionsOrder: Array.isArray(s.sections_order)
       ? s.sections_order.filter((k): k is string => typeof k === 'string')
       : [],
+    // Layout de la ficha resuelto (null = el tenant no lo configuró → render legacy).
+    productLayout: resolveProductLayoutOrNull(s.product_layout),
 
     shippingPromiseEnabled: bool(s.shipping_promise_enabled, true),
     shippingPromiseTitle: shippingTitle,
