@@ -1,17 +1,14 @@
 // Optimización de imágenes servidas desde Supabase Storage.
 //
-// Supabase expone transformación de imágenes en el endpoint
-//   /storage/v1/render/image/public/<bucket>/<path>?width=&quality=&resize=
-// (sólo en planes pagos con Image Transformations activado). Reescribimos las
-// URLs públicas (`/storage/v1/object/public/`) a ese endpoint para servir
-// thumbnails livianos. Si el proyecto NO tiene transformación habilitada, el
-// componente <StoreImage> hace fallback a la URL original con onError, así las
-// imágenes nunca se rompen.
+// Antes reescribíamos las URLs públicas al endpoint de transformación de Supabase
+// (/storage/v1/render/image/) para servir thumbnails livianos, pero eso consume la
+// cuota de Image Transformations. Ya no hace falta: el origen se sube como WebP
+// ≤1200px (compressImage en procurva2), así que servimos la URL pública directa.
+// `transformedSrc` quedó como pass-through (ver abajo).
 
 const PUBLIC_OBJECT = '/storage/v1/object/public/';
-const RENDER_IMAGE = '/storage/v1/render/image/public/';
 
-/** ¿Es una URL pública de Supabase Storage que podemos transformar? */
+/** ¿Es una URL pública de Supabase Storage? */
 export function isSupabasePublicImage(url: string): boolean {
   return typeof url === 'string' && url.includes(PUBLIC_OBJECT);
 }
@@ -28,26 +25,17 @@ export interface TransformOpts {
 }
 
 /**
- * Devuelve la URL transformada (render/image) si es una imagen pública de
- * Supabase; si no, devuelve la URL original sin tocar.
+ * Pass-through: devuelve la URL pública directa sin transformar.
  *
- * Quirk de Supabase: con SOLO `width` (sin height) el render ignora el alto y
- * devuelve la imagen con el alto ORIGINAL (ej: 960x1280 → 500x1280), rompiendo
- * la proporción. Eso hacía que las fotos ya recortadas a 3:4 se vieran
- * "zoomeadas" en las cards (object-cover recortaba de nuevo). `resize=contain`
- * fuerza el escalado proporcional (500x667). Por eso:
- *  - width + height → se respeta el `resize` pedido (default cover, recorta al box).
- *  - solo width     → `resize=contain` (downscale proporcional, mantiene el 3:4).
+ * Mantiene la firma y `TransformOpts` por compatibilidad con los call sites
+ * (StoreImage, Hero, ProductGrid…), pero ignora width/height/quality/resize.
+ * Ver el comentario de cabecera del archivo para el porqué.
  */
-export function transformedSrc(url: string | null | undefined, opts: TransformOpts = {}): string {
-  if (!url || !isSupabasePublicImage(url)) return url ?? '';
-  const { width, height, quality = 70, resize } = opts;
-  const base = url.replace(PUBLIC_OBJECT, RENDER_IMAGE);
-  const params = new URLSearchParams();
-  if (width) params.set('width', String(Math.round(width)));
-  if (height) params.set('height', String(Math.round(height)));
-  params.set('quality', String(quality));
-  if (width && height) params.set('resize', resize ?? 'cover');
-  else if (width) params.set('resize', 'contain');
-  return `${base}?${params.toString()}`;
+export function transformedSrc(url: string | null | undefined, _opts: TransformOpts = {}): string {
+  // Pass-through: ya NO usamos el endpoint de transformación /storage/v1/render/image/
+  // (cuenta contra la cuota de Image Transformations). El origen ya se sube como
+  // WebP ≤1200px (compressImage en procurva2), así que servimos la URL pública
+  // directa sin transformar. Los argumentos (width/quality/resize) se ignoran a
+  // propósito; la firma y TransformOpts se mantienen para no tocar los call sites.
+  return url ?? '';
 }
