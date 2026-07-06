@@ -591,15 +591,15 @@ export function WholesalePurchasePanel({
                 {selectedCurves} {selectedCurves === 1 ? 'curva' : 'curvas'} · {totalCurvaUnits} un.
               </span>
               <div className="text-right">
-                <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
-                <p className="flex items-baseline justify-end gap-1">
+                <p className="text-[13px] font-medium leading-none text-subtle">Total</p>
+                <p className="mt-1 text-[26px] font-bold leading-none text-text">{formatPrice(totalCurvaUnits * d(activeTierPrice))}</p>
+                <p className="mt-1.5 flex items-baseline justify-end gap-1">
                   {promo && d(activeTierPrice) < activeTierPrice && (
-                    <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(activeTierPrice)}</span>
+                    <span className="text-[12px] font-medium text-subtle line-through">{formatPrice(activeTierPrice)}</span>
                   )}
-                  <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(activeTierPrice))}</span>
-                  <span className="text-[13px] font-medium text-subtle">c/u</span>
+                  <span className={`text-[15px] font-semibold ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(activeTierPrice))}</span>
+                  <span className="text-[12px] font-medium text-subtle">c/u</span>
                 </p>
-                <p className="mt-1.5 text-[18px] font-bold text-text">Total: {formatPrice(totalCurvaUnits * d(activeTierPrice))}</p>
               </div>
             </div>
           )}
@@ -649,15 +649,15 @@ export function WholesalePurchasePanel({
                 {surtidaCurves} {surtidaCurves === 1 ? 'curva' : 'curvas'} · {surtidaUnits} un.
               </span>
               <div className="text-right">
-                <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
-                <p className="flex items-baseline justify-end gap-1">
+                <p className="text-[13px] font-medium leading-none text-subtle">Total estimado</p>
+                <p className="mt-1 text-[26px] font-bold leading-none text-text">{formatPrice(surtidaUnits * d(surtidaPrice))}</p>
+                <p className="mt-1.5 flex items-baseline justify-end gap-1">
                   {promo && d(surtidaPrice) < surtidaPrice && (
-                    <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(surtidaPrice)}</span>
+                    <span className="text-[12px] font-medium text-subtle line-through">{formatPrice(surtidaPrice)}</span>
                   )}
-                  <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(surtidaPrice))}</span>
-                  <span className="text-[13px] font-medium text-subtle">c/u</span>
+                  <span className={`text-[15px] font-semibold ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(surtidaPrice))}</span>
+                  <span className="text-[12px] font-medium text-subtle">c/u</span>
                 </p>
-                <p className="mt-1.5 text-[18px] font-bold text-text">Total estimado: {formatPrice(surtidaUnits * d(surtidaPrice))}</p>
               </div>
             </div>
           ) : (
@@ -773,15 +773,15 @@ export function WholesalePurchasePanel({
               {packCountLabel(selectedPack, packCount)} · {packTotalUnits} un.
             </span>
             <div className="text-right">
-              <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
-              <p className="flex items-baseline justify-end gap-1">
+              <p className="text-[13px] font-medium leading-none text-subtle">Total</p>
+              <p className="mt-1 text-[26px] font-bold leading-none text-text">{formatPrice(packTotalUnits * d(packUnitPrice))}</p>
+              <p className="mt-1.5 flex items-baseline justify-end gap-1">
                 {promo && d(packUnitPrice) < packUnitPrice && (
-                  <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(packUnitPrice)}</span>
+                  <span className="text-[12px] font-medium text-subtle line-through">{formatPrice(packUnitPrice)}</span>
                 )}
-                <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(packUnitPrice))}</span>
-                <span className="text-[13px] font-medium text-subtle">c/u</span>
+                <span className={`text-[15px] font-semibold ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(packUnitPrice))}</span>
+                <span className="text-[12px] font-medium text-subtle">c/u</span>
               </p>
-              <p className="mt-1.5 text-[18px] font-bold text-text">Total: {formatPrice(packTotalUnits * d(packUnitPrice))}</p>
             </div>
           </div>
         </div>
