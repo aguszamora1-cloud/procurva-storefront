@@ -114,7 +114,7 @@ export function SocialProofSection() {
   };
 
   return (
-    <section className="mx-auto max-w-none px-6 py-10 md:py-24">
+    <section className="mx-auto max-w-none px-6 py-8 md:py-16">
       <SectionHeader label="Lo que dicen" title="Reseñas de clientes" />
       <div
         className="relative"

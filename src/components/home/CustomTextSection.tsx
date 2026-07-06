@@ -12,7 +12,7 @@ export function CustomTextSection({ section }: { section: CustomSection }) {
 
   return (
     <section style={c.background_color ? { backgroundColor: c.background_color } : undefined}>
-      <div className="mx-auto max-w-3xl px-6 py-10 md:py-24" style={{ textAlign: align }}>
+      <div className="mx-auto max-w-3xl px-6 py-8 md:py-16" style={{ textAlign: align }}>
         {heading ? (
           <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-4">{heading}</h2>
         ) : null}

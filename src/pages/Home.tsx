@@ -94,7 +94,7 @@ export function Home() {
   }, [products, fs.offersOrder, promoForProduct, priceFor, config.storeType]);
 
   const productSkeleton = (
-    <div className="mx-auto max-w-none px-6 py-10 md:py-24">
+    <div className="mx-auto max-w-none px-6 py-8 md:py-16">
       <ProductGridSkeleton />
     </div>
   );
