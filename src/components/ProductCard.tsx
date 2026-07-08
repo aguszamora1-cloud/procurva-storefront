@@ -36,7 +36,9 @@ export function ProductCard({ product, priority = false }: { product: Product; p
   const wholesaleDiscount = promo ? (p: number) => applyPromoToPrice(p, promo, 'wholesale') : undefined;
 
   // Badges (estilo/posición/íconos + candidatos por prioridad) desde config.badges.
-  const { outOfStock, badges: visibleBadges, style: badgeStyle, position: badgePosition, showIcons } = useProductBadges(product);
+  // La promo por cantidad ("LLEVANDO 2 = 10% OFF") solo se muestra en la ficha de
+  // producto, no en las cards del listado → includeQuantityPromo: false.
+  const { outOfStock, badges: visibleBadges, style: badgeStyle, position: badgePosition, showIcons } = useProductBadges(product, { includeQuantityPromo: false });
 
   // Minorista: catálogo limpio (foto + nombre + precio, sin recuadro ni acciones
   // de compra). Mayorista conserva su tarjeta y el flujo suelto/curva del detalle.

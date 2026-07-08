@@ -26,6 +26,15 @@ export interface ProductBadges {
   showIcons: boolean;
 }
 
+export interface ProductBadgesOptions {
+  /**
+   * Incluir el badge de promo por cantidad ("LLEVANDO 2 = 10% OFF"). Por defecto
+   * true (ficha de producto). La grilla (ProductCard) lo pasa en false: esa promo
+   * solo se muestra en el detalle, no en las cards del listado.
+   */
+  includeQuantityPromo?: boolean;
+}
+
 /** Texto legible sobre `bg`: contraste si es hex, var de acento si es CSS var. */
 const onBg = (bg: string): string => (bg.startsWith('#') ? contrastColor(bg) : 'var(--color-on-accent)');
 
@@ -41,7 +50,11 @@ const onBg = (bg: string): string => (bg.startsWith('#') ? contrastColor(bg) : '
  * Prioridad: Últimas unidades > Envío gratis > Descuento/Promo > badge del
  * comercio > Nuevo. "Sin stock" es excluyente (lo maneja el consumidor).
  */
-export function useProductBadges(product: Product | null | undefined): ProductBadges {
+export function useProductBadges(
+  product: Product | null | undefined,
+  options: ProductBadgesOptions = {},
+): ProductBadges {
+  const { includeQuantityPromo = true } = options;
   // TS lo tipa como siempre presente, pero defensivamente lo tratamos como
   // opcional: un cache normalizado viejo (pre-badges) podría no traer el campo.
   const storeBadges = useStore().badges;
@@ -93,7 +106,7 @@ export function useProductBadges(product: Product | null | undefined): ProductBa
   if (promo) {
     const bg = promo.badge_color || 'var(--color-accent)';
     badges.push({ key: 'promo', bg, color: onBg(bg), label: promo.badge_text || 'PROMO' });
-  } else if (qtyPromo) {
+  } else if (qtyPromo && includeQuantityPromo) {
     const bg = qtyPromo.badge_color || 'var(--color-accent)';
     badges.push({ key: 'qty_promo', bg, color: onBg(bg), label: qtyPromo.badge_text || 'PROMO' });
   } else if ((cfg?.discount?.enabled ?? true) && onSale && !isWholesale) {
