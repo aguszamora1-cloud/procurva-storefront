@@ -42,11 +42,13 @@ export interface ShippingOption {
 /**
  * Parsea el texto de cobertura CP cargado por el negocio ("1000-1499, 1601, 1700-1900")
  * a rangos numéricos. Acepta CPs de 3-4 dígitos. Tokens inválidos se ignoran.
+ * El campo del panel es un textarea, así que separamos por comas, saltos de línea
+ * y punto y coma indistintamente (muchos negocios cargan un CP por línea).
  */
 export function parsePostalCodeRanges(raw: unknown): [number, number][] {
   if (typeof raw !== 'string') return [];
   return raw
-    .split(',')
+    .split(/[\n\r;,]+/)
     .map((tok) => tok.trim())
     .filter(Boolean)
     .flatMap((tok): [number, number][] => {

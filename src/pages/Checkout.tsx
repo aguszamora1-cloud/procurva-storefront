@@ -253,15 +253,15 @@ export function Checkout() {
     return src.trim() ? normalizePostalCode(src) : null;
   }, [appliedCp, form.zip]);
 
-  // ¿Un método a domicilio cubre todo el país? Esos no dependen del CP para ofrecerse.
-  const coversEverywhere = (m: ShippingOption) => m.coversAllPostalCodes || m.postalCodeRanges.length === 0;
-
-  // Métodos disponibles: retiro en local SIEMPRE; envíos de cobertura total también
-  // (sin pedir CP); los envíos con zona acotada aparecen al calcular el CP y cubrir la zona.
+  // Métodos disponibles: retiro en local SIEMPRE; mientras el cliente no ingresó su CP
+  // mostramos TODOS los envíos (incluida la logística propia de zona acotada), igual que
+  // las transportadoras nacionales. Recién cuando ingresa el CP filtramos por zona: los
+  // de cobertura total (Correo Argentino, Vía Cargo) quedan para cualquier CP y los de
+  // zona acotada (cadete) se ocultan si el CP cae fuera de su cobertura.
   const availableMethods = useMemo(() => {
     return methods.filter((m) => {
       if (!m.requiresAddress) return true;        // retiro: no depende del CP
-      if (!cpNum) return coversEverywhere(m);      // sin CP: solo los de cobertura total
+      if (!cpNum) return true;                     // sin CP todavía: mostrar todos los envíos
       return methodCoversPostalCode(m, cpNum);
     });
   }, [methods, cpNum]);
