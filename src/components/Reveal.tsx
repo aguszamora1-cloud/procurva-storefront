@@ -18,6 +18,11 @@ export function Reveal({ children, className }: { children: ReactNode; className
       setShown(true);
       return;
     }
+    // Umbral por PÍXELES, no por porcentaje del elemento: con threshold 0.12 una
+    // sección muy alta (ej: una grilla de 12 productos de ~4000px) no se revelaba
+    // hasta scrollear ~460px dentro de ella, dejando una pantalla entera en blanco.
+    // Con threshold 0 + rootMargin inferior fijo, la sección aparece apenas su
+    // borde superior entra ~80px en el viewport, sin importar su alto.
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -25,7 +30,7 @@ export function Reveal({ children, className }: { children: ReactNode; className
           io.disconnect();
         }
       },
-      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' },
+      { threshold: 0, rootMargin: '0px 0px -80px 0px' },
     );
     io.observe(el);
     return () => io.disconnect();
