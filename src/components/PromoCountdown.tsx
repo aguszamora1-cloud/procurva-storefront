@@ -29,20 +29,22 @@ export function PromoCountdown({
   color,
   className = '',
 }: {
-  endsAt: string;
+  endsAt: string | null;
   label?: string;
   color?: string | null;
   className?: string;
 }) {
-  const [ms, setMs] = useState(() => remaining(endsAt));
+  const [ms, setMs] = useState(() => (endsAt ? remaining(endsAt) : 0));
 
   useEffect(() => {
+    if (!endsAt) return;
     setMs(remaining(endsAt));
     const id = window.setInterval(() => setMs(remaining(endsAt)), 1000);
     return () => window.clearInterval(id);
   }, [endsAt]);
 
-  if (ms <= 0) return null;
+  // Promo sin fecha de fin (permanente) -> no hay countdown que mostrar.
+  if (!endsAt || ms <= 0) return null;
 
   const accent = color || 'var(--color-accent)';
   return (

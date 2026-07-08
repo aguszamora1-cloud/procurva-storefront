@@ -29,9 +29,14 @@ export interface Promotion {
   discount_type: 'percentage' | 'fixed';
   discount_value_minorista: number;
   discount_value_mayorista: number;
+  // Canal en el que aplica la promo. Filas viejas sin la columna llegan como
+  // undefined -> se tratan como 'both' (comportamiento histórico).
+  channel?: 'retail' | 'wholesale' | 'both' | null;
   scope: 'all' | 'categories' | 'products';
-  starts_at: string;
-  ends_at: string;
+  // Vigencia OPCIONAL: null = sin límite (starts_at null aplica desde siempre;
+  // ends_at null no vence). Una promo activa sin fechas es permanente.
+  starts_at: string | null;
+  ends_at: string | null;
   stackable_with_coupons: boolean | null;
   min_purchase_amount: number | null;
   max_discount_amount: number | null;
@@ -61,8 +66,24 @@ export function isQuantityPromo(promo: Promotion): boolean {
   return promo.promo_type === 'quantity';
 }
 
-/** Valor de descuento de la promo según el tipo de tienda. */
+/**
+ * ¿La promo aplica al canal de este carrito? 'both' aplica a los dos; una promo
+ * sin `channel` (cache viejo pre-columna) se trata como 'both' para no cambiar
+ * el comportamiento histórico.
+ */
+export function promoMatchesChannel(promo: Promotion, storeType: StoreType): boolean {
+  const channel = promo.channel ?? 'both';
+  return channel === 'both' || channel === storeType;
+}
+
+/**
+ * Valor de descuento de la promo según el tipo de tienda. Chokepoint ÚNICO del
+ * filtro por canal: si la promo no aplica a `storeType`, devuelve 0 y así TODAS
+ * las funciones del motor (que descartan cuando el valor es <= 0) la ignoran
+ * sin necesidad de repetir el chequeo en cada loop.
+ */
 export function promoDiscountValue(promo: Promotion, storeType: StoreType): number {
+  if (!promoMatchesChannel(promo, storeType)) return 0;
   const v = storeType === 'wholesale' ? promo.discount_value_mayorista : promo.discount_value_minorista;
   return Number(v ?? 0);
 }

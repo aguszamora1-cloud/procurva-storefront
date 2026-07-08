@@ -57,14 +57,21 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
     (async () => {
       const nowIso = new Date().toISOString();
       // anon lee solo promos activas de catálogos habilitados (policy
-      // anon_read_active_promotions). Filtramos además por vigencia.
+      // anon_read_active_promotions). Filtramos además por vigencia, pero la
+      // vigencia es OPCIONAL: una promo sin fechas es permanente mientras esté
+      // activa. Por eso cada extremo tolera NULL:
+      //   (starts_at IS NULL OR starts_at <= ahora)  -> sin inicio o ya empezó
+      //   (ends_at   IS NULL OR ends_at   >= ahora)  -> sin fin o no venció
+      // Los dos .or() se combinan con AND entre sí (y con los .eq de arriba).
+      // Sin esto, `NULL <= ahora` da NULL (no TRUE) y la promo sin fechas
+      // quedaría excluida de la carga y nunca aplicaría.
       const { data, error } = await supabase
         .from('ecommerce_promotions')
         .select('*, ecommerce_promotion_items(item_type, item_id)')
         .eq('company_id', companyId)
         .eq('is_active', true)
-        .lte('starts_at', nowIso)
-        .gte('ends_at', nowIso);
+        .or(`starts_at.is.null,starts_at.lte.${nowIso}`)
+        .or(`ends_at.is.null,ends_at.gte.${nowIso}`);
       if (cancelled) return;
       if (error) {
         console.error('[Promotions] error cargando promociones', error);
