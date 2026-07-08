@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { StoreProvider, useStoreStatus } from '@/context/StoreProvider';
 import { WholesalePricingProvider } from '@/context/WholesalePricingContext';
 import { PromotionsProvider } from '@/context/PromotionsContext';
+import { CategoryTiersProvider } from '@/context/CategoryTiersContext';
 import { CartProvider } from '@/context/CartContext';
 import { Layout } from '@/components/Layout';
 import { ScrollToTop } from '@/components/ScrollToTop';
@@ -39,6 +40,7 @@ function StoreRoutes() {
     <CartProvider>
       <WholesalePricingProvider>
       <PromotionsProvider>
+      <CategoryTiersProvider>
       <BrowserRouter>
         <ScrollToTop />
         <Analytics />
@@ -61,6 +63,7 @@ function StoreRoutes() {
           </Suspense>
         </Layout>
       </BrowserRouter>
+      </CategoryTiersProvider>
       </PromotionsProvider>
       </WholesalePricingProvider>
     </CartProvider>

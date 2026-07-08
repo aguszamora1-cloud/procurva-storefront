@@ -44,14 +44,22 @@ export function useCartPromos(): CartPromosValue {
   const effectiveStoreType = storeType ?? 'retail';
 
   return useMemo(() => {
-    const lines: QtyPromoCartLine[] = items.map((it) => ({
-      key: cartLineKey(it),
-      productId: it.product_id,
-      categories: Array.isArray(it.categories) ? it.categories.filter(Boolean) as string[] : [],
-      qty: it.qty,
-      unitPriceBase: it.unit_price,
-      unitPriceOriginal: it.unit_price_original ?? it.unit_price,
-    }));
+    // Las líneas de "volume tiers" (source='tier') tienen su precio propio, resuelto
+    // por el motor de escalones por categoría (category_volume_tiers) al agregarlas.
+    // NO deben pasar por las promos por cantidad de ecommerce_promotions: son dos
+    // sistemas separados. Excluirlas evita el doble descuento y hace que el subtotal
+    // cierre exacto con las filas del carrito (su unit_price ya baja al subtotal
+    // por el loop de abajo, que recorre TODOS los items).
+    const lines: QtyPromoCartLine[] = items
+      .filter((it) => it.source !== 'tier')
+      .map((it) => ({
+        key: cartLineKey(it),
+        productId: it.product_id,
+        categories: Array.isArray(it.categories) ? (it.categories.filter(Boolean) as string[]) : [],
+        qty: it.qty,
+        unitPriceBase: it.unit_price,
+        unitPriceOriginal: it.unit_price_original ?? it.unit_price,
+      }));
 
     const byLine = computeQuantityPromos(lines, promotions, effectiveStoreType);
 

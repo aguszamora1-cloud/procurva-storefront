@@ -6,10 +6,15 @@ import type { CartItem } from './types';
  * clave incluye el source (y el packId en packs). En retail (source undefined →
  * 'suelto') es idéntico al comportamiento previo.
  */
-export function cartLineKey(item: Pick<CartItem, 'variant_id' | 'source' | 'packId' | 'lineId' | 'product_id'>): string {
+export function cartLineKey(
+  item: Pick<CartItem, 'variant_id' | 'source' | 'packId' | 'lineId' | 'product_id' | 'tierGroupId'>,
+): string {
   if (item.source === 'pack') return `${item.variant_id}::pack::${item.packId ?? ''}`;
   // Curva surtida: sin variant_id; cada línea es única (lineId) y no se fusiona.
   if (item.source === 'curva_surtida') return `surtida::${item.lineId ?? item.product_id}`;
+  // Tier (volume tiers retail): la clave incluye el grupo para no fusionar líneas
+  // de distintos escalones; dentro del mismo grupo, misma variante suma qty.
+  if (item.source === 'tier') return `tier::${item.tierGroupId ?? item.product_id}::${item.variant_id}`;
   return `${item.variant_id}::${item.source ?? 'suelto'}`;
 }
 
@@ -68,9 +73,15 @@ export interface CartDisplayRow {
   name: string;
   image: string | null;
   detail: string;
-  source: 'suelto' | 'curva' | 'curva_surtida' | 'pack';
+  source: 'suelto' | 'curva' | 'curva_surtida' | 'pack' | 'tier';
   units: number;
   lineTotal: number;
+  // Total a precio de lista (sin el descuento del escalón), para el tachado.
+  // Solo lo setean las filas 'tier'; undefined en el resto.
+  originalTotal?: number;
+  // Total equivalente en efectivo/transferencia (ya con el descuento del escalón).
+  // Solo filas 'tier' con precio de efectivo; undefined/null si no aplica.
+  cashTotal?: number | null;
   // lineKeys que componen la fila (para eliminar; una curva agrupa varias variantes).
   removeKeys: string[];
   // qty editable inline (suelto/retail). Las curvas se editan desde el producto.
@@ -86,9 +97,14 @@ export function groupCartItems(items: CartItem[]): CartDisplayRow[] {
   const rows: CartDisplayRow[] = [];
   const curveGroups = new Map<string, CartItem[]>();
   const packGroups = new Map<string, CartItem[]>();
+  const tierGroups = new Map<string, CartItem[]>();
 
   for (const it of items) {
-    if (it.source === 'curva') {
+    if (it.source === 'tier') {
+      // Volume tiers: agrupa las N unidades del escalón por tierGroupId.
+      const gk = it.tierGroupId ?? cartLineKey(it);
+      (tierGroups.get(gk) ?? tierGroups.set(gk, []).get(gk)!).push(it);
+    } else if (it.source === 'curva') {
       const gk = `${it.product_id}::${it.color ?? ''}`;
       (curveGroups.get(gk) ?? curveGroups.set(gk, []).get(gk)!).push(it);
     } else if (it.source === 'curva_surtida') {
@@ -140,6 +156,42 @@ export function groupCartItems(items: CartItem[]): CartDisplayRow[] {
       source: 'curva',
       units,
       lineTotal,
+      removeKeys: group.map(cartLineKey),
+      editable: false,
+    });
+  }
+
+  for (const group of tierGroups.values()) {
+    const first = group[0];
+    const units = group.reduce((s, i) => s + i.qty, 0);
+    // Total con tarjeta ya con el descuento del escalón (unit_price = descontado).
+    const lineTotal = group.reduce((s, i) => s + i.unit_price * i.qty, 0);
+    // Total a precio de lista (unit_price_original), para el tachado. Fallback a
+    // unit_price si alguna línea no lo trae (escalón sin descuento).
+    const originalTotal = group.reduce((s, i) => s + (i.unit_price_original ?? i.unit_price) * i.qty, 0);
+    // Total en efectivo/transferencia (unit_price_cash ya descontado), solo si TODAS
+    // las líneas del grupo lo tienen y es más barato que la tarjeta.
+    const hasCash = group.every((i) => i.unit_price_cash != null);
+    const cashTotalRaw = hasCash ? group.reduce((s, i) => s + (i.unit_price_cash as number) * i.qty, 0) : null;
+    const cashTotal = cashTotalRaw != null && cashTotalRaw < lineTotal ? cashTotalRaw : null;
+    // Sub-detalle de las variantes elegidas ("M/Negro · L/Rojo ×2 · ...").
+    const variantSummary = group
+      .map((i) => {
+        const v = [i.size, i.color].filter(Boolean).join('/') || 'Variante';
+        return i.qty > 1 ? `${v} ×${i.qty}` : v;
+      })
+      .join(' · ');
+    rows.push({
+      key: `tier::${first.tierGroupId ?? first.product_id}`,
+      productId: first.product_id,
+      name: first.name,
+      image: first.image_url,
+      detail: [first.tierLabel, variantSummary].filter(Boolean).join(' — '),
+      source: 'tier',
+      units,
+      lineTotal,
+      originalTotal,
+      cashTotal,
       removeKeys: group.map(cartLineKey),
       editable: false,
     });

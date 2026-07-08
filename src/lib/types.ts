@@ -674,9 +674,10 @@ export interface CartItem {
   qty: number;
   image_url: string | null;
   // Modo de compra mayorista. 'suelto' (default), 'curva', 'curva_surtida' o 'pack'.
-  // Retail no lo setea. 'curva_surtida' = curva con color por talle asignado
-  // server-side al confirmar (NO trae variant_id; el cliente solo elige cantidad).
-  source?: 'suelto' | 'curva' | 'curva_surtida' | 'pack';
+  // Retail no lo setea (salvo 'tier', ver abajo). 'curva_surtida' = curva con color
+  // por talle asignado server-side al confirmar (NO trae variant_id; el cliente
+  // solo elige cantidad).
+  source?: 'suelto' | 'curva' | 'curva_surtida' | 'pack' | 'tier';
   // Cantidad de curvas elegida (source==='curva' o 'curva_surtida'), para agrupar/mostrar.
   curves?: number;
   // Precio por unidad del tier (solo source==='curva_surtida'). Viaja al staging
@@ -700,4 +701,13 @@ export interface CartItem {
   unit_price_original?: number;
   // Si la promo NO es acumulable con cupones (gatea el cupón en el checkout).
   promo_stackable?: boolean;
+  // ── PROTOTIPO volume tiers (retail, source='tier') ──────────────────────────
+  // Las N unidades de un escalón ("Lleva 3") se agregan como N líneas que comparten
+  // este `tierGroupId`, y se muestran agrupadas en una sola fila no editable del
+  // carrito (mismo patrón que curva/pack). El descuento del escalón ya viene
+  // aplicado en `unit_price` (con `unit_price_original` para el tachado). Mock
+  // hardcodeado en la ficha; el modelo real vivirá en product_volume_tiers.
+  tierGroupId?: string;
+  // Etiqueta legible del escalón ("Lleva 3 — 15% OFF"), para la fila del carrito.
+  tierLabel?: string;
 }

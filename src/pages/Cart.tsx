@@ -71,6 +71,24 @@ export function Cart() {
                     <span className="text-[13px] font-semibold uppercase tracking-wide text-subtle">{row.units} unidades</span>
                   )}
                   {(() => {
+                    // Volume tiers: tachado = precio de lista (originalTotal), final =
+                    // total con tarjeta ya descontado, y debajo el total en efectivo.
+                    if (row.source === 'tier') {
+                      const showStrike = row.originalTotal != null && row.originalTotal > row.lineTotal;
+                      return (
+                        <div className="text-right">
+                          <span className="flex items-baseline justify-end gap-2">
+                            {showStrike && <span className="text-[13px] text-subtle line-through">{formatPrice(row.originalTotal as number)}</span>}
+                            <span className={`text-[16px] font-bold ${showStrike ? 'text-accent' : 'text-text'}`}>{formatPrice(row.lineTotal)}</span>
+                          </span>
+                          {row.cashTotal != null && (
+                            <span className="mt-0.5 block text-[12px] text-subtle">
+                              <span className="font-semibold text-text">{formatPrice(row.cashTotal)}</span> efectivo o transferencia
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }
                     const r = byLine.get(row.removeKeys[0]);
                     if (r?.active) {
                       return (
