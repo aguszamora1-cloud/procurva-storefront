@@ -27,6 +27,7 @@ export function ProductGallery({ items, alt, activeIndex }: Props) {
   const [idx, setIdx] = useState(0);
   const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const touchRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (typeof activeIndex === 'number') setIdx(activeIndex);
@@ -43,6 +44,8 @@ export function ProductGallery({ items, alt, activeIndex }: Props) {
     if (v && !v.paused) v.pause();
   }, [safeIdx]);
 
+  const goTo = (i: number) => setIdx(Math.max(0, Math.min(i, items.length - 1)));
+
   const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (activeIsVideo) return; // sin zoom en videos
     const rect = e.currentTarget.getBoundingClientRect();
@@ -50,6 +53,29 @@ export function ProductGallery({ items, alt, activeIndex }: Props) {
       x: ((e.clientX - rect.left) / rect.width) * 100,
       y: ((e.clientY - rect.top) / rect.height) * 100,
     });
+  };
+
+  // Swipe táctil (mobile) para pasar entre fotos y videos. En un video se ignora
+  // el swipe que arranca sobre la barra de controles (abajo) para no chocar con
+  // el play/scrubber. Sólo actuamos si el gesto es claramente horizontal.
+  const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (items.length < 2) { touchRef.current = null; return; }
+    const t = e.touches[0];
+    if (activeIsVideo) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      if ((t.clientY - rect.top) / rect.height > 0.8) { touchRef.current = null; return; }
+    }
+    touchRef.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    const start = touchRef.current;
+    touchRef.current = null;
+    if (!start || items.length < 2) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
+    goTo(dx < 0 ? safeIdx + 1 : safeIdx - 1);
   };
 
   const thumb = (item: GalleryItem, i: number, sizeCls: string) => (
@@ -94,6 +120,8 @@ export function ProductGallery({ items, alt, activeIndex }: Props) {
           }`}
           onMouseMove={handleMove}
           onMouseLeave={() => setZoom(null)}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
         >
           {active && activeIsVideo ? (
             <video
@@ -103,7 +131,7 @@ export function ProductGallery({ items, alt, activeIndex }: Props) {
               controls
               playsInline
               preload="none"
-              className="h-full w-full bg-black object-contain"
+              className="h-full w-full object-cover"
             />
           ) : active ? (
             <StoreImage
