@@ -5,6 +5,15 @@ import type { ProductLayout } from './productLayout';
 /** Imagen de producto: en `products.images` puede venir string o {url}. */
 export type ProductImage = string | { url?: string };
 
+/** Fila de product_media (galería mixta). Fase 1: sólo type='video'. */
+export interface ProductMediaRow {
+  id: string;
+  type: 'image' | 'video';
+  url: string;
+  thumbnail_url: string | null;
+  sort_order: number;
+}
+
 /** Fila cruda de product_variants. */
 export interface Variant {
   id: string;
@@ -80,6 +89,9 @@ export interface Product {
   wholesale_price: number | null;
   image_url: string | null;
   images: ProductImage[] | null;
+  // Videos del producto (product_media, type='video'). Puede no venir si la
+  // migración aún no se aplicó (useProduct cae a un SELECT sin este embed).
+  product_media?: ProductMediaRow[] | null;
   categories: string[] | null;
   catalog_visible: boolean | null;
   catalog_badge_text: string | null;

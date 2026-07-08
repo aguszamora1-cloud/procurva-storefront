@@ -18,9 +18,10 @@ const PRODUCT_COLUMNS_BASE = `
   pack_only_sale, created_at,
   product_variants ( id, product_id, company_id, size, color, stock, price, sku, image_url )
 `;
-// curva_surtida_enabled va aparte: si la migración todavía no se aplicó la query
-// falla y caemos a BASE (sin romper el detalle; la curva surtida no se ofrece).
-const PRODUCT_COLUMNS = `${PRODUCT_COLUMNS_BASE}, curva_surtida_enabled, free_shipping`;
+// curva_surtida_enabled y product_media van aparte: si esas migraciones todavía
+// no se aplicaron la query falla y caemos a BASE (sin romper el detalle; la
+// curva surtida no se ofrece y no se muestran videos).
+const PRODUCT_COLUMNS = `${PRODUCT_COLUMNS_BASE}, curva_surtida_enabled, free_shipping, product_media ( id, type, url, thumbnail_url, sort_order )`;
 
 /** Un producto por id, scoped al tenant actual. */
 export function useProduct(productId: string | undefined): ProductState {
@@ -47,8 +48,9 @@ export function useProduct(productId: string | undefined): ProductState {
         .eq('id', productId)
         .maybeSingle();
 
-      // Fallback si la columna opcional aún no existe (migración sin aplicar).
-      if (error && /curva_surtida_enabled/i.test(error.message)) {
+      // Fallback si algo opcional aún no existe (migración sin aplicar):
+      // curva_surtida_enabled/free_shipping (columnas) o product_media (tabla).
+      if (error && /curva_surtida_enabled|free_shipping|product_media/i.test(error.message)) {
         ({ data, error } = await supabase
           .from('products')
           .select(PRODUCT_COLUMNS_BASE)

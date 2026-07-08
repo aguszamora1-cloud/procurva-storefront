@@ -1,31 +1,50 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Play } from 'lucide-react';
 import { StoreImage } from './StoreImage';
 
+/** Ítem de la galería: imagen o video (con poster). */
+export interface GalleryItem {
+  kind: 'image' | 'video';
+  src: string;
+  /** Poster del video (thumbnail_url). Sólo para kind==='video'. */
+  poster?: string;
+}
+
 interface Props {
-  images: string[];
+  items: GalleryItem[];
   alt: string;
   /** Índice forzado desde afuera (ej: al elegir un color). */
   activeIndex?: number;
 }
 
 /**
- * Galería con hover-zoom en desktop. Thumbnails: columna vertical 80px a la
- * izquierda en desktop, fila horizontal con scroll debajo en mobile. Réplica
- * del ProductGallery de RSW.
+ * Galería mixta (imágenes + videos). Imágenes: hover-zoom en desktop (igual que
+ * antes). Videos: <video preload="none" poster controls playsInline>, sólo se
+ * cargan al interactuar. Thumbnails: columna vertical 80px a la izquierda en
+ * desktop, fila horizontal con scroll debajo en mobile.
  */
-export function ProductGallery({ images, alt, activeIndex }: Props) {
+export function ProductGallery({ items, alt, activeIndex }: Props) {
   const [idx, setIdx] = useState(0);
   const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (typeof activeIndex === 'number') setIdx(activeIndex);
   }, [activeIndex]);
 
-  const hasMany = images.length > 1;
-  const safeIdx = images.length > 0 ? Math.min(idx, images.length - 1) : 0;
-  const active = images[safeIdx] ?? null;
+  const hasMany = items.length > 1;
+  const safeIdx = items.length > 0 ? Math.min(idx, items.length - 1) : 0;
+  const active = items[safeIdx] ?? null;
+  const activeIsVideo = active?.kind === 'video';
+
+  // Al cambiar de slide, pausamos el video que estaba sonando.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v && !v.paused) v.pause();
+  }, [safeIdx]);
 
   const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (activeIsVideo) return; // sin zoom en videos
     const rect = e.currentTarget.getBoundingClientRect();
     setZoom({
       x: ((e.clientX - rect.left) / rect.width) * 100,
@@ -33,17 +52,30 @@ export function ProductGallery({ images, alt, activeIndex }: Props) {
     });
   };
 
-  const thumb = (src: string, i: number, sizeCls: string) => (
+  const thumb = (item: GalleryItem, i: number, sizeCls: string) => (
     <button
-      key={`${src}-${i}`}
+      key={`${item.src}-${i}`}
       type="button"
       onClick={() => setIdx(i)}
-      aria-label={`Imagen ${i + 1}`}
-      className={`${sizeCls} flex-shrink-0 overflow-hidden transition-opacity ${
+      aria-label={item.kind === 'video' ? `Video ${i + 1}` : `Imagen ${i + 1}`}
+      className={`${sizeCls} relative flex-shrink-0 overflow-hidden transition-opacity ${
         i === safeIdx ? 'border-2 border-text opacity-100' : 'border border-line opacity-70 hover:opacity-100'
       }`}
     >
-      <StoreImage src={src} alt="" transformWidth={160} width={80} height={96} className="h-full w-full object-cover" />
+      {item.kind === 'video' && item.poster ? (
+        <StoreImage src={item.poster} alt="" transformWidth={160} className="h-full w-full object-cover" />
+      ) : item.kind === 'video' ? (
+        <span className="flex h-full w-full items-center justify-center bg-secondary" />
+      ) : (
+        <StoreImage src={item.src} alt="" transformWidth={160} width={80} height={96} className="h-full w-full object-cover" />
+      )}
+      {item.kind === 'video' && (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/50">
+            <Play className="h-3.5 w-3.5 fill-white text-white" />
+          </span>
+        </span>
+      )}
     </button>
   );
 
@@ -52,18 +84,30 @@ export function ProductGallery({ images, alt, activeIndex }: Props) {
       <div className={hasMany ? 'md:grid md:grid-cols-[80px_1fr] md:gap-3' : ''}>
         {hasMany && (
           <div className="no-scrollbar hidden md:flex md:max-h-[600px] md:flex-col md:gap-2 md:overflow-y-auto">
-            {images.map((src, i) => thumb(src, i, 'w-20 h-20'))}
+            {items.map((item, i) => thumb(item, i, 'w-20 h-20'))}
           </div>
         )}
 
         <div
-          className="relative aspect-[3/4] cursor-zoom-in overflow-hidden rounded-[12px] bg-secondary md:max-h-[80vh]"
+          className={`relative aspect-[3/4] overflow-hidden rounded-[12px] bg-secondary md:max-h-[80vh] ${
+            activeIsVideo ? '' : 'cursor-zoom-in'
+          }`}
           onMouseMove={handleMove}
           onMouseLeave={() => setZoom(null)}
         >
-          {active ? (
+          {active && activeIsVideo ? (
+            <video
+              ref={videoRef}
+              src={active.src}
+              poster={active.poster}
+              controls
+              playsInline
+              preload="none"
+              className="h-full w-full bg-black object-contain"
+            />
+          ) : active ? (
             <StoreImage
-              src={active}
+              src={active.src}
               alt={alt}
               transformWidth={1000}
               loading="eager"
@@ -80,7 +124,7 @@ export function ProductGallery({ images, alt, activeIndex }: Props) {
 
       {hasMany && (
         <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto md:hidden">
-          {images.map((src, i) => thumb(src, i, 'w-20 h-24'))}
+          {items.map((item, i) => thumb(item, i, 'w-20 h-24'))}
         </div>
       )}
     </>

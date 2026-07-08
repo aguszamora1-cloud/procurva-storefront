@@ -7,7 +7,7 @@ import { useStore, useStoreType } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { usePromotions } from '@/context/PromotionsContext';
 import { Seo } from '@/components/Seo';
-import { ProductGallery } from '@/components/ProductGallery';
+import { ProductGallery, type GalleryItem } from '@/components/ProductGallery';
 import { ColorSelector } from '@/components/ColorSelector';
 import { SizeSelector } from '@/components/SizeSelector';
 import { SizeFinder } from '@/components/SizeFinder';
@@ -152,13 +152,38 @@ export function ProductDetail() {
     );
 
   const images = product ? productImages(product) : [];
+  // Galería unificada: si product_media ya tiene imágenes, es la fuente (orden
+  // por sort_order, fotos y videos intercalados como los dejó el comercio). Si
+  // no (legacy sin backfill), fallback: imágenes de products.images + videos de
+  // product_media al final (comportamiento previo).
+  const galleryItems = useMemo<GalleryItem[]>(() => {
+    const rows = (product?.product_media ?? [])
+      .filter((m) => !!m.url)
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order);
+    const hasImageRows = rows.some((m) => m.type === 'image');
+    if (hasImageRows) {
+      return rows.map((m): GalleryItem =>
+        m.type === 'video'
+          ? { kind: 'video', src: m.url, poster: m.thumbnail_url ?? undefined }
+          : { kind: 'image', src: m.url },
+      );
+    }
+    const imgItems: GalleryItem[] = images.map((src) => ({ kind: 'image', src }));
+    const videoItems: GalleryItem[] = rows
+      .filter((m) => m.type === 'video')
+      .map((m) => ({ kind: 'video', src: m.url, poster: m.thumbnail_url ?? undefined }));
+    return [...imgItems, ...videoItems];
+  }, [images, product?.product_media]);
+
+  // Al elegir un color, saltar a la foto de esa variante dentro de la galería.
   const activeImageIndex = useMemo(() => {
     if (!selectedColor) return undefined;
     const variantImg = variants.find((v) => v.color === selectedColor && v.image_url)?.image_url;
     if (!variantImg) return undefined;
-    const i = images.indexOf(variantImg);
+    const i = galleryItems.findIndex((it) => it.kind === 'image' && it.src === variantImg);
     return i >= 0 ? i : undefined;
-  }, [selectedColor, variants, images]);
+  }, [selectedColor, variants, galleryItems]);
 
   useEffect(() => {
     const el = addBtnRef.current;
@@ -323,7 +348,7 @@ export function ProductDetail() {
           className="md:sticky md:w-[54%] md:shrink-0 md:self-start"
           style={{ top: 'calc(var(--header-h, 64px) + 16px)' }}
         >
-          <ProductGallery images={images} alt={product.name} activeIndex={activeImageIndex} />
+          <ProductGallery items={galleryItems} alt={product.name} activeIndex={activeImageIndex} />
           <ProductDetailCustomSlot sections={pdSections} slot="below_gallery" />
         </div>
 
