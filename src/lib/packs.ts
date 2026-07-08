@@ -3,7 +3,7 @@
 // (tabla de la card) y WholesalePurchasePanel (tab "Por pack" del detalle).
 import type { CartItem, CurvePriceTier, PackPriceTier, Product, ProductPack } from './types';
 import { sortSizes } from './utils';
-import { priceRows as curvePriceRows, type PriceRow } from './wholesale';
+import { priceRows as curvePriceRows, sortedTiers, type PriceRow } from './wholesale';
 
 export type PackCategory = 'half_dozen' | 'dozen' | 'bulto';
 
@@ -136,6 +136,22 @@ export function combinedPriceRows(
     }
   }
   return rows;
+}
+
+/**
+ * Filas de precio de la CURVA SURTIDA (modalidad independiente de la curva de
+ * mismo color). Se muestran como líneas sueltas, sin encabezado y SIN participar
+ * del ranking "MEJOR PRECIO" (best siempre false). Vacío si no hay tiers.
+ */
+export function curvaSurtidaRows(tiers: CurvePriceTier[]): PriceRow[] {
+  const sorted = sortedTiers(tiers);
+  return sorted.map((t, i) => {
+    const isLast = i === sorted.length - 1 && sorted.length > 1;
+    const label = isLast
+      ? `${t.curve_quantity}+ curvas surtidas`
+      : `${t.curve_quantity} ${t.curve_quantity === 1 ? 'curva surtida' : 'curvas surtidas'}`;
+    return { label, price: t.price_per_unit, best: false };
+  });
 }
 
 /**

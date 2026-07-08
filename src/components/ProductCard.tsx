@@ -29,7 +29,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
     : `/producto/${product.id}`;
   const siblingColors = product.variant_color ? product.sibling_colors ?? [] : [];
   const isWholesale = useStoreType() === 'wholesale';
-  const { curveTiers, productPacks } = useWholesalePricing();
+  const { curveTiers, curvaSurtidaTiers, productPacks } = useWholesalePricing();
   const { promoForProduct } = usePromotions();
   // Promoción automática vigente: en mayorista descuenta cada precio por unidad.
   const promo = promoForProduct(product);
@@ -96,6 +96,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
               wholesalePrice={product.wholesale_price ?? 0}
               tiers={curveTiers[product.id] ?? []}
               packs={productPacks[product.id] ?? []}
+              curvaSurtidaTiers={curvaSurtidaTiers[product.id]}
               variant="card"
               discount={wholesaleDiscount}
             />

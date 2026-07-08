@@ -1,5 +1,5 @@
 import { formatPrice } from '@/lib/utils';
-import { combinedPriceRows } from '@/lib/packs';
+import { combinedPriceRows, curvaSurtidaRows } from '@/lib/packs';
 import type { CurvePriceTier, ProductPack } from '@/lib/types';
 
 /**
@@ -14,18 +14,22 @@ export function WholesalePriceTable({
   wholesalePrice,
   tiers,
   packs = [],
+  curvaSurtidaTiers,
   variant = 'card',
   discount,
 }: {
   wholesalePrice: number;
   tiers: CurvePriceTier[];
   packs?: ProductPack[];
+  /** Tiers de curva surtida (modalidad independiente): líneas sueltas sin best. */
+  curvaSurtidaTiers?: CurvePriceTier[];
   variant?: 'card' | 'detail';
   /** Si hay promo mayorista vigente: descuenta cada precio por unidad. */
   discount?: (price: number) => number;
 }) {
   const rows = combinedPriceRows(wholesalePrice, tiers, packs);
-  if (wholesalePrice <= 0 && rows.length <= 1) {
+  const surtidaRows = curvaSurtidaTiers?.length ? curvaSurtidaRows(curvaSurtidaTiers) : [];
+  if (wholesalePrice <= 0 && rows.length <= 1 && surtidaRows.length === 0) {
     return <p className="text-[15px] font-semibold text-subtle">Consultar precio</p>;
   }
 
@@ -59,6 +63,24 @@ export function WholesalePriceTable({
 
         return (
           <div key={`${r.label}-${i}`} className="flex items-center justify-between gap-2">
+            <span className="text-[14px] font-medium text-muted">{r.label}</span>
+            <span className="flex items-baseline gap-1.5">
+              {onPromo && <span className="text-[12px] font-medium text-subtle line-through tabular-nums">{formatPrice(r.price)}</span>}
+              <span className={onPromo ? 'text-[14px] font-semibold text-accent tabular-nums' : 'text-[14px] font-semibold text-text tabular-nums'}>
+                {formatPrice(promoPrice)}
+              </span>
+            </span>
+          </div>
+        );
+      })}
+
+      {/* Curva surtida: modalidad independiente. Líneas sueltas, sin encabezado y
+          sin participar del "MEJOR PRECIO" (mismo markup que la fila simple). */}
+      {surtidaRows.map((r, i) => {
+        const promoPrice = discount ? discount(r.price) : r.price;
+        const onPromo = discount != null && promoPrice < r.price;
+        return (
+          <div key={`surtida-${r.label}-${i}`} className="flex items-center justify-between gap-2">
             <span className="text-[14px] font-medium text-muted">{r.label}</span>
             <span className="flex items-baseline gap-1.5">
               {onPromo && <span className="text-[12px] font-medium text-subtle line-through tabular-nums">{formatPrice(r.price)}</span>}
