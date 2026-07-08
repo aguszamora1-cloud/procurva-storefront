@@ -12,6 +12,8 @@ export interface ProductMediaRow {
   url: string;
   thumbnail_url: string | null;
   sort_order: number;
+  // Encuadre del video (CSS object-position, ej '50% 30%'). NULL = centrado.
+  object_position?: string | null;
 }
 
 /** Fila cruda de product_variants. */

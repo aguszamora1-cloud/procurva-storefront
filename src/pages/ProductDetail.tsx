@@ -165,14 +165,14 @@ export function ProductDetail() {
     if (hasImageRows) {
       return rows.map((m): GalleryItem =>
         m.type === 'video'
-          ? { kind: 'video', src: m.url, poster: m.thumbnail_url ?? undefined }
+          ? { kind: 'video', src: m.url, poster: m.thumbnail_url ?? undefined, objectPosition: m.object_position ?? undefined }
           : { kind: 'image', src: m.url },
       );
     }
     const imgItems: GalleryItem[] = images.map((src) => ({ kind: 'image', src }));
     const videoItems: GalleryItem[] = rows
       .filter((m) => m.type === 'video')
-      .map((m) => ({ kind: 'video', src: m.url, poster: m.thumbnail_url ?? undefined }));
+      .map((m) => ({ kind: 'video', src: m.url, poster: m.thumbnail_url ?? undefined, objectPosition: m.object_position ?? undefined }));
     return [...imgItems, ...videoItems];
   }, [images, product?.product_media]);
 

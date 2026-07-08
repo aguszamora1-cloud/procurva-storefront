@@ -8,6 +8,8 @@ export interface GalleryItem {
   src: string;
   /** Poster del video (thumbnail_url). Sólo para kind==='video'. */
   poster?: string;
+  /** Encuadre del video (CSS object-position). Sólo para kind==='video'. */
+  objectPosition?: string;
 }
 
 interface Props {
@@ -89,7 +91,7 @@ export function ProductGallery({ items, alt, activeIndex }: Props) {
       }`}
     >
       {item.kind === 'video' && item.poster ? (
-        <StoreImage src={item.poster} alt="" transformWidth={160} className="h-full w-full object-cover" />
+        <StoreImage src={item.poster} alt="" transformWidth={160} className="h-full w-full object-cover" style={{ objectPosition: item.objectPosition || '50% 50%' }} />
       ) : item.kind === 'video' ? (
         <span className="flex h-full w-full items-center justify-center bg-secondary" />
       ) : (
@@ -132,6 +134,7 @@ export function ProductGallery({ items, alt, activeIndex }: Props) {
               playsInline
               preload="none"
               className="h-full w-full object-cover"
+              style={{ objectPosition: active.objectPosition || '50% 50%' }}
             />
           ) : active ? (
             <StoreImage
