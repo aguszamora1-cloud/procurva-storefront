@@ -253,15 +253,19 @@ export function Checkout() {
     return src.trim() ? normalizePostalCode(src) : null;
   }, [appliedCp, form.zip]);
 
-  // Métodos disponibles: retiro en local SIEMPRE; mientras el cliente no ingresó su CP
-  // mostramos TODOS los envíos (incluida la logística propia de zona acotada), igual que
-  // las transportadoras nacionales. Recién cuando ingresa el CP filtramos por zona: los
-  // de cobertura total (Correo Argentino, Vía Cargo) quedan para cualquier CP y los de
-  // zona acotada (cadete) se ocultan si el CP cae fuera de su cobertura.
+  // ¿El método cubre todo el país? (transportadoras nacionales tipo Correo Argentino,
+  // Vía Cargo). Esas son para envío a otras localidades y se ofrecen recién con el CP.
+  const coversEverywhere = (m: ShippingOption) => m.coversAllPostalCodes || m.postalCodeRanges.length === 0;
+
+  // Métodos disponibles: retiro en local SIEMPRE. Mientras el cliente no ingresó su CP
+  // mostramos solo la logística propia / de zona acotada (cadete); las transportadoras
+  // nacionales (Correo Argentino, Vía Cargo) aparecen recién cuando ingresa el CP, porque
+  // son para envío a otras localidades. Con CP filtramos por zona: las de cobertura total
+  // quedan para cualquier CP y la logística propia se oculta si el CP cae fuera de su zona.
   const availableMethods = useMemo(() => {
     return methods.filter((m) => {
-      if (!m.requiresAddress) return true;        // retiro: no depende del CP
-      if (!cpNum) return true;                     // sin CP todavía: mostrar todos los envíos
+      if (!m.requiresAddress) return true;         // retiro: no depende del CP
+      if (!cpNum) return !coversEverywhere(m);      // sin CP: solo logística propia (zona acotada)
       return methodCoversPostalCode(m, cpNum);
     });
   }, [methods, cpNum]);
