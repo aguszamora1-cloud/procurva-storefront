@@ -81,11 +81,13 @@ export async function createCatalogOrder(
     priceMode: 'cash' | 'card';
     // true si el pago se cobra online por una pasarela (Mercado Pago o GoCuotas).
     // Si es true NO se auto-confirma: la pasarela exige la orden en 'pending' y
-    // la confirma su propio webhook al aprobarse el pago.
+    // la venta real la crea su propio webhook recién al aprobarse el pago (si el
+    // cliente abandona el checkout, nunca se genera la venta).
     viaMercadoPago: boolean;
-    // Transferencia bancaria directa: el pedido queda pendiente de pago y NO se
-    // auto-confirma (no se descuenta stock en firme) hasta que el comercio
-    // verifica el comprobante manualmente.
+    // Transferencia bancaria directa (con alias/CBU cargado). Se trata igual que
+    // efectivo: SÍ se auto-confirma al confirmar el pedido — cae al listado de
+    // ventas como Pendiente (Por cobrar) y el comercio marca el pago cuando llega
+    // el comprobante. (Se conserva la flag por trazabilidad; ya no altera el gate.)
     manualTransfer?: boolean;
     // Cupón aplicado (opcional). El `total` que se pasa ya viene con el
     // descuento restado; estos campos son para el desglose y el tracking.
@@ -155,17 +157,20 @@ export async function createCatalogOrder(
 
   // Auto-confirmación para plan PROFESIONAL: crea la orden real en el ERP al
   // momento de la creación (descuenta stock, registra el movimiento), sin
-  // depender del webhook de MercadoPago. Server-side, idempotente y no
-  // bloqueante: ante cualquier fallo el pedido queda `pending`.
+  // depender de un webhook. Server-side, idempotente y no bloqueante: ante
+  // cualquier fallo el pedido queda `pending`.
   //
-  // IMPORTANTE: NO se auto-confirma cuando el pago va por Mercado Pago.
-  // create-preference exige que la orden esté en 'pending'; si el auto-confirm
-  // la pasa a 'confirmed' primero, create-preference responde 400 ("La orden
-  // ya fue procesada") y el cliente NO puede pagar. Para MP, la orden real la
-  // crea mp-catalog-webhook recién cuando el pago se aprueba (descuenta stock
-  // + registra la transacción). El auto-confirm queda para WhatsApp (cobro
-  // coordinado, sin pago online que dispare webhook).
-  if (!opts.viaMercadoPago && !opts.manualTransfer) {
+  // Se auto-confirma para EFECTIVO y TRANSFERENCIA: son ventas comprometidas
+  // (el cobro se coordina/verifica fuera de línea), así que caen al listado de
+  // ventas al instante como Pendiente (Por cobrar) y el comercio marca el pago
+  // cuando llega. `viaMercadoPago` es false para todos estos (routing 'wa').
+  //
+  // NO se auto-confirma cuando el pago va por una pasarela online (Mercado Pago
+  // o GoCuotas). Dos motivos: (1) create-preference exige la orden en 'pending'
+  // — si se pasara a 'confirmed' antes, responde 400 y el cliente no puede
+  // pagar; (2) si el cliente abandona el checkout, NO debe generarse la venta.
+  // Para esos casos la orden real la crea el webhook recién al aprobarse el pago.
+  if (!opts.viaMercadoPago) {
     await triggerAutoConfirm(effectiveOrderId);
   }
 
