@@ -230,6 +230,8 @@ export interface ProductReview {
 export interface OutfitItem {
   product_id: string;
   order: number | null;
+  // Color fijado de la prenda dentro del look. null = el cliente elige.
+  variant_color?: string | null;
 }
 
 /** Outfit / look (Extra PRO): combinación de productos. */
@@ -238,9 +240,16 @@ export interface Outfit {
   company_id: string;
   name: string;
   description: string | null;
+  // Primera foto (dual-write de image_urls[0]); retrocompat.
   image_url: string | null;
+  // Galería de fotos del look (carrusel).
+  image_urls?: string[] | null;
   order: number | null;
   active: boolean | null;
+  // Precio de combo (efectivo/contado) del look completo. NULL = sin combo: se
+  // usa la suma de las prendas. El precio tarjeta se deriva con el ratio real
+  // tarjeta/efectivo de las prendas del outfit.
+  combo_price?: number | null;
   items: OutfitItem[];
 }
 
@@ -710,4 +719,10 @@ export interface CartItem {
   tierGroupId?: string;
   // Etiqueta legible del escalón ("Lleva 3 — 15% OFF"), para la fila del carrito.
   tierLabel?: string;
+  // ── Outfit combo ────────────────────────────────────────────────────────────
+  // Id del outfit del que proviene esta línea (para trazabilidad). Cuando el
+  // outfit tiene combo_price, `unit_price`/`unit_price_cash` YA vienen con el
+  // combo prorrateado por prenda (Σ = combo_price), y `unit_price_original` trae
+  // el precio suelto para el tachado.
+  outfit_id?: string;
 }
