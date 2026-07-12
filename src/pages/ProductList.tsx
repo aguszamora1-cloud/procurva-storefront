@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
@@ -19,12 +19,17 @@ const toggleInSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>) 
     return next;
   });
 
+/** Normaliza texto para buscar sin distinguir acentos ni mayúsculas. */
+const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
 export function ProductList() {
   const { products, isLoading, error, reload } = useProducts();
   const config = useStore();
   const { categories } = useCategories(products);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const preCat = searchParams.get('categoria');
+  // Búsqueda por texto (?q=). Filtra por nombre/marca/descripción sin acentos.
+  const query = (searchParams.get('q') ?? '').trim();
 
   // La categoría que viene en la URL (?categoria=) queda preseleccionada.
   const [selectedCats, setSelectedCats] = useState<Set<string>>(() => new Set(preCat ? [preCat] : []));
@@ -61,6 +66,11 @@ export function ProductList() {
   const filtered = useMemo(
     () =>
       products.filter((p) => {
+        if (query) {
+          const nq = norm(query);
+          const hay = norm([p.name, (p as { sku?: string }).sku, (p as { brand?: string }).brand, (p as { description?: string }).description].filter(Boolean).join(' '));
+          if (!hay.includes(nq)) return false;
+        }
         if (selectedCats.size > 0 && !productCategories(p).some((c) => selectedCats.has(c))) return false;
         if (selectedSizes.size > 0 && !availableSizes(p).some((s) => selectedSizes.has(s))) return false;
         if (selectedColors.size > 0 && !availableColors(p).some((c) => selectedColors.has(c))) return false;
@@ -69,7 +79,7 @@ export function ProductList() {
         if (max != null && !Number.isNaN(max) && price > max) return false;
         return true;
       }),
-    [products, selectedCats, selectedSizes, selectedColors, min, max],
+    [products, query, selectedCats, selectedSizes, selectedColors, min, max],
   );
 
   const activeCount =
@@ -137,10 +147,26 @@ export function ProductList() {
         siteName={config.name}
       />
       <header className="mb-8">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[2px] text-accent">Catálogo</p>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[2px] text-accent">
+          {query ? 'Búsqueda' : 'Catálogo'}
+        </p>
         <h1 className="font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[44px]">
-          Todos los productos
+          {query ? <>Resultados para “{query}”</> : 'Todos los productos'}
         </h1>
+        {query && (
+          <button
+            type="button"
+            onClick={() => {
+              const next = new URLSearchParams(searchParams);
+              next.delete('q');
+              setSearchParams(next, { replace: true });
+            }}
+            className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.5px] text-on-surface-muted transition-colors hover:text-accent"
+          >
+            <X className="h-3.5 w-3.5" />
+            Limpiar búsqueda
+          </button>
+        )}
       </header>
 
       <div className="flex gap-8">

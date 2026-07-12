@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ChevronDown } from 'lucide-react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { ChevronDown, Search, X } from 'lucide-react';
 import { useStore, useStoreStatus } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
@@ -21,10 +21,19 @@ export function Navbar() {
   const { storeType } = useStoreStatus();
   const { itemCount, open } = useCart();
   const location = useLocation();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
   const [scrolled, setScrolled] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // La sección Outfits vive en el home (no tiene página). Mostramos su link en el
+  // menú sólo si está habilitada para esta tienda y hay al menos un outfit activo.
+  const [hasOutfits, setHasOutfits] = useState(false);
+  const showOutfitsLink =
+    storeType !== 'wholesale' && config.isPro && config.sections.outfits && hasOutfits;
 
   // Links principales del menú. (Outfits se muestra como sección del home, no
   // tiene página propia, así que no se agrega para evitar un 404.)
@@ -89,10 +98,76 @@ export function Navbar() {
     };
   }, [config.companyId, storeType]);
 
-  // Cerrar el menú al cambiar de ruta (anima la salida porque queda montado).
+  // ¿La tienda tiene outfits activos? Query liviana (solo count) gateada por los
+  // mismos flags que el home usa para renderizar la sección.
+  useEffect(() => {
+    const cid = config.companyId;
+    if (!cid || storeType === 'wholesale' || !config.isPro || !config.sections.outfits) {
+      setHasOutfits(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from('catalog_outfits')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', cid)
+        .eq('active', true);
+      if (!cancelled) setHasOutfits((count ?? 0) > 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [config.companyId, config.isPro, config.sections.outfits, storeType]);
+
+  // Cerrar el menú y la búsqueda al cambiar de ruta (anima la salida porque queda montado).
   useEffect(() => {
     setMenuOpen(false);
+    setSearchOpen(false);
   }, [location.pathname]);
+
+  // Al abrir la búsqueda, enfocar el input; Escape la cierra.
+  useEffect(() => {
+    if (!searchOpen) return;
+    searchInputRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSearchOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [searchOpen]);
+
+  // Enviar la búsqueda: navega al listado con ?q= y cierra la barra.
+  const submitSearch = (e: FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    navigate(`/productos?q=${encodeURIComponent(q)}`);
+    setSearchOpen(false);
+  };
+
+  // Ir a la sección Outfits del home (sin página propia): scrollea al ancla,
+  // reintentando si venimos de otra ruta hasta que la sección monte (datos async).
+  const goToOutfits = () => {
+    setMenuOpen(false);
+    const scroll = () => {
+      const el = document.getElementById('outfits');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return true;
+      }
+      return false;
+    };
+    if (location.pathname === '/') {
+      scroll();
+      return;
+    }
+    navigate('/');
+    let tries = 0;
+    const iv = window.setInterval(() => {
+      if (scroll() || ++tries > 20) window.clearInterval(iv);
+    }, 150);
+  };
 
   // Mientras el menú está abierto: bloquear scroll del body y cerrar con Escape.
   useEffect(() => {
@@ -123,8 +198,8 @@ export function Navbar() {
       }`}
     >
       <div className="mx-auto grid max-w-none grid-cols-3 items-center gap-2 px-4 py-3 md:px-6">
-        {/* Izquierda: hamburguesa (desktop + mobile) */}
-        <div className="flex items-center justify-start">
+        {/* Izquierda: hamburguesa + búsqueda (desktop + mobile) */}
+        <div className="flex items-center justify-start gap-1">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
@@ -135,6 +210,15 @@ export function Navbar() {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M4 7h16M4 12h16M4 17h16" />
             </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSearchOpen((v) => !v)}
+            aria-label="Buscar productos"
+            aria-expanded={searchOpen}
+            className="flex h-9 w-9 items-center justify-center text-on-surface hover:text-accent"
+          >
+            <Search className="h-[21px] w-[21px]" strokeWidth={2} />
           </button>
         </div>
 
@@ -176,6 +260,44 @@ export function Navbar() {
             )}
           </button>
         </div>
+      </div>
+
+      {/* Barra de búsqueda desplegable (debajo del top bar, ancho completo) */}
+      <div
+        className={`overflow-hidden transition-[max-height,opacity] duration-300 ${
+          searchOpen ? 'max-h-24 border-t border-line opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <form onSubmit={submitSearch} className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3 md:px-6">
+          <Search className="h-5 w-5 shrink-0 text-on-surface-muted" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar productos..."
+            className="min-w-0 flex-1 bg-transparent text-[15px] text-on-surface placeholder:text-on-surface-muted focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                searchInputRef.current?.focus();
+              }}
+              aria-label="Borrar búsqueda"
+              className="flex h-7 w-7 items-center justify-center text-on-surface-muted hover:text-accent"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            type="submit"
+            className="shrink-0 rounded-md bg-primary px-4 py-2 text-[13px] font-bold uppercase tracking-[0.5px] text-on-primary transition-transform hover:scale-[1.02]"
+          >
+            Buscar
+          </button>
+        </form>
       </div>
 
       {/* Overlay del menú (cierra al tocar fuera) */}
@@ -250,6 +372,17 @@ export function Navbar() {
               </div>
             )}
           </div>
+
+          {/* Outfits: sólo si la tienda tiene la sección activa y hay outfits. */}
+          {showOutfitsLink && (
+            <button
+              type="button"
+              onClick={goToOutfits}
+              className="block w-full py-3 text-left text-[15px] font-semibold uppercase tracking-[1px] text-on-surface transition-colors hover:text-accent"
+            >
+              Outfits
+            </button>
+          )}
         </nav>
       </aside>
     </header>

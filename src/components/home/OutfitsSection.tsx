@@ -686,7 +686,7 @@ export function OutfitsSection() {
   };
 
   return (
-    <section className="mx-auto w-full px-6 py-8 md:py-16">
+    <section id="outfits" className="mx-auto w-full scroll-mt-24 px-6 py-8 md:py-16">
       <SectionHeader label="Combiná tu look" title="Outfits" />
       <div className="relative">
         {/* Carrusel horizontal swipeable: 85vw en mobile (con peek + snap), 2 en tablet, 3 en desktop.
