@@ -1,39 +1,31 @@
 // Serverless (Vercel): feed de catálogo por tenant para Meta / Google / TikTok.
 //
 // Ruta dinámica: api/feed/[format].ts → el segmento [format] llega en req.query.format.
-// vercel.json reescribe (ANTES del catch-all SPA) a un PATH plano (NO query string, que
-// Vercel rechaza y tira abajo toda la config de rutas → 404 total):
+// vercel.json reescribe (ANTES del catch-all SPA, que excluye /api) a un PATH plano:
 //   /feed/meta.xml    -> /api/feed/meta     (RSS 2.0 + namespace g:)
 //   /feed/google.xml  -> /api/feed/google   (mismo formato base, Google Merchant)
 //   /feed/tiktok.csv  -> /api/feed/tiktok   (CSV)
+// (Ver [[reference_vercel_spa_api_routing]] por las 2 trampas: nada de query string en el
+//  destination de un rewrite; el catch-all del SPA debe excluir /api.)
 //
-// Lo leen Meta/Google/TikTok desde SUS IPs cada ~4hs, SIN credenciales. Por eso el read
-// va con la anon key contra PostgREST y depende de la RLS pública (catalog_enabled=true).
-// Verificado con curl anónimo: anon lee products + product_variants embebidas (HTTP 206).
+// Lo leen Meta/Google/TikTok desde SUS IPs cada ~4hs, SIN credenciales → read con anon key.
 //
-// Reglas de negocio (brief Módulo Publicidad, Fase 1):
-//   - Una fila POR VARIANTE (talle/color), agrupadas con item_group_id = product_id.
-//   - id = UUID de la variante (estable y permanente; sin barcode → sin GTIN).
-//   - identifier_exists = no (marca propia).
-//   - availability según stock consolidado (product_variants.stock ya es el cache de
-//     deposit_stock sumado de todos los depósitos).
-//   - Excluir productos sin imagen, sin precio, o no publicados en minorista.
-//   - SOLO canal minorista. El mayorista NUNCA va al feed (precios privados).
-//   - Precio = jerarquía de PRODUCTO (card→transfer→base + compare_at), igual que la ficha
-//     (PriceDisplay/getPriceInfo). NO se usa product_variants.price: el storefront no lo
-//     cobra (mainPrice product-level "va al carrito"), así el feed coincide con el landing.
+// FUENTE DE VERDAD ÚNICA de qué productos entran: la RPC public.marketing_feed_products
+// (migración 20260713_marketing_feed_rules.sql). Este archivo YA NO calcula la regla de
+// inclusión ni el precio ni la imagen: todo eso lo decide la RPC, que TAMBIÉN alimenta el
+// contador de salud del admin. Acá solo se RENDERIZA lo que la RPC marca included=true. Si
+// cambian las reglas, se cambian en la RPC y feed + admin quedan sincronizados por diseño.
 //
-// Volumen: con curva surtida el feed explota (6 talles × 4 colores = 24 filas/producto).
-// Por eso paginamos los productos (Range) y hacemos STREAMING del XML/CSV con res.write:
-// nunca materializamos el documento entero en memoria ni pegamos contra el límite de
-// respuesta buffered de Vercel (~4.5MB). Memoria acotada a una página de productos.
+// Reglas de render (fijas): una fila POR VARIANTE, item_group_id = product_id, id = UUID de
+// variante, identifier_exists=no (marca propia, sin GTIN), availability por stock consolidado.
+// Volumen: paginado por Range + streaming con res.write (catálogos grandes / curva surtida).
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
 const BASE_DOMAIN = 'procurva.app';
 const RESERVED = new Set(['www', 'app']);
-const PAGE_SIZE = 500; // productos por página REST (las variantes vienen embebidas)
+const PAGE_SIZE = 500; // productos por página (las variantes vienen embebidas en la RPC)
 const MAX_ADDITIONAL_IMAGES = 10; // límite de Meta para additional_image_link
 
 type Format = 'meta' | 'google' | 'tiktok';
@@ -46,18 +38,19 @@ interface Variant {
   sku: string | null;
   image_url: string | null;
 }
-interface ProductRow {
-  id: string;
+// Fila que devuelve public.marketing_feed_products (precio/imagen/inclusión ya resueltos).
+interface FeedProduct {
+  product_id: string;
   name: string | null;
   description: string | null;
-  retail_price: number | null;
-  retail_price_transfer: number | null;
-  retail_price_card: number | null;
-  compare_at_price: number | null;
-  image_url: string | null;
-  images: (string | { url?: string })[] | null;
+  price: number | null;
+  compare_at: number | null;
+  image_link: string | null;
+  images: string[] | null;
   categories: string[] | null;
-  product_variants: Variant[] | null;
+  variants: Variant[] | null;
+  included: boolean;
+  exclude_reason: string | null;
 }
 
 /** Extrae el slug del tenant desde el host. null si es host genérico. */
@@ -69,7 +62,7 @@ function slugFromHost(host: string): string | null {
   return sub;
 }
 
-/** GET a PostgREST con anon key. Devuelve { rows, error }. */
+/** GET a PostgREST con anon key. rangeFrom/rangeTo → paginado por Range. */
 async function rest(path: string, rangeFrom?: number, rangeTo?: number): Promise<{ rows: any[]; error: boolean }> {
   const headers: Record<string, string> = {
     apikey: SUPABASE_ANON_KEY,
@@ -86,28 +79,6 @@ async function rest(path: string, rangeFrom?: number, rangeTo?: number): Promise
   }
   const rows = (await res.json().catch(() => [])) as any[];
   return { rows: Array.isArray(rows) ? rows : [], error: false };
-}
-
-// ---- Precio: espejo de getPriceInfo() del storefront (product-level) --------
-/** Precio principal (lo que se cobra) y precio de lista anterior (tachado), del producto. */
-function priceInfo(p: ProductRow): { main: number; compare: number | null } {
-  const base = Number(p.retail_price ?? 0);
-  const card = Number(p.retail_price_card ?? 0);
-  const transfer = Number(p.retail_price_transfer ?? 0);
-  const compareRaw = Number(p.compare_at_price ?? 0);
-  const main = card > 0 ? card : transfer > 0 ? transfer : base;
-  const compare = compareRaw > 0 && compareRaw > main ? compareRaw : null;
-  return { main, compare };
-}
-
-/** Primera imagen válida del producto (image_url o images[0]). */
-function primaryImage(p: ProductRow): string | null {
-  if (p.image_url) return p.image_url;
-  const first = (p.images || []).map(imgUrl).find(Boolean);
-  return first || null;
-}
-function imgUrl(i: string | { url?: string }): string {
-  return typeof i === 'string' ? i : i?.url || '';
 }
 
 function xmlEscape(s: string): string {
@@ -128,34 +99,35 @@ function money(n: number): string {
   return `${n.toFixed(2)} ARS`;
 }
 
-// ---- Render por variante ----------------------------------------------------
 interface Ctx {
   origin: string;
   brand: string;
 }
 
+/** Precio de lista y de oferta a partir de price/compare_at que da la RPC. */
+function priceOf(p: FeedProduct): { regular: number; sale: number | null } {
+  const price = Number(p.price || 0);
+  const compare = p.compare_at != null && Number(p.compare_at) > price ? Number(p.compare_at) : null;
+  return compare ? { regular: compare, sale: price } : { regular: price, sale: null };
+}
+
 /** Un <item> del feed XML (Meta/Google) para una variante, o '' si la variante se excluye. */
-function xmlItem(p: ProductRow, v: Variant, price: number, compare: number | null, ctx: Ctx): string {
-  const image = v.image_url || primaryImage(p);
+function xmlItem(p: FeedProduct, v: Variant, ctx: Ctx): string {
+  const image = v.image_url || p.image_link;
   if (!image) return '';
   const title = (p.name || '').trim();
   const desc = stripHtml(p.description || p.name || '');
-  const link = `${ctx.origin}/producto/${p.id}`;
+  const link = `${ctx.origin}/producto/${p.product_id}`;
   const availability = (v.stock ?? 0) > 0 ? 'in stock' : 'out of stock';
-  // Precio de lista vs oferta: si hay compare_at (>principal), price=compare y sale_price=principal.
-  const regular = compare ?? price;
-  const sale = compare ? price : null;
+  const { regular, sale } = priceOf(p);
 
-  const extra = (p.images || [])
-    .map(imgUrl)
-    .filter((u) => u && u !== image)
-    .slice(0, MAX_ADDITIONAL_IMAGES);
-  const productType = Array.isArray(p.categories) ? p.categories.filter(Boolean).join(' > ') : '';
+  const extra = (p.images || []).filter((u) => u && u !== image).slice(0, MAX_ADDITIONAL_IMAGES);
+  const productType = (p.categories || []).filter(Boolean).join(' > ');
 
   const lines = [
     `    <item>`,
     `      <g:id>${xmlEscape(v.id)}</g:id>`,
-    `      <g:item_group_id>${xmlEscape(p.id)}</g:item_group_id>`,
+    `      <g:item_group_id>${xmlEscape(p.product_id)}</g:item_group_id>`,
     `      <g:title>${xmlEscape(title)}</g:title>`,
     `      <g:description>${xmlEscape(desc)}</g:description>`,
     `      <g:link>${xmlEscape(link)}</g:link>`,
@@ -180,24 +152,23 @@ const CSV_HEADER =
   'sku_id,item_group_id,title,description,availability,condition,price,sale_price,link,image_link,brand,product_type,size,color\n';
 
 /** Una fila CSV (TikTok) para una variante, o '' si se excluye. */
-function csvRow(p: ProductRow, v: Variant, price: number, compare: number | null, ctx: Ctx): string {
-  const image = v.image_url || primaryImage(p);
+function csvRow(p: FeedProduct, v: Variant, ctx: Ctx): string {
+  const image = v.image_url || p.image_link;
   if (!image) return '';
   const availability = (v.stock ?? 0) > 0 ? 'in stock' : 'out of stock';
-  const regular = compare ?? price;
-  const sale = compare ? price : regular;
-  const productType = Array.isArray(p.categories) ? p.categories.filter(Boolean).join(' > ') : '';
+  const { regular, sale } = priceOf(p);
+  const productType = (p.categories || []).filter(Boolean).join(' > ');
   return (
     [
       csvField(v.id),
-      csvField(p.id),
+      csvField(p.product_id),
       csvField((p.name || '').trim()),
       csvField(stripHtml(p.description || p.name || '')),
       csvField(availability),
       csvField('new'),
       csvField(money(regular)),
-      csvField(money(sale)),
-      csvField(`${ctx.origin}/producto/${p.id}`),
+      csvField(money(sale ?? regular)),
+      csvField(`${ctx.origin}/producto/${p.product_id}`),
       csvField(image),
       csvField(ctx.brand),
       csvField(productType),
@@ -216,12 +187,10 @@ export default async function handler(req: any, res: any) {
   const format: Format = fmtRaw === 'tiktok' ? 'tiktok' : fmtRaw === 'google' ? 'google' : 'meta';
   const isCsv = format === 'tiktok';
 
-  res.statusCode = 200; // fijar ANTES del primer write: al streamear, la cabecera se
-  //                       envía con el primer chunk y ya no se puede cambiar el status.
+  res.statusCode = 200; // fijar ANTES del primer write (al streamear la cabecera se va con el 1er chunk).
   res.setHeader('Content-Type', isCsv ? 'text/csv; charset=utf-8' : 'application/xml; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600');
 
-  // Cabecera del documento (siempre, aunque el tenant no exista → feed vacío pero válido).
   if (isCsv) {
     res.write(CSV_HEADER);
   } else {
@@ -242,40 +211,31 @@ export default async function handler(req: any, res: any) {
       if (company?.id) {
         const brand = (company.name || slug || 'ProCurva').toString().trim();
         const ctx: Ctx = { origin, brand };
-        const select =
-          'id,name,description,retail_price,retail_price_transfer,retail_price_card,compare_at_price,' +
-          'image_url,images,categories,product_variants(id,size,color,stock,sku,image_url)';
 
-        // Paginado por Range hasta agotar. Cada página se renderiza y se streamea.
+        // Fuente de verdad: RPC marketing_feed_products (GET, STABLE). Paginado por Range.
         let from = 0;
         for (;;) {
           const to = from + PAGE_SIZE - 1;
           const { rows, error } = await rest(
-            `products?company_id=eq.${company.id}&catalog_visible=eq.true&order=created_at.desc&select=${select}`,
+            `rpc/marketing_feed_products?p_company_id=${encodeURIComponent(company.id)}`,
             from,
             to,
           );
           if (error) break;
-          for (const p of rows as ProductRow[]) {
-            const { main, compare } = priceInfo(p);
-            if (main <= 0) continue; // sin precio → excluido
-            if (!primaryImage(p)) continue; // sin imagen → excluido
-            const variants = p.product_variants && p.product_variants.length ? p.product_variants : null;
-            // Producto sin variantes: no puede ir al feed (una fila = una variante).
-            if (!variants) continue;
-            for (const v of variants) {
-              const chunk = isCsv ? csvRow(p, v, main, compare, ctx) : xmlItem(p, v, main, compare, ctx);
+          for (const p of rows as FeedProduct[]) {
+            if (!p.included) continue; // la RPC ya decidió; acá solo renderizamos
+            for (const v of p.variants || []) {
+              const chunk = isCsv ? csvRow(p, v, ctx) : xmlItem(p, v, ctx);
               if (chunk) res.write(chunk);
             }
           }
-          if (rows.length < PAGE_SIZE) break; // última página
+          if (rows.length < PAGE_SIZE) break;
           from += PAGE_SIZE;
         }
       }
     }
   } catch (e) {
     console.error('[feed] error', e);
-    // Cerramos el documento igual: un feed parcial válido es mejor que un 500.
   }
 
   if (!isCsv) {
