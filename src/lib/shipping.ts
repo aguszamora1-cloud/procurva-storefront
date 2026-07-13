@@ -87,6 +87,43 @@ export function methodCoversPostalCode(m: ShippingOption, cp: number | null): bo
   return m.postalCodeRanges.some(([a, b]) => cp >= a && cp <= b);
 }
 
+/**
+ * ¿El CP cae dentro de una zona de REPARTO PROPIO? = existe un método a domicilio
+ * con cobertura restringida (no nacional, no retiro) cuyos rangos incluyen el CP.
+ * Ej.: "Cadete / Logística Propia" cubriendo los CP de Rosario.
+ */
+export function hasOwnZoneCoverage(options: ShippingOption[], cp: number | null): boolean {
+  if (cp == null) return false;
+  return options.some(
+    (o) =>
+      o.requiresAddress &&
+      !o.coversAllPostalCodes &&
+      o.postalCodeRanges.length > 0 &&
+      o.postalCodeRanges.some(([a, b]) => cp >= a && cp <= b),
+  );
+}
+
+/**
+ * ¿Mostrar este método para el CP dado? Igual que methodCoversPostalCode, pero si
+ * el CP está en una zona de reparto propio (`ownZone`) OCULTA las transportadoras
+ * nacionales (las que cubren todo el país): si el negocio llega con su propio cadete
+ * a esa zona, no ofrece Correo Argentino / Vía Cargo ahí. El retiro en local y el
+ * propio cadete no se tocan.
+ */
+export function methodAvailableForPostalCode(
+  m: ShippingOption,
+  cp: number | null,
+  ownZone: boolean,
+): boolean {
+  if (!methodCoversPostalCode(m, cp)) return false;
+  // En zona propia ocultamos cualquier envío de cobertura NO zonal (nacional): el
+  // que cubre todo el país o el que no tiene rangos configurados. El cadete (con
+  // rangos que incluyen el CP) y el retiro en local no se tocan.
+  const coversEverywhere = m.coversAllPostalCodes || m.postalCodeRanges.length === 0;
+  if (ownZone && m.requiresAddress && coversEverywhere) return false;
+  return true;
+}
+
 function iconFor(isPickup: boolean, type: unknown): ShippingIconName {
   if (isPickup) return 'store'; // retiro en local
   if (type === 'cadete') return 'bike'; // logística propia

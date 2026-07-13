@@ -138,8 +138,8 @@ export function ProductReviews({ title }: { title?: string }) {
       >
         <div
           ref={scrollerRef}
-          style={{ touchAction: 'pan-x' }}
-          className={`flex touch-pan-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          style={{ touchAction: 'pan-x pan-y' }}
+          className={`flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
             animate ? '' : 'sm:justify-start'
           }`}
         >

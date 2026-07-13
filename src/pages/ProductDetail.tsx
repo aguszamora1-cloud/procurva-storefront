@@ -20,7 +20,7 @@ import { WholesalePurchasePanel } from '@/components/WholesalePurchasePanel';
 import { PromoCountdown } from '@/components/PromoCountdown';
 import { CardBadge } from '@/components/CardBadge';
 import { ProductDetailCustomSlot, CustomSectionNode } from '@/components/ProductDetailCustomSlot';
-import { RelatedProducts } from '@/components/RelatedProducts';
+import { RecommendedProducts } from '@/components/RecommendedProducts';
 import { ProductReviews } from '@/components/ProductReviews';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
 import { VirtualTryOn, mapFashnCategory } from '@/components/VirtualTryOn';
@@ -84,11 +84,12 @@ function BelowProductBlocks({
         break;
       case 'related':
         if (config.isPro && config.sections.upsell) {
-          nodes.push(<RelatedProducts key="related" product={product} />);
+          nodes.push(<RecommendedProducts key="related" product={product} />);
         }
         break;
-      // 'upsells' queda reservado para la lectura de product_recommendations (fase
-      // siguiente): hoy no renderiza nada. Cualquier otro token se ignora.
+      // 'upsells' queda subsumido en 'related' (RecommendedProducts ya prioriza las
+      // recos manuales y cae a relacionados por categoría): hoy no renderiza nada
+      // aparte para no duplicar la sección. Cualquier otro token se ignora.
       default:
         break;
     }
@@ -747,8 +748,9 @@ export function ProductDetail() {
             </div>
           )}
 
-          {/* Productos relacionados (sección "upsell" del admin, PRO) */}
-          {config.isPro && config.sections.upsell && <RelatedProducts product={product} />}
+          {/* Recomendaciones del admin (sección "upsell", PRO). Usa las recos
+              manuales por color; si no hay, cae a relacionados por categoría. */}
+          {config.isPro && config.sections.upsell && <RecommendedProducts product={product} />}
         </>
       )}
 

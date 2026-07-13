@@ -690,12 +690,14 @@ export function OutfitsSection() {
       <SectionHeader label="Combiná tu look" title="Outfits" />
       <div className="relative">
         {/* Carrusel horizontal swipeable: 85vw en mobile (con peek + snap), 2 en tablet, 3 en desktop.
-            touch-pan-x asegura que el swipe horizontal funcione en táctiles. */}
+            touchAction 'pan-x pan-y': el navegador enruta el gesto por su dirección
+            (horizontal → swipe del carrusel; vertical → scroll de la página). Con
+            solo 'pan-x' el vertical quedaba bloqueado al tocar una foto. */}
         <div
           ref={scrollerRef}
           onScroll={handleScroll}
-          style={{ touchAction: 'pan-x' }}
-          className={`flex touch-pan-x snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          style={{ touchAction: 'pan-x pan-y' }}
+          className={`flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
             hasArrows ? '' : 'md:justify-center'
           }`}
         >

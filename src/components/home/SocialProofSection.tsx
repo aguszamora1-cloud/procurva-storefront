@@ -128,8 +128,8 @@ export function SocialProofSection() {
         {/* Carrusel horizontal: deslizamiento continuo (cinta). 80vw en mobile, 2 en tablet, 3 en desktop. */}
         <div
           ref={scrollerRef}
-          style={{ touchAction: 'pan-x' }}
-          className={`flex touch-pan-x gap-4 overflow-x-auto pb-2 lg:gap-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          style={{ touchAction: 'pan-x pan-y' }}
+          className={`flex gap-4 overflow-x-auto pb-2 lg:gap-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
             hasArrows || animate ? '' : 'md:justify-center'
           }`}
         >

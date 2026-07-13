@@ -3,7 +3,7 @@ import { Zap, Truck, Sparkles } from 'lucide-react';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { usePromotions } from '@/context/PromotionsContext';
 import { contrastColor } from '@/lib/theme';
-import { badgeColor, getPriceInfo, totalStock } from '@/lib/utils';
+import { getPriceInfo, totalStock } from '@/lib/utils';
 import type { Product } from '@/lib/types';
 
 export type BadgeStyle = 'solid' | 'glass' | 'outline';
@@ -114,7 +114,8 @@ export function useProductBadges(
     badges.push({ key: 'discount', bg: dc || 'var(--color-accent)', color: dc ? contrastColor(dc) : 'var(--color-on-accent)', label: `-${compareDiscountPct}%` });
   }
   if (showCustom) {
-    const bg = badgeColor(product.catalog_badge_color);
+    // Color global de la etiqueta (config de la tienda), ya no por producto.
+    const bg = cfg?.custom?.color || '#EF4444';
     badges.push({ key: 'custom', bg, color: onBg(bg), label: product.catalog_badge_text! });
   }
   if ((cfg?.new?.enabled ?? false) && isNew) {

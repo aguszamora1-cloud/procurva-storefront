@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStore } from '@/context/StoreProvider';
 import { Spinner } from '@/components/Spinner';
 import { formatPrice, whatsappLink } from '@/lib/utils';
-import { etaBadgeColors, fetchShippingOptions, methodCoversPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
+import { etaBadgeColors, fetchShippingOptions, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 import { SHIPPING_ICONS } from '@/lib/shippingIcons';
 
 type Status = 'idle' | 'loading' | 'done' | 'empty' | 'error';
@@ -30,10 +30,12 @@ export function ShippingCalculator() {
     try {
       const all = await fetchShippingOptions(config.companyId);
       // Filtramos por CP: el retiro en local y los métodos sin restricción siempre
-      // aparecen; los envíos sólo si cubren la zona del cliente. Si nada cubre la
-      // zona se cae al estado vacío (con CTA a WhatsApp).
+      // aparecen; los envíos sólo si cubren la zona del cliente. Si el CP está en la
+      // zona de reparto propio (cadete), se ocultan las transportadoras nacionales.
+      // Si nada cubre la zona se cae al estado vacío (con CTA a WhatsApp).
       const cpNum = normalizePostalCode(cp);
-      const matched = all.filter((o) => methodCoversPostalCode(o, cpNum));
+      const ownZone = hasOwnZoneCoverage(all, cpNum);
+      const matched = all.filter((o) => methodAvailableForPostalCode(o, cpNum, ownZone));
       if (matched.length === 0) {
         setOptions([]);
         setStatus('empty');

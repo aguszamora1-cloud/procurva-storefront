@@ -188,9 +188,10 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
 
     shippingPromiseEnabled: bool(s.shipping_promise_enabled, true),
     shippingPromiseTitle: shippingTitle,
-    shippingPromiseSubtitle:
-      firstStr(s.shipping_promise_subtitle, shippingMsg) ||
-      DEFAULTS.shippingPromiseSubtitle,
+    // Subtítulo: SOLO lo que el comercio cargó. Sin fallback a shipping_message
+    // (duplicaba el título cuando coincidían) ni al default: vacío → no se
+    // renderiza el "· subtítulo", solo el título.
+    shippingPromiseSubtitle: firstStr(s.shipping_promise_subtitle),
     shippingPromiseColor: firstStr(s.shipping_promise_color) || DEFAULTS.shippingPromiseColor,
     shippingMessage: str(shippingMsg),
     // trust_badges puede venir legacy (string[]) o nuevo ([{icon, text}]).
@@ -244,6 +245,11 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
           // Vacío → la card cae al color de acento (comportamiento histórico).
           color: firstStr(b.discount?.color),
           label: firstStr(b.discount?.label) || '% OFF',
+        },
+        // Color global de la etiqueta del catálogo. Default rojo (era el default
+        // de products.catalog_badge_color) para no cambiar tiendas existentes.
+        custom: {
+          color: firstStr(b.custom?.color) || '#EF4444',
         },
       };
     })(),

@@ -150,32 +150,49 @@ export function toCatalogCards(products: Product[]): Product[] {
       continue;
     }
     // Colores únicos, en el orden en que aparecen las variantes.
-    const colors: string[] = [];
-    for (const v of p.product_variants) {
-      if (v.color && !colors.includes(v.color)) colors.push(v.color);
-    }
+    const colors = productVariantColors(p);
     // Con 0 o 1 color no tiene sentido explotar: card normal.
     if (colors.length <= 1) {
       cards.push(p);
       continue;
     }
     for (const color of colors) {
-      const colorVariants = p.product_variants.filter((v) => v.color === color);
-      const colorImg = colorVariants.find((v) => v.image_url)?.image_url ?? mainImage(p);
-      cards.push({
-        ...p,
-        name: `${p.name} - ${color}`,
-        image_url: colorImg,
-        images: null, // mainImage() cae a image_url → la foto del color
-        product_variants: colorVariants,
-        variant_color: color,
-        sibling_colors: colors.filter((c) => c !== color),
-        card_key: `${p.id}::${color}`,
-      });
+      cards.push(productAsColorCard(p, color, colors));
     }
   }
   // Agotadas al fondo (sort estable → no altera el orden dentro de cada grupo).
   return cards.slice().sort((a, b) => Number(hasStock(b)) - Number(hasStock(a)));
+}
+
+/** Colores únicos de un producto, en orden de aparición de sus variantes. */
+export function productVariantColors(p: Product): string[] {
+  const colors: string[] = [];
+  for (const v of p.product_variants ?? []) {
+    if (v.color && !colors.includes(v.color)) colors.push(v.color);
+  }
+  return colors;
+}
+
+/**
+ * Convierte un producto en una "virtual card" fijada a un color: mismo `id`,
+ * variantes filtradas a ese color, la foto del color y el nombre "{name} - {color}".
+ * `allColors` opcional (para los swatches de hermanos); si no se pasa, se deriva.
+ * Reutilizado por toCatalogCards y por las recomendaciones manuales por color.
+ */
+export function productAsColorCard(p: Product, color: string, allColors?: string[]): Product {
+  const colors = allColors ?? productVariantColors(p);
+  const colorVariants = (p.product_variants ?? []).filter((v) => v.color === color);
+  const colorImg = colorVariants.find((v) => v.image_url)?.image_url ?? mainImage(p);
+  return {
+    ...p,
+    name: `${p.name} - ${color}`,
+    image_url: colorImg,
+    images: null, // mainImage() cae a image_url → la foto del color
+    product_variants: colorVariants,
+    variant_color: color,
+    sibling_colors: colors.filter((c) => c !== color),
+    card_key: `${p.id}::${color}`,
+  };
 }
 
 /** Categorías de un producto, defensivo ante datos viejos. */

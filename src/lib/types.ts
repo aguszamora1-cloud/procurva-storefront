@@ -368,6 +368,10 @@ export interface RawCatalogSettings {
     new?: { enabled?: boolean; color?: string; label?: string; window_days?: number };
     free_shipping?: { enabled?: boolean; color?: string; label?: string };
     discount?: { enabled?: boolean; color?: string; label?: string };
+    // Color global de la "Etiqueta del catálogo" (badge de texto por producto,
+    // products.catalog_badge_text). El color ya no es por producto: se define una
+    // vez acá y aplica a todas las etiquetas.
+    custom?: { color?: string };
   };
   // Flujo de compra ("Así funciona tu compra") en el detalle de producto.
   purchase_flow_enabled?: boolean;
@@ -592,6 +596,8 @@ export interface StoreConfig {
     new: { enabled: boolean; color: string; label: string; windowDays: number };
     freeShipping: { enabled: boolean; color: string; label: string };
     discount: { enabled: boolean; color: string; label: string };
+    // Color global de la "Etiqueta del catálogo" (badge de texto por producto).
+    custom: { color: string };
   };
   // Flujo de compra ("Así funciona tu compra") en el detalle de producto.
   purchaseFlowEnabled: boolean;

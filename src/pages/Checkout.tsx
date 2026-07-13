@@ -14,7 +14,7 @@ import { cartLineKey, groupCartItems, evalMinOrder } from '@/lib/cart';
 import { applyPromoToPrice } from '@/lib/promotions';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, type CustomerInfo } from '@/lib/orders';
-import { expandMethod, methodCoversPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
+import { expandMethod, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 import { SHIPPING_ICONS } from '@/lib/shippingIcons';
 import { validateCoupon, registerCouponUse, computeDiscount, eligibleSubtotal, eligibleItems, type CouponRecord } from '@/lib/coupons';
 
@@ -263,10 +263,13 @@ export function Checkout() {
   // son para envío a otras localidades. Con CP filtramos por zona: las de cobertura total
   // quedan para cualquier CP y la logística propia se oculta si el CP cae fuera de su zona.
   const availableMethods = useMemo(() => {
+    // En la zona de reparto propio (cadete), se ocultan las transportadoras
+    // nacionales (Correo Argentino / Vía Cargo): si llegamos con cadete, no las ofrecemos ahí.
+    const ownZone = hasOwnZoneCoverage(methods, cpNum);
     return methods.filter((m) => {
       if (!m.requiresAddress) return true;         // retiro: no depende del CP
       if (!cpNum) return !coversEverywhere(m);      // sin CP: solo logística propia (zona acotada)
-      return methodCoversPostalCode(m, cpNum);
+      return methodAvailableForPostalCode(m, cpNum, ownZone);
     });
   }, [methods, cpNum]);
 
