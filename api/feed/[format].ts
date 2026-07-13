@@ -1,9 +1,11 @@
 // Serverless (Vercel): feed de catálogo por tenant para Meta / Google / TikTok.
 //
-// Rutas (vercel.json, ANTES del catch-all SPA):
-//   /feed/meta.xml    -> /api/feed?format=meta     (RSS 2.0 + namespace g:)
-//   /feed/google.xml  -> /api/feed?format=google   (mismo formato base, Google Merchant)
-//   /feed/tiktok.csv  -> /api/feed?format=tiktok   (CSV)
+// Ruta dinámica: api/feed/[format].ts → el segmento [format] llega en req.query.format.
+// vercel.json reescribe (ANTES del catch-all SPA) a un PATH plano (NO query string, que
+// Vercel rechaza y tira abajo toda la config de rutas → 404 total):
+//   /feed/meta.xml    -> /api/feed/meta     (RSS 2.0 + namespace g:)
+//   /feed/google.xml  -> /api/feed/google   (mismo formato base, Google Merchant)
+//   /feed/tiktok.csv  -> /api/feed/tiktok   (CSV)
 //
 // Lo leen Meta/Google/TikTok desde SUS IPs cada ~4hs, SIN credenciales. Por eso el read
 // va con la anon key contra PostgREST y depende de la RLS pública (catalog_enabled=true).

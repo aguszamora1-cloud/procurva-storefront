@@ -3,9 +3,9 @@
   "rewrites": [
     { "source": "/robots.txt", "destination": "/api/robots" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
-    { "source": "/feed/meta.xml", "destination": "/api/feed?format=meta" },
-    { "source": "/feed/google.xml", "destination": "/api/feed?format=google" },
-    { "source": "/feed/tiktok.csv", "destination": "/api/feed?format=tiktok" },
+    { "source": "/feed/meta.xml", "destination": "/api/feed/meta" },
+    { "source": "/feed/google.xml", "destination": "/api/feed/google" },
+    { "source": "/feed/tiktok.csv", "destination": "/api/feed/tiktok" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
