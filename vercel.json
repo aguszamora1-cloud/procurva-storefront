@@ -6,6 +6,6 @@
     { "source": "/feed/meta.xml", "destination": "/api/feed/meta" },
     { "source": "/feed/google.xml", "destination": "/api/feed/google" },
     { "source": "/feed/tiktok.csv", "destination": "/api/feed/tiktok" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/:path((?!api/).*)", "destination": "/index.html" }
   ]
 }
