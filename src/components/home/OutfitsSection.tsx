@@ -457,19 +457,9 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
           </button>
         </div>
 
-        {/* Cuerpo scrolleable: fotos del look + un bloque por producto */}
+        {/* Cuerpo scrolleable: un bloque por prenda (sin la foto grande del look;
+            cada prenda ya trae su propia miniatura). */}
         <div className="flex-1 overflow-y-auto" style={{ padding: '0 20px' }}>
-          {(() => {
-            const imgs = outfitImages(outfit);
-            if (imgs.length === 0) return null;
-            return (
-              <div className="flex gap-2 overflow-x-auto pb-3 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {imgs.map((src, i) => (
-                  <img key={src + i} src={src} alt="" loading="lazy" className="shrink-0 rounded-lg object-cover" style={{ height: '118px', aspectRatio: '4 / 5' }} />
-                ))}
-              </div>
-            );
-          })()}
           {loadingVariants ? (
             <p className="py-8 text-center text-[13px] text-[#888]">Cargando opciones…</p>
           ) : (
