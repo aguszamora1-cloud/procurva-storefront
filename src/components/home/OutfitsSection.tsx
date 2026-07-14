@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useOutfits, type OutfitWithProducts } from '@/hooks/useOutfits';
 import { useStore } from '@/context/StoreProvider';
@@ -312,6 +313,18 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
     });
   }, [colorsByProduct, enriched, pinnedColorByProduct]);
 
+  // Cerrar con Escape y bloquear el scroll de fondo mientras el modal está abierto.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
   const pricing = outfitPricing(outfit);
   const { comboCard, comboCash, hasCombo, cardSum, cashSum, cardSaving, cashSaving } = pricing;
   const hasDual = comboCash > 0 && comboCash < comboCard;
@@ -414,37 +427,45 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
       : 'Elegí talle y color de cada prenda';
   const actionBg = added ? '#27ae60' : allReady ? '#111' : '#999';
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.5)' }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4"
+      style={{ background: 'rgba(0,0,0,0.6)' }}
       onClick={onClose}
     >
       <div
-        className="flex max-h-[90vh] w-full flex-col overflow-hidden"
-        style={{ background: '#fff', borderRadius: '12px', maxWidth: '520px', color: '#111' }}
+        className="relative flex max-h-[88vh] w-full flex-col overflow-hidden shadow-2xl"
+        style={{ background: '#fff', borderRadius: '14px', maxWidth: '440px', color: '#111' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3" style={{ padding: '24px 28px 16px' }}>
-          <div>
-            <p className="text-[11px] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Configurar outfit</p>
-            <h2 className="mt-0.5 text-[22px] font-bold text-[#111]">{outfit.name}</h2>
+        {/* Header sticky: siempre visible, con la cruz para cerrar */}
+        <div
+          className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[#eee] bg-white"
+          style={{ padding: '14px 14px 12px 20px' }}
+        >
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase text-[#999]" style={{ letterSpacing: '1px' }}>Configurar outfit</p>
+            <h2 className="mt-0.5 truncate text-[18px] font-bold leading-tight text-[#111]">{outfit.name}</h2>
           </div>
-          <button onClick={onClose} className="text-[12px] font-semibold uppercase text-[#888] hover:text-[#111]" style={{ cursor: 'pointer' }}>
-            Cerrar
+          <button
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#666] transition-colors hover:bg-[#f2f2f2] hover:text-[#111]"
+            style={{ cursor: 'pointer' }}
+          >
+            <X size={20} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Cuerpo scrolleable: fotos del look + un bloque por producto */}
-        <div className="flex-1 overflow-y-auto" style={{ padding: '0 28px' }}>
+        <div className="flex-1 overflow-y-auto" style={{ padding: '0 20px' }}>
           {(() => {
             const imgs = outfitImages(outfit);
             if (imgs.length === 0) return null;
             return (
-              <div className="flex gap-2 overflow-x-auto pb-3 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex gap-2 overflow-x-auto pb-3 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {imgs.map((src, i) => (
-                  <img key={src + i} src={src} alt="" loading="lazy" className="shrink-0 rounded-lg object-cover" style={{ height: '160px', aspectRatio: '4 / 5' }} />
+                  <img key={src + i} src={src} alt="" loading="lazy" className="shrink-0 rounded-lg object-cover" style={{ height: '118px', aspectRatio: '4 / 5' }} />
                 ))}
               </div>
             );
@@ -457,17 +478,17 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
               const colors = colorsByProduct[p.id] ?? [];
               const info = getPriceInfo(p);
               return (
-                <div key={p.id} style={{ borderBottom: '1px solid #eee', padding: '18px 0' }}>
+                <div key={p.id} style={{ borderBottom: '1px solid #eee', padding: '14px 0' }}>
                   {/* Fila superior: thumb + nombre + precio */}
                   <div className="flex items-center gap-3">
                     <img
                       src={mainImage(p) ?? undefined}
                       alt={p.name}
-                      style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px' }}
+                      style={{ width: '52px', height: '52px', objectFit: 'cover', borderRadius: '8px' }}
                       className="shrink-0 bg-[#f3f3f3]"
                     />
-                    <p className="flex-1 text-[14px] font-bold uppercase text-[#111]">{p.name}</p>
-                    <p className="text-[16px] font-bold text-[#111]">{formatPrice(info.mainPrice)}</p>
+                    <p className="flex-1 text-[13px] font-bold uppercase leading-tight text-[#111]">{p.name}</p>
+                    <p className="text-[15px] font-bold text-[#111]">{formatPrice(info.mainPrice)}</p>
                   </div>
 
                   {/* Color fijado del look: no editable */}
@@ -550,7 +571,7 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
         </div>
 
         {/* Footer sticky: totales + acción */}
-        <div style={{ borderTop: '1px solid #eee', padding: '16px 28px 24px' }}>
+        <div style={{ borderTop: '1px solid #eee', padding: '14px 20px 18px' }}>
           {hasCombo && cashSaving > 0 && (
             <div className="mb-2 flex items-center justify-between text-[12px] font-semibold" style={{ color: '#27ae60' }}>
               <span className="uppercase">Precio combo — ahorrás</span>
@@ -574,12 +595,12 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
           <button
             onClick={handleAdd}
             disabled={!canAdd}
-            className="mt-4 w-full text-[14px] font-bold uppercase transition-colors"
+            className="mt-3 w-full text-[13px] font-bold uppercase transition-colors"
             style={{
               background: actionBg,
               color: '#fff',
-              letterSpacing: '2px',
-              padding: '16px',
+              letterSpacing: '1.5px',
+              padding: '14px',
               borderRadius: '8px',
               cursor: canAdd ? 'pointer' : 'not-allowed',
             }}
@@ -588,7 +609,8 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
