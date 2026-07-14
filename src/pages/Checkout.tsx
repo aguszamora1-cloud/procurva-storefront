@@ -564,6 +564,11 @@ export function Checkout() {
           value: Math.round(orderTotal),
           contentIds: Array.from(new Set(pricedItems.map((i) => i.product_id))),
           numItems: itemCount,
+          // Disparo dual (pixel + CAPI) del Purchase en la pantalla de éxito, dedup por eventId.
+          // userData mejora el match de Meta (se hashea SHA-256 en el Edge Function).
+          eventId: crypto.randomUUID(),
+          companyId: config.companyId,
+          userData: { email: form.email, phone: form.phone },
         });
       };
 

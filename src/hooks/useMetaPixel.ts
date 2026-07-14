@@ -1,18 +1,43 @@
+import { useMemo } from 'react';
 import { trackAddToCart, trackInitiateCheckout, trackViewContent } from '@/lib/metaPixel';
+import { sendServerEvent } from '@/lib/serverEvents';
+import { useStore, useStoreStatus } from '@/context/StoreProvider';
 
 /**
- * API de tracking del Meta Pixel para los componentes del storefront.
+ * API de tracking de ecommerce del storefront: DISPARO DUAL pixel (browser) + CAPI (server),
+ * con el MISMO event_id → las plataformas deduplican y cuentan una sola conversión.
  *
- * El snippet base lo inyecta `components/Analytics.tsx` (sólo si el tenant cargó
- * `meta_pixel_id` en su config). Estos trackers son no-op si el pixel no está
- * cargado, así que se pueden llamar siempre sin romper las tiendas sin pixel.
+ * El pixel del browser es no-op si el tenant no cargó `meta_pixel_id` (Analytics no lo
+ * instala). El CAPI (sendServerEvent → Edge Function track-event) se dispara solo si el
+ * tenant tiene tracking configurado (`trackingOn`), para no llamar al edge en tiendas sin
+ * publicidad. El edge fn igual no-opea si no hay CAPI activa; el gate evita el request de más.
  *
- * El Purchase NO se expone acá: se maneja con `stashPendingPurchase` (en el
- * checkout, antes de redirigir a la pasarela) + `flushPendingPurchase` (en la
- * pantalla de éxito), para disparar sólo cuando el pago está confirmado.
+ * El Purchase NO se expone acá: se maneja con stash/flush (checkout + pantalla de éxito),
+ * que ya dispara pixel + CAPI con el event_id guardado — ver metaPixel.ts.
  */
 export function useMetaPixel() {
-  // Los trackers son funciones de módulo (identidad estable), seguras para usar
-  // en handlers o como deps de efectos.
-  return { trackViewContent, trackAddToCart, trackInitiateCheckout };
+  const { companyId } = useStoreStatus();
+  const { metaPixelId } = useStore();
+  const trackingOn = !!metaPixelId && !!companyId;
+
+  return useMemo(() => {
+    const newId = () => crypto.randomUUID();
+    return {
+      trackViewContent: (p: { contentId: string; name: string; value: number }) => {
+        const id = newId();
+        trackViewContent(p, id);
+        if (trackingOn) sendServerEvent({ companyId, eventId: id, eventName: 'ViewContent', value: p.value, contentIds: [p.contentId] });
+      },
+      trackAddToCart: (p: { contentId: string; name: string; value: number }) => {
+        const id = newId();
+        trackAddToCart(p, id);
+        if (trackingOn) sendServerEvent({ companyId, eventId: id, eventName: 'AddToCart', value: p.value, contentIds: [p.contentId] });
+      },
+      trackInitiateCheckout: (p: { contentIds: string[]; value: number; numItems: number }) => {
+        const id = newId();
+        trackInitiateCheckout(p, id);
+        if (trackingOn) sendServerEvent({ companyId, eventId: id, eventName: 'InitiateCheckout', value: p.value, contentIds: p.contentIds });
+      },
+    };
+  }, [companyId, trackingOn]);
 }
