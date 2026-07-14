@@ -486,7 +486,7 @@ export function Checkout() {
       if (!form.zip?.trim()) return 'Ingresá el código postal.';
       if (!form.province?.trim()) return 'Ingresá la provincia.';
     }
-    if (!form.deliveryTime?.trim()) {
+    if (config.requireDeliveryTime && !form.deliveryTime?.trim()) {
       return isPickup
         ? 'Indicá un horario para retirar el pedido.'
         : 'Indicá un horario para recibir el pedido.';
@@ -840,10 +840,12 @@ export function Checkout() {
               </div>
             )}
 
-            {/* Horario para recibir / retirar — obligatorio, sirve para coordinar la entrega */}
+            {/* Horario para recibir / retirar — sirve para coordinar la entrega.
+                Obligatorio u opcional según config de la tienda (require_delivery_time). */}
             <label className="mt-4 flex flex-col gap-1.5">
               <span className={labelCls}>
-                {isPickup ? 'Horario para retirar el pedido *' : 'Horario para recibir el pedido *'}
+                {isPickup ? 'Horario para retirar el pedido' : 'Horario para recibir el pedido'}
+                {config.requireDeliveryTime ? ' *' : ' (opcional)'}
               </span>
               <input
                 className={inputCls}

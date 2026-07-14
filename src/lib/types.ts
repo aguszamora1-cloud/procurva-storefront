@@ -300,6 +300,9 @@ export interface RawCatalogSettings {
   min_order_quantity?: number;
   min_order_amount?: number;
   min_order_mode?: 'units' | 'amount' | 'both';
+  // Si el checkout exige el horario para recibir/retirar el pedido.
+  // Ausente/true → obligatorio (comportamiento histórico); false → opcional.
+  require_delivery_time?: boolean;
   // Políticas de la tienda (acordeones en el detalle).
   envio_politica?: string;
   cambios_politica?: string;
@@ -507,6 +510,8 @@ export interface StoreConfig {
   minOrderQuantity: number;
   minOrderAmount: number;
   minOrderMode: 'units' | 'amount' | 'both';
+  // El checkout exige el horario de entrega/retiro. Default true (obligatorio).
+  requireDeliveryTime: boolean;
   // Políticas de la tienda (acordeones del detalle). '' = no mostrar.
   policyShipping: string;
   policyReturns: string;
