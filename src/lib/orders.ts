@@ -1,6 +1,29 @@
 import { supabase } from './supabase';
 import type { CartItem, StoreConfig, StoreType } from './types';
 
+/** Códigos de error de cupón que ahora emite la RPC create_catalog_order_dedup
+ * (validación/redención server-side). El checkout los mapea a un texto en español. */
+export type CouponErrorCode =
+  | 'COUPON_NOT_FOUND'
+  | 'COUPON_INACTIVE'
+  | 'COUPON_EXPIRED'
+  | 'COUPON_NOT_YET_VALID'
+  | 'COUPON_EXHAUSTED'
+  | 'COUPON_MIN_NOT_MET'
+  | 'COUPON_WRONG_CHANNEL'
+  | 'COUPON_DISCOUNT_MISMATCH';
+
+/** Error específico de cupón al crear la orden: lleva el código crudo (`COUPON_*`)
+ * para que el checkout muestre el mensaje correcto y limpie el cupón aplicado. */
+export class CouponError extends Error {
+  code: CouponErrorCode;
+  constructor(code: CouponErrorCode) {
+    super(code);
+    this.name = 'CouponError';
+    this.code = code;
+  }
+}
+
 /** Datos del cliente que se cargan en el checkout. */
 export interface CustomerInfo {
   name: string;
@@ -79,6 +102,11 @@ export async function createCatalogOrder(
   opts: {
     // 'cash' (efectivo/transferencia, con descuento de contado) o 'card' (tarjeta).
     priceMode: 'cash' | 'card';
+    // Monto de envío que el cliente pagó (0 en retiro). Ya está sumado dentro de
+    // `total`, pero lo persistimos aparte para que las Edge Functions de promoción
+    // lo copien a orders.meta.shippingCostCustomer y el desglose de la venta lo
+    // muestre como "Envío cobrado al cliente" (pass-through, no infla la ganancia).
+    shippingCost?: number;
     // true si el pago se cobra online por una pasarela (Mercado Pago o GoCuotas).
     // Si es true NO se auto-confirma: la pasarela exige la orden en 'pending' y
     // la venta real la crea su propio webhook recién al aprobarse el pago (si el
@@ -120,6 +148,9 @@ export async function createCatalogOrder(
     customer_zip: customer.zip || null,
     items: mapItems(items, opts.priceMode),
     total,
+    // Envío cobrado al cliente (ya incluido en `total`). Se guarda aparte para el
+    // desglose de la venta; create_catalog_order_dedup lo mapea a la columna homónima.
+    shipping_cost: opts.shippingCost ?? 0,
     notes: customer.notes || null,
     delivery_time_range: customer.deliveryTime?.trim() || null,
     status: 'pending',
@@ -149,6 +180,14 @@ export async function createCatalogOrder(
     p_order: orderData,
   });
   if (error) {
+    // La RPC ahora valida y redime el cupón server-side: puede fallar con un
+    // código COUPON_* (RAISE EXCEPTION). Lo detectamos en el mensaje del error
+    // de Postgres y lo re-lanzamos tipado para que el checkout lo humanice y
+    // limpie el cupón. Cualquier otro error cae al genérico de abajo.
+    const couponCode = String(error.message || '').match(/COUPON_[A-Z_]+/)?.[0];
+    if (couponCode) {
+      throw new CouponError(couponCode as CouponErrorCode);
+    }
     console.error('[orders] error creando catalog_order', error);
     throw new Error('No pudimos registrar tu pedido. Probá de nuevo.');
   }

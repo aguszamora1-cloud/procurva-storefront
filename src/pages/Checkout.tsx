@@ -13,10 +13,22 @@ import { formatPrice } from '@/lib/utils';
 import { cartLineKey, groupCartItems, evalMinOrder } from '@/lib/cart';
 import { applyPromoToPrice } from '@/lib/promotions';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
-import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, type CustomerInfo } from '@/lib/orders';
+import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, CouponError, type CouponErrorCode, type CustomerInfo } from '@/lib/orders';
 import { expandMethod, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 import { SHIPPING_ICONS } from '@/lib/shippingIcons';
-import { validateCoupon, registerCouponUse, computeDiscount, eligibleSubtotal, eligibleItems, type CouponRecord } from '@/lib/coupons';
+import { validateCoupon, computeDiscount, eligibleSubtotal, eligibleItems, type CouponRecord } from '@/lib/coupons';
+
+/** Mensaje en español para cada código de error de cupón que puede lanzar la RPC. */
+const COUPON_ERROR_MESSAGES: Record<CouponErrorCode, string> = {
+  COUPON_NOT_FOUND: 'El cupón no es válido.',
+  COUPON_INACTIVE: 'El cupón no es válido.',
+  COUPON_EXPIRED: 'El cupón está vencido.',
+  COUPON_NOT_YET_VALID: 'El cupón está vencido.',
+  COUPON_EXHAUSTED: 'Este cupón ya fue utilizado.',
+  COUPON_MIN_NOT_MET: 'No alcanzás el mínimo de compra para este cupón.',
+  COUPON_WRONG_CHANNEL: 'El cupón no aplica a esta tienda.',
+  COUPON_DISCOUNT_MISMATCH: 'Hubo un problema con el descuento. Recargá la página e intentá de nuevo.',
+};
 
 const emptyForm: CustomerInfo = {
   name: '',
@@ -536,7 +548,7 @@ export function Checkout() {
       // storeType puede ser null mientras resuelve el tenant; por defecto minorista.
       const orderId = await createCatalogOrder(
         config, pricedItems, orderTotal, customer, payLabel, storeType ?? 'retail',
-        { priceMode, viaMercadoPago: routing !== 'wa', discount, manualTransfer: transferManual },
+        { priceMode, viaMercadoPago: routing !== 'wa', discount, manualTransfer: transferManual, shippingCost },
       );
 
       // Prefill local: guardamos los datos reutilizables para autocompletar la
@@ -548,10 +560,11 @@ export function Checkout() {
         floor,
       });
 
-      // Registrá el uso del cupón (incrementa used_count + fila de tracking).
-      if (discount && appliedCoupon) {
-        await registerCouponUse(appliedCoupon.id, orderId, discountAmount);
-      }
+      // El uso del cupón (incrementar current_uses + fila de tracking en
+      // ecommerce_coupon_uses) ahora lo hace la RPC create_catalog_order_dedup
+      // server-side, en la misma transacción que inserta el pedido. Si el cupón
+      // no era válido/ya se agotó, createCatalogOrder ya habría lanzado un
+      // CouponError arriba y no llegamos hasta acá.
 
       // Meta Pixel: dejamos lista la compra para disparar Purchase al volver de
       // la pasarela (MP/GoCuotas), que son los flujos que confirman pago. Sólo
@@ -619,7 +632,16 @@ export function Checkout() {
       }
       navigate(`/checkout/success?order=${orderId}&method=wa`);
     } catch (e: any) {
-      setError(e?.message || 'Hubo un problema al procesar tu pedido.');
+      // Error de cupón (validación/redención server-side): mostramos el motivo,
+      // limpiamos el cupón aplicado y dejamos que reintente la compra sin él.
+      if (e instanceof CouponError) {
+        const msg = COUPON_ERROR_MESSAGES[e.code] ?? 'El cupón no es válido.';
+        setCouponError(msg);
+        setError(`${msg} Quitamos el cupón; podés reintentar la compra.`);
+        removeCoupon();
+      } else {
+        setError(e?.message || 'Hubo un problema al procesar tu pedido.');
+      }
       setLoading(null);
       // Liberamos el candado para que pueda reintentar tras el error.
       submitLockRef.current = false;
