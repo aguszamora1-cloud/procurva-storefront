@@ -314,14 +314,33 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
   }, [colorsByProduct, enriched, pinnedColorByProduct]);
 
   // Cerrar con Escape y bloquear el scroll de fondo mientras el modal está abierto.
+  // En iOS / navegadores embebidos (Instagram, in-app webview) poner solo
+  // `overflow: hidden` NO alcanza: el fondo sigue haciendo rubber-band y, como el
+  // modal es `position: fixed` centrado, se reposiciona y "pega saltos". El patrón
+  // robusto es fijar el body con la posición de scroll congelada y restaurarla al
+  // cerrar.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const body = document.body;
+    const scrollY = window.scrollY;
+    const prev = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+    };
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
+      body.style.overflow = prev.overflow;
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.width = prev.width;
+      window.scrollTo(0, scrollY);
     };
   }, [onClose]);
 
@@ -430,12 +449,19 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
   return createPortal(
     <div
       className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4"
-      style={{ background: 'rgba(0,0,0,0.6)' }}
+      // `height: 100dvh` (dvh = viewport visible real) evita que en navegadores
+      // embebidos el área de centrado sea más alta que lo visible y empuje el
+      // header fuera de pantalla. Si el browser no entiende dvh, cae a `inset-0`.
+      style={{ background: 'rgba(0,0,0,0.6)', height: '100dvh' }}
       onClick={onClose}
     >
       <div
         className="relative flex max-h-[88vh] w-full flex-col overflow-hidden shadow-2xl"
-        style={{ background: '#fff', borderRadius: '14px', maxWidth: '440px', color: '#111' }}
+        // maxHeight en dvh: en Instagram/webview `vh` mide contra el viewport más
+        // alto (toolbar oculta) y el modal queda más alto que lo visible, dejando
+        // el header (y la cruz) por encima del borde superior. dvh usa el alto
+        // visible real; la clase `max-h-[88vh]` queda de fallback si no hay dvh.
+        style={{ background: '#fff', borderRadius: '14px', maxWidth: '440px', color: '#111', maxHeight: '88dvh' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header sticky: siempre visible, con la cruz para cerrar */}
