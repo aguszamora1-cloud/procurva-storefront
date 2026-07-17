@@ -17,6 +17,7 @@ import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, Co
 import { expandMethod, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 import { SHIPPING_ICONS } from '@/lib/shippingIcons';
 import { validateCoupon, computeDiscount, eligibleSubtotal, eligibleItems, type CouponRecord } from '@/lib/coupons';
+import { track } from '@/lib/tracking';
 
 /** Mensaje en español para cada código de error de cupón que puede lanzar la RPC. */
 const COUPON_ERROR_MESSAGES: Record<CouponErrorCode, string> = {
@@ -153,6 +154,8 @@ export function Checkout() {
       value: subtotal,
       numItems: itemCount,
     });
+    // Analytics propio (independiente del pixel; no-op hasta tenant resuelto).
+    track('checkout_start', { amount: subtotal });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, subtotal, itemCount]);
 

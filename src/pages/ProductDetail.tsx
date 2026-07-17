@@ -28,6 +28,7 @@ import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSe
 import { useProductBadges } from '@/hooks/useProductBadges';
 import { formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
+import { track } from '@/lib/tracking';
 import { isCustomToken, customTokenId, type ProductLayout } from '@/lib/productLayout';
 import type { CustomSection, Product, ProductDetailSlot, StoreConfig, Variant } from '@/lib/types';
 
@@ -240,6 +241,8 @@ export function ProductDetail() {
     if (!product) return;
     const { mainPrice } = getPriceInfo(product);
     trackViewContent({ contentId: product.id, name: product.name, value: mainPrice });
+    // Analytics propio (independiente del pixel; no-op hasta tenant resuelto).
+    track('product_view', { product_id: product.id });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id]);
 

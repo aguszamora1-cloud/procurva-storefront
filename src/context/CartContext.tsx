@@ -9,6 +9,7 @@ import {
 } from 'react';
 import type { CartItem } from '@/lib/types';
 import { cartLineKey } from '@/lib/cart';
+import { track } from '@/lib/tracking';
 
 const CART_STORAGE_KEY = 'procurva_storefront_cart_v1';
 
@@ -48,6 +49,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   const addItem = useCallback((item: CartItem) => {
+    // Analytics propio (no-op hasta tenant resuelto). Choke point único: captura todos
+    // los modos de agregado (suelto/curva/curva_surtida/pack/tier). Fire-and-forget.
+    track('add_to_cart', { product_id: item.product_id });
     setItems((prev) => {
       const key = cartLineKey(item);
       const idx = prev.findIndex((p) => cartLineKey(p) === key);

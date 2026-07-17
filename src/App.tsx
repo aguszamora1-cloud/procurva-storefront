@@ -12,6 +12,7 @@ import { ErrorScreen } from '@/components/ErrorScreen';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Analytics } from '@/components/Analytics';
 import { MetaPixelPageView } from '@/components/MetaPixelPageView';
+import { StorefrontAnalytics } from '@/components/StorefrontAnalytics';
 import { StoreNotFound } from '@/pages/StoreNotFound';
 import { RouteNotFound } from '@/pages/RouteNotFound';
 import { WholesalePasswordGate } from '@/pages/WholesalePasswordGate';
@@ -45,6 +46,7 @@ function StoreRoutes() {
         <ScrollToTop />
         <Analytics />
         <MetaPixelPageView />
+        <StorefrontAnalytics />
         <Layout>
           <Suspense fallback={<PageFallback />}>
             <Routes>
