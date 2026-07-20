@@ -24,6 +24,62 @@ export class CouponError extends Error {
   }
 }
 
+/** Una línea del carrito que se quedó sin stock suficiente. La devuelve la RPC
+ * `catalog_cart_stock_shortfalls` y también viaja en el DETAIL del error
+ * `STOCK_INSUFICIENTE` que lanza el trigger de `catalog_orders`. */
+export interface StockShortfall {
+  name: string;
+  size: string | null;
+  color: string | null;
+  requested: number;
+  available: number;
+}
+
+/** El pedido no se registró porque falta stock. Lleva el detalle de qué faltó
+ * para que el checkout lo muestre producto por producto. */
+export class StockError extends Error {
+  shortfalls: StockShortfall[];
+  constructor(shortfalls: StockShortfall[]) {
+    super('STOCK_INSUFICIENTE');
+    this.name = 'StockError';
+    this.shortfalls = shortfalls;
+  }
+}
+
+/**
+ * Revalida el stock del carrito contra `deposit_stock` (la fuente de verdad del
+ * ERP, no el cache `product_variants.stock` que lee el catálogo). Devuelve las
+ * líneas que no alcanzan, o `[]` si está todo bien.
+ *
+ * El carrito vive en localStorage sin vencimiento y nunca se revalida, así que un
+ * ítem agregado hace días puede llegar al checkout con stock 0. Esto sirve para
+ * avisarlo ANTES de que el cliente cargue sus datos; el bloqueo de verdad lo hace
+ * el trigger `trg_catalog_orders_assert_stock` al insertar el pedido.
+ *
+ * Ante cualquier fallo devuelve `[]`: es un aviso temprano, no puede ser el motivo
+ * de que alguien no pueda comprar.
+ */
+export async function checkCartStock(
+  companyId: string,
+  items: CartItem[],
+  priceMode: 'cash' | 'card',
+): Promise<StockShortfall[]> {
+  try {
+    const { data, error } = await supabase.rpc('catalog_cart_stock_shortfalls', {
+      p_company_id: companyId,
+      p_items: mapItems(items, priceMode),
+    });
+    if (error) {
+      console.error('[orders] no se pudo revalidar el stock', error);
+      return [];
+    }
+    return Array.isArray(data) ? (data as StockShortfall[]) : [];
+  } catch (e) {
+    console.error('[orders] no se pudo revalidar el stock', e);
+    return [];
+  }
+}
+
 /** Datos del cliente que se cargan en el checkout. */
 export interface CustomerInfo {
   name: string;
@@ -187,6 +243,19 @@ export async function createCatalogOrder(
     const couponCode = String(error.message || '').match(/COUPON_[A-Z_]+/)?.[0];
     if (couponCode) {
       throw new CouponError(couponCode as CouponErrorCode);
+    }
+    // Falta stock: lo bloquea el trigger trg_catalog_orders_assert_stock. El
+    // detalle de qué líneas fallaron viene en `details` (el DETAIL del RAISE),
+    // así no hay que parsear el mensaje.
+    if (/STOCK_INSUFICIENTE/.test(String(error.message || '')) || /STOCK_INSUFICIENTE/.test(String(error.hint || ''))) {
+      let shortfalls: StockShortfall[] = [];
+      try {
+        const parsed = JSON.parse(String(error.details || '[]'));
+        if (Array.isArray(parsed)) shortfalls = parsed as StockShortfall[];
+      } catch {
+        /* sin detalle: igual bloqueamos, con el mensaje genérico */
+      }
+      throw new StockError(shortfalls);
     }
     console.error('[orders] error creando catalog_order', error);
     throw new Error('No pudimos registrar tu pedido. Probá de nuevo.');

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, X, ArrowLeft, Plus, MapPin, Clock, PackageCheck, Info } from 'lucide-react';
+import { ShoppingBag, X, ArrowLeft, Plus, MapPin, Clock, PackageCheck, Info, AlertTriangle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
 import { useMetaPixel } from '@/hooks/useMetaPixel';
@@ -13,7 +13,7 @@ import { formatPrice } from '@/lib/utils';
 import { cartLineKey, groupCartItems, evalMinOrder } from '@/lib/cart';
 import { applyPromoToPrice } from '@/lib/promotions';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
-import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, CouponError, type CouponErrorCode, type CustomerInfo } from '@/lib/orders';
+import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, checkCartStock, CouponError, StockError, type CouponErrorCode, type CustomerInfo, type StockShortfall } from '@/lib/orders';
 import { expandMethod, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 import { SHIPPING_ICONS } from '@/lib/shippingIcons';
 import { looksLikePhone } from '@/lib/phone';
@@ -33,6 +33,18 @@ const COUPON_ERROR_MESSAGES: Record<CouponErrorCode, string> = {
   COUPON_WRONG_CHANNEL: 'El cupón no aplica a esta tienda.',
   COUPON_DISCOUNT_MISMATCH: 'Hubo un problema con el descuento. Recargá la página e intentá de nuevo.',
 };
+
+/** "BUZO NIKE AIR — Talle M / Negro": el detalle de una línea sin stock. */
+function shortfallLabel(s: StockShortfall): string {
+  const attrs = [s.size && `Talle ${s.size}`, s.color].filter(Boolean).join(' / ');
+  return attrs ? `${s.name} — ${attrs}` : s.name;
+}
+
+/** "Pediste 5, queda 1" / "Pediste 3, no queda stock". */
+function shortfallDetail(s: StockShortfall): string {
+  if (s.available <= 0) return `Pediste ${s.requested}, no queda stock`;
+  return `Pediste ${s.requested}, ${s.available === 1 ? 'queda 1' : `quedan ${s.available}`}`;
+}
 
 const emptyForm: CustomerInfo = {
   name: '',
@@ -240,6 +252,30 @@ export function Checkout() {
   // Sólo la tarjeta usa el precio de tarjeta; el resto (incluido dinero en
   // cuenta) va a precio de contado.
   const priceMode: 'cash' | 'card' = payMethod === 'tarjeta' ? 'card' : 'cash';
+
+  // Revalidación de stock al entrar al checkout. El carrito vive en localStorage
+  // sin vencimiento y no se revalida nunca, así que un ítem agregado hace días
+  // puede llegar acá con stock 0. Esto es solo el aviso temprano —el bloqueo real
+  // lo hace el trigger de catalog_orders al registrar el pedido—, por eso ante
+  // cualquier fallo `checkCartStock` devuelve [] y el checkout sigue normal.
+  const [stockIssues, setStockIssues] = useState<StockShortfall[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    if (items.length === 0) {
+      setStockIssues([]);
+      return;
+    }
+    (async () => {
+      const short = await checkCartStock(config.companyId, items, priceMode);
+      if (!cancelled) setStockIssues(short);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // priceMode queda afuera a propósito: no afecta el stock, solo el precio, y
+    // revalidar en cada cambio de medio de pago sería una llamada al pedo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.companyId, items]);
 
   // Carga dinámica de los métodos de envío configurados por el negocio.
   useEffect(() => {
@@ -660,6 +696,16 @@ export function Checkout() {
         // El servidor rechazó el cupón en el paso final: lo sacamos por completo.
         clearSavedCoupon();
         setCouponInput('');
+      } else if (e instanceof StockError) {
+        // El pedido NO se registró: alguien se llevó el stock mientras el cliente
+        // completaba el checkout. Mostramos qué faltó y no lo dejamos confirmar
+        // hasta que ajuste el carrito.
+        setStockIssues(e.shortfalls);
+        setError(
+          e.shortfalls.length > 0
+            ? 'No pudimos confirmar tu pedido: se quedó sin stock un producto de tu carrito.'
+            : 'No pudimos confirmar tu pedido: uno de los productos se quedó sin stock. Revisá tu carrito.',
+        );
       } else {
         setError(e?.message || 'Hubo un problema al procesar tu pedido.');
       }
@@ -1169,6 +1215,29 @@ export function Checkout() {
               </div>
             )}
 
+            {/* Stock insuficiente: se muestra tanto por la revalidación al entrar
+                como por el rechazo del servidor al confirmar. Mientras esté, el
+                botón de confirmar queda deshabilitado. */}
+            {stockIssues.length > 0 && (
+              <div className="mb-3 rounded-[8px] border border-red-200 bg-red-50 px-3 py-2.5">
+                <p className="flex items-center gap-1.5 text-[13px] font-semibold text-red-700">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  {stockIssues.length === 1 ? 'Un producto se quedó sin stock' : 'Hay productos sin stock'}
+                </p>
+                <ul className="mt-1.5 space-y-1">
+                  {stockIssues.map((s, idx) => (
+                    <li key={`${s.name}-${s.size ?? ''}-${s.color ?? ''}-${idx}`} className="text-[13px] leading-snug text-red-700">
+                      <span className="font-medium">{shortfallLabel(s)}</span>
+                      <span className="text-red-600"> · {shortfallDetail(s)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/carrito" className="mt-2 inline-block text-[13px] font-semibold text-red-700 underline">
+                  Ajustar el carrito
+                </Link>
+              </div>
+            )}
+
             {error && (
               <p className="mb-3 rounded-[8px] bg-red-50 px-3 py-2 text-[13px] font-medium text-red-700">{error}</p>
             )}
@@ -1177,7 +1246,7 @@ export function Checkout() {
               <button
                 type="button"
                 onClick={handlePay}
-                disabled={loading !== null}
+                disabled={loading !== null || stockIssues.length > 0}
                 className={`flex w-full items-center justify-center gap-2 rounded-[10px] py-4 text-[14px] font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 ${routing === 'mp' ? 'bg-[#009ee3] hover:scale-[1.01]' : routing === 'gc' ? 'bg-[#7c3aed] hover:scale-[1.01]' : 'bg-[#25D366] hover:brightness-105'}`}
               >
                 {loading !== null ? (
