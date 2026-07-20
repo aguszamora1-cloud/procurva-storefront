@@ -17,8 +17,10 @@ import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, Co
 import { expandMethod, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 import { SHIPPING_ICONS } from '@/lib/shippingIcons';
 import { looksLikePhone } from '@/lib/phone';
-import { validateCoupon, computeDiscount, eligibleSubtotal, eligibleItems, type CouponRecord } from '@/lib/coupons';
+import { computeDiscount, eligibleSubtotal, eligibleItems } from '@/lib/coupons';
 import { track } from '@/lib/tracking';
+import { useCoupon } from '@/context/CouponContext';
+import { CouponChip } from '@/components/CouponChip';
 
 /** Mensaje en español para cada código de error de cupón que puede lanzar la RPC. */
 const COUPON_ERROR_MESSAGES: Record<CouponErrorCode, string> = {
@@ -368,9 +370,13 @@ export function Checkout() {
     [pricedItems],
   );
   const [couponInput, setCouponInput] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<CouponRecord | null>(null);
   const [couponStatus, setCouponStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [couponError, setCouponError] = useState('');
+  // Cupón guardado (persistente). El chip y el input son dos vistas de este estado.
+  // `appliedCoupon` (derivado) es el registro solo cuando está aplicado: el resto
+  // del checkout (descuento, resumen, orden) sigue leyéndolo igual que antes.
+  const { savedCoupon, couponRecord, saveCoupon, setApplied, removeCoupon: clearSavedCoupon } = useCoupon();
+  const appliedCoupon = savedCoupon?.applied ? couponRecord : null;
 
   // Costo conocido (número) vs "a coordinar" (null/sin método).
   const shippingKnown = typeof selectedMethod?.cost === 'number';
@@ -384,10 +390,13 @@ export function Checkout() {
   // cobra a precio normal. La compra mínima se evalúa sobre el subtotal total.
   const discountAmount = useMemo(() => {
     if (!appliedCoupon) return 0;
-    if (appliedCoupon.min_subtotal && itemsSubtotal < appliedCoupon.min_subtotal) return 0;
+    // El mínimo se mide sobre el subtotal ELEGIBLE (igual que la RPC server-side),
+    // no sobre el total del carrito: así nunca mostramos un descuento que el
+    // servidor va a rechazar.
     const elig = eligibleSubtotal(appliedCoupon, pricedItems, priceMode);
+    if (appliedCoupon.min_subtotal && elig < appliedCoupon.min_subtotal) return 0;
     return Math.round(computeDiscount(appliedCoupon, elig));
-  }, [appliedCoupon, itemsSubtotal, pricedItems, priceMode]);
+  }, [appliedCoupon, pricedItems, priceMode]);
 
   // Productos del carrito alcanzados por el cupón (para el desglose cuando aplica
   // parcialmente). Vacío si el alcance es 'all'.
@@ -405,8 +414,11 @@ export function Checkout() {
   const totalForMode = (mode: 'cash' | 'card') => {
     const sub = mode === 'cash' ? cashSubtotal : cardSubtotal;
     let disc = 0;
-    if (appliedCoupon && !(appliedCoupon.min_subtotal && sub < appliedCoupon.min_subtotal)) {
-      disc = Math.round(computeDiscount(appliedCoupon, eligibleSubtotal(appliedCoupon, pricedItems, mode)));
+    if (appliedCoupon) {
+      const elig = eligibleSubtotal(appliedCoupon, pricedItems, mode);
+      if (!(appliedCoupon.min_subtotal && elig < appliedCoupon.min_subtotal)) {
+        disc = Math.round(computeDiscount(appliedCoupon, elig));
+      }
     }
     return Math.max(0, sub - disc) + shippingCost;
   };
@@ -417,28 +429,28 @@ export function Checkout() {
   const transferTotal = totalForMode('cash');
 
 
+  // Aplicar desde el input manual: valida (cart-independiente) y guarda el cupón
+  // como aplicado. Queda sincronizado con el chip (misma fuente de estado). La
+  // validez contra el carrito (mínimo/alcance) la refleja el resumen en vivo.
   async function applyCoupon() {
     const code = couponInput.trim();
     if (!code) return;
     setCouponStatus('loading');
     setCouponError('');
-    const res = await validateCoupon(config.companyId, code, itemsSubtotal, {
-      storeType: effStoreType,
-      items: pricedItems,
-      mode: priceMode,
-    });
+    const res = await saveCoupon(code, { applied: true });
     if (!res.ok) {
-      setAppliedCoupon(null);
-      setCouponError(res.error);
+      setCouponError(res.error || 'El código no es válido.');
       setCouponStatus('error');
       return;
     }
-    setAppliedCoupon(res.applied.coupon);
+    setCouponInput('');
     setCouponStatus('idle');
   }
 
-  function removeCoupon() {
-    setAppliedCoupon(null);
+  // Quitar el cupón APLICADO: lo dejamos guardado (chip "disponible") para que el
+  // cliente pueda re-aplicarlo sin volver a tipearlo.
+  function unapplyCoupon() {
+    setApplied(false);
     setCouponInput('');
     setCouponError('');
     setCouponStatus('idle');
@@ -645,7 +657,9 @@ export function Checkout() {
         const msg = COUPON_ERROR_MESSAGES[e.code] ?? 'El cupón no es válido.';
         setCouponError(msg);
         setError(`${msg} Quitamos el cupón; podés reintentar la compra.`);
-        removeCoupon();
+        // El servidor rechazó el cupón en el paso final: lo sacamos por completo.
+        clearSavedCoupon();
+        setCouponInput('');
       } else {
         setError(e?.message || 'Hubo un problema al procesar tu pedido.');
       }
@@ -987,7 +1001,7 @@ export function Checkout() {
                   </div>
                   <button
                     type="button"
-                    onClick={removeCoupon}
+                    onClick={unapplyCoupon}
                     aria-label="Quitar cupón"
                     className="shrink-0 rounded-full p-1 text-current opacity-70 transition-opacity hover:opacity-100"
                   >
@@ -996,6 +1010,15 @@ export function Checkout() {
                 </div>
               ) : (
                 <>
+                  {/* Chip del cupón guardado (disponible / no aplicable): al tocarlo
+                      se aplica de verdad. Es la otra vista del mismo estado que el input. */}
+                  <CouponChip
+                    items={pricedItems}
+                    mode={priceMode}
+                    storeType={effStoreType}
+                    hasNonStackablePromo={false}
+                    className="mb-2"
+                  />
                   <div className="flex gap-2">
                     <input
                       className={inputCls}

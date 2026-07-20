@@ -16,6 +16,7 @@ import { SizeFinder } from '@/components/SizeFinder';
 import { TrustBadges } from '@/components/TrustBadges';
 import { ShippingCalculator } from '@/components/ShippingCalculator';
 import { PriceDisplay } from '@/components/PriceDisplay';
+import { CouponPdpChip } from '@/components/CouponChip';
 import { WholesalePurchasePanel } from '@/components/WholesalePurchasePanel';
 import { PromoCountdown } from '@/components/PromoCountdown';
 import { CardBadge } from '@/components/CardBadge';
@@ -508,6 +509,10 @@ export function ProductDetail() {
           {!isWholesale && (
           <>
           <PriceDisplay product={product} variant="detail" />
+
+          {/* Chip informativo del cupón guardado: cuánto pagarías por este producto
+              con el cupón + copiar el código. No aplica nada (eso pasa en el checkout). */}
+          <CouponPdpChip product={product} hasNonStackablePromo={promo?.stackable_with_coupons === false} className="mt-3" />
 
           {/* Promo por cantidad: banner informativo. El precio NO se tacha (el
               descuento se aplica recién al llegar al mínimo en el carrito). */}

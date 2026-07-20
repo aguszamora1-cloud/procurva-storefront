@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '@/context/StoreProvider';
+import { useCoupon } from '@/context/CouponContext';
 import { subscribeNewsletter } from '@/lib/newsletter';
 
 /** ¿El color es claro? (para elegir color de texto legible encima). */
@@ -35,6 +36,7 @@ const writeFlag = (key: string, value: string) => {
  */
 export function NewsletterPopup() {
   const config = useStore();
+  const { saveCoupon } = useCoupon();
   const popup = config.newsletterPopup;
   const storageKey = `procurva_nl_popup:${config.companyId}`;
 
@@ -128,6 +130,11 @@ export function NewsletterPopup() {
     }
     writeFlag(storageKey, 'subscribed');
     if (res.couponCode) setGeneratedCoupon(res.couponCode);
+    // Guardar el cupón mostrado (generado o fijo) para que aparezca aplicable en
+    // el carrito/checkout. NO aplicado: el cliente lo aplica cuando compra. No
+    // bloquea; si el código fijo no existe en la DB, saveCoupon lo ignora.
+    const codeToSave = res.couponCode || couponCode;
+    if (codeToSave) void saveCoupon(codeToSave, { applied: false });
     setStatus(res.status); // 'done' | 'duplicate'
     // Si hay un cupón para mostrar (generado o fijo), NO auto-cerramos: el
     // usuario necesita tiempo para copiar el código.
@@ -198,6 +205,7 @@ export function NewsletterPopup() {
                 </button>
                 <p className="mt-1.5 text-[11px] opacity-50">{copied ? '¡Copiado!' : '(click para copiar)'}</p>
                 <p className="mt-3 text-sm opacity-70">Usalo en el checkout de tu próxima compra.</p>
+                <p className="mt-1 text-[11px] opacity-50">Ya te lo guardamos — lo vas a ver aplicable cuando compres.</p>
                 {generatedCoupon && (
                   <p className="mt-1 text-[11px] opacity-50">También te lo enviamos por email.</p>
                 )}

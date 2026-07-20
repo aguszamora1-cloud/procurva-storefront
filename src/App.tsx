@@ -5,6 +5,7 @@ import { WholesalePricingProvider } from '@/context/WholesalePricingContext';
 import { PromotionsProvider } from '@/context/PromotionsContext';
 import { CategoryTiersProvider } from '@/context/CategoryTiersContext';
 import { CartProvider } from '@/context/CartContext';
+import { CouponProvider } from '@/context/CouponContext';
 import { Layout } from '@/components/Layout';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -39,6 +40,7 @@ function PageFallback() {
 function StoreRoutes() {
   return (
     <CartProvider>
+      <CouponProvider>
       <WholesalePricingProvider>
       <PromotionsProvider>
       <CategoryTiersProvider>
@@ -68,6 +70,7 @@ function StoreRoutes() {
       </CategoryTiersProvider>
       </PromotionsProvider>
       </WholesalePricingProvider>
+      </CouponProvider>
     </CartProvider>
   );
 }

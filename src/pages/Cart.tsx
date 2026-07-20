@@ -4,6 +4,7 @@ import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { StoreImage } from '@/components/StoreImage';
+import { CouponChip } from '@/components/CouponChip';
 import { Seo } from '@/components/Seo';
 import { formatPrice } from '@/lib/utils';
 import { groupCartItems, evalMinOrder } from '@/lib/cart';
@@ -12,7 +13,12 @@ export function Cart() {
   const { items, updateQty, removeItem, clear, itemCount } = useCart();
   const { byLine, adjustedSubtotal, quantitySavings, nudges } = useCartPromos();
   const config = useStore();
-  const isWholesale = useStoreType() === 'wholesale';
+  const storeType = useStoreType() ?? 'retail';
+  const isWholesale = storeType === 'wholesale';
+  // Promo automática NO acumulable en el carrito → bloquea el cupón.
+  const hasNonStackablePromo = [...byLine.values()].some(
+    (r) => r?.active && r.promo?.stackable_with_coupons === false,
+  );
   // El monto del mínimo se mide sobre el subtotal de mercadería (con promos por
   // cantidad, a precio de lista, sin envío) — el mismo número del "Subtotal".
   const min = evalMinOrder(config, isWholesale, itemCount, adjustedSubtotal);
@@ -123,6 +129,17 @@ export function Cart() {
           {quantitySavings > 0 && (
             <p className="pt-3 text-right text-[12px] font-semibold text-accent">Ahorrás {formatPrice(quantitySavings)} por cantidad</p>
           )}
+          {/* Cupón guardado: chip tri-estado. Sin monto exacto (showAmount=false):
+              depende de promos por cantidad y del modo de pago, que se resuelven en
+              el checkout; acá solo indicamos que está aplicado. */}
+          <CouponChip
+            items={items}
+            mode="card"
+            storeType={storeType}
+            hasNonStackablePromo={hasNonStackablePromo}
+            showAmount={false}
+            className="mt-4"
+          />
           {min.active && (
             <div className={`pt-4 text-[12px] font-semibold ${min.ok ? 'text-emerald-600' : 'text-amber-600'}`}>
               {min.ok ? (
