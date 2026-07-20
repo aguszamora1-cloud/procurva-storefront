@@ -16,6 +16,7 @@ import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, CouponError, type CouponErrorCode, type CustomerInfo } from '@/lib/orders';
 import { expandMethod, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 import { SHIPPING_ICONS } from '@/lib/shippingIcons';
+import { looksLikePhone } from '@/lib/phone';
 import { validateCoupon, computeDiscount, eligibleSubtotal, eligibleItems, type CouponRecord } from '@/lib/coupons';
 import { track } from '@/lib/tracking';
 
@@ -481,6 +482,9 @@ export function Checkout() {
     }
     if (!form.name.trim()) return 'Ingresá tu nombre.';
     if (!form.phone.trim()) return 'Ingresá tu teléfono.';
+    // Antes sólo se validaba "no vacío", así que un email autocompletado en el
+    // campo teléfono pasaba derecho y el pedido quedaba sin forma de contacto.
+    if (!looksLikePhone(form.phone)) return 'Revisá tu teléfono: ingresá sólo el número con característica (ej: 11 1234 5678).';
     if (requireEmail && !form.email.trim()) return 'Para pagar online necesitamos tu email.';
     // El cliente tiene que elegir CÓMO recibe el pedido antes de pagar. El retiro en
     // local está siempre disponible (sin CP); los envíos a domicilio aparecen recién al
@@ -738,17 +742,21 @@ export function Checkout() {
           {/* 1. Tus datos */}
           <SectionHeading n={1}>Tus datos</SectionHeading>
           <div className="grid gap-4 sm:grid-cols-2">
+            {/* name/type/autoComplete son necesarios para que el autocompletado del
+                navegador ponga cada dato en su campo. Con sólo inputMode (que es una
+                pista de teclado, no de autofill) Safari/iOS resuelve por heurística y
+                llegaron pedidos con el email cargado en el teléfono. */}
             <label className="flex flex-col gap-1.5">
               <span className={labelCls}>Nombre *</span>
-              <input className={inputCls} value={form.name} onChange={set('name')} placeholder="Tu nombre y apellido" />
+              <input className={inputCls} value={form.name} onChange={set('name')} name="name" autoComplete="name" placeholder="Tu nombre y apellido" />
             </label>
             <label className="flex flex-col gap-1.5">
               <span className={labelCls}>Teléfono *</span>
-              <input className={inputCls} value={form.phone} onChange={set('phone')} inputMode="tel" placeholder="11 1234 5678" />
+              <input className={inputCls} value={form.phone} onChange={set('phone')} type="tel" name="tel" autoComplete="tel" inputMode="tel" placeholder="11 1234 5678" />
             </label>
             <label className="flex flex-col gap-1.5 sm:col-span-2">
               <span className={labelCls}>Email {config.mercadopagoEnabled ? '*' : ''}</span>
-              <input className={inputCls} value={form.email} onChange={set('email')} inputMode="email" placeholder="tu@email.com" />
+              <input className={inputCls} value={form.email} onChange={set('email')} type="email" name="email" autoComplete="email" inputMode="email" placeholder="tu@email.com" />
             </label>
           </div>
 
