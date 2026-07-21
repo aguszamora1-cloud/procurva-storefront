@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
 import { useBanners } from '@/hooks/useBanners';
+import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { transformedSrc } from '@/lib/images';
 
 const ROTATE_MS = 6000;
@@ -26,6 +27,8 @@ export function Hero() {
   // Si la transformación de Supabase (render/image) falla, caemos a la URL
   // original. Las imágenes nunca quedan rotas.
   const [transformFailed, setTransformFailed] = useState(false);
+  // La primera imagen del hero ya se descargó (o no hay ninguna que esperar).
+  const [firstImageReady, setFirstImageReady] = useState(false);
 
   // Sólo banners con URL válida; descartamos image_url vacío/roto.
   const validBanners = banners.filter((b) => isRenderable(b.image_url));
@@ -41,6 +44,11 @@ export function Hero() {
         : [];
 
   const srcFor = (url: string, width: number) => (transformFailed ? url : transformedSrc(url, { width }));
+
+  // Gate del primer paint: la tienda queda tapada hasta tener los banners Y la
+  // imagen principal ya descargada. Sin esto el banner era lo último en aparecer,
+  // después del navbar y las categorías.
+  useFirstPaintGate('hero', isLoading || (slides.length > 0 && !firstImageReady));
 
   useEffect(() => {
     if (slides.length <= 1) return;
@@ -114,11 +122,18 @@ export function Hero() {
               loading={i === 0 ? 'eager' : 'lazy'}
               decoding={i === 0 ? 'sync' : 'async'}
               fetchPriority={i === 0 ? 'high' : 'auto'}
+              onLoad={() => {
+                if (i === 0) setFirstImageReady(true);
+              }}
               onError={() => {
                 if (!transformFailed) {
                   console.warn('[Hero] imagen transformada falló, usando original:', s.image);
                   setTransformFailed(true);
+                  return;
                 }
+                // Ya reintentamos con la original y también falló: destrabamos el
+                // gate igual, no vamos a dejar la tienda tapada por una imagen rota.
+                if (i === 0) setFirstImageReady(true);
               }}
               className="absolute inset-0 h-full w-full object-cover"
             />

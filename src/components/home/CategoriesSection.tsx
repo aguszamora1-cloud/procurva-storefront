@@ -5,6 +5,7 @@ import type { Product } from '@/lib/types';
 import { mainImage, productCategories } from '@/lib/utils';
 import { useCategories, type CategoryInfo } from '@/hooks/useCategories';
 import { useStore } from '@/context/StoreProvider';
+import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { SectionHeader } from '@/components/SectionHeader';
 
 type CardStyle = 'overlay' | 'below' | 'full';
@@ -110,9 +111,13 @@ function CategoryCard({
 }
 
 export function CategoriesSection({ products }: { products: Product[] }) {
-  const { categories } = useCategories(products);
+  const { categories, isLoading } = useCategories(products);
   const { categoriesDisplayMode, categoriesSection } = useStore();
   const scrollerRef = useRef<HTMLDivElement>(null);
+
+  // Gate del primer paint: el orden/visibilidad de categorías es otro fetch, y
+  // sin esperarlo la fila de categorías aparecía suelta después del navbar.
+  useFirstPaintGate('home-categories', isLoading);
 
   if (categories.length === 0) return null;
   const shown = categories.slice(0, 8);

@@ -4,6 +4,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useFeaturedSections } from '@/hooks/useFeaturedSections';
 import { useTopSelling } from '@/hooks/useTopSelling';
 import { usePromotions } from '@/context/PromotionsContext';
+import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import type { Product } from '@/lib/types';
 import { Seo } from '@/components/Seo';
 import { Hero } from '@/components/Hero';
@@ -61,6 +62,10 @@ export function Home() {
   // Ranking de ventas para la regla automática de Destacados.
   const top = useTopSelling();
   const { promoForProduct, priceFor } = usePromotions();
+
+  // Gate del primer paint: sin productos no hay grillas ni categorías, así que la
+  // tienda espera al catálogo antes de mostrarse (ver FirstPaintContext).
+  useFirstPaintGate('home-products', isLoading);
 
   // Destacados: pins arriba + resto por MÁS VENDIDOS (rank de unidades; los sin
   // ventas caen por recencia, que es el orden base de `products`).

@@ -6,6 +6,7 @@ import { PromotionsProvider } from '@/context/PromotionsContext';
 import { CategoryTiersProvider } from '@/context/CategoryTiersContext';
 import { CartProvider } from '@/context/CartContext';
 import { CouponProvider } from '@/context/CouponContext';
+import { FirstPaintProvider } from '@/context/FirstPaintContext';
 import { Layout } from '@/components/Layout';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -45,6 +46,7 @@ function StoreRoutes() {
       <PromotionsProvider>
       <CategoryTiersProvider>
       <BrowserRouter>
+      <FirstPaintProvider>
         <ScrollToTop />
         <Analytics />
         <MetaPixelPageView />
@@ -66,6 +68,7 @@ function StoreRoutes() {
             </Routes>
           </Suspense>
         </Layout>
+      </FirstPaintProvider>
       </BrowserRouter>
       </CategoryTiersProvider>
       </PromotionsProvider>
