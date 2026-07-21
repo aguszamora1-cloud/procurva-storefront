@@ -13,7 +13,7 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 }
 
 /** Luminancia relativa simple para decidir texto blanco/negro encima. */
-function luminance(hex: string): number {
+export function luminance(hex: string): number {
   const { r, g, b } = hexToRgb(hex);
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 }

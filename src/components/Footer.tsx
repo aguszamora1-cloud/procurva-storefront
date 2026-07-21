@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
 import { instagramHref } from '@/lib/storeConfig';
 import { whatsappLink } from '@/lib/utils';
+import { SILHOUETTE_CLASS, useLogoSilhouette } from '@/hooks/useLogoSilhouette';
 
 const PAYMENT_LABELS: Record<string, string> = {
   mercadopago: 'MercadoPago',
@@ -50,6 +51,9 @@ export function Footer() {
   const wa = config.whatsapp ? whatsappLink(config.whatsapp, 'Hola! Quería hacer una consulta.') : '';
   const payments =
     config.paymentMethods.length > 0 ? config.paymentMethods : ['mercadopago', 'visa', 'mastercard', 'transferencia', 'efectivo'];
+  // El footer va sobre el color primario: siluetear el logo SÓLO si hace falta
+  // (antes se filtraba siempre y un logo .jpg quedaba como un bloque blanco).
+  const logoSilhouette = useLogoSilhouette(config.logoUrl, config.colorPrimary);
 
   return (
     <footer className="bg-primary text-[var(--color-on-primary)]">
@@ -61,7 +65,7 @@ export function Footer() {
               src={config.logoUrl}
               alt={config.name}
               style={{ height: config.logoHeight }}
-              className="w-auto object-contain brightness-0 invert"
+              className={`w-auto object-contain ${SILHOUETTE_CLASS[logoSilhouette]}`}
             />
           ) : (
             <p className="font-heading text-[22px] font-extrabold uppercase tracking-[-0.5px]">{config.name}</p>
