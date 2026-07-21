@@ -19,7 +19,7 @@ export interface BadgeView {
 
 export interface ProductBadges {
   outOfStock: boolean;
-  /** Badges candidatos ya ordenados por prioridad y cortados a 2. */
+  /** El badge ganador (lista de 0 o 1: se muestra sólo el de mayor prioridad). */
   badges: BadgeView[];
   style: BadgeStyle;
   position: BadgePosition;
@@ -48,7 +48,8 @@ const onBg = (bg: string): string => (bg.startsWith('#') ? contrastColor(bg) : '
  * los defaults por badge que espeja normalizeStoreConfig) sin reventar.
  *
  * Prioridad: Últimas unidades > Envío gratis > Descuento/Promo > badge del
- * comercio > Nuevo. "Sin stock" es excluyente (lo maneja el consumidor).
+ * comercio > Nuevo. Se muestra UNO SOLO (el de mayor prioridad); "Sin stock" es
+ * excluyente y lo maneja el consumidor.
  */
 export function useProductBadges(
   product: Product | null | undefined,
@@ -137,5 +138,8 @@ export function useProductBadges(
     return true;
   });
 
-  return { outOfStock, badges: deduped.slice(0, 2), style, position, showIcons };
+  // UN SOLO badge por producto: gana el de mayor prioridad (ver el orden arriba).
+  // Antes se mostraban hasta 2 y quedaban combinaciones ruidosas del tipo
+  // "Últimas unidades" + "Nuevo"; ahora el más relevante manda.
+  return { outOfStock, badges: deduped.slice(0, 1), style, position, showIcons };
 }
