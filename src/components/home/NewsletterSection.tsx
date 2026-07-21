@@ -2,6 +2,12 @@ import { useState } from 'react';
 import { useStore } from '@/context/StoreProvider';
 import { useCoupon } from '@/context/CouponContext';
 import { subscribeNewsletter } from '@/lib/newsletter';
+import { contrastColor, rgba, safeFill, safeText } from '@/lib/theme';
+
+// Foco visible sobre el color primario (el outline del navegador no se ve sobre
+// fondos oscuros). Repetido en cada control interactivo de la sección.
+const FOCUS_RING =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-on-primary)]';
 
 /**
  * Sección PRO de newsletter. Suscribe vía la edge function `newsletter-welcome`,
@@ -13,10 +19,27 @@ export function NewsletterSection() {
   const { title, subtitle, buttonText, successMessage } = config.newsletterConfig;
   const alignClass =
     config.sectionTitleAlign === 'center' ? 'text-center' : config.sectionTitleAlign === 'right' ? 'text-right' : 'text-left';
+  // El bloque del formulario acompaña la alineación elegida para la sección.
+  const boxAlign =
+    config.sectionTitleAlign === 'center' ? 'mx-auto' : config.sectionTitleAlign === 'right' ? 'ml-auto' : '';
+
+  // La sección va sobre el color primario: el botón usa el acento sólo si se
+  // distingue de ese fondo (con acento negro sobre sección negra no se veía).
+  const buttonBg = safeFill(config.colorAccent, config.colorPrimary);
+  const buttonFg = contrastColor(buttonBg);
+  // Los mensajes de éxito usaban `text-accent` y con acento negro no se leían.
+  const okColor = safeText(config.colorAccent, config.colorPrimary);
+  // Borde de los campos: derivado del color de la sección. La clase
+  // `border-[var(--color-on-primary)]/30` que había NO existe (Tailwind no puede
+  // aplicar opacidad sobre una variable CSS), así que el borde caía al gris por
+  // defecto: invisible en cualquier tienda con la sección clara.
+  const fieldBorder = rgba(contrastColor(config.colorPrimary), 0.35);
 
   const { saveCoupon } = useCoupon();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  // El nombre es opcional y arranca oculto: un solo campo baja la fricción.
+  const [showName, setShowName] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'duplicate' | 'error'>('idle');
   const [generatedCoupon, setGeneratedCoupon] = useState('');
   const [copied, setCopied] = useState(false);
@@ -54,15 +77,15 @@ export function NewsletterSection() {
         <p className="mt-2 text-sm opacity-80">{subtitle}</p>
 
         {status === 'done' ? (
-          <div className="mt-6">
-            <p className="text-accent">{successMessage}</p>
+          <div className="mt-6" role="status" aria-live="polite">
+            <p style={{ color: okColor }} className="font-semibold">{successMessage}</p>
             {generatedCoupon && (
               <div className="mt-3">
                 <p className="text-sm opacity-80">Tu cupón de descuento (también te lo enviamos por email):</p>
                 <button
                   type="button"
                   onClick={copyCoupon}
-                  className="mt-1 inline-flex items-center gap-2 rounded-md border border-dashed border-[var(--color-on-primary)]/40 px-4 py-2 text-lg font-extrabold uppercase tracking-[0.15em] transition-transform hover:scale-[1.01]"
+                  className={`mt-1 inline-flex items-center gap-2 rounded-md border border-dashed border-[var(--color-on-primary)]/40 px-4 py-2 text-lg font-extrabold uppercase tracking-[0.15em] transition-transform hover:scale-[1.01] ${FOCUS_RING}`}
                 >
                   {generatedCoupon}
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
@@ -77,32 +100,65 @@ export function NewsletterSection() {
             )}
           </div>
         ) : status === 'duplicate' ? (
-          <p className="mt-6 text-accent">Ya estás suscripto 🙌</p>
+          <p style={{ color: okColor }} className="mt-6 font-semibold" role="status" aria-live="polite">
+            Ese email ya está suscripto.
+          </p>
         ) : (
-          <form className="mx-auto mt-6 flex max-w-md flex-col gap-2 sm:flex-row" onSubmit={submit}>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Tu nombre (opcional)"
-              className="flex-1 border border-[var(--color-on-primary)]/30 bg-transparent px-4 py-3 text-sm outline-none placeholder:opacity-60"
-            />
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Tu email"
-              className="flex-1 border border-[var(--color-on-primary)]/30 bg-transparent px-4 py-3 text-sm outline-none placeholder:opacity-60"
-            />
-            <button type="submit" disabled={status === 'loading'} className="btn-accent px-6 py-3 text-sm disabled:opacity-60">
-              {status === 'loading' ? 'Enviando…' : buttonText}
-            </button>
-          </form>
+          <div className={`mt-6 max-w-md ${boxAlign}`}>
+            {/* Un solo campo visible: pedir el email y nada más es lo que menos
+                fricción tiene. El nombre queda a un clic para quien quiera darlo. */}
+            <form className="flex flex-col gap-2 sm:flex-row" onSubmit={submit}>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Tu email"
+                aria-label="Tu email"
+                style={{ borderColor: fieldBorder }}
+                className={`field-on-primary flex-1 border bg-transparent px-4 py-3 text-sm outline-none ${FOCUS_RING}`}
+              />
+              <button
+                type="submit"
+                disabled={status === 'loading'}
+                style={{ backgroundColor: buttonBg, color: buttonFg }}
+                className={`px-6 py-3 text-sm font-bold uppercase tracking-[0.03em] transition-opacity hover:opacity-90 disabled:opacity-60 ${FOCUS_RING}`}
+              >
+                {status === 'loading' ? 'Enviando…' : buttonText}
+              </button>
+            </form>
+
+            {showName ? (
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Tu nombre"
+                aria-label="Tu nombre"
+                autoFocus
+                style={{ borderColor: fieldBorder }}
+                className={`field-on-primary mt-2 w-full border bg-transparent px-4 py-3 text-sm outline-none ${FOCUS_RING}`}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowName(true)}
+                className={`mt-2 text-[13px] underline underline-offset-4 opacity-70 transition-opacity hover:opacity-100 ${FOCUS_RING}`}
+              >
+                Agregar mi nombre (opcional)
+              </button>
+            )}
+
+            <p className="mt-3 text-[12px] opacity-60">
+              Sin spam. Te escribimos solo cuando hay novedades o descuentos.
+            </p>
+          </div>
         )}
 
         {status === 'error' && (
-          <p className="mt-3 text-sm text-red-300">Hubo un error. Probá de nuevo.</p>
+          <p className="mt-3 text-sm text-red-300" role="alert">
+            No pudimos suscribirte. Revisá el email y probá de nuevo.
+          </p>
         )}
       </div>
     </section>

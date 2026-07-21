@@ -285,6 +285,13 @@ textarea::placeholder {
   color: var(--color-muted);
   opacity: 1;
 }
+/* Campos sobre el color primario (secciones oscuras: newsletter, footer). El
+   placeholder global usa --color-muted, un gris calculado para el fondo claro;
+   ahí se vuelve invisible y el campo parece una caja vacía. */
+.field-on-primary::placeholder {
+  color: var(--color-on-primary);
+  opacity: 0.55;
+}
 input[type='checkbox'],
 input[type='radio'] {
   accent-color: var(--color-accent);

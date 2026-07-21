@@ -34,6 +34,17 @@ export function safeText(text: string, bg: string): string {
   return Math.abs(luminance(text) - luminance(bg)) >= 0.25 ? text : contrastColor(bg);
 }
 
+/**
+ * Color de RELLENO seguro sobre una superficie: usa el color pedido si se
+ * distingue del fondo y, si no, cae al inverso del fondo. Sirve para botones
+ * sólidos sobre secciones de color: una tienda con acento negro dibujaba un
+ * botón negro sobre una sección negra y sólo se leía el texto, sin forma de
+ * botón. Es el equivalente de `safeText` para fondos.
+ */
+export function safeFill(fill: string, surface: string): string {
+  return Math.abs(luminance(fill) - luminance(surface)) >= 0.25 ? fill : contrastColor(surface);
+}
+
 /** rgba() a partir de hex + alpha. */
 export function rgba(hex: string, alpha: number): string {
   const { r, g, b } = hexToRgb(hex);
