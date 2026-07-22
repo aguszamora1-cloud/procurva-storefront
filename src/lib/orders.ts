@@ -80,6 +80,46 @@ export async function checkCartStock(
   }
 }
 
+/**
+ * Desglose de precio completo del pedido. El checkout ya calcula todos estos
+ * números (subtotal de lista, ahorro por promo, ahorro por contado, cupón,
+ * envío, total); los estampamos como un objeto para que el ERP muestre SIEMPRE
+ * el desglose en el detalle de la venta (promo + tarjeta/contado + cupón + envío),
+ * en vez de que el descuento quede horneado invisible dentro del precio de línea.
+ * Viaja: catalog_orders.price_breakdown -> orders.meta.price_breakdown.
+ *
+ * Invariante: list_subtotal - promo_discount - payment_discount - coupon_discount
+ *             + surcharge + shipping == total
+ */
+export interface PriceBreakdownItem {
+  product_id: string;
+  variant_id: string | null;
+  size?: string | null;
+  color?: string | null;
+  name: string;
+  quantity: number;
+  /** Precio unitario de lista/tarjeta (pre-promo, pre-contado). */
+  price_list: number;
+  /** Precio unitario efectivamente cobrado (post-promo, en el modo elegido). */
+  price_final: number;
+  promo_name?: string | null;
+}
+export interface PriceBreakdown {
+  source: 'storefront';
+  list_subtotal: number;
+  promo_discount: number;
+  promo_name: string | null;
+  payment_discount: number;
+  payment_discount_pct: number;
+  payment_method: string;
+  coupon_discount: number;
+  coupon_code: string | null;
+  shipping: number;
+  surcharge: number;
+  total: number;
+  items: PriceBreakdownItem[];
+}
+
 /** Datos del cliente que se cargan en el checkout. */
 export interface CustomerInfo {
   name: string;
@@ -181,6 +221,10 @@ export async function createCatalogOrder(
       discount_value: number;
       discount_amount: number;
     } | null;
+    // Desglose de precio completo para que el ERP lo muestre en el detalle de la
+    // venta. Se persiste en catalog_orders.price_breakdown y la edge fn lo copia
+    // a orders.meta.price_breakdown.
+    priceBreakdown?: PriceBreakdown | null;
   },
 ): Promise<string> {
   const orderId = crypto.randomUUID();
@@ -225,6 +269,10 @@ export async function createCatalogOrder(
           discount_amount: opts.discount.discount_amount,
         }
       : {}),
+    // Desglose de precio: create_catalog_order_dedup lo mapea a la columna
+    // homónima de catalog_orders (jsonb_populate_record). Si falta la columna en
+    // una base sin migrar, jsonb_populate_record simplemente lo descarta (no rompe).
+    ...(opts.priceBreakdown ? { price_breakdown: opts.priceBreakdown } : {}),
   };
 
   // Insert vía RPC con dedup en DB: si ya entró un pedido idéntico (misma

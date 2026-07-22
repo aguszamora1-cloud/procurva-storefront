@@ -13,7 +13,7 @@ import { formatPrice } from '@/lib/utils';
 import { cartLineKey, groupCartItems, evalMinOrder } from '@/lib/cart';
 import { applyPromoToPrice } from '@/lib/promotions';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
-import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, checkCartStock, CouponError, StockError, type CouponErrorCode, type CustomerInfo, type StockShortfall } from '@/lib/orders';
+import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, checkCartStock, CouponError, StockError, type CouponErrorCode, type CustomerInfo, type StockShortfall, type PriceBreakdown } from '@/lib/orders';
 import { expandMethod, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 import { SHIPPING_ICONS } from '@/lib/shippingIcons';
 import { looksLikePhone } from '@/lib/phone';
@@ -600,10 +600,53 @@ export function Checkout() {
               discount_amount: discountAmount,
             }
           : null;
+      // Desglose de precio completo para el detalle de la venta en el ERP. Reusa
+      // los subtotales que el checkout ya calcula, así el desglose es exacto y
+      // consistente con lo que ve el cliente. Descomposición (de lista a total):
+      //   list_subtotal (tarjeta, pre-promo)
+      //     - promo_discount      = subtotal - cardSubtotal   (promo por cantidad)
+      //     - payment_discount    = cardSubtotal - cashSubtotal (contado, solo cash)
+      //     - coupon_discount     = discountAmount
+      //     + shipping
+      //     = total
+      const promoNames = Array.from(
+        new Set(pricedItems.filter((i) => i.promo_id && i.promo_name).map((i) => i.promo_name as string)),
+      );
+      const priceBreakdown: PriceBreakdown = {
+        source: 'storefront',
+        list_subtotal: Math.round(subtotal),
+        promo_discount: Math.max(0, Math.round(subtotal - cardSubtotal)),
+        promo_name: promoNames[0] ?? null,
+        payment_discount: priceMode === 'cash' ? Math.max(0, Math.round(cardSubtotal - cashSubtotal)) : 0,
+        payment_discount_pct: priceMode === 'cash' ? cashDiscountPct : 0,
+        payment_method: payLabel,
+        coupon_discount: Math.round(discountAmount),
+        coupon_code: discount?.coupon_code ?? null,
+        shipping: Math.round(shippingCost),
+        surcharge: 0,
+        total: Math.round(orderTotal),
+        items: pricedItems.map((i) => {
+          const priceFinal =
+            priceMode === 'cash' && typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price;
+          const priceList = i.unit_price_original ?? i.unit_price;
+          return {
+            product_id: i.product_id,
+            variant_id: i.source === 'curva_surtida' ? null : i.variant_id,
+            size: i.size ?? null,
+            color: i.color ?? null,
+            name: i.name,
+            quantity: i.qty,
+            price_list: Math.round(priceList),
+            price_final: Math.round(priceFinal),
+            promo_name: i.promo_name ?? null,
+          };
+        }),
+      };
+
       // storeType puede ser null mientras resuelve el tenant; por defecto minorista.
       const orderId = await createCatalogOrder(
         config, pricedItems, orderTotal, customer, payLabel, storeType ?? 'retail',
-        { priceMode, viaMercadoPago: routing !== 'wa', discount, manualTransfer: transferManual, shippingCost },
+        { priceMode, viaMercadoPago: routing !== 'wa', discount, manualTransfer: transferManual, shippingCost, priceBreakdown },
       );
 
       // Prefill local: guardamos los datos reutilizables para autocompletar la
