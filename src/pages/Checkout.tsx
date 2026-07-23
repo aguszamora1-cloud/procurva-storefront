@@ -208,20 +208,23 @@ export function Checkout() {
   const waEnabled = Boolean(config.whatsapp);
   const transferAccount = config.transferAccount;
   // Métodos disponibles según lo que el negocio tenga configurado:
-  //  - transferencia: contado; va a MP si está habilitado, si no se coordina por WhatsApp.
+  //  - transferencia: contado; con cuenta bancaria cargada es transferencia directa
+  //    (no requiere MP ni WhatsApp); sin cuenta, va a MP si está habilitado y si no se
+  //    coordina por WhatsApp. Por eso alcanza con MP, WhatsApp o una cuenta cargada.
   //  - efectivo: contado; siempre se coordina por WhatsApp.
   //  - tarjeta: precio tarjeta; sólo si hay Mercado Pago.
   //  - mp_cuenta: contado (dinero en cuenta de MP); sólo si hay Mercado Pago.
   //  - gocuotas: contado (débito en cuotas sin interés); sólo si hay GoCuotas.
+  const hasTransferAccount = Boolean(transferAccount);
   const payMethods = useMemo<PayMethod[]>(() => {
     const list: PayMethod[] = [];
-    if (mpEnabled || waEnabled) list.push('transferencia');
+    if (mpEnabled || waEnabled || hasTransferAccount) list.push('transferencia');
     if (waEnabled) list.push('efectivo');
     if (mpEnabled) list.push('mp_cuenta');
     if (mpEnabled) list.push('tarjeta');
     if (gcEnabled) list.push('gocuotas');
     return list;
-  }, [mpEnabled, gcEnabled, waEnabled]);
+  }, [mpEnabled, gcEnabled, waEnabled, hasTransferAccount]);
   const [payMethod, setPayMethod] = useState<PayMethod>('transferencia');
 
   // Si el método elegido deja de estar disponible, caé al primero disponible.
