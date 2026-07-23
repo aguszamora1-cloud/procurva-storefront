@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, X, ArrowLeft, Plus, MapPin, Clock, PackageCheck, Info, AlertTriangle, Image as ImageIcon } from 'lucide-react';
+import { ShoppingBag, X, ArrowLeft, Plus, MapPin, Info, AlertTriangle, Image as ImageIcon, Lock, Pencil, ChevronUp, MessageCircle, Tag } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
 import { useMetaPixel } from '@/hooks/useMetaPixel';
@@ -9,13 +9,12 @@ import { useStore, useStoreType } from '@/context/StoreProvider';
 import { supabase } from '@/lib/supabase';
 import { Seo } from '@/components/Seo';
 import { Spinner } from '@/components/Spinner';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, whatsappLink } from '@/lib/utils';
 import { cartLineKey, groupCartItems, evalMinOrder } from '@/lib/cart';
 import { applyPromoToPrice } from '@/lib/promotions';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, checkCartStock, CouponError, StockError, type CouponErrorCode, type CustomerInfo, type StockShortfall, type PriceBreakdown } from '@/lib/orders';
 import { expandMethod, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
-import { SHIPPING_ICONS } from '@/lib/shippingIcons';
 import { looksLikePhone } from '@/lib/phone';
 import { computeDiscount, eligibleSubtotal, eligibleItems } from '@/lib/coupons';
 import { track } from '@/lib/tracking';
@@ -103,17 +102,63 @@ function shippingPriceLabel(cost: number | null): { text: string; free: boolean 
   return { text: formatPrice(cost), free: false };
 }
 
-// Encabezado de sección numerado: círculo con el número + título + divider sutil.
-// Liviano (sin card pesada), igual que pide el diseño mobile-first.
+// Encabezado de paso numerado — SOLO en la columna izquierda (los pasos reales
+// del checkout). Número en círculo de acento + título en sentence case, una sola
+// familia tipográfica, peso 500. Sin ALL CAPS, sin divider pesado.
 function SectionHeading({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <div className="mb-4 flex items-center gap-2.5">
-      <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-on-accent">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-[12px] font-medium text-on-accent">
         {n}
       </span>
-      <h2 className="font-heading text-[14px] font-bold uppercase tracking-wide text-text">{children}</h2>
-      <span className="h-px flex-1 bg-line" />
+      <h2 className="font-body text-[16px] font-medium text-text">{children}</h2>
     </div>
+  );
+}
+
+// Radio real (accesible) con presentación de card. El <input type="radio"> vive
+// dentro del <label> (queda asociado sin htmlFor), oculto visualmente pero
+// enfocable y navegable por teclado dentro de su grupo `name`. La selección se
+// marca con borde 2px de acento (sin fondo tintado); el foco muestra un ring.
+function RadioCard({
+  name,
+  value,
+  checked,
+  onChange,
+  children,
+  className = '',
+}: {
+  name: string;
+  value: string;
+  checked: boolean;
+  onChange: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <label
+      className={`flex cursor-pointer items-start gap-3 rounded-[12px] px-4 py-3.5 transition-colors focus-within:ring-2 focus-within:ring-accent/40 ${
+        checked ? 'border-2 border-accent' : 'border border-line hover:border-accent/50'
+      } ${className}`}
+    >
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={checked}
+        onChange={onChange}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className={`mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border transition-colors ${
+          checked ? 'border-accent' : 'border-line'
+        }`}
+      >
+        {checked && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
+      </span>
+      <span className="min-w-0 flex-1">{children}</span>
+    </label>
   );
 }
 
@@ -184,6 +229,8 @@ export function Checkout() {
   });
   const [floor, setFloor] = useState(() => loadSavedCustomer(config.companyId)?.floor ?? ''); // Piso / Depto (opcional)
   const [showNotes, setShowNotes] = useState(false); // Sección "Notas" colapsada por defecto
+  const [showCoupon, setShowCoupon] = useState(false); // Input de cupón colapsado tras "¿Tenés un cupón?"
+  const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false); // Detalle expandible de la barra fija mobile
   const [methods, setMethods] = useState<ShippingOption[]>([]);
   const [selectedMethodId, setSelectedMethodId] = useState('');
   const [cpInput, setCpInput] = useState(''); // CP que el cliente está tipeando
@@ -392,15 +439,6 @@ export function Checkout() {
   // real (no depende de ningún campo de config que pueda estar mal cargado).
   const cashDiscountPct = cardSubtotal > cashSubtotal ? Math.round(((cardSubtotal - cashSubtotal) / cardSubtotal) * 100) : 0;
 
-  // Subtotal SIN la promo por cantidad (precios originales), para mostrar el
-  // "Descuento por cantidad" como una línea propia en el resumen.
-  const rawCashSubtotal = useMemo(
-    () => items.reduce((s, i) => s + (typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price) * i.qty, 0),
-    [items],
-  );
-  const rawSubtotalForMode = priceMode === 'cash' ? rawCashSubtotal : subtotal;
-  const quantitySavingsShown = Math.max(0, rawSubtotalForMode - itemsSubtotal);
-
   // ── Cupón de descuento ──────────────────────────────────────────────────
   // Si algún item lleva una promo automática NO acumulable, no se permiten
   // cupones (el descuento promocional ya está aplicado en el precio).
@@ -502,8 +540,8 @@ export function Checkout() {
       <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-5 px-6 py-24 text-center">
         {seo}
         <ShoppingBag size={56} className="text-subtle" />
-        <h1 className="font-heading text-[28px] font-semibold text-text">Tu carrito está vacío</h1>
-        <Link to="/productos" className="rounded-[10px] bg-primary px-8 py-3.5 text-[14px] font-bold text-on-primary transition-all hover:bg-accent hover:text-on-accent">
+        <h1 className="font-body text-[24px] font-medium text-text">Tu carrito está vacío</h1>
+        <Link to="/productos" className="rounded-[8px] bg-primary px-8 py-3.5 text-[14px] font-medium text-on-primary transition-opacity hover:opacity-90">
           Ver productos
         </Link>
       </div>
@@ -762,74 +800,156 @@ export function Checkout() {
   }
 
   // text-[16px] evita el zoom automático de iOS al enfocar un input (<16px).
+  // Borde 1px neutro, radio 8px, sin sombra: sólo el focus ring del input.
   const inputCls =
-    'w-full rounded-[8px] border border-line bg-background px-3.5 py-2.5 text-[16px] text-text outline-none transition-colors focus:border-accent';
-  const labelCls = 'text-[12px] font-semibold uppercase tracking-wide text-muted';
+    'w-full rounded-[8px] border border-line bg-background px-3.5 py-2.5 text-[16px] font-normal text-text outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/25';
+  const labelCls = 'text-[13px] font-medium text-muted';
 
-  // Card seleccionable de una opción de entrega. El detalle rico va dentro de la card
-  // (dirección/horarios/listo para retiro; aclaración de sucursal), no en líneas sueltas.
-  const renderMethodCard = (m: ShippingOption) => {
+  // Link de WhatsApp para las salidas de contacto del panel (dudas / sin cobertura).
+  const waHref = config.whatsapp
+    ? whatsappLink(config.whatsapp, `Hola! Tengo una consulta sobre mi pedido en ${config.name}.`)
+    : null;
+
+  // Retiro en el local como radio: dirección + días en una sola línea de subtítulo.
+  // El horario para retirar se anida acá, y sólo cuando esta opción está elegida.
+  const renderPickupOption = (m: ShippingOption) => {
     const selected = m.id === selectedMethodId;
-    const Icon = SHIPPING_ICONS[m.icon];
     const price = shippingPriceLabel(m.cost);
+    const line = [m.pickupAddress, m.readyTime || m.openingHours].filter(Boolean).join(' · ');
     return (
-      <button
-        key={m.id}
-        type="button"
-        onClick={() => { setSelectedMethodId(m.id); setError(''); }}
-        className={`w-full rounded-[10px] border px-4 py-3 text-left transition-colors ${
-          selected ? 'border-accent bg-accent/5' : 'border-line hover:border-text'
-        }`}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-2.5">
-            <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${selected ? 'text-accent' : 'text-muted'}`} />
-            <div>
-              <p className="text-[14px] font-semibold text-text">{m.name}</p>
-              {m.kind !== 'local-pickup' && m.eta && (
-                <p className="mt-0.5 text-[12px] text-muted">Llega en {m.eta}</p>
+      <div key={m.id}>
+        <RadioCard
+          name="metodo-entrega"
+          value={m.id}
+          checked={selected}
+          onChange={() => { setSelectedMethodId(m.id); setError(''); }}
+        >
+          <span className="flex items-start justify-between gap-3">
+            <span className="min-w-0">
+              <span className="block text-[14px] font-medium text-text">{m.name}</span>
+              {line && (
+                <span className="mt-0.5 flex items-start gap-1.5 text-[13px] text-muted">
+                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-subtle" />
+                  <span className="min-w-0">{line}</span>
+                </span>
               )}
-            </div>
-          </div>
-          <span className={`shrink-0 text-[14px] font-bold ${price.free ? 'text-[#27ae60]' : 'text-text'}`}>
-            {price.text}
+            </span>
+            <span className={`shrink-0 text-[14px] ${price.free ? 'font-medium text-[#27ae60]' : 'font-medium text-text'}`}>
+              {price.text}
+            </span>
           </span>
-        </div>
+        </RadioCard>
 
-        {/* Retiro en el local: dirección, horarios y "listo para retirar" (cada línea si está cargada) */}
-        {m.kind === 'local-pickup' && (m.pickupAddress || m.openingHours || m.readyTime) && (
-          <div className="mt-2 space-y-1 pl-[30px]">
-            {m.pickupAddress && (
-              <p className="flex items-start gap-1.5 text-[12px] text-muted">
-                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-subtle" /><span>{m.pickupAddress}</span>
-              </p>
-            )}
-            {m.openingHours && (
-              <p className="flex items-start gap-1.5 text-[12px] text-muted">
-                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-subtle" /><span>{m.openingHours}</span>
-              </p>
-            )}
-            {m.readyTime && (
-              <p className="flex items-start gap-1.5 text-[12px] text-muted">
-                <PackageCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-subtle" /><span>{m.readyTime}</span>
-              </p>
-            )}
-          </div>
+        {/* Horario para retirar — anidado dentro de la opción, sólo si está elegida */}
+        {selected && (
+          <label className="mt-2 flex flex-col gap-1.5 pl-4">
+            <span className={labelCls}>
+              Horario para retirar el pedido{config.requireDeliveryTime ? ' *' : ' (opcional)'}
+            </span>
+            <input
+              className={inputCls}
+              value={form.deliveryTime}
+              onChange={set('deliveryTime')}
+              placeholder="Ej: de 9 a 13 hs, o después de las 18"
+            />
+          </label>
         )}
-
-        {/* Retiro en sucursal del correo: el paquete viaja, no es inmediato. Lo aclaramos. */}
-        {m.kind === 'branch' && (
-          <p className="mt-2 flex items-start gap-1.5 pl-[30px] text-[12px] text-muted">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-subtle" />
-            <span>El correo te avisa cuando tu pedido llega a la sucursal que elijas.</span>
-          </p>
-        )}
-      </button>
+      </div>
     );
   };
 
+  // Envío a domicilio / retiro en sucursal como radio: nombre, plazo y precio a la derecha.
+  const renderDeliveryOption = (m: ShippingOption) => {
+    const selected = m.id === selectedMethodId;
+    const price = shippingPriceLabel(m.cost);
+    return (
+      <RadioCard
+        key={m.id}
+        name="metodo-entrega"
+        value={m.id}
+        checked={selected}
+        onChange={() => { setSelectedMethodId(m.id); setError(''); }}
+      >
+        <span className="flex items-start justify-between gap-3">
+          <span className="min-w-0">
+            <span className="block text-[14px] font-medium text-text">{m.name}</span>
+            {m.eta && <span className="mt-0.5 block text-[13px] text-muted">Llega en {m.eta}</span>}
+            {m.kind === 'branch' && (
+              <span className="mt-1 flex items-start gap-1.5 text-[12px] text-subtle">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span className="min-w-0">El correo te avisa cuando tu pedido llega a la sucursal que elijas.</span>
+              </span>
+            )}
+          </span>
+          <span className={`shrink-0 text-[14px] font-medium ${price.free ? 'text-[#27ae60]' : 'text-text'}`}>
+            {price.text}
+          </span>
+        </span>
+      </RadioCard>
+    );
+  };
+
+  // ── Desglose del resumen (SÓLO presentación; el total no cambia) ────────────
+  // Reexpresamos el subtotal a precio de lista/tarjeta y mostramos cada descuento
+  // como línea propia (cantidad, pago contado, cupón). La suma da exactamente
+  // `orderTotal`: listSubtotal − qtyDiscount − paymentDiscount − cupón + envío.
+  const listSubtotalDisplay = subtotal;
+  const qtyDiscountDisplay = Math.max(0, subtotal - cardSubtotal);
+  const paymentDiscountDisplay = priceMode === 'cash' ? Math.max(0, cardSubtotal - cashSubtotal) : 0;
+
+  // El CTA queda inactivo si todavía falta cotizar el envío (tienda con envío a
+  // domicilio, sin método elegido y sin CP). El motivo se muestra bajo el botón.
+  const mustQuoteShipping = !selectedMethod && hasDeliveryMethods && !appliedCp && !(form.zip || '').trim();
+  const ctaDisabled = loading !== null || stockIssues.length > 0 || mustQuoteShipping;
+
+  // Bloque de totales del resumen (reusado en el panel y en la barra fija mobile).
+  const summaryRows = (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] text-muted">Subtotal</span>
+        <span className="text-[13px] font-medium text-text">{formatPrice(listSubtotalDisplay)}</span>
+      </div>
+      {qtyDiscountDisplay > 0 && (
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] text-muted">Descuento por cantidad</span>
+          <span className="text-[13px] font-medium text-[#27ae60]">-{formatPrice(qtyDiscountDisplay)}</span>
+        </div>
+      )}
+      {paymentDiscountDisplay > 0 && (
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] text-muted">Descuento por pago{cashDiscountPct > 0 ? ` (${cashDiscountPct}%)` : ''}</span>
+          <span className="text-[13px] font-medium text-[#27ae60]">-{formatPrice(paymentDiscountDisplay)}</span>
+        </div>
+      )}
+      {discountAmount > 0 && (
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] text-muted">
+            Cupón{appliedCoupon?.discount_type === 'percent' ? ` (${appliedCoupon.discount_value}%)` : ''}
+          </span>
+          <span className="text-[13px] font-medium text-[#27ae60]">-{formatPrice(discountAmount)}</span>
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] text-muted">Envío</span>
+        {shippingKnown ? (
+          shippingCost === 0 ? (
+            <span className="text-[13px] font-medium text-[#27ae60]">Gratis</span>
+          ) : (
+            <span className="text-[13px] font-medium text-text">{formatPrice(shippingCost)}</span>
+          )
+        ) : (
+          <span className="text-[13px] font-normal text-subtle">Se coordina</span>
+        )}
+      </div>
+      <div className="mt-2 flex items-center justify-between border-t border-line pt-3">
+        <span className="text-[14px] font-medium text-text">Total</span>
+        <span className="text-[22px] font-medium text-text">{formatPrice(orderTotal)}</span>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="mx-auto max-w-[1200px] px-5 py-6 sm:px-6 md:py-12">
+    <div className="mx-auto max-w-[1200px] px-5 pt-6 pb-32 sm:px-6 md:pt-12 lg:pb-12">
       {seo}
 
       {/* Volver al carrito */}
@@ -840,7 +960,7 @@ export function Checkout() {
         <ArrowLeft size={16} /> Volver al carrito
       </button>
 
-      <h1 className="mb-7 font-heading text-[26px] font-semibold text-text sm:text-[34px] md:mb-9">Finalizar compra</h1>
+      <h1 className="mb-7 font-body text-[24px] font-medium text-text sm:text-[30px] md:mb-9">Finalizar compra</h1>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_380px] lg:items-start lg:gap-12">
         {/* ───────── Columna izquierda: datos + envío + notas ───────── */}
@@ -858,7 +978,7 @@ export function Checkout() {
             </label>
             <label className="flex flex-col gap-1.5">
               <span className={labelCls}>Teléfono *</span>
-              <input className={inputCls} value={form.phone} onChange={set('phone')} type="tel" name="tel" autoComplete="tel" inputMode="tel" placeholder="11 1234 5678" />
+              <input className={inputCls} value={form.phone} onChange={set('phone')} type="tel" name="tel" autoComplete="tel" inputMode="tel" placeholder="Tu número con característica" />
             </label>
             <label className="flex flex-col gap-1.5 sm:col-span-2">
               <span className={labelCls}>Email {config.mercadopagoEnabled ? '*' : ''}</span>
@@ -866,198 +986,297 @@ export function Checkout() {
             </label>
           </div>
 
-          {/* 2. Envío — gateado por código postal */}
+          {/* 2. Entrega — retiro en el local + envío a domicilio (gateado por CP) */}
           <div className="mt-9">
-            <SectionHeading n={2}>Envío</SectionHeading>
+            <SectionHeading n={2}>Entrega</SectionHeading>
 
-            {/* CP confirmado: lo mostramos con opción de cambiarlo (recalcula los envíos) */}
-            {appliedCp && (
-              <div className="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
-                <span className="text-muted">Enviando al CP</span>
-                <span className="font-semibold text-text">{appliedCp}</span>
-                <button type="button" onClick={changeCp} className="text-[12px] uppercase tracking-wide text-accent underline">Cambiar</button>
+            {/* Retiro en el local (radio): dirección + días en una línea; el horario
+                de retiro se anida dentro de la opción cuando queda elegida. */}
+            {localPickupMethods.length > 0 && (
+              <div className="space-y-2">{localPickupMethods.map(renderPickupOption)}</div>
+            )}
+
+            {/* Separador hacia el envío a domicilio (sólo si conviven ambas modalidades) */}
+            {localPickupMethods.length > 0 && hasDeliveryMethods && (
+              <div className="my-5 flex items-center gap-3">
+                <span className="h-px flex-1 bg-line" />
+                <span className="text-[12px] text-subtle">o recibilo en tu domicilio</span>
+                <span className="h-px flex-1 bg-line" />
               </div>
             )}
 
-            {/* Ningún envío cubre la zona — el retiro en local, si existe, igual aparece abajo */}
-            {noDeliveryForZone && (
-              <p className="mb-3 rounded-[8px] bg-amber-50 px-3 py-2 text-[13px] font-medium text-amber-800">
-                No hay envíos disponibles para tu zona. Contactanos por WhatsApp.
-              </p>
-            )}
-
-            {/* Métodos agrupados por tipo. Cada bloque se muestra SÓLO si el negocio tiene
-                opciones de ese tipo (nada de secciones vacías). "Envío" incluye domicilio y
-                retiro en sucursal del correo (ambos viajan y se filtran por CP); el retiro en
-                el local aparece siempre, sin importar el CP. */}
-            {availableMethods.length > 0 && (
-              <div className="space-y-5">
-                {deliveryMethods.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-subtle">Envío</p>
-                    <div className="space-y-2">{deliveryMethods.map(renderMethodCard)}</div>
-                  </div>
-                )}
-                {localPickupMethods.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-subtle">Retirar en el local</p>
-                    <div className="space-y-2">{localPickupMethods.map(renderMethodCard)}</div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Código postal: revela los envíos a domicilio. NO bloquea el retiro en local. */}
-            {needsCpForDelivery && (
-              <div className="mt-3 max-w-[440px]">
-                <label className="flex flex-col gap-1.5">
-                  <span className={labelCls}>
-                    {availableMethods.length > 0
-                      ? '¿Preferís envío a domicilio? Ingresá tu código postal'
-                      : 'Ingresá tu código postal para calcular el envío'}
-                  </span>
-                  <div className="flex gap-2">
-                    <input
-                      className={inputCls}
-                      value={cpInput}
-                      onChange={(e) => { setCpInput(e.target.value); setError(''); }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCp(); } }}
-                      inputMode="numeric"
-                      placeholder="Ingresá tu código postal"
-                    />
-                    <button
-                      type="button"
-                      onClick={applyCp}
-                      className="shrink-0 rounded-[8px] bg-primary px-5 text-[13px] font-bold text-on-primary transition-colors hover:bg-accent hover:text-on-accent"
-                    >
-                      Calcular
+            {/* Envío a domicilio: confirmación de CP / calculador / opciones / sin cobertura */}
+            {hasDeliveryMethods && (
+              <div className="space-y-3">
+                {/* CP confirmado: reemplaza al input por una línea con opción de cambiarlo */}
+                {appliedCp && (
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
+                    <MapPin className="h-4 w-4 shrink-0 text-subtle" />
+                    <span className="font-medium text-text">
+                      {[form.city, form.province].filter(Boolean).join(', ') || 'Tu zona'}
+                    </span>
+                    <span className="text-subtle">·</span>
+                    <span className="text-muted">CP {appliedCp}</span>
+                    <button type="button" onClick={changeCp} className="ml-1 text-[13px] font-medium text-accent hover:underline">
+                      Cambiar
                     </button>
                   </div>
-                </label>
-                <a
-                  href="https://www.correoargentino.com.ar/formularios/cpa"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 inline-block text-[12px] text-subtle underline hover:text-accent"
-                >
-                  ¿No sabés tu código postal?
-                </a>
+                )}
+
+                {/* Calculador de CP: input + "Ver opciones" (mismo peso visual que los inputs) */}
+                {needsCpForDelivery && (
+                  <div className="max-w-[440px]">
+                    <label className="flex flex-col gap-1.5">
+                      <span className={labelCls}>Ingresá tu código postal para ver las opciones de envío</span>
+                      <div className="flex gap-2">
+                        <input
+                          className={inputCls}
+                          value={cpInput}
+                          onChange={(e) => { setCpInput(e.target.value); setError(''); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCp(); } }}
+                          inputMode="numeric"
+                          placeholder="Ej: 2000"
+                        />
+                        <button
+                          type="button"
+                          onClick={applyCp}
+                          className="shrink-0 rounded-[8px] border border-line px-4 text-[14px] font-medium text-text transition-colors hover:border-accent hover:text-accent"
+                        >
+                          Ver opciones
+                        </button>
+                      </div>
+                    </label>
+                    <a
+                      href="https://www.correoargentino.com.ar/formularios/cpa"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-block text-[12px] text-subtle underline hover:text-accent"
+                    >
+                      ¿No sabés tu código postal?
+                    </a>
+                  </div>
+                )}
+
+                {/* Sin cobertura para la zona: en vez de una lista vacía, ofrecemos WhatsApp */}
+                {noDeliveryForZone && (
+                  <div className="rounded-[12px] border border-line px-4 py-3">
+                    <p className="text-[13px] text-text">No hacemos envíos a tu zona todavía.</p>
+                    {waHref ? (
+                      <a
+                        href={waHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:underline"
+                      >
+                        <MessageCircle className="h-4 w-4" /> Escribinos y lo coordinamos
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-[13px] text-muted">Contactanos y lo coordinamos.</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Opciones de envío disponibles (radios): nombre, plazo y precio a la derecha */}
+                {deliveryMethods.length > 0 && (
+                  <div className="space-y-2">{deliveryMethods.map(renderDeliveryOption)}</div>
+                )}
+
+                {/* Campos de dirección: sólo si el método elegido requiere domicilio */}
+                {requiresAddress && (
+                  <div className="grid gap-4 pt-1 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1.5 sm:col-span-2">
+                      <span className={labelCls}>Dirección *</span>
+                      <input className={inputCls} value={form.address} onChange={set('address')} placeholder="Calle y número" />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className={labelCls}>Piso / depto</span>
+                      <input className={inputCls} value={floor} onChange={(e) => { setFloor(e.target.value); setError(''); }} placeholder="Opcional" />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className={labelCls}>Ciudad *</span>
+                      <input className={inputCls} value={form.city} onChange={set('city')} />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className={labelCls}>Provincia *</span>
+                      <input className={inputCls} value={form.province} onChange={set('province')} />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className={labelCls}>Código postal *</span>
+                      <input
+                        className={inputCls}
+                        value={form.zip}
+                        onChange={(e) => { setForm((f) => ({ ...f, zip: e.target.value })); setError(''); }}
+                        inputMode="numeric"
+                        placeholder="Ej: 2000"
+                      />
+                    </label>
+                    {/* Horario para recibir — junto a la dirección de envío */}
+                    <label className="flex flex-col gap-1.5 sm:col-span-2">
+                      <span className={labelCls}>
+                        Horario para recibir el pedido{config.requireDeliveryTime ? ' *' : ' (opcional)'}
+                      </span>
+                      <input
+                        className={inputCls}
+                        value={form.deliveryTime}
+                        onChange={set('deliveryTime')}
+                        placeholder="Ej: de 9 a 13 hs, o después de las 18"
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Campos de dirección: sólo si el método requiere envío a domicilio */}
-            {requiresAddress && (
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <label className="flex flex-col gap-1.5 sm:col-span-2">
-                  <span className={labelCls}>Dirección *</span>
-                  <input className={inputCls} value={form.address} onChange={set('address')} placeholder="Calle y número" />
-                </label>
+            {/* Notas (opcional) — sin numerar, colapsada por defecto */}
+            <div className="mt-6">
+              {showNotes || form.notes ? (
                 <label className="flex flex-col gap-1.5">
-                  <span className={labelCls}>Piso / Depto</span>
-                  <input className={inputCls} value={floor} onChange={(e) => { setFloor(e.target.value); setError(''); }} placeholder="Opcional" />
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className={labelCls}>Ciudad *</span>
-                  <input className={inputCls} value={form.city} onChange={set('city')} />
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className={labelCls}>Provincia *</span>
-                  <input className={inputCls} value={form.province} onChange={set('province')} />
-                </label>
-                {/* Código postal: editable acá mismo. Si el cliente ya lo calculó arriba,
-                    viene precargado; si no, lo completa acá (y recalcula la cobertura). */}
-                <label className="flex flex-col gap-1.5">
-                  <span className={labelCls}>Código postal *</span>
-                  <input
-                    className={inputCls}
-                    value={form.zip}
-                    onChange={(e) => { setForm((f) => ({ ...f, zip: e.target.value })); setError(''); }}
-                    inputMode="numeric"
-                    placeholder="Ej: 2000"
+                  <span className={labelCls}>Notas (opcional)</span>
+                  <textarea
+                    className={`${inputCls} min-h-[72px] resize-y`}
+                    value={form.notes}
+                    onChange={set('notes')}
+                    placeholder="Aclaraciones para tu pedido"
+                    autoFocus={showNotes && !form.notes}
                   />
                 </label>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowNotes(true)}
+                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent transition-colors hover:opacity-80"
+                >
+                  <Plus size={15} /> Agregar una nota
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 3. Método de pago — movido desde el panel derecho */}
+          {payMethods.length > 0 && (
+            <div className="mt-9">
+              <SectionHeading n={3}>Método de pago</SectionHeading>
+              <div className="space-y-2.5">
+                {payMethods.map((m) => {
+                  const selected = payMethod === m;
+                  const isCash = m !== 'tarjeta';
+                  const label =
+                    m === 'tarjeta'
+                      ? 'Tarjeta'
+                      : m === 'mp_cuenta'
+                        ? 'Dinero en cuenta'
+                        : m === 'gocuotas'
+                          ? 'GoCuotas'
+                          : m === 'transferencia'
+                            ? 'Transferencia'
+                            : 'Efectivo';
+                  const sub =
+                    m === 'tarjeta'
+                      ? config.cardPaymentText ||
+                        (config.installmentsCount > 1 ? `Hasta ${config.installmentsCount} cuotas` : 'Pago con tarjeta')
+                      : m === 'mp_cuenta'
+                        ? 'Pagás con tu saldo de Mercado Pago'
+                        : m === 'gocuotas'
+                          ? 'Cuotas sin interés con tarjeta de débito'
+                          : m === 'transferencia'
+                            ? transferAccount
+                              ? 'Transferí y enviá el comprobante'
+                              : mpEnabled
+                                ? 'Pago online con Mercado Pago'
+                                : 'Coordinamos la transferencia por WhatsApp'
+                            : 'Lo coordinamos por WhatsApp';
+                  return (
+                    <RadioCard
+                      key={m}
+                      name="metodo-pago"
+                      value={m}
+                      checked={selected}
+                      onChange={() => { setPayMethod(m); setError(''); }}
+                    >
+                      <span className="flex items-start justify-between gap-2">
+                        <span className="min-w-0">
+                          <span className="block text-[14px] font-medium text-text">{label}</span>
+                          <span className="mt-0.5 block text-[13px] leading-snug text-subtle">{sub}</span>
+                        </span>
+                        {isCash && cashDiscountPct > 0 && (
+                          <span className="shrink-0 rounded-full bg-[#27ae60] px-2.5 py-1 text-[11px] font-medium leading-none text-white">
+                            {cashDiscountPct}% off
+                          </span>
+                        )}
+                      </span>
+                    </RadioCard>
+                  );
+                })}
               </div>
-            )}
 
-            {/* Horario para recibir / retirar — sirve para coordinar la entrega.
-                Obligatorio u opcional según config de la tienda (require_delivery_time). */}
-            <label className="mt-4 flex flex-col gap-1.5">
-              <span className={labelCls}>
-                {isPickup ? 'Horario para retirar el pedido' : 'Horario para recibir el pedido'}
-                {config.requireDeliveryTime ? ' *' : ' (opcional)'}
-              </span>
-              <input
-                className={inputCls}
-                value={form.deliveryTime}
-                onChange={set('deliveryTime')}
-                placeholder="Ej: de 9 a 13 hs, o después de las 18"
-              />
-            </label>
-          </div>
-
-          {/* 3. Notas (opcional) — colapsada por defecto */}
-          <div className="mt-9">
-            <SectionHeading n={3}>Notas (opcional)</SectionHeading>
-            {showNotes || form.notes ? (
-              <textarea
-                className={`${inputCls} min-h-[80px] resize-y`}
-                value={form.notes}
-                onChange={set('notes')}
-                placeholder="Aclaraciones para tu pedido"
-                autoFocus={showNotes && !form.notes}
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowNotes(true)}
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent transition-colors hover:opacity-80"
-              >
-                <Plus size={15} /> Agregar una nota
-              </button>
-            )}
-          </div>
+              {/* Transferencia directa: sólo anticipamos el monto; alias/CBU en la pantalla de éxito */}
+              {transferManual && transferAccount && (
+                <div className="mt-4 rounded-[12px] border border-line p-4">
+                  <p className="text-[13px] font-medium text-text">Pago por transferencia</p>
+                  <p className="mt-1.5 text-[13px] leading-snug text-muted">
+                    Al confirmar el pedido te mostramos el alias y CBU para transferir{' '}
+                    <span className="font-medium text-text">{formatPrice(transferTotal)}</span>. Queda como
+                    pendiente de pago hasta que envíes el comprobante por WhatsApp.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* ───────── Columna derecha: pedido + cupón + resumen + pago (sticky) ───────── */}
+        {/* ───────── Panel derecho: Tu pedido (sticky, top ~24px) ───────── */}
         <aside className="lg:sticky lg:top-6">
-          <div className="rounded-[14px] border border-line bg-background p-5 sm:p-6">
-            <h2 className="mb-4 font-heading text-[16px] font-bold text-text">Tu pedido</h2>
+          <div className="rounded-[12px] border border-line bg-background p-5 sm:p-6">
+            {/* Encabezado + Editar (vuelve al carrito) */}
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-body text-[16px] font-medium text-text">Tu pedido</h2>
+              <button
+                type="button"
+                onClick={() => navigate('/carrito')}
+                className="inline-flex items-center gap-1 text-[13px] font-medium text-accent transition-opacity hover:opacity-80"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Editar
+              </button>
+            </div>
+
+            {/* Ítems del carrito: producto como línea principal, cantidad como subtítulo */}
             <div className="space-y-3 border-b border-line pb-4">
-              {groupCartItems(pricedItems).map((row) => (
-                <div key={row.key} className="flex items-start justify-between gap-3 text-[13px]">
-                  <div className="flex min-w-0 items-start gap-3">
-                    {row.image ? (
-                      <img
-                        src={row.image}
-                        alt={row.name}
-                        loading="lazy"
-                        className="h-14 w-14 shrink-0 rounded-[8px] border border-line object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[8px] border border-line bg-muted/10 text-subtle">
-                        <ImageIcon className="h-5 w-5" />
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-text">
-                        {row.source === 'curva' ? row.detail : `${row.units}x ${row.name}`}
-                      </p>
-                      {row.source === 'curva' ? (
-                        <p className="text-[11px] text-subtle">{row.name} · {row.units} u.</p>
+              {groupCartItems(pricedItems).map((row) => {
+                const qtyLabel =
+                  row.source === 'curva' || row.source === 'curva_surtida'
+                    ? `${row.units} u.`
+                    : `${row.units} ${row.units === 1 ? 'unidad' : 'unidades'}`;
+                const subtitle = [row.detail, qtyLabel].filter(Boolean).join(' · ');
+                return (
+                  <div key={row.key} className="flex items-start justify-between gap-3 text-[13px]">
+                    <div className="flex min-w-0 items-start gap-3">
+                      {row.image ? (
+                        <img
+                          src={row.image}
+                          alt={row.name}
+                          loading="lazy"
+                          className="h-14 w-14 shrink-0 rounded-[8px] border border-line object-cover"
+                        />
                       ) : (
-                        row.detail && <p className="text-[11px] text-subtle">{row.detail}</p>
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[8px] border border-line bg-muted/10 text-subtle">
+                          <ImageIcon className="h-5 w-5" />
+                        </div>
                       )}
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-text">{row.name}</p>
+                        {subtitle && <p className="mt-0.5 text-[12px] text-subtle">{subtitle}</p>}
+                      </div>
                     </div>
+                    <span className="shrink-0 font-medium text-text">{formatPrice(row.lineTotal)}</span>
                   </div>
-                  <span className="shrink-0 font-bold text-text">{formatPrice(row.lineTotal)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {min.active && (
-              <div className={`pt-3 text-[12px] font-semibold ${min.ok ? 'text-emerald-600' : 'text-amber-600'}`}>
+              <div className={`pt-3 text-[12px] font-medium ${min.ok ? 'text-emerald-600' : 'text-amber-600'}`}>
                 {min.ok ? (
-                  <p>✓ Mínimo de compra alcanzado</p>
+                  <p>Mínimo de compra alcanzado</p>
                 ) : (
                   <div className="space-y-0.5">
                     {!min.unitsOk && (
@@ -1071,36 +1290,35 @@ export function Checkout() {
               </div>
             )}
 
-            {/* 4. Cupón */}
-            <div className="border-b border-line py-5">
-              <SectionHeading n={4}>Cupón</SectionHeading>
+            {/* Cupón: colapsado tras un link. Al aplicar, se ve como estado, no como paso. */}
+            <div className="border-b border-line py-4">
               {hasNonStackablePromo ? (
-                <div className="rounded-[8px] bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-800">
+                <p className="text-[12px] leading-snug text-muted">
                   Este producto ya tiene un descuento promocional aplicado. No se puede combinar con cupones.
-                </div>
+                </p>
               ) : appliedCoupon ? (
                 <div
-                  className={`flex items-center justify-between gap-2 rounded-[8px] px-3 py-2 ${
-                    discountAmount > 0 ? 'bg-emerald-50' : 'bg-amber-50'
+                  className={`flex items-center justify-between gap-2 rounded-[8px] border px-3 py-2 ${
+                    discountAmount > 0 ? 'border-[#27ae60]/40' : 'border-amber-300'
                   }`}
                 >
                   <div className="min-w-0">
                     {discountAmount > 0 ? (
                       <>
-                        <p className="text-[12px] font-bold text-emerald-700">
+                        <p className="text-[12px] font-medium text-[#27ae60]">
                           Cupón {appliedCoupon.code.toUpperCase()} aplicado
                         </p>
-                        <p className="text-[11px] text-emerald-600">
+                        <p className="text-[11px] text-[#27ae60]">
                           {appliedCoupon.discount_type === 'percent' ? `-${appliedCoupon.discount_value}% ` : ''}(-{formatPrice(discountAmount)})
                         </p>
                         {couponIsPartial && (
-                          <p className="mt-0.5 text-[11px] leading-snug text-emerald-600">
+                          <p className="mt-0.5 text-[11px] leading-snug text-[#27ae60]">
                             Aplica sólo a: {couponEligibleNames.join(', ')}. El resto de los productos se cobran a precio normal.
                           </p>
                         )}
                       </>
                     ) : (
-                      <p className="text-[12px] font-semibold text-amber-700">
+                      <p className="text-[12px] font-medium text-amber-700">
                         El cupón {appliedCoupon.code.toUpperCase()} no aplica a este monto.
                       </p>
                     )}
@@ -1114,7 +1332,7 @@ export function Checkout() {
                     <X size={16} />
                   </button>
                 </div>
-              ) : (
+              ) : showCoupon ? (
                 <>
                   {/* Chip del cupón guardado (disponible / no aplicable): al tocarlo
                       se aplica de verdad. Es la otra vista del mismo estado que el input. */}
@@ -1139,148 +1357,31 @@ export function Checkout() {
                       type="button"
                       onClick={applyCoupon}
                       disabled={couponStatus === 'loading' || !couponInput.trim()}
-                      className="shrink-0 rounded-[8px] bg-primary px-5 text-[13px] font-bold text-on-primary transition-colors hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-50"
+                      className="shrink-0 rounded-[8px] border border-line px-4 text-[14px] font-medium text-text transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {couponStatus === 'loading' ? '…' : 'Aplicar'}
                     </button>
                   </div>
                   {couponError && <p className="mt-2 text-[12px] font-medium text-red-600">{couponError}</p>}
                 </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCoupon(true)}
+                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent transition-opacity hover:opacity-80"
+                >
+                  <Tag className="h-4 w-4" /> ¿Tenés un cupón?
+                </button>
               )}
             </div>
 
-            {/* 5. Resumen */}
-            <div className="border-b border-line py-5">
-              <SectionHeading n={5}>Resumen</SectionHeading>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] text-muted">Subtotal</span>
-                  <span className="text-[13px] font-semibold text-text">{formatPrice(rawSubtotalForMode)}</span>
-                </div>
-                {quantitySavingsShown > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-[13px] text-muted">Descuento por cantidad</span>
-                    <span className="text-[13px] font-bold text-[#27ae60]">-{formatPrice(quantitySavingsShown)}</span>
-                  </div>
-                )}
-                {discountAmount > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-[13px] text-muted">
-                      Descuento{appliedCoupon?.discount_type === 'percent' ? ` (${appliedCoupon.discount_value}%)` : ''}
-                    </span>
-                    <span className="text-[13px] font-bold text-[#27ae60]">-{formatPrice(discountAmount)}</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] text-muted">Envío</span>
-                  {shippingKnown ? (
-                    shippingCost === 0 ? (
-                      <span className="text-[13px] font-bold text-[#27ae60]">GRATIS</span>
-                    ) : (
-                      <span className="text-[13px] font-bold text-text">{formatPrice(shippingCost)}</span>
-                    )
-                  ) : (
-                    <span className="text-[13px] font-medium text-subtle">Se coordina</span>
-                  )}
-                </div>
-                <div className="mt-2 flex items-center justify-between border-t border-line pt-3">
-                  <span className="text-[14px] font-semibold text-text">Total</span>
-                  <span className="text-[22px] font-extrabold text-text">{formatPrice(orderTotal)}</span>
-                </div>
-              </div>
-            </div>
+            {/* Totales */}
+            <div className="py-4">{summaryRows}</div>
 
-            {/* 6. Método de pago — radio cards */}
-            {payMethods.length > 0 && (
-              <div className="py-5">
-                <SectionHeading n={6}>Método de pago</SectionHeading>
-                <div className="space-y-2.5">
-                  {payMethods.map((m) => {
-                    const selected = payMethod === m;
-                    const isCash = m !== 'tarjeta';
-                    const label =
-                      m === 'tarjeta'
-                        ? 'Tarjeta'
-                        : m === 'mp_cuenta'
-                          ? 'Dinero en cuenta'
-                          : m === 'gocuotas'
-                            ? 'GoCuotas'
-                            : m === 'transferencia'
-                              ? 'Transferencia'
-                              : 'Efectivo';
-                    const sub =
-                      m === 'tarjeta'
-                        ? config.cardPaymentText ||
-                          (config.installmentsCount > 1 ? `Hasta ${config.installmentsCount} cuotas` : 'Pago con tarjeta')
-                        : m === 'mp_cuenta'
-                          ? 'Pagás con tu saldo de Mercado Pago'
-                          : m === 'gocuotas'
-                            ? 'Cuotas sin interés con tarjeta de débito'
-                            : m === 'transferencia'
-                              ? transferAccount
-                                ? 'Transferí y enviá el comprobante'
-                                : mpEnabled
-                                  ? 'Pago online con Mercado Pago'
-                                  : 'Coordinamos la transferencia por WhatsApp'
-                              : 'Lo coordinamos por WhatsApp';
-                    const methodTotal = totalForMode(isCash ? 'cash' : 'card');
-                    return (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => { setPayMethod(m); setError(''); }}
-                        aria-pressed={selected}
-                        className={`flex w-full items-start gap-3 rounded-[12px] border p-3.5 text-left transition-all ${
-                          selected ? 'border-accent bg-accent/5 ring-1 ring-accent' : 'border-line hover:border-accent/50'
-                        }`}
-                      >
-                        <span
-                          className={`mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                            selected ? 'border-accent' : 'border-line'
-                          }`}
-                        >
-                          {selected && <span className="h-2 w-2 rounded-full bg-accent" />}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-center justify-between gap-2">
-                            <span className="text-[14px] font-bold text-text">{label}</span>
-                            {isCash && cashDiscountPct > 0 && (
-                              <span className="shrink-0 rounded-full bg-[#27ae60] px-2 py-0.5 text-[10px] font-bold leading-none text-white">
-                                -{cashDiscountPct}%
-                              </span>
-                            )}
-                          </span>
-                          <span className="mt-0.5 block text-[12px] leading-snug text-subtle">{sub}</span>
-                          <span className="mt-1.5 block text-[15px] font-extrabold text-text">{formatPrice(methodTotal)}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Transferencia directa: NO mostramos alias/CBU acá (antes de confirmar).
-                    Si el cliente copiara los datos y transfiriera sin confirmar, el pedido
-                    no entraría al sistema. Los datos completos se muestran en la pantalla de
-                    éxito, una vez que el pedido quedó registrado. Acá solo anticipamos el monto. */}
-                {transferManual && transferAccount && (
-                  <div className="mt-4 rounded-[12px] border border-accent/40 bg-accent/5 p-4">
-                    <p className="text-[13px] font-bold text-text">Pago por transferencia</p>
-                    <p className="mt-1.5 text-[13px] leading-snug text-muted">
-                      Al confirmar el pedido te mostramos el alias y CBU para transferir{' '}
-                      <span className="font-semibold text-text">{formatPrice(transferTotal)}</span>. Queda como
-                      pendiente de pago hasta que envíes el comprobante por WhatsApp.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Stock insuficiente: se muestra tanto por la revalidación al entrar
-                como por el rechazo del servidor al confirmar. Mientras esté, el
-                botón de confirmar queda deshabilitado. */}
+            {/* Stock insuficiente / error — visibles también en mobile (fuera del bloque desktop) */}
             {stockIssues.length > 0 && (
               <div className="mb-3 rounded-[8px] border border-red-200 bg-red-50 px-3 py-2.5">
-                <p className="flex items-center gap-1.5 text-[13px] font-semibold text-red-700">
+                <p className="flex items-center gap-1.5 text-[13px] font-medium text-red-700">
                   <AlertTriangle className="h-4 w-4 shrink-0" />
                   {stockIssues.length === 1 ? 'Un producto se quedó sin stock' : 'Hay productos sin stock'}
                 </p>
@@ -1292,7 +1393,7 @@ export function Checkout() {
                     </li>
                   ))}
                 </ul>
-                <Link to="/carrito" className="mt-2 inline-block text-[13px] font-semibold text-red-700 underline">
+                <Link to="/carrito" className="mt-2 inline-block text-[13px] font-medium text-red-700 underline">
                   Ajustar el carrito
                 </Link>
               </div>
@@ -1302,34 +1403,89 @@ export function Checkout() {
               <p className="mb-3 rounded-[8px] bg-red-50 px-3 py-2 text-[13px] font-medium text-red-700">{error}</p>
             )}
 
+            {/* CTA + línea de confianza — sólo desktop (en mobile va la barra fija inferior) */}
+            <div className="hidden lg:block">
+              {payMethods.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={handlePay}
+                  disabled={ctaDisabled}
+                  className="flex w-full items-center justify-center gap-2 rounded-[8px] bg-primary py-3.5 text-[15px] font-medium text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading !== null ? (
+                    <><Spinner size={16} /> {routing === 'wa' ? 'Procesando…' : 'Redirigiendo…'}</>
+                  ) : (
+                    'Confirmar pedido'
+                  )}
+                </button>
+              ) : (
+                <p className="text-[13px] text-subtle">Esta tienda todavía no tiene medios de pago configurados.</p>
+              )}
+
+              {mustQuoteShipping && payMethods.length > 0 && (
+                <p className="mt-2 text-center text-[12px] text-muted">Calculá tu envío para continuar</p>
+              )}
+
+              <p className="mt-3 flex items-center justify-center gap-1.5 text-[12px] text-subtle">
+                <Lock className="h-3.5 w-3.5 shrink-0" /> Compra protegida · Tus datos no se comparten
+              </p>
+            </div>
+
+            {/* Contacto discreto (reemplaza al botón flotante de WhatsApp en el checkout) */}
+            {waHref && (
+              <a
+                href={waHref}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 block text-center text-[12px] text-subtle transition-colors hover:text-accent"
+              >
+                ¿Dudas? Escribinos
+              </a>
+            )}
+          </div>
+        </aside>
+      </div>
+
+      {/* ───────── Barra fija inferior (mobile): total + CTA, detalle expandible ───────── */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-background lg:hidden">
+        {mobileSummaryOpen && (
+          <div className="max-h-[45vh] overflow-y-auto border-b border-line px-5 py-4">{summaryRows}</div>
+        )}
+        <div className="flex items-center gap-3 px-5 py-3">
+          <button
+            type="button"
+            onClick={() => setMobileSummaryOpen((v) => !v)}
+            aria-expanded={mobileSummaryOpen}
+            className="flex flex-col text-left"
+          >
+            <span className="flex items-center gap-1 text-[11px] text-muted">
+              {mobileSummaryOpen ? 'Ocultar' : 'Ver'} detalle
+              <ChevronUp className={`h-3 w-3 transition-transform ${mobileSummaryOpen ? '' : 'rotate-180'}`} />
+            </span>
+            <span className="text-[18px] font-medium text-text">{formatPrice(orderTotal)}</span>
+          </button>
+          <div className="ml-auto min-w-0 max-w-[220px] flex-1">
             {payMethods.length > 0 ? (
               <button
                 type="button"
                 onClick={handlePay}
-                disabled={loading !== null || stockIssues.length > 0}
-                className={`flex w-full items-center justify-center gap-2 rounded-[10px] py-4 text-[14px] font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 ${routing === 'mp' ? 'bg-[#009ee3] hover:scale-[1.01]' : routing === 'gc' ? 'bg-[#7c3aed] hover:scale-[1.01]' : 'bg-[#25D366] hover:brightness-105'}`}
+                disabled={ctaDisabled}
+                className="flex w-full items-center justify-center gap-2 rounded-[8px] bg-primary py-3 text-[14px] font-medium text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading !== null ? (
                   <><Spinner size={16} /> {routing === 'wa' ? 'Procesando…' : 'Redirigiendo…'}</>
-                ) : routing === 'mp' ? (
-                  'Pagar con Mercado Pago'
-                ) : routing === 'gc' ? (
-                  'Pagar con GoCuotas'
-                ) : transferManual ? (
-                  'Confirmar pedido'
                 ) : (
-                  'Confirmar pedido por WhatsApp'
+                  'Confirmar pedido'
                 )}
               </button>
             ) : (
-              <p className="text-[13px] text-subtle">Esta tienda todavía no tiene medios de pago configurados.</p>
+              <p className="text-right text-[12px] text-subtle">Sin medios de pago</p>
             )}
-
-            <button onClick={() => navigate('/carrito')} className="mt-4 block w-full text-center text-[12px] text-subtle hover:text-accent">
-              Volver al carrito
-            </button>
           </div>
-        </aside>
+        </div>
+        {mustQuoteShipping && payMethods.length > 0 && (
+          <p className="px-5 pb-2 text-[11px] text-muted">Calculá tu envío para continuar</p>
+        )}
       </div>
     </div>
   );
