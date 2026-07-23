@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, X, ArrowLeft, Plus, MapPin, Clock, PackageCheck, Info, AlertTriangle } from 'lucide-react';
+import { ShoppingBag, X, ArrowLeft, Plus, MapPin, Clock, PackageCheck, Info, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
 import { useMetaPixel } from '@/hooks/useMetaPixel';
@@ -1025,15 +1025,29 @@ export function Checkout() {
             <div className="space-y-3 border-b border-line pb-4">
               {groupCartItems(pricedItems).map((row) => (
                 <div key={row.key} className="flex items-start justify-between gap-3 text-[13px]">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-text">
-                      {row.source === 'curva' ? row.detail : `${row.units}x ${row.name}`}
-                    </p>
-                    {row.source === 'curva' ? (
-                      <p className="text-[11px] text-subtle">{row.name} · {row.units} u.</p>
+                  <div className="flex min-w-0 items-start gap-3">
+                    {row.image ? (
+                      <img
+                        src={row.image}
+                        alt={row.name}
+                        loading="lazy"
+                        className="h-14 w-14 shrink-0 rounded-[8px] border border-line object-cover"
+                      />
                     ) : (
-                      row.detail && <p className="text-[11px] text-subtle">{row.detail}</p>
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[8px] border border-line bg-muted/10 text-subtle">
+                        <ImageIcon className="h-5 w-5" />
+                      </div>
                     )}
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-text">
+                        {row.source === 'curva' ? row.detail : `${row.units}x ${row.name}`}
+                      </p>
+                      {row.source === 'curva' ? (
+                        <p className="text-[11px] text-subtle">{row.name} · {row.units} u.</p>
+                      ) : (
+                        row.detail && <p className="text-[11px] text-subtle">{row.detail}</p>
+                      )}
+                    </div>
                   </div>
                   <span className="shrink-0 font-bold text-text">{formatPrice(row.lineTotal)}</span>
                 </div>
