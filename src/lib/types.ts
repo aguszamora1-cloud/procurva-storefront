@@ -346,6 +346,18 @@ export interface RawCatalogSettings {
   // sección custom del detalle. Ausente/null = layout por defecto (render legacy).
   // Ver src/lib/productLayout.ts.
   product_layout?: { right_column?: string[]; below_product?: string[] } | null;
+  // Bloque "Complementarios" (cross-selling) de la ficha. Config por modo
+  // (retail/wholesale) porque `settings` ya es por canal. La visibilidad on/off
+  // sale de section_upsell; acá van sólo los parámetros del bloque.
+  complementary_block?: {
+    titulo?: string;
+    maximo_visible?: number;
+    ocultar_sin_stock?: boolean;
+    mostrar_otros_colores?: boolean;
+    mostrar_outfit?: boolean;
+    outfit_presentacion?: 'card_destacada' | 'en_lista';
+    outfit_desempate?: 'orden_manual' | 'mas_vendido';
+  } | null;
   // Shipping promise
   shipping_promise_enabled?: boolean;
   shipping_promise_title?: string;
@@ -493,6 +505,22 @@ export interface ResolvedStorefront {
   settings: RawCatalogSettings | null;
 }
 
+/** Presentación del outfit dentro del bloque de complementarios. */
+export type ComplementaryOutfitPresentation = 'card_destacada' | 'en_lista';
+/** Desempate cuando el producto pertenece a varios outfits. */
+export type ComplementaryOutfitTiebreak = 'orden_manual' | 'mas_vendido';
+
+/** Config resuelta del bloque "Complementarios" (cross-selling). */
+export interface ComplementaryBlockConfig {
+  titulo: string;
+  maximoVisible: 2 | 3 | 4;
+  ocultarSinStock: boolean;
+  mostrarOtrosColores: boolean;
+  mostrarOutfit: boolean;
+  outfitPresentacion: ComplementaryOutfitPresentation;
+  outfitDesempate: ComplementaryOutfitTiebreak;
+}
+
 /** Config normalizada que consume toda la UI. */
 export interface StoreConfig {
   companyId: string;
@@ -577,6 +605,9 @@ export interface StoreConfig {
   // Layout de la ficha de producto resuelto (o null si el tenant no configuró
   // uno). null = render legacy fijo (idéntico a antes). Ver productLayout.ts.
   productLayout: ProductLayout | null;
+  // Bloque "Complementarios" (cross-selling) de la ficha, resuelto con defaults.
+  // La visibilidad on/off es sections.upsell (no vive acá).
+  complementaryBlock: ComplementaryBlockConfig;
   // Shipping
   shippingPromiseEnabled: boolean;
   shippingPromiseTitle: string;

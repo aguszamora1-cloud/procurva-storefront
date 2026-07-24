@@ -4,6 +4,7 @@ import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
 import { StoreImage } from './StoreImage';
+import { ComplementaryBlock } from './ComplementaryBlock';
 import { formatPrice } from '@/lib/utils';
 import { groupCartItems } from '@/lib/cart';
 
@@ -11,6 +12,12 @@ export function CartDrawer() {
   const { items, isOpen, close, updateQty, removeItem, itemCount } = useCart();
   const { byLine, adjustedSubtotal, quantitySavings, nudges } = useCartPromos();
   const rows = groupCartItems(items);
+  // Subtotal de contado (efectivo/transferencia): usa unit_price_cash si existe.
+  // Sólo para la JERARQUÍA visual del subtotal (contado protagonista, tarjeta
+  // secundaria); el total real que se cobra sigue dependiendo del método en el
+  // checkout (esa es la inconsistencia previa a mirar aparte).
+  const cashSubtotal = items.reduce((s, i) => s + (typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price) * i.qty, 0);
+  const hasCashSubtotal = cashSubtotal > 0 && cashSubtotal < adjustedSubtotal;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -89,19 +96,20 @@ export function CartDrawer() {
                       <span className="text-[12px] font-semibold uppercase tracking-wide text-subtle">{row.units} u.</span>
                     )}
                     {(() => {
-                      // Volume tiers: tachado = precio de lista; final = tarjeta con
-                      // descuento; debajo, el total en efectivo/transferencia.
+                      // Volume tiers: contado protagonista, tarjeta secundaria; tachado = lista.
                       if (row.source === 'tier') {
                         const showStrike = row.originalTotal != null && row.originalTotal > row.lineTotal;
+                        const hasCash = row.cashTotal != null && row.cashTotal < row.lineTotal;
+                        const primary = hasCash ? (row.cashTotal as number) : row.lineTotal;
                         return (
                           <div className="text-right">
                             <span className="flex items-baseline justify-end gap-1.5">
                               {showStrike && <span className="text-[12px] text-subtle line-through">{formatPrice(row.originalTotal as number)}</span>}
-                              <span className={`text-[14px] font-bold ${showStrike ? 'text-accent' : 'text-text'}`}>{formatPrice(row.lineTotal)}</span>
+                              <span className="text-[14px] font-bold text-accent">{formatPrice(primary)}</span>
                             </span>
-                            {row.cashTotal != null && (
+                            {hasCash && (
                               <span className="mt-0.5 block text-[11px] text-subtle">
-                                <span className="font-semibold text-text">{formatPrice(row.cashTotal)}</span> efectivo o transferencia
+                                <span className="font-semibold">{formatPrice(row.lineTotal)}</span> con tarjeta
                               </span>
                             )}
                           </div>
@@ -116,6 +124,17 @@ export function CartDrawer() {
                           </span>
                         );
                       }
+                      // Línea normal: contado protagonista + tarjeta secundaria (si hay descuento).
+                      if (row.cashTotal != null && row.cashTotal < row.lineTotal) {
+                        return (
+                          <div className="text-right">
+                            <span className="text-[14px] font-bold text-accent">{formatPrice(row.cashTotal)}</span>
+                            <span className="mt-0.5 block text-[11px] text-subtle">
+                              <span className="font-semibold">{formatPrice(row.lineTotal)}</span> con tarjeta
+                            </span>
+                          </div>
+                        );
+                      }
                       return <span className="text-[14px] font-bold text-text">{formatPrice(row.lineTotal)}</span>;
                     })()}
                   </div>
@@ -123,6 +142,10 @@ export function CartDrawer() {
               </div>
             ))
           )}
+
+          {/* Complementarios del carrito (cross-selling): resueltos de todos los
+              ítems, dedup, excluyendo lo que ya está. Se autooculta si no hay nada. */}
+          {items.length > 0 && <ComplementaryBlock contexto="carrito" className="my-4" />}
         </div>
 
         {items.length > 0 && (
@@ -133,9 +156,16 @@ export function CartDrawer() {
                 Agregá {n.missing} más y ahorrá — {n.message}
               </div>
             ))}
-            <div className="mb-4 flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-[1.5px] text-muted">Subtotal</span>
-              <span className="text-[20px] font-extrabold text-text">{formatPrice(adjustedSubtotal)}</span>
+            <div className="mb-4 flex items-start justify-between">
+              <span className="mt-1 text-[11px] font-semibold uppercase tracking-[1.5px] text-muted">Subtotal</span>
+              <div className="text-right">
+                <span className="text-[20px] font-extrabold text-accent">{formatPrice(hasCashSubtotal ? cashSubtotal : adjustedSubtotal)}</span>
+                {hasCashSubtotal && (
+                  <p className="mt-0.5 text-[11px] text-subtle">
+                    <span className="font-semibold">{formatPrice(adjustedSubtotal)}</span> con tarjeta
+                  </p>
+                )}
+              </div>
             </div>
             {quantitySavings > 0 && (
               <p className="-mt-3 mb-4 text-right text-[12px] font-semibold text-accent">Ahorrás {formatPrice(quantitySavings)}</p>

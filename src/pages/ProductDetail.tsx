@@ -15,13 +15,14 @@ import { SizeSelector } from '@/components/SizeSelector';
 import { SizeFinder } from '@/components/SizeFinder';
 import { TrustBadges } from '@/components/TrustBadges';
 import { ShippingCalculator } from '@/components/ShippingCalculator';
-import { PriceDisplay } from '@/components/PriceDisplay';
+import { PriceStack } from '@/components/PriceStack';
 import { CouponPdpChip } from '@/components/CouponChip';
 import { WholesalePurchasePanel } from '@/components/WholesalePurchasePanel';
 import { PromoCountdown } from '@/components/PromoCountdown';
 import { CardBadge } from '@/components/CardBadge';
 import { ProductDetailCustomSlot, CustomSectionNode } from '@/components/ProductDetailCustomSlot';
-import { RecommendedProducts } from '@/components/RecommendedProducts';
+import { RelatedProducts } from '@/components/RelatedProducts';
+import { ComplementaryBlock } from '@/components/ComplementaryBlock';
 import { ProductReviews } from '@/components/ProductReviews';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
 import { VirtualTryOn, mapFashnCategory } from '@/components/VirtualTryOn';
@@ -86,12 +87,12 @@ function BelowProductBlocks({
         break;
       case 'related':
         if (config.isPro && config.sections.upsell) {
-          nodes.push(<RecommendedProducts key="related" product={product} />);
+          nodes.push(<RelatedProducts key="related" product={product} />);
         }
         break;
-      // 'upsells' queda subsumido en 'related' (RecommendedProducts ya prioriza las
-      // recos manuales y cae a relacionados por categoría): hoy no renderiza nada
-      // aparte para no duplicar la sección. Cualquier otro token se ignora.
+      // 'upsells' (Complementarios manuales) ahora vive en la columna derecha de la
+      // ficha; 'related' quedó como descubrimiento por categoría ("También te puede
+      // gustar"). Cualquier otro token se ignora.
       default:
         break;
     }
@@ -508,7 +509,7 @@ export function ProductDetail() {
 
           {!isWholesale && (
           <>
-          <PriceDisplay product={product} variant="detail" />
+          <PriceStack product={product} variant="detail" />
 
           {/* Chip informativo del cupón guardado: cuánto pagarías por este producto
               con el cupón + copiar el código. No aplica nada (eso pasa en el checkout). */}
@@ -563,19 +564,14 @@ export function ProductDetail() {
                     ) : (
                       <span className="text-[11px] font-semibold text-subtle">Precio normal</span>
                     )}
-                    {/* Precio con tarjeta (con tachado del precio de lista). */}
+                    {/* Contado protagonista + tarjeta chica (el badge "% OFF" ya indica el descuento). */}
                     <span className="flex flex-col items-center leading-tight">
-                      {t.discountPct > 0 && <span className="text-[11px] text-subtle line-through">{formatPrice(finalPrice)}</span>}
-                      <span className="text-[14px] font-extrabold text-text">{formatPrice(p.card)}</span>
-                      <span className="text-[10px] text-subtle">c/u</span>
+                      <span className="text-[15px] font-extrabold text-accent">{formatPrice(p.cash ?? p.card)}</span>
+                      {p.cash != null && p.cash < p.card && (
+                        <span className="mt-0.5 text-[10px] text-subtle">{formatPrice(p.card)} tarjeta</span>
+                      )}
+                      <span className="mt-0.5 text-[10px] text-subtle">c/u</span>
                     </span>
-                    {/* Precio con efectivo/transferencia (mismo estilo que la ficha). */}
-                    {p.cash != null && (
-                      <span className="mt-0.5 flex flex-col items-center leading-tight">
-                        <span className="text-[12px] font-semibold text-text">{formatPrice(p.cash)}</span>
-                        <span className="text-[10px] font-medium text-subtle">efectivo/transf.</span>
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -713,6 +709,10 @@ export function ProductDetail() {
           </>
           )}
 
+          {/* Complementarios (cross-selling): debajo del botón de agregar, en la
+              columna derecha. Se autooculta si no hay nada que sugerir. */}
+          <ComplementaryBlock contexto="ficha" product={product} preferredSize={selectedSize} />
+
           <ShippingCalculator />
 
           {config.sections.trustBadges && <TrustBadges />}
@@ -758,7 +758,7 @@ export function ProductDetail() {
 
           {/* Recomendaciones del admin (sección "upsell", PRO). Usa las recos
               manuales por color; si no hay, cae a relacionados por categoría. */}
-          {config.isPro && config.sections.upsell && <RecommendedProducts product={product} />}
+          {config.isPro && config.sections.upsell && <RelatedProducts product={product} />}
         </>
       )}
 
@@ -769,7 +769,15 @@ export function ProductDetail() {
           style={{ boxShadow: '0 -2px 10px rgba(0,0,0,0.08)' }}
         >
           <div className="min-w-0 flex-1">
-            <p className="text-[18px] font-extrabold leading-none text-accent">{formatPrice(displayPrice)}</p>
+            {/* Contado protagonista + tarjeta chica al lado (si hay descuento de contado). */}
+            <p className="flex flex-wrap items-baseline gap-x-1.5 leading-none">
+              <span className="text-[18px] font-extrabold text-accent">
+                {formatPrice(finalCash != null && finalCash < displayPrice ? finalCash : displayPrice)}
+              </span>
+              {finalCash != null && finalCash < displayPrice && (
+                <span className="text-[11px] font-medium text-subtle">{formatPrice(displayPrice)} tarjeta</span>
+              )}
+            </p>
             {inTierMode ? (
               <p className="mt-0.5 truncate text-[11px] text-subtle">Lleva {tierUnits}</p>
             ) : (

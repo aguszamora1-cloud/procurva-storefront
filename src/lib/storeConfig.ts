@@ -189,6 +189,22 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     // Layout de la ficha resuelto (null = el tenant no lo configuró → render legacy).
     productLayout: resolveProductLayoutOrNull(s.product_layout),
 
+    // Bloque "Complementarios": defaults del spec. titulo se deja como quedó
+    // (vacío → la UI cae a 'Combinalo con'); el resto resuelve a un valor concreto.
+    complementaryBlock: (() => {
+      const c = s.complementary_block ?? {};
+      const max = c.maximo_visible;
+      return {
+        titulo: firstStr(c.titulo) || 'Combinalo con',
+        maximoVisible: (max === 2 || max === 3 || max === 4 ? max : 3) as 2 | 3 | 4,
+        ocultarSinStock: bool(c.ocultar_sin_stock, true),
+        mostrarOtrosColores: bool(c.mostrar_otros_colores, true),
+        mostrarOutfit: bool(c.mostrar_outfit, true),
+        outfitPresentacion: c.outfit_presentacion === 'en_lista' ? 'en_lista' : 'card_destacada',
+        outfitDesempate: c.outfit_desempate === 'mas_vendido' ? 'mas_vendido' : 'orden_manual',
+      };
+    })(),
+
     shippingPromiseEnabled: bool(s.shipping_promise_enabled, true),
     shippingPromiseTitle: shippingTitle,
     // Subtítulo: SOLO lo que el comercio cargó. Sin fallback a shipping_message
