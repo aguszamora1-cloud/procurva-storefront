@@ -23,6 +23,10 @@ export function Cart() {
   // cantidad, a precio de lista, sin envío) — el mismo número del "Subtotal".
   const min = evalMinOrder(config, isWholesale, itemCount, adjustedSubtotal);
   const rows = groupCartItems(items);
+  // Subtotal de contado para la jerarquía visual (contado protagonista). El total
+  // real se define por método en el checkout (inconsistencia previa a revisar aparte).
+  const cashSubtotal = items.reduce((s, i) => s + (typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price) * i.qty, 0);
+  const hasCashSubtotal = cashSubtotal > 0 && cashSubtotal < adjustedSubtotal;
   const seo = <Seo title={`Carrito · ${config.name}`} slug={config.slug} noindex />;
 
   if (items.length === 0) {
@@ -77,19 +81,20 @@ export function Cart() {
                     <span className="text-[13px] font-semibold uppercase tracking-wide text-subtle">{row.units} unidades</span>
                   )}
                   {(() => {
-                    // Volume tiers: tachado = precio de lista (originalTotal), final =
-                    // total con tarjeta ya descontado, y debajo el total en efectivo.
+                    // Volume tiers: contado protagonista, tarjeta secundaria; tachado = lista.
                     if (row.source === 'tier') {
                       const showStrike = row.originalTotal != null && row.originalTotal > row.lineTotal;
+                      const hasCash = row.cashTotal != null && row.cashTotal < row.lineTotal;
+                      const primary = hasCash ? (row.cashTotal as number) : row.lineTotal;
                       return (
                         <div className="text-right">
                           <span className="flex items-baseline justify-end gap-2">
                             {showStrike && <span className="text-[13px] text-subtle line-through">{formatPrice(row.originalTotal as number)}</span>}
-                            <span className={`text-[16px] font-bold ${showStrike ? 'text-accent' : 'text-text'}`}>{formatPrice(row.lineTotal)}</span>
+                            <span className="text-[16px] font-bold text-accent">{formatPrice(primary)}</span>
                           </span>
-                          {row.cashTotal != null && (
+                          {hasCash && (
                             <span className="mt-0.5 block text-[12px] text-subtle">
-                              <span className="font-semibold text-text">{formatPrice(row.cashTotal)}</span> efectivo o transferencia
+                              <span className="font-semibold">{formatPrice(row.lineTotal)}</span> con tarjeta
                             </span>
                           )}
                         </div>
@@ -102,6 +107,17 @@ export function Cart() {
                           <span className="text-[13px] text-subtle line-through">{formatPrice(row.lineTotal)}</span>
                           <span className="text-[16px] font-bold text-accent">{formatPrice(r.unitPriceFinal * row.units)}</span>
                         </span>
+                      );
+                    }
+                    // Línea normal: contado protagonista + tarjeta secundaria (si hay descuento).
+                    if (row.cashTotal != null && row.cashTotal < row.lineTotal) {
+                      return (
+                        <div className="text-right">
+                          <span className="block text-[16px] font-bold text-accent">{formatPrice(row.cashTotal)}</span>
+                          <span className="mt-0.5 block text-[12px] text-subtle">
+                            <span className="font-semibold">{formatPrice(row.lineTotal)}</span> con tarjeta
+                          </span>
+                        </div>
                       );
                     }
                     return <span className="text-[16px] font-bold text-text">{formatPrice(row.lineTotal)}</span>;
@@ -124,7 +140,14 @@ export function Cart() {
           ))}
           <div className="flex items-center justify-between border-b border-line pb-4">
             <span className="text-[14px] text-muted">Subtotal</span>
-            <span className="text-[20px] font-extrabold text-text">{formatPrice(adjustedSubtotal)}</span>
+            <span className="text-right">
+              <span className="block text-[20px] font-extrabold text-accent">{formatPrice(hasCashSubtotal ? cashSubtotal : adjustedSubtotal)}</span>
+              {hasCashSubtotal && (
+                <span className="mt-0.5 block text-[12px] text-subtle">
+                  <span className="font-semibold">{formatPrice(adjustedSubtotal)}</span> con tarjeta
+                </span>
+              )}
+            </span>
           </div>
           {quantitySavings > 0 && (
             <p className="pt-3 text-right text-[12px] font-semibold text-accent">Ahorrás {formatPrice(quantitySavings)} por cantidad</p>

@@ -127,6 +127,9 @@ export function groupCartItems(items: CartItem[]): CartDisplayRow[] {
       const gk = `${it.product_id}::${it.packId ?? ''}`;
       (packGroups.get(gk) ?? packGroups.set(gk, []).get(gk)!).push(it);
     } else {
+      // Total de contado de la línea (efectivo/transferencia), si hay descuento.
+      const cashTotal =
+        it.unit_price_cash != null && it.unit_price_cash < it.unit_price ? it.unit_price_cash * it.qty : null;
       rows.push({
         key: cartLineKey(it),
         productId: it.product_id,
@@ -136,6 +139,7 @@ export function groupCartItems(items: CartItem[]): CartDisplayRow[] {
         source: 'suelto',
         units: it.qty,
         lineTotal: it.unit_price * it.qty,
+        cashTotal,
         removeKeys: [cartLineKey(it)],
         editable: true,
       });

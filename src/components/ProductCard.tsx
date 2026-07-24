@@ -5,7 +5,7 @@ import { usePromotions } from '@/context/PromotionsContext';
 import { applyPromoToPrice } from '@/lib/promotions';
 import { useProductBadges } from '@/hooks/useProductBadges';
 import type { Product } from '@/lib/types';
-import { PriceDisplay } from './PriceDisplay';
+import { PriceStack } from './PriceStack';
 import { WholesalePriceTable } from './WholesalePriceTable';
 import { StoreImage } from './StoreImage';
 import { CardBadge } from './CardBadge';
@@ -99,7 +99,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
               discount={wholesaleDiscount}
             />
           ) : (
-            <PriceDisplay product={product} variant="card" />
+            <PriceStack product={product} variant="card" />
           )}
         </Link>
 
