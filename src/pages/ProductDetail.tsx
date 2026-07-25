@@ -23,6 +23,7 @@ import { CardBadge } from '@/components/CardBadge';
 import { ProductDetailCustomSlot, CustomSectionNode } from '@/components/ProductDetailCustomSlot';
 import { RelatedProducts } from '@/components/RelatedProducts';
 import { ComplementaryBlock } from '@/components/ComplementaryBlock';
+import { OtherColorsBlock } from '@/components/OtherColorsBlock';
 import { ProductReviews } from '@/components/ProductReviews';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
 import { VirtualTryOn, mapFashnCategory } from '@/components/VirtualTryOn';
@@ -707,6 +708,12 @@ export function ProductDetail() {
             )}
           </div>
           </>
+          )}
+
+          {/* "Sumá otros colores" (mayorista): va ANTES de los complementarios.
+              Solo si el toggle está activo; se autooculta si no aplica. */}
+          {isWholesale && config.complementaryBlock.mostrarOtrosColores && (
+            <OtherColorsBlock product={product} selectedColor={selectedColor} />
           )}
 
           {/* Complementarios (cross-selling): debajo del botón de agregar, en la

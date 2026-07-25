@@ -1,6 +1,6 @@
 import type { CartItem, CurveDist, CurvePriceTier, Product, ProductPack, Variant } from './types';
 import { getPriceInfo, sortSizes } from './utils';
-import { expandCurve, maxCurvesAvailable, sortedTiers } from './wholesale';
+import { expandCurve, maxCurvesAvailable, pickCurveTier, sortedTiers } from './wholesale';
 import { activePacks, packCartLines, pickPackTier } from './packs';
 
 /**
@@ -85,12 +85,28 @@ export function packLinesFor(p: Product, w: WholesaleData, fallbackImg: string |
   return packCartLines(p, pack, 1, price, fallbackImg ?? '');
 }
 
-/** Líneas de UNA curva del color indicado, al escalón base. */
-export function curvaLinesFor(p: Product, color: string, w: WholesaleData, fallbackImg: string | null): CartItem[] {
+/** Precio por unidad de la curva según cuántas curvas se llevan (escalón por volumen). */
+export function curvaUnitPrice(p: Product, w: WholesaleData, curves: number): number {
   const tiers = sortedTiers(w.tiers);
-  if (tiers.length === 0) return [];
+  if (tiers.length === 0) return p.wholesale_price ?? 0;
+  return (pickCurveTier(tiers, curves) ?? tiers[0]).price_per_unit ?? p.wholesale_price ?? 0;
+}
+
+/**
+ * Líneas de UNA curva del color indicado. `curvesForPricing` sólo elige el escalón
+ * de precio (para aplicar el descuento por volumen al sumar varias curvas de una);
+ * la cantidad agregada siempre es 1 curva.
+ */
+export function curvaLines(
+  p: Product,
+  color: string,
+  w: WholesaleData,
+  fallbackImg: string | null,
+  curvesForPricing = 1,
+): CartItem[] {
+  if (sortedTiers(w.tiers).length === 0) return [];
   if (maxCurvesAvailable(p, color, w.dist) < 1) return [];
-  const price = (tiers.find((t) => t.curve_quantity === 1) ?? tiers[0])?.price_per_unit ?? p.wholesale_price ?? 0;
+  const price = curvaUnitPrice(p, w, curvesForPricing);
   if (price <= 0) return [];
   return expandCurve(p, color, 1, w.dist).map(({ variant, qty }) => ({
     product_id: p.id,
@@ -105,6 +121,10 @@ export function curvaLinesFor(p: Product, color: string, w: WholesaleData, fallb
     curves: 1,
   }));
 }
+
+/** Líneas de UNA curva del color indicado, al escalón base (1 curva). */
+export const curvaLinesFor = (p: Product, color: string, w: WholesaleData, fallbackImg: string | null): CartItem[] =>
+  curvaLines(p, color, w, fallbackImg, 1);
 
 /** ¿Se puede completar (con stock real) al menos una curva del color indicado? */
 export function curvaColorInStock(p: Product, color: string | null, w: WholesaleData): boolean {
