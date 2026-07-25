@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, CreditCard, RotateCcw, Truck } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
 
 interface Props {
@@ -17,9 +17,9 @@ export function PolicyAccordions({ className }: Props) {
   const [openPolicy, setOpenPolicy] = useState<string | null>(null);
 
   const policies = [
-    { key: 'envio', label: 'Envío', text: config.policyShipping },
-    { key: 'cambios', label: 'Cambios y devoluciones', text: config.policyReturns },
-    { key: 'pagos', label: 'Medios de pago', text: config.policyPayments },
+    { key: 'envio', label: 'Envío', text: config.policyShipping, Icon: Truck },
+    { key: 'cambios', label: 'Cambios y devoluciones', text: config.policyReturns, Icon: RotateCcw },
+    { key: 'pagos', label: 'Medios de pago', text: config.policyPayments, Icon: CreditCard },
   ].filter((p) => p.text);
 
   if (policies.length === 0) return null;
@@ -35,7 +35,10 @@ export function PolicyAccordions({ className }: Props) {
               onClick={() => setOpenPolicy(open ? null : p.key)}
               className="flex w-full items-center justify-between py-3.5 text-left"
             >
-              <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">{p.label}</span>
+              <span className="flex items-center gap-2.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">
+                <p.Icon size={16} className="text-subtle" />
+                {p.label}
+              </span>
               <ChevronDown size={16} className={`text-subtle transition-transform ${open ? 'rotate-180' : ''}`} />
             </button>
             {open && <p className="whitespace-pre-line pb-4 text-[13px] font-medium leading-relaxed text-muted">{p.text}</p>}

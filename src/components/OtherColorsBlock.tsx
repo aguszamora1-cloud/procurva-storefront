@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, Plus } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
 import { formatPrice } from '@/lib/utils';
@@ -96,52 +96,93 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
   // Sin ningún color agregable (solo el ya seleccionado, o ninguno) → no mostramos nada.
   if (!isCurva || addable.length === 0) return null;
 
+  // Un solo color para ofrecer → fila compacta (mismo peso visual que las cards de
+  // complementarios). 2+ colores → grid de cards. `completable` visible ya excluye los
+  // que no completan curva; en modo compacto el único visible es siempre agregable.
+  const single = completable.length === 1;
+
   return (
     <section className={`rounded-2xl border border-line p-4 ${className ?? ''}`}>
       <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-text">Sumá otros colores</h3>
       <p className="mb-3 text-xs text-subtle">Mismo modelo, otros colores — por curva.</p>
 
-      <div className="grid grid-cols-2 gap-2">
-        {completable.map((color) => {
-          const isSelected = color === selectedColor;
+      {single ? (
+        // ── Fila compacta (1 color) ──────────────────────────────────────────
+        (() => {
+          const color = completable[0];
           const added = justAdded === color;
           const thumb = imgOf(color);
           return (
-            <div
-              key={color}
-              className={`flex flex-col gap-1.5 rounded-xl border border-line/70 p-2 ${isSelected ? 'opacity-60' : ''}`}
-            >
-              {thumb ? (
-                <img src={thumb} alt="" className="aspect-square w-full rounded-lg object-cover" />
-              ) : (
-                <div className="aspect-square w-full rounded-lg bg-secondary" />
-              )}
-              <p className="truncate text-xs font-medium text-text">{color}</p>
-              <p className="text-[11px] text-subtle">
-                Curva {unitsOf(color)} u. · <span className="font-semibold text-text">{formatPrice(curveTotal1(color))}</span>
-              </p>
-              {isSelected ? (
-                // Color activo del principal: no se saca del grid, se marca "en el pedido".
-                <span className="mt-auto flex items-center justify-center rounded-lg border border-line py-1.5 text-[11px] font-semibold text-subtle">
-                  En el pedido
-                </span>
-              ) : (
+            <div className="rounded-xl border border-line/70 p-2">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-secondary">
+                  {thumb && <img src={thumb} alt="" className="h-full w-full object-cover" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-medium text-text">{color}</p>
+                  <p className="text-[11px] text-subtle">
+                    Curva {unitsOf(color)} u. · <span className="font-semibold text-text">{formatPrice(curveTotal1(color))}</span>
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={added ? undefined : () => addColor(color)}
                   aria-label={added ? 'Agregado' : `Agregar curva ${color}`}
-                  className={`mt-auto flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-semibold transition-colors ${
+                  className={`flex flex-shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                     added ? 'bg-green-600 text-white' : 'bg-primary text-on-primary hover:opacity-90'
                   }`}
                 >
-                  {added ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-                  {added ? 'Agregado' : 'curva'}
+                  {added && <Check className="h-3.5 w-3.5" />}
+                  {added ? 'Agregado' : 'Agregar curva'}
                 </button>
-              )}
+              </div>
             </div>
           );
-        })}
-      </div>
+        })()
+      ) : (
+        // ── Grid de cards (2+ colores) ───────────────────────────────────────
+        <div className="grid grid-cols-2 gap-2">
+          {completable.map((color) => {
+            const isSelected = color === selectedColor;
+            const added = justAdded === color;
+            const thumb = imgOf(color);
+            return (
+              <div
+                key={color}
+                className={`flex flex-col gap-1.5 rounded-xl border border-line/70 p-2 ${isSelected ? 'opacity-60' : ''}`}
+              >
+                {thumb ? (
+                  <img src={thumb} alt="" className="aspect-square w-full rounded-lg object-cover" />
+                ) : (
+                  <div className="aspect-square w-full rounded-lg bg-secondary" />
+                )}
+                <p className="truncate text-xs font-medium text-text">{color}</p>
+                <p className="text-[11px] text-subtle">
+                  Curva {unitsOf(color)} u. · <span className="font-semibold text-text">{formatPrice(curveTotal1(color))}</span>
+                </p>
+                {isSelected ? (
+                  // Color activo del principal: no se saca del grid, se marca "en el pedido".
+                  <span className="mt-auto flex items-center justify-center rounded-lg border border-line py-1.5 text-[11px] font-semibold text-subtle">
+                    En el pedido
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={added ? undefined : () => addColor(color)}
+                    aria-label={added ? 'Agregado' : `Agregar curva ${color}`}
+                    className={`mt-auto flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-semibold transition-colors ${
+                      added ? 'bg-green-600 text-white' : 'bg-primary text-on-primary hover:opacity-90'
+                    }`}
+                  >
+                    {added && <Check className="h-3.5 w-3.5" />}
+                    {added ? 'Agregado' : 'Agregar curva'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {addable.length > 1 && (
         <button

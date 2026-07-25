@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Check, CreditCard, Minus, Plus, ShoppingBag } from 'lucide-react';
+import { AlertCircle, Minus, Plus } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
 import { colorToHex, formatPrice, mainImage } from '@/lib/utils';
@@ -778,24 +778,23 @@ export function WholesalePurchasePanel({
         </div>
       )}
 
-      {/* CTAs: Agregar al carrito (outline gris) + Comprar ahora (sólido oscuro → checkout) */}
+      {/* CTAs: Agregar al carrito (sólido = principal) + Comprar ahora (outline = secundario).
+          Solo texto, sin íconos. */}
       <div className="flex flex-col gap-2.5 pt-1">
         <button
           type="button"
           onClick={() => submit('cart')}
           disabled={!canSubmit || added}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] border border-line bg-transparent px-6 py-[14px] text-[14px] font-medium text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full rounded-[8px] bg-primary px-6 py-[14px] text-center text-[14px] font-semibold text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {added ? <Check size={16} /> : <ShoppingBag size={16} />}
           {added ? 'Agregado al carrito' : 'Agregar al carrito'}
         </button>
         <button
           type="button"
           onClick={() => submit('buy')}
           disabled={!canSubmit}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-text px-6 py-[14px] text-[14px] font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full rounded-[8px] border border-line bg-transparent px-6 py-[14px] text-center text-[14px] font-medium text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <CreditCard size={16} />
           Comprar ahora
         </button>
       </div>

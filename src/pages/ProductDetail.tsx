@@ -253,7 +253,7 @@ export function ProductDetail() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 px-6 py-10 md:grid-cols-[1.2fr_1fr] md:gap-12">
+      <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 px-6 py-10 md:grid-cols-[1.2fr_1fr] md:gap-16">
         <div className="aspect-[3/4] animate-pulse rounded-[12px] bg-secondary" />
         <div className="space-y-4">
           <div className="h-4 w-1/2 animate-pulse bg-secondary" />
@@ -475,7 +475,7 @@ export function ProductDetail() {
       </div>
 
       {/* Detalle 2 columnas (flex para que la imagen quede sticky de forma fiable) */}
-      <div className="mx-auto flex max-w-[1200px] flex-col gap-8 px-6 pb-8 md:flex-row md:items-start md:gap-12">
+      <div className="mx-auto flex max-w-[1200px] flex-col gap-8 px-6 pb-8 md:flex-row md:items-start md:gap-16">
         <div
           className="md:sticky md:w-[54%] md:shrink-0 md:self-start"
           style={{ top: 'calc(var(--header-h, 64px) + 16px)' }}
