@@ -48,13 +48,14 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
   // Solo cuando la unidad mínima del producto es la curva (no pack / no suelto).
   const isCurva = minUnitKind(product, w) === 'curva';
 
-  // Otros colores: todos menos el elegido, y solo los que pueden completar una curva.
-  const colors = useMemo(() => {
+  // Colores que pueden completar una curva (incluye el ya seleccionado, que se
+  // muestra atenuado como "en el pedido" pero no se saca del grid).
+  const completable = useMemo(() => {
     if (!isCurva) return [];
-    return colorsOf(product)
-      .filter((c) => c !== selectedColor)
-      .filter((c) => curvaColorInStock(product, c, w));
-  }, [isCurva, product, selectedColor, w]);
+    return colorsOf(product).filter((c) => curvaColorInStock(product, c, w));
+  }, [isCurva, product, w]);
+  // Colores que se pueden AGREGAR: los completables que no son el ya seleccionado.
+  const addable = useMemo(() => completable.filter((c) => c !== selectedColor), [completable, selectedColor]);
 
   const img = product.image_url ?? null;
   const imgOf = (color: string) =>
@@ -62,11 +63,12 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
   const unitsOf = (color: string) => itemsPerCurve(w.dist, product, color);
 
   // Precio por unidad a 1 curva (cards) y a N curvas (opción "Los N", con descuento).
+  // El escalón por volumen se mide sobre las curvas que suma "Los N" (las agregables).
   const unit1 = curvaUnitPrice(product, w, 1);
-  const unitN = curvaUnitPrice(product, w, colors.length);
+  const unitN = curvaUnitPrice(product, w, addable.length);
   const curveTotal1 = (color: string) => unitsOf(color) * unit1;
-  const totalAll = colors.reduce((s, c) => s + unitsOf(c) * unitN, 0);
-  const hasVolumeDiscount = colors.length > 1 && unitN < unit1;
+  const totalAll = addable.reduce((s, c) => s + unitsOf(c) * unitN, 0);
+  const hasVolumeDiscount = addable.length > 1 && unitN < unit1;
 
   const flash = (key: string) => {
     setJustAdded(key);
@@ -82,8 +84,8 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
 
   const addAll = () => {
     let any = false;
-    for (const color of colors) {
-      const lines = curvaLines(product, color, w, imgOf(color), colors.length);
+    for (const color of addable) {
+      const lines = curvaLines(product, color, w, imgOf(color), addable.length);
       if (lines.length === 0) continue;
       lines.forEach(addItem);
       any = true;
@@ -91,7 +93,8 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
     if (any) flash('__all__');
   };
 
-  if (!isCurva || colors.length === 0) return null;
+  // Sin ningún color agregable (solo el ya seleccionado, o ninguno) → no mostramos nada.
+  if (!isCurva || addable.length === 0) return null;
 
   return (
     <section className={`rounded-2xl border border-line p-4 ${className ?? ''}`}>
@@ -99,11 +102,15 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
       <p className="mb-3 text-xs text-subtle">Mismo modelo, otros colores — por curva.</p>
 
       <div className="grid grid-cols-2 gap-2">
-        {colors.map((color) => {
+        {completable.map((color) => {
+          const isSelected = color === selectedColor;
           const added = justAdded === color;
           const thumb = imgOf(color);
           return (
-            <div key={color} className="flex flex-col gap-1.5 rounded-xl border border-line/70 p-2">
+            <div
+              key={color}
+              className={`flex flex-col gap-1.5 rounded-xl border border-line/70 p-2 ${isSelected ? 'opacity-60' : ''}`}
+            >
               {thumb ? (
                 <img src={thumb} alt="" className="aspect-square w-full rounded-lg object-cover" />
               ) : (
@@ -113,27 +120,34 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
               <p className="text-[11px] text-subtle">
                 Curva {unitsOf(color)} u. · <span className="font-semibold text-text">{formatPrice(curveTotal1(color))}</span>
               </p>
-              <button
-                type="button"
-                onClick={added ? undefined : () => addColor(color)}
-                aria-label={added ? 'Agregado' : `Agregar curva ${color}`}
-                className={`mt-auto flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-semibold transition-colors ${
-                  added ? 'bg-green-600 text-white' : 'bg-primary text-on-primary hover:opacity-90'
-                }`}
-              >
-                {added ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-                {added ? 'Agregado' : 'curva'}
-              </button>
+              {isSelected ? (
+                // Color activo del principal: no se saca del grid, se marca "en el pedido".
+                <span className="mt-auto flex items-center justify-center rounded-lg border border-line py-1.5 text-[11px] font-semibold text-subtle">
+                  En el pedido
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={added ? undefined : () => addColor(color)}
+                  aria-label={added ? 'Agregado' : `Agregar curva ${color}`}
+                  className={`mt-auto flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-semibold transition-colors ${
+                    added ? 'bg-green-600 text-white' : 'bg-primary text-on-primary hover:opacity-90'
+                  }`}
+                >
+                  {added ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                  {added ? 'Agregado' : 'curva'}
+                </button>
+              )}
             </div>
           );
         })}
       </div>
 
-      {colors.length > 1 && (
+      {addable.length > 1 && (
         <button
           type="button"
           onClick={justAdded === '__all__' ? undefined : addAll}
-          aria-label={`Sumar los ${colors.length} colores`}
+          aria-label={`Sumar los ${addable.length} colores`}
           className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary py-2 text-xs font-semibold transition-colors ${
             justAdded === '__all__' ? 'bg-green-600 text-white' : 'text-primary hover:bg-primary hover:text-on-primary'
           }`}
@@ -144,8 +158,8 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
             </>
           ) : (
             <>
-              Sumá los {colors.length} colores · {formatPrice(totalAll)}
-              {hasVolumeDiscount && <span className="opacity-80">(precio x{colors.length} curvas)</span>}
+              Sumá los {addable.length} colores · {formatPrice(totalAll)}
+              {hasVolumeDiscount && <span className="opacity-80">(precio x{addable.length} curvas)</span>}
             </>
           )}
         </button>
