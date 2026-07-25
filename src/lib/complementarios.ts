@@ -106,6 +106,53 @@ export function curvaLinesFor(p: Product, color: string, w: WholesaleData, fallb
   }));
 }
 
+/** ¿Se puede completar (con stock real) al menos una curva del color indicado? */
+export function curvaColorInStock(p: Product, color: string | null, w: WholesaleData): boolean {
+  return maxCurvesAvailable(p, color, w.dist) >= 1;
+}
+
+/**
+ * ¿Se puede completar (con stock real) al menos un pack del producto? Solo aplica a
+ * packs con distribución fija por (color, talle): cada item necesita stock >= su
+ * cantidad. Los modos sin variante atable (no_distribution / free_color / items sin
+ * color) no se pueden chequear por stock → no se bloquean (se consideran disponibles).
+ */
+export function packCanComplete(p: Product, w: WholesaleData): boolean {
+  const pack = activePacks(w.packs)[0];
+  if (!pack) return false;
+  if (pack.pack_type === 'no_distribution' || pack.pack_type === 'free_color' || pack.items.length === 0) {
+    return true;
+  }
+  return pack.items.every((it) => {
+    if (!it.color) return true; // item sin color → no atable a una variante
+    const v = variantsOf(p).find((x) => x.size === it.size && x.color === it.color);
+    return !!v && (v.stock ?? 0) >= it.quantity;
+  });
+}
+
+/**
+ * ¿El complemento tiene stock VENDIBLE según su unidad mínima de venta? Mismo
+ * criterio de "agotado" que el resto de la tienda, pero por tipo:
+ *  - retail / unidad suelta mayorista: alguna variante con stock.
+ *  - curva: se puede completar ≥1 curva en algún color.
+ *  - pack: se puede completar ≥1 pack.
+ * Si el producto no trae variantes cargadas todavía, no lo ocultamos (return true).
+ */
+export function complementInStock(p: Product, storeType: 'retail' | 'wholesale', w: WholesaleData): boolean {
+  const vs = variantsOf(p);
+  const anyUnit = () => vs.length === 0 || vs.some((v) => (v.stock ?? 0) > 0);
+  if (storeType !== 'wholesale') return anyUnit();
+  const kind = minUnitKind(p, w);
+  if (kind === 'pack') return packCanComplete(p, w);
+  if (kind === 'curva') {
+    if (vs.length === 0) return true; // variantes no cargadas → no ocultar
+    const colors = colorsOf(p);
+    const list = colors.length ? colors : [null];
+    return list.some((c) => curvaColorInStock(p, c, w));
+  }
+  return anyUnit(); // 'unit' (suelto mayorista)
+}
+
 /** Una unidad suelta mayorista. */
 export function wholesaleUnitLine(p: Product, variant: Variant, fallbackImg: string | null): CartItem {
   return {

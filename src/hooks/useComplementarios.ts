@@ -18,13 +18,6 @@ export interface ComplementariosResult {
   isLoading: boolean;
 }
 
-/** true si el producto (o la color-card) tiene al menos una variante con stock. */
-export function hasStock(p: Product): boolean {
-  const vs = p.product_variants ?? [];
-  if (vs.length === 0) return true; // sin variantes cargadas → no lo ocultamos
-  return vs.some((v) => (v.stock ?? 0) > 0);
-}
-
 /**
  * Complementarios manuales (tabla product_recommendations) para uno o varios
  * productos origen. Resuelve cada fila a una color-card (color fijado → card por

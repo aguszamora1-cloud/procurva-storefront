@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ChevronUp, Plus } from 'lucide-react';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { useProducts } from '@/hooks/useProducts';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
-import { useComplementarios, hasStock } from '@/hooks/useComplementarios';
+import { useComplementarios } from '@/hooks/useComplementarios';
 import { useProductVariants } from '@/hooks/useProductVariants';
 import { formatPrice } from '@/lib/utils';
 import { PriceStack } from './PriceStack';
@@ -20,6 +20,8 @@ import {
   minUnitKind,
   packLinesFor,
   curvaLinesFor,
+  complementInStock,
+  curvaColorInStock,
   type WholesaleData,
 } from '@/lib/complementarios';
 import type { Product } from '@/lib/types';
@@ -73,11 +75,22 @@ export function ComplementaryBlock({ contexto, product, preferredSize, className
   });
 
   const block = config.complementaryBlock;
+  // Datos mayoristas (curva/pack) por producto, para decidir "sin stock" según la
+  // unidad mínima de venta (unidad / curva / pack) — mismo criterio que el quick-add.
+  const { curveTiers, curveDistributions, productPacks } = useWholesalePricing();
+  const wOf = useCallback(
+    (id: string): WholesaleData => ({
+      tiers: curveTiers[id] ?? [],
+      dist: curveDistributions[id] ?? [],
+      packs: productPacks[id] ?? [],
+    }),
+    [curveTiers, curveDistributions, productPacks],
+  );
   const shown = useMemo(() => {
     let list = resolved;
-    if (block.ocultarSinStock) list = list.filter(hasStock);
+    if (block.ocultarSinStock) list = list.filter((c) => complementInStock(c, storeType, wOf(c.id)));
     return list.slice(0, block.maximoVisible);
-  }, [resolved, block.ocultarSinStock, block.maximoVisible]);
+  }, [resolved, block.ocultarSinStock, block.maximoVisible, storeType, wOf]);
 
   const shownIds = useMemo(() => Array.from(new Set(shown.map((c) => c.id))), [shown]);
   const { variantsByProduct } = useProductVariants(shownIds);
@@ -156,6 +169,9 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
 
   const needsColor = colors.length > 1 && !pinned;
   const needsSize = (storeType !== 'wholesale' || kind === 'unit') && sizesForColor.length > 1 && !inheritedSize;
+  // Sin stock según la unidad mínima de venta (unidad / curva / pack). Mismo criterio
+  // de "agotado" que el resto de la tienda: botón deshabilitado, nunca panel vacío.
+  const outOfStock = !complementInStock(full, storeType, wdata);
   // Motivo por el que el botón "Agregar" está deshabilitado (para mostrarlo en el
   // propio botón en vez de dejarlo gris sin explicación).
   const missingReason = needsColor && !effColor ? 'Elegí un color' : needsSize && !effSize ? 'Elegí un talle' : null;
@@ -197,8 +213,11 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
   };
 
   const onPlus = () => {
+    if (outOfStock) return;
     if (tryAdd()) return;
-    setExpanded(true);
+    // Solo expandir si hay algo real que elegir (color/talle). Si no —p. ej. curva o
+    // pack que no se puede completar por stock— NO abrir un panel vacío.
+    if (needsColor || needsSize) setExpanded(true);
   };
 
   return (
@@ -215,21 +234,33 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
             <PriceLines product={full} storeType={storeType} />
           </div>
         </Link>
-        {/* Expandido: el + se vuelve chevron de colapsar (el CTA es "Agregar" de abajo). */}
-        <button
-          type="button"
-          onClick={added ? undefined : expanded ? () => setExpanded(false) : onPlus}
-          aria-label={added ? 'Agregado' : expanded ? 'Colapsar' : 'Agregar'}
-          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
-            added
-              ? 'bg-green-600 text-white'
-              : expanded
-                ? 'bg-secondary text-text hover:opacity-90'
-                : 'bg-primary text-on-primary hover:opacity-90'
-          }`}
-        >
-          {added ? <Check className="h-4 w-4" /> : expanded ? <ChevronUp className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-        </button>
+        {/* Sin stock (según unidad mínima): botón deshabilitado, sin acción. */}
+        {outOfStock ? (
+          <button
+            type="button"
+            disabled
+            aria-label="Sin stock"
+            className="flex-shrink-0 cursor-not-allowed rounded-full border border-line px-2.5 py-1 text-[11px] font-medium text-subtle opacity-70"
+          >
+            Sin stock
+          </button>
+        ) : (
+          /* Expandido: el + se vuelve chevron de colapsar (el CTA es "Agregar" de abajo). */
+          <button
+            type="button"
+            onClick={added ? undefined : expanded ? () => setExpanded(false) : onPlus}
+            aria-label={added ? 'Agregado' : expanded ? 'Colapsar' : 'Agregar'}
+            className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
+              added
+                ? 'bg-green-600 text-white'
+                : expanded
+                  ? 'bg-secondary text-text hover:opacity-90'
+                  : 'bg-primary text-on-primary hover:opacity-90'
+            }`}
+          >
+            {added ? <Check className="h-4 w-4" /> : expanded ? <ChevronUp className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          </button>
+        )}
       </div>
 
       {/* Selector inline (color/talle) cuando hace falta elegir. No navega. */}
@@ -237,21 +268,31 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
         <div className="mt-2 space-y-2 border-t border-line/60 pt-2">
           {needsColor && (
             <div className="flex flex-wrap gap-1.5">
-              {colors.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => {
-                    setPickColor(c);
-                    setPickSize(null);
-                  }}
-                  className={`rounded-full border px-2 py-0.5 text-[11px] ${
-                    effColor === c ? 'border-primary bg-primary text-on-primary' : 'border-line text-muted'
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
+              {colors.map((c) => {
+                // En curva, un color sin stock para completar una curva se deshabilita
+                // (mismo criterio de agotado). En unidad, el stock lo maneja el talle.
+                const colorOut = storeType === 'wholesale' && kind === 'curva' && !curvaColorInStock(full, c, wdata);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    disabled={colorOut}
+                    onClick={
+                      colorOut
+                        ? undefined
+                        : () => {
+                            setPickColor(c);
+                            setPickSize(null);
+                          }
+                    }
+                    className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                      effColor === c ? 'border-primary bg-primary text-on-primary' : 'border-line text-muted'
+                    } ${colorOut ? 'cursor-not-allowed opacity-40 line-through' : ''}`}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
             </div>
           )}
           {needsSize && effColor != null && (
