@@ -24,6 +24,7 @@ import { ProductDetailCustomSlot, CustomSectionNode } from '@/components/Product
 import { RelatedProducts } from '@/components/RelatedProducts';
 import { ComplementaryBlock } from '@/components/ComplementaryBlock';
 import { OtherColorsBlock } from '@/components/OtherColorsBlock';
+import { OutfitForProductBlock } from '@/components/OutfitForProductBlock';
 import { ProductReviews } from '@/components/ProductReviews';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
 import { VirtualTryOn, mapFashnCategory } from '@/components/VirtualTryOn';
@@ -719,6 +720,10 @@ export function ProductDetail() {
           {/* Complementarios (cross-selling): debajo del botón de agregar, en la
               columna derecha. Se autooculta si no hay nada que sugerir. */}
           <ComplementaryBlock contexto="ficha" product={product} preferredSize={selectedSize} />
+
+          {/* "Es parte de un look": el outfit que contiene el producto (card destacada
+              o en lista según config). Se autooculta si no está en ningún outfit. */}
+          {config.complementaryBlock.mostrarOutfit && <OutfitForProductBlock product={product} />}
 
           <ShippingCalculator />
 
