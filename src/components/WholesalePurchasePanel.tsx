@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Check, ChevronDown, CreditCard, Minus, Plus, ShoppingBag } from 'lucide-react';
-import { useStore } from '@/context/StoreProvider';
+import { AlertCircle, Check, CreditCard, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
 import { colorToHex, formatPrice, mainImage } from '@/lib/utils';
@@ -52,7 +51,6 @@ export function WholesalePurchasePanel({
   /** Avisa al detalle qué color está elegido para que la galería cambie la foto. */
   onColorChange?: (color: string | null) => void;
 }) {
-  const config = useStore();
   const { addItem, close } = useCart();
   const { curveTiers, curvaSurtidaTiers, curveDistributions, productPacks } = useWholesalePricing();
   const navigate = useNavigate();
@@ -119,7 +117,6 @@ export function WholesalePurchasePanel({
   const [surtidaCurves, setSurtidaCurves] = useState(1); // cantidad de curvas surtidas
   const [packId, setPackId] = useState<string | null>(null);
   const [packCount, setPackCount] = useState(1);
-  const [openPolicy, setOpenPolicy] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
@@ -329,12 +326,6 @@ export function WholesalePurchasePanel({
       : tab === 'surtida'
         ? hasSelection && surtidaPrice != null
         : (!needColor || !!color) && hasSelection && (tab === 'sueltos' || curveStockOk);
-
-  const policies = [
-    { key: 'envio', label: 'Envío', text: config.policyShipping },
-    { key: 'cambios', label: 'Cambios y devoluciones', text: config.policyReturns },
-    { key: 'pagos', label: 'Medios de pago', text: config.policyPayments },
-  ].filter((p) => p.text);
 
   return (
     <div className="space-y-5">
@@ -808,28 +799,8 @@ export function WholesalePurchasePanel({
           Comprar ahora
         </button>
       </div>
-
-      {/* Acordeones de políticas (settings mayorista) */}
-      {policies.length > 0 && (
-        <div className="divide-y divide-line border-t border-line">
-          {policies.map((p) => {
-            const open = openPolicy === p.key;
-            return (
-              <div key={p.key}>
-                <button
-                  type="button"
-                  onClick={() => setOpenPolicy(open ? null : p.key)}
-                  className="flex w-full items-center justify-between py-3.5 text-left"
-                >
-                  <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">{p.label}</span>
-                  <ChevronDown size={16} className={`text-subtle transition-transform ${open ? 'rotate-180' : ''}`} />
-                </button>
-                {open && <p className="whitespace-pre-line pb-4 text-[13px] font-medium leading-relaxed text-muted">{p.text}</p>}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* Los acordeones de políticas (Envío/Cambios/Pagos) ahora se renderizan como
+          <PolicyAccordions/> en la ficha, DEBAJO de complementarios/outfit. */}
     </div>
   );
 }

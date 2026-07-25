@@ -25,6 +25,7 @@ import { RelatedProducts } from '@/components/RelatedProducts';
 import { ComplementaryBlock } from '@/components/ComplementaryBlock';
 import { OtherColorsBlock } from '@/components/OtherColorsBlock';
 import { OutfitForProductBlock } from '@/components/OutfitForProductBlock';
+import { PolicyAccordions } from '@/components/PolicyAccordions';
 import { ProductReviews } from '@/components/ProductReviews';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
 import { VirtualTryOn, mapFashnCategory } from '@/components/VirtualTryOn';
@@ -722,8 +723,14 @@ export function ProductDetail() {
           <ComplementaryBlock contexto="ficha" product={product} preferredSize={selectedSize} />
 
           {/* "Es parte de un look": el outfit que contiene el producto (card destacada
-              o en lista según config). Se autooculta si no está en ningún outfit. */}
-          {config.complementaryBlock.mostrarOutfit && <OutfitForProductBlock product={product} />}
+              o en lista según config). Solo MINORISTA: los outfits no tienen precio
+              mayorista cargado (catalog_outfits solo tiene combo_price retail), así que
+              en mayorista no hay precio válido que mostrar → se oculta. */}
+          {!isWholesale && config.complementaryBlock.mostrarOutfit && <OutfitForProductBlock product={product} />}
+
+          {/* Acordeones de políticas (mayorista): van DEBAJO de los bloques de
+              complementarios/outfit, antes de "Calculá tu envío". */}
+          {isWholesale && <PolicyAccordions />}
 
           <ShippingCalculator />
 
