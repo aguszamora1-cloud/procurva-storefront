@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, ChevronUp, Plus } from 'lucide-react';
+import { Check, ChevronUp } from 'lucide-react';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { useProducts } from '@/hooks/useProducts';
@@ -244,21 +244,29 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
           >
             Sin stock
           </button>
-        ) : (
-          /* Expandido: el + se vuelve chevron de colapsar (el CTA es "Agregar" de abajo). */
+        ) : expanded ? (
+          /* Expandido: colapsar. El CTA de confirmación es "Agregar" del panel de abajo. */
           <button
             type="button"
-            onClick={added ? undefined : expanded ? () => setExpanded(false) : onPlus}
-            aria-label={added ? 'Agregado' : expanded ? 'Colapsar' : 'Agregar'}
-            className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
-              added
-                ? 'bg-green-600 text-white'
-                : expanded
-                  ? 'bg-secondary text-text hover:opacity-90'
-                  : 'bg-primary text-on-primary hover:opacity-90'
+            onClick={() => setExpanded(false)}
+            aria-label="Colapsar"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-secondary text-text transition-colors hover:opacity-90"
+          >
+            <ChevronUp className="h-4 w-4" />
+          </button>
+        ) : (
+          /* Botón de texto "Agregar" (consistente con "Sumá otros colores"). Única
+             variante → agrega directo; múltiples → expande el selector inline. */
+          <button
+            type="button"
+            onClick={added ? undefined : onPlus}
+            aria-label={added ? 'Agregado' : 'Agregar'}
+            className={`flex flex-shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+              added ? 'bg-green-600 text-white' : 'bg-primary text-on-primary hover:opacity-90'
             }`}
           >
-            {added ? <Check className="h-4 w-4" /> : expanded ? <ChevronUp className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {added && <Check className="h-3.5 w-3.5" />}
+            {added ? 'Agregado' : 'Agregar'}
           </button>
         )}
       </div>
