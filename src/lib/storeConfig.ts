@@ -146,12 +146,23 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       })(),
     },
 
-    topBarText: str(s.top_bar_text),
     topBarAnimated: bool(s.top_bar_animated, false),
     tagline: str(s.tagline),
-    // Barra de anuncio: SÓLO desde storefront_announcement. Si no está, queda ''
-    // y la AnnouncementBar no se renderiza (no usamos top_bar_text mayorista).
-    announcement: str(s.storefront_announcement),
+    // Barra de anuncio, con PRECEDENCIA: manda storefront_announcement; si está
+    // vacío cae a top_bar_text. Nunca al revés — quien ya escribió su anuncio no
+    // puede verlo pisado por un texto viejo.
+    //
+    // Antes esto era `str(s.storefront_announcement)` a secas y top_bar_text no
+    // se leía en ningún lado, así que el campo "Texto superior (promo)" del
+    // editor guardaba y no mostraba nada. La exclusión venía de que las claves
+    // legacy traían texto rancio de la época del catálogo mayorista (el caso
+    // testigo fue "COLECCIÓN 2026" en el hero). Verificado contra producción:
+    // ese texto vive en `catalog_settings`, que la RPC sirve como fallback del
+    // canal RETAIL — el blob de mayorista (storefront_config->wholesale->settings)
+    // nació vacío en el backfill de 20260607 y no tiene ninguna clave legacy. De
+    // los 65 storefronts publicados, sólo 2 estrenan barra con esto, y ninguna
+    // de las que ya tenían anuncio cambia.
+    announcement: firstStr(s.storefront_announcement, s.top_bar_text),
 
     cardPaymentText: str(s.card_payment_text),
     installmentsCount: typeof s.card_installments === 'number' && s.card_installments > 0 ? s.card_installments : 3,

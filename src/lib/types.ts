@@ -589,10 +589,12 @@ export interface StoreConfig {
     cardStyle: 'overlay' | 'below' | 'full';
   };
   // Top bar
-  topBarText: string;
   topBarAnimated: boolean;
   tagline: string;
-  // Barra de anuncio del storefront (storefront_announcement). '' = no mostrar.
+  // Barra de anuncio: storefront_announcement, o top_bar_text si el primero está
+  // vacío. '' = no mostrar. Ya no existe un `topBarText` aparte: era un campo sin
+  // un solo consumidor, y tener las dos claves sueltas es lo que dejó el texto de
+  // 5 comercios sin renderizar. Acá entra resuelto o no entra.
   announcement: string;
   // Pagos / cuotas
   cardPaymentText: string;

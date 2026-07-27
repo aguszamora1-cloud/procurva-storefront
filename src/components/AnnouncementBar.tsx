@@ -5,9 +5,13 @@ import { useStore } from '@/context/StoreProvider';
  * RSW: fondo del color primario del tenant (negro por defecto), marquee
  * horizontal continuo y lento, padding compacto.
  *
- * El contenido sale EXCLUSIVamente de `catalog_settings.storefront_announcement`
- * (una o varias líneas separadas por salto de línea). Si no está configurado,
- * la barra NO se renderiza — nunca usamos el texto del catálogo mayorista.
+ * El contenido lo resuelve storeConfig con precedencia: `storefront_announcement`
+ * (una o varias líneas separadas por salto de línea) y, si está vacío,
+ * `top_bar_text`. Si no hay ninguno de los dos, la barra NO se renderiza.
+ *
+ * El texto llega acá ya resuelto en `config.announcement` a propósito: la barra
+ * no tiene que saber de qué campo salió, así uniforma el estilo (mayúsculas +
+ * marquee) venga de donde venga.
  */
 export function AnnouncementBar() {
   const config = useStore();
