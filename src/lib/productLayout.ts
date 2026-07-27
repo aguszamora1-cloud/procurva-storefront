@@ -32,10 +32,30 @@ export const KNOWN_ELEMENT_IDS = [
   'quantity_promo',
 ] as const;
 
-/** Layout por defecto (idéntico al DEFAULT_PRODUCT_LAYOUT del admin). */
+/**
+ * Layout por defecto (idéntico al DEFAULT_PRODUCT_LAYOUT del admin).
+ *
+ * Acá NO se usa para renderizar: sin layout guardado, `resolveProductLayoutOrNull`
+ * devuelve null y la ficha cae al render legacy. Es la copia de referencia del
+ * default que el ADMIN siembra la primera vez que el comercio toca el editor, y
+ * por eso tiene que reproducir exactamente el orden que pinta este archivo:
+ * cualquier diferencia se convierte en una ficha reordenada sin que nadie lo pida.
+ * Si tocás el orden del render legacy en ProductDetail.tsx, actualizá los dos.
+ */
 export const DEFAULT_PRODUCT_LAYOUT: ProductLayout = {
-  right_column: ['sizes', 'colors', 'add_to_cart', 'shipping_promise', 'whatsapp'],
-  below_product: ['reels', 'purchase_flow', 'reviews', 'upsells', 'related'],
+  right_column: [
+    'quantity_promo',
+    'sizes',
+    'size_guide',
+    'colors',
+    'shipping_promise',
+    'add_to_cart',
+    'whatsapp',
+    'virtual_try',
+    'upsells',
+    'purchase_flow',
+  ],
+  below_product: ['reels', 'reviews', 'related'],
 };
 
 /**
