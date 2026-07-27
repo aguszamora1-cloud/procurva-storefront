@@ -140,9 +140,19 @@ export function Home() {
   for (const cs of customSections) {
     const key = `custom:${cs.id}`;
     customKeys.push(key);
-    nodes[key] = cs.section_type === 'banner'
-      ? <CustomBannerSection section={cs} />
-      : <CustomTextSection section={cs} />;
+    // Switch (no ternario): un section_type que este build no conoce todavía
+    // debe NO renderizar nada. Con el ternario anterior caía en el `else` y se
+    // dibujaba como sección de texto (encabezado y cuerpo vacíos).
+    switch (cs.section_type) {
+      case 'banner':
+        nodes[key] = <CustomBannerSection section={cs} />;
+        break;
+      case 'text':
+        nodes[key] = <CustomTextSection section={cs} />;
+        break;
+      default:
+        nodes[key] = null;
+    }
   }
 
   // Orden configurado en el admin (sections_order) + las secciones fijas que
