@@ -31,6 +31,11 @@ export function OutfitForProductBlock({ product, className }: Props) {
     return matches[0] ?? null;
   }, [outfits, product.id, block.outfitDesempate]);
 
+  // A propósito NO se anota en el gate de pintado: useOutfits encadena TRES
+  // queries (outfits → items → productos) y tarda ~2s, más que el tope de la
+  // navegación. Retener la ficha entera por un bloque opcional del final de la
+  // columna (sólo aparece si el producto está en un look) sale más caro que
+  // dejarlo entrar después.
   if (!block.mostrarOutfit || isLoading || !outfit || outfit.products.length === 0) return null;
 
   const pricing = outfitPricing(outfit);

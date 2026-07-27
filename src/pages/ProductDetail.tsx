@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronDown, Eye, Ruler, Tag, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
 import { useMetaPixel } from '@/hooks/useMetaPixel';
 import { useStore, useStoreType } from '@/context/StoreProvider';
+import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { useCart } from '@/context/CartContext';
 import { usePromotions } from '@/context/PromotionsContext';
 import { useCategoryTiers } from '@/context/CategoryTiersContext';
@@ -141,6 +142,22 @@ export function ProductDetail() {
   const [showSticky, setShowSticky] = useState(false);
   const [showSizeFinder, setShowSizeFinder] = useState(false);
   const addBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Gate de pintado: la ficha aparece de una sola vez. Además de los datos del
+  // producto esperamos a que la FOTO principal esté descargada — era lo último
+  // en llegar y dejaba el hueco de la galería en blanco. Si el producto no
+  // existe (404), no hay foto que esperar.
+  const [galleryReady, setGalleryReady] = useState(false);
+  const onGalleryReady = useCallback(() => setGalleryReady(true), []);
+  // El reset al cambiar de producto va en RENDER, no en un efecto: los efectos
+  // pasivos corren después del paint y llegaban a pisar el `onLoad` de una foto
+  // cacheada (la ficha quedaba esperando una imagen que ya estaba).
+  const [galleryProductId, setGalleryProductId] = useState<string | undefined>(product?.id);
+  if (product?.id !== galleryProductId) {
+    setGalleryProductId(product?.id);
+    setGalleryReady(false);
+  }
+  useFirstPaintGate('product-detail', isLoading || (!!product && !galleryReady));
 
   const variants: Variant[] = product?.product_variants ?? [];
   const colors = useMemo(
@@ -480,7 +497,12 @@ export function ProductDetail() {
           className="md:sticky md:w-[54%] md:shrink-0 md:self-start"
           style={{ top: 'calc(var(--header-h, 64px) + 16px)' }}
         >
-          <ProductGallery items={galleryItems} alt={product.name} activeIndex={activeImageIndex} />
+          <ProductGallery
+            items={galleryItems}
+            alt={product.name}
+            activeIndex={activeImageIndex}
+            onFirstImageReady={onGalleryReady}
+          />
           <ProductDetailCustomSlot sections={pdSections} slot="below_gallery" />
         </div>
 

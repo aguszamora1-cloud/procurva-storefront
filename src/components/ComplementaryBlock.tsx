@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ChevronUp } from 'lucide-react';
 import { useStore, useStoreType } from '@/context/StoreProvider';
+import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { useCart } from '@/context/CartContext';
 import { useProducts } from '@/hooks/useProducts';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
@@ -91,6 +92,13 @@ export function ComplementaryBlock({ contexto, product, preferredSize, className
     if (block.ocultarSinStock) list = list.filter((c) => complementInStock(c, storeType, wOf(c.id)));
     return list.slice(0, block.maximoVisible);
   }, [resolved, block.ocultarSinStock, block.maximoVisible, storeType, wOf]);
+
+  // Gate de pintado: en la FICHA el bloque forma parte de la columna derecha, así
+  // que la página lo espera (si no, aparecía después y empujaba el contenido).
+  // En el carrito NO retiene nada: el drawer vive en el Layout y sobrevive a los
+  // cambios de ruta, así que estaría reteniendo pantallas que ni lo muestran.
+  // La key lleva el contexto para que las dos instancias no se pisen.
+  useFirstPaintGate(`complementarios-${contexto}`, contexto === 'ficha' && gated && isLoading);
 
   const shownIds = useMemo(() => Array.from(new Set(shown.map((c) => c.id))), [shown]);
   const { variantsByProduct } = useProductVariants(shownIds);

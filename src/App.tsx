@@ -6,7 +6,7 @@ import { PromotionsProvider } from '@/context/PromotionsContext';
 import { CategoryTiersProvider } from '@/context/CategoryTiersContext';
 import { CartProvider } from '@/context/CartContext';
 import { CouponProvider } from '@/context/CouponContext';
-import { FirstPaintProvider } from '@/context/FirstPaintContext';
+import { FirstPaintProvider, RouteGate, useFirstPaintGate } from '@/context/FirstPaintContext';
 import { Layout } from '@/components/Layout';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -35,6 +35,10 @@ const CheckoutPending = lazy(() => import('@/pages/CheckoutResult').then((m) => 
 
 /** Fallback liviano mientras se descarga el chunk de la página. */
 function PageFallback() {
+  // Mientras baja el chunk, la página todavía no montó y por lo tanto no anotó
+  // sus bloques: sin esto el gate se abriría sobre una pantalla vacía y la
+  // página aparecería después (justo lo que queremos evitar).
+  useFirstPaintGate('route-chunk', true);
   return <div className="min-h-[60vh]" aria-busy="true" />;
 }
 
@@ -52,6 +56,9 @@ function StoreRoutes() {
         <MetaPixelPageView />
         <StorefrontAnalytics />
         <Layout>
+          {/* El contenido de la ruta queda retenido hasta que sus bloques estén
+              listos; el header y el footer nunca parpadean. */}
+          <RouteGate>
           <Suspense fallback={<PageFallback />}>
             <Routes>
               <Route path="/" element={<Home />} />
@@ -67,6 +74,7 @@ function StoreRoutes() {
               <Route path="*" element={<RouteNotFound />} />
             </Routes>
           </Suspense>
+          </RouteGate>
         </Layout>
       </FirstPaintProvider>
       </BrowserRouter>

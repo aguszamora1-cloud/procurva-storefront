@@ -580,6 +580,9 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
 
 /** Sección de outfits / looks (Extra PRO). */
 export function OutfitsSection() {
+  // Sin gate de pintado a propósito: useOutfits encadena tres queries (~2s) y la
+  // sección va bien abajo del fold, atrás del Reveal por scroll. Retener la home
+  // entera por esto sólo la haría arrancar medio segundo más tarde.
   const { outfits } = useOutfits();
   const [openId, setOpenId] = useState<string | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);

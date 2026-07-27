@@ -3,7 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
+import { useFeaturedSections } from '@/hooks/useFeaturedSections';
 import { useStore } from '@/context/StoreProvider';
+import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { ProductGrid, ProductGridSkeleton } from '@/components/ProductGrid';
 import { ProductFilters } from '@/components/ProductFilters';
 import { InlineError } from '@/components/ErrorScreen';
@@ -25,11 +27,20 @@ const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').to
 export function ProductList() {
   const { products, isLoading, error, reload } = useProducts();
   const config = useStore();
-  const { categories } = useCategories(products);
+  const { categories, isLoading: categoriesLoading } = useCategories(products);
+  // Orden de Destacados / Nuevos ingresos que el comerciante armó en el ERP
+  // (panel "Organizar" + ficha del producto). Se refleja acá como orden.
+  const { featured, newArrivals, loading: featuredLoading } = useFeaturedSections();
+
+  // El listado aparece de una sola vez: esperamos el catálogo, los filtros
+  // (categorías) y el orden de Destacados/Nuevos, que reordena la grilla.
+  useFirstPaintGate('product-list', isLoading || categoriesLoading || featuredLoading);
   const [searchParams, setSearchParams] = useSearchParams();
   const preCat = searchParams.get('categoria');
   // Búsqueda por texto (?q=). Filtra por nombre/marca/descripción sin acentos.
   const query = (searchParams.get('q') ?? '').trim();
+  // Criterio de orden del listado (?orden=). Default: Destacados.
+  const orden = searchParams.get('orden') ?? 'destacados';
 
   // La categoría que viene en la URL (?categoria=) queda preseleccionada.
   const [selectedCats, setSelectedCats] = useState<Set<string>>(() => new Set(preCat ? [preCat] : []));
@@ -81,6 +92,47 @@ export function ProductList() {
       }),
     [products, query, selectedCats, selectedSizes, selectedColors, min, max],
   );
+
+  // Orden final del listado. Los pins del comerciante (Destacados / Nuevos
+  // ingresos) van primero; luego caen los flags is_featured/is_new_arrival y por
+  // último el resto por más recientes. Los sin stock los manda al fondo el grid.
+  const sorted = useMemo(() => {
+    const byNewest = (a: typeof filtered[number], b: typeof filtered[number]) =>
+      (b.created_at ?? '').localeCompare(a.created_at ?? '');
+    const arr = [...filtered];
+    switch (orden) {
+      case 'precio_asc':
+        return arr.sort((a, b) => getPriceInfo(a).mainPrice - getPriceInfo(b).mainPrice);
+      case 'precio_desc':
+        return arr.sort((a, b) => getPriceInfo(b).mainPrice - getPriceInfo(a).mainPrice);
+      case 'az':
+        return arr.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+      case 'nuevos': {
+        const rank = new Map(newArrivals.map((id, i) => [id, i] as const));
+        return arr.sort((a, b) => {
+          const ra = rank.has(a.id) ? (rank.get(a.id) as number) : a.is_new_arrival ? newArrivals.length : Infinity;
+          const rb = rank.has(b.id) ? (rank.get(b.id) as number) : b.is_new_arrival ? newArrivals.length : Infinity;
+          return ra !== rb ? ra - rb : byNewest(a, b);
+        });
+      }
+      case 'destacados':
+      default: {
+        const rank = new Map(featured.map((id, i) => [id, i] as const));
+        return arr.sort((a, b) => {
+          const ra = rank.has(a.id) ? (rank.get(a.id) as number) : a.is_featured ? featured.length : Infinity;
+          const rb = rank.has(b.id) ? (rank.get(b.id) as number) : b.is_featured ? featured.length : Infinity;
+          return ra !== rb ? ra - rb : byNewest(a, b);
+        });
+      }
+    }
+  }, [filtered, orden, featured, newArrivals]);
+
+  const setOrden = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === 'destacados') next.delete('orden');
+    else next.set('orden', value);
+    setSearchParams(next, { replace: true });
+  };
 
   const activeCount =
     selectedCats.size + selectedSizes.size + selectedColors.size + (min != null || max != null ? 1 : 0);
@@ -185,6 +237,20 @@ export function ProductList() {
         <div className="min-w-0 flex-1">
           <div className="mb-6 flex items-center justify-between gap-4">
             <p className="text-[13px] text-on-surface-muted">{countLabel}</p>
+            <label className="flex items-center gap-2 text-[13px] text-on-surface-muted">
+              <span className="hidden sm:inline whitespace-nowrap">Ordenar por</span>
+              <select
+                value={orden}
+                onChange={(e) => setOrden(e.target.value)}
+                className="rounded-md border border-line bg-background px-3 py-2 text-[13px] font-medium text-on-surface focus:border-accent focus:outline-none"
+              >
+                <option value="destacados">Destacados</option>
+                <option value="nuevos">Más nuevos</option>
+                <option value="precio_asc">Precio: menor a mayor</option>
+                <option value="precio_desc">Precio: mayor a menor</option>
+                <option value="az">Alfabético (A-Z)</option>
+              </select>
+            </label>
           </div>
 
           {isLoading ? (
@@ -194,7 +260,7 @@ export function ProductList() {
           ) : filtered.length === 0 ? (
             <p className="py-16 text-center text-[14px] text-subtle">No hay productos que coincidan con los filtros.</p>
           ) : (
-            <ProductGrid products={filtered} />
+            <ProductGrid products={sorted} />
           )}
         </div>
       </div>

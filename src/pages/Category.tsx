@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useProducts } from '@/hooks/useProducts';
 import { useStore } from '@/context/StoreProvider';
+import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { ProductGrid, ProductGridSkeleton } from '@/components/ProductGrid';
 import { InlineError } from '@/components/ErrorScreen';
 import { Seo } from '@/components/Seo';
@@ -12,6 +13,10 @@ export function Category() {
   const category = decodeURIComponent(name ?? '');
   const { products, isLoading, error, reload } = useProducts();
   const config = useStore();
+
+  // Título + grilla aparecen juntos (antes el encabezado se pintaba solo y la
+  // grilla caía después).
+  useFirstPaintGate('category-products', isLoading);
 
   const filtered = useMemo(
     () => products.filter((p) => productCategories(p).includes(category)),

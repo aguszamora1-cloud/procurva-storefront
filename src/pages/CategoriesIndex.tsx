@@ -3,6 +3,7 @@ import { Tag } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useStore } from '@/context/StoreProvider';
+import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { categoryGridCols, mainImage, productCategories } from '@/lib/utils';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
 import { InlineError } from '@/components/ErrorScreen';
@@ -11,8 +12,12 @@ import { StoreImage } from '@/components/StoreImage';
 
 export function CategoriesIndex() {
   const { products, isLoading, error, reload } = useProducts();
-  const { categories } = useCategories(products);
+  const { categories, isLoading: categoriesLoading } = useCategories(products);
   const config = useStore();
+
+  // La grilla de categorías necesita productos (para la foto de fallback) y el
+  // orden/visibilidad del admin: esperamos las dos cosas y pintamos junto.
+  useFirstPaintGate('categories-index', isLoading || categoriesLoading);
 
   return (
     <div className="mx-auto max-w-none px-6 py-10 md:py-14">

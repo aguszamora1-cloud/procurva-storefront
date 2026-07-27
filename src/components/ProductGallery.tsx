@@ -17,6 +17,12 @@ interface Props {
   alt: string;
   /** Índice forzado desde afuera (ej: al elegir un color). */
   activeIndex?: number;
+  /**
+   * Avisa que la imagen principal ya está en pantalla (descargada, o que no hay
+   * ninguna que esperar). Lo usa el gate de pintado de la ficha para no mostrar
+   * la página con el hueco de la foto. Tiene que ser estable (useCallback).
+   */
+  onFirstImageReady?: () => void;
 }
 
 /**
@@ -25,7 +31,7 @@ interface Props {
  * cargan al interactuar. Thumbnails: columna vertical 80px a la izquierda en
  * desktop, fila horizontal con scroll debajo en mobile.
  */
-export function ProductGallery({ items, alt, activeIndex }: Props) {
+export function ProductGallery({ items, alt, activeIndex, onFirstImageReady }: Props) {
   const [idx, setIdx] = useState(0);
   const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -45,6 +51,13 @@ export function ProductGallery({ items, alt, activeIndex }: Props) {
     const v = videoRef.current;
     if (v && !v.paused) v.pause();
   }, [safeIdx]);
+
+  // Si no hay imagen que esperar (galería vacía o el primer ítem es un video),
+  // destrabamos el gate de una: el <img> nunca va a disparar onLoad.
+  useEffect(() => {
+    if (!onFirstImageReady) return;
+    if (!active || activeIsVideo) onFirstImageReady();
+  }, [active, activeIsVideo, onFirstImageReady]);
 
   const goTo = (i: number) => setIdx(Math.max(0, Math.min(i, items.length - 1)));
 
@@ -142,6 +155,7 @@ export function ProductGallery({ items, alt, activeIndex }: Props) {
               alt={alt}
               transformWidth={1000}
               loading="eager"
+              onLoad={onFirstImageReady}
               className="h-full w-full object-cover transition-transform duration-200"
               style={zoom ? { transform: 'scale(1.6)', transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
             />

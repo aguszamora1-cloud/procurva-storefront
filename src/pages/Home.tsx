@@ -56,16 +56,19 @@ function buildSection(products: Product[], pinIds: string[], autoOrdered: Produc
 export function Home() {
   const config = useStore();
   const { products, isLoading } = useProducts();
-  const { sections: customSections } = useCustomSections();
+  const { sections: customSections, isLoading: customLoading } = useCustomSections();
   // Pins (productos fijados) por canal, desde storefront_featured_products.
   const fs = useFeaturedSections();
   // Ranking de ventas para la regla automática de Destacados.
   const top = useTopSelling();
   const { promoForProduct, priceFor } = usePromotions();
 
-  // Gate del primer paint: sin productos no hay grillas ni categorías, así que la
-  // tienda espera al catálogo antes de mostrarse (ver FirstPaintContext).
+  // Gate de pintado: sin productos no hay grillas ni categorías, así que la
+  // tienda espera al catálogo antes de mostrarse (ver FirstPaintContext). Las
+  // secciones personalizadas también, porque se intercalan en cualquier posición
+  // del orden y aparecer después corría todo lo que tienen abajo.
   useFirstPaintGate('home-products', isLoading);
+  useFirstPaintGate('home-custom-sections', customLoading);
 
   // Destacados: pins arriba + resto por MÁS VENDIDOS (rank de unidades; los sin
   // ventas caen por recencia, que es el orden base de `products`).
