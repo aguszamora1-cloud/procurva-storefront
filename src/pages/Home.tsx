@@ -23,9 +23,16 @@ import { useCustomSections } from '@/hooks/useCustomSections';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
 import { Reveal } from '@/components/Reveal';
 
-// Orden por defecto de las secciones del home (coincide con la tab "Secciones"
-// del admin). Las keys sin sección en el home (upsell, probador) se ignoran:
-// upsell = recomendaciones en el detalle de producto; probador = en el detalle.
+/**
+ * Orden por defecto de las secciones del home. Es también el ORDEN DE DISEÑO que
+ * usa `withMissingSections` para ubicar las que falten en un orden guardado.
+ *
+ * Sólo keys que existan en el mapa `nodes`. Antes también listaba `upsell` y
+ * `probador`, que son features de la FICHA DE PRODUCTO y no tienen sección acá:
+ * entraban a `orderedKeys` y renderizaban `undefined` (inocuo, pero es la misma
+ * drift de listas paralelas que veníamos arrastrando). Ojo al agregar una key:
+ * si no está en `nodes`, no se renderiza.
+ */
 const DEFAULT_SECTION_ORDER = [
   'hero',
   'trust_badges',
@@ -34,13 +41,43 @@ const DEFAULT_SECTION_ORDER = [
   'new_arrivals',
   'offers',
   'outfits',
-  'upsell',
-  'probador',
   'reels',
   'stories',
   'social_proof',
   'newsletter',
 ];
+
+/**
+ * Orden guardado + las secciones que falten, cada una en su POSICIÓN DE DISEÑO.
+ *
+ * Una sección falta cuando se agregó al código después de que el comercio guardó
+ * su orden. Antes se appendeaban al final, y eso hacía que cada sección nueva
+ * aterrizara abajo de todo sin que nadie se enterara: a un tenant le dejó Ofertas
+ * y Videos debajo del Newsletter, al fondo de la home.
+ *
+ * La ubicación sale de anclar por PREDECESORES: la sección se inserta después del
+ * último de los que la preceden en DEFAULT_SECTION_ORDER y ya están en la lista.
+ * Anclar así (en vez de reimponer el orden por defecto) respeta lo que el comercio
+ * movió a mano: si subió Outfits arriba de Categorías, ahí se queda.
+ *
+ * Las secciones custom NO pasan por acá: van al final, porque son contenido nuevo
+ * y no tienen posición de diseño que preservar (mismo criterio que el layout de la
+ * ficha de producto).
+ */
+function withMissingSections(saved: string[], available: Record<string, ReactNode>): string[] {
+  const out = saved.filter((k) => k in available);
+  for (const key of DEFAULT_SECTION_ORDER) {
+    if (!(key in available) || out.includes(key)) continue;
+    let at = 0;
+    for (const prev of DEFAULT_SECTION_ORDER) {
+      if (prev === key) break;
+      const i = out.indexOf(prev);
+      if (i >= 0 && i + 1 > at) at = i + 1;
+    }
+    out.splice(at, 0, key);
+  }
+  return out;
+}
 
 const SECTION_LIMIT = 12;
 
@@ -127,9 +164,11 @@ export function Home() {
       config.sections.newArrivals && !isLoading
         ? <ProductsSection label="Recién llegados" title="Nuevos ingresos" products={newArrivals} linkTo="/productos" />
         : null,
-    // Ofertas: se muestra sólo si hay productos en promoción para el canal. El
-    // orden se gestiona desde el panel "Organizar"; la membresía sale de las promos.
-    offers: !isLoading && offers.length > 0
+    // Ofertas: se muestra sólo si el comercio no la apagó Y hay productos en
+    // promoción para el canal. La membresía sale de las promos, no del admin.
+    // `section_offers` nace en true: la sección ya existía sin flag, así que el
+    // default tiene que reproducir lo que las 66 tiendas ven hoy.
+    offers: config.sections.offers && !isLoading && offers.length > 0
       ? <ProductsSection label="Aprovechá" title="Ofertas" products={offers} linkTo="/productos" />
       : null,
     // Outfits son exclusivos de la tienda minorista (no aplican a mayorista).
@@ -163,11 +202,10 @@ export function Home() {
     }
   }
 
-  // Orden configurado en el admin (sections_order) + las secciones fijas que
-  // falten (en su posición por defecto) + las custom que aún no estén en el orden.
+  // Orden configurado en el admin (sections_order), con las secciones fijas que
+  // falten insertadas en su posición de diseño, y las custom al final.
   const orderedKeys = [
-    ...config.sectionsOrder.filter((k) => k in nodes),
-    ...DEFAULT_SECTION_ORDER.filter((k) => !config.sectionsOrder.includes(k)),
+    ...withMissingSections(config.sectionsOrder, nodes),
     ...customKeys.filter((k) => !config.sectionsOrder.includes(k)),
   ];
 

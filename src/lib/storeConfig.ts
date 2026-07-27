@@ -184,6 +184,10 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       categories: bool(s.section_categories, true),
       featured: bool(s.section_featured, true),
       newArrivals: bool(s.section_new_arrivals, true),
+      // Ofertas existía sin flag (se autoocultaba con la lista vacía). El default
+      // true es obligatorio, no cosmético: reproduce lo que ven las tiendas que
+      // nunca van a tener `section_offers` guardado.
+      offers: bool(s.section_offers, true),
       outfits: bool(s.section_outfits, false),
       upsell: bool(s.section_upsell, false),
       probador: bool(s.section_probador, false),

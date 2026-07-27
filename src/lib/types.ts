@@ -348,6 +348,8 @@ export interface RawCatalogSettings {
   section_categories?: boolean;
   section_featured?: boolean;
   section_new_arrivals?: boolean;
+  // Ausente en las tiendas creadas antes del flag → se lee con default true.
+  section_offers?: boolean;
   section_outfits?: boolean;
   section_upsell?: boolean;
   section_probador?: boolean;
@@ -613,6 +615,7 @@ export interface StoreConfig {
     categories: boolean;
     featured: boolean;
     newArrivals: boolean;
+    offers: boolean;
     outfits: boolean;
     upsell: boolean;
     probador: boolean;
