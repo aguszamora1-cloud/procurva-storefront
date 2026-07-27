@@ -764,9 +764,18 @@ export function ProductDetail() {
 
           {config.sections.trustBadges && <TrustBadges />}
 
-          {/* Con layout configurado, "Así funciona tu compra" se renderiza en la
-              zona ordenable de abajo (below_product); sin layout, queda acá como siempre. */}
-          {!config.productLayout && <PurchaseFlow />}
+          {/* "Así funciona tu compra" según el layout: sin layout queda acá, como
+              siempre. Con layout, acá sólo si el token está en la columna derecha
+              — si está en below_product lo pinta BelowProductBlocks, y si no está
+              en ninguna zona es porque el comercio lo ocultó.
+
+              El chequeo de right_column no es decorativo: la Fase 0 ignora esa
+              zona entera, así que un 'purchase_flow' guardado ahí no se
+              renderizaba en NINGÚN lado y el bloque desaparecía de la tienda sin
+              aviso. Es el mismo bug que el de 'reels', pero la red de
+              FULL_WIDTH_IDS no lo agarra: purchase_flow no es de ancho completo,
+              vivir en la columna es legítimo. */}
+          {(!config.productLayout || config.productLayout.right_column.includes('purchase_flow')) && <PurchaseFlow />}
 
           <ProductDetailCustomSlot sections={pdSections} slot="above_description" />
 
