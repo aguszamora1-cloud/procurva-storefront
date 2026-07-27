@@ -178,6 +178,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       probador: bool(s.section_probador, false),
       virtualTryon: bool(s.section_virtual_tryon, false),
       stories: bool(s.section_stories, false),
+      reels: bool(s.section_reels, false),
       socialProof: bool(s.section_social_proof, false),
       productReviews: bool(s.section_product_reviews, false),
       newsletter: bool(s.section_newsletter, false),
@@ -186,6 +187,10 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     sectionsOrder: Array.isArray(s.sections_order)
       ? s.sections_order.filter((k): k is string => typeof k === 'string')
       : [],
+    // Título de la sección de videos del home (section_titles.reels.title del
+    // admin). Del lado del comprador nunca se llama "Reels": ese es el nombre
+    // interno del panel.
+    reelsTitle: firstStr(s.section_titles?.reels?.title) || 'Videos',
     // Layout de la ficha resuelto (null = el tenant no lo configuró → render legacy).
     productLayout: resolveProductLayoutOrNull(s.product_layout),
 

@@ -77,6 +77,24 @@ export interface CustomSection {
   position: number;
 }
 
+/**
+ * Video vertical del storefront (fila de catalog_reels).
+ *
+ * Dos pools que NUNCA se mezclan, garantizado por un CHECK en la DB:
+ *   placement='home'    -> videos de la tienda (product_id NULL)
+ *   placement='product' -> videos de UN producto (product_id obligatorio)
+ * No tiene nada que ver con product_media: eso son las fotos de la galería.
+ */
+export interface Reel {
+  id: string;
+  url: string;
+  poster_url: string;
+  caption: string | null;
+  duration_ms: number | null;
+  product_id: string | null;
+  sort_order: number;
+}
+
 /** Fila cruda de products (+ variants anidadas). */
 export interface Product {
   id: string;
@@ -335,6 +353,9 @@ export interface RawCatalogSettings {
   section_probador?: boolean;
   section_virtual_tryon?: boolean;
   section_stories?: boolean;
+  section_reels?: boolean;
+  /** Títulos/subtítulos por sección que edita el comercio en el admin. */
+  section_titles?: Record<string, { title?: string; subtitle?: string }>;
   section_social_proof?: boolean;
   section_product_reviews?: boolean;
   section_newsletter?: boolean;
@@ -595,6 +616,7 @@ export interface StoreConfig {
     probador: boolean;
     virtualTryon: boolean;
     stories: boolean;
+    reels: boolean;
     socialProof: boolean;
     productReviews: boolean;
     newsletter: boolean;
@@ -602,6 +624,8 @@ export interface StoreConfig {
   };
   // Orden de las secciones del home (keys del admin). Vacío = orden por defecto.
   sectionsOrder: string[];
+  /** Título de la sección de videos del home. Lo escribe el comercio. */
+  reelsTitle: string;
   // Layout de la ficha de producto resuelto (o null si el tenant no configuró
   // uno). null = render legacy fijo (idéntico a antes). Ver productLayout.ts.
   productLayout: ProductLayout | null;

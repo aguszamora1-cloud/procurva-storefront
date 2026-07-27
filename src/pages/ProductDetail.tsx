@@ -28,6 +28,7 @@ import { OtherColorsBlock } from '@/components/OtherColorsBlock';
 import { OutfitForProductBlock } from '@/components/OutfitForProductBlock';
 import { PolicyAccordions } from '@/components/PolicyAccordions';
 import { ProductReviews } from '@/components/ProductReviews';
+import { ProductReels } from '@/components/ProductReels';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
 import { VirtualTryOn, mapFashnCategory } from '@/components/VirtualTryOn';
 import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSections';
@@ -79,6 +80,11 @@ function BelowProductBlocks({
             <PurchaseFlow />
           </div>,
         );
+        break;
+      // Videos del producto ("Mirá cómo queda"). Sistema aparte de 'reviews':
+      // aquéllas salen de catalog_testimonials, éstos de catalog_reels.
+      case 'reels':
+        nodes.push(<ProductReels key="reels" productId={product.id} />);
         break;
       case 'reviews':
         if (config.isPro && config.sections.productReviews) {
@@ -788,6 +794,11 @@ export function ProductDetail() {
         />
       ) : (
         <>
+          {/* Videos del producto. Va primero de la zona de abajo, apenas termina
+              el bloque de compra: es lo que más ayuda a decidir. Se autooculta
+              si el producto no tiene videos. */}
+          <ProductReels productId={product.id} />
+
           <ProductDetailCustomSlot sections={pdSections} slot="below_product" />
 
           {/* Reseñas (Extra PRO): las mismas reseñas del home (social proof). El componente se autooculta si no hay reseñas. */}

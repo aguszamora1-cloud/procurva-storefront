@@ -23,6 +23,7 @@ export const KNOWN_ELEMENT_IDS = [
   'whatsapp',
   'shipping_promise',
   'purchase_flow',
+  'reels',
   'reviews',
   'upsells',
   'related',
@@ -34,8 +35,21 @@ export const KNOWN_ELEMENT_IDS = [
 /** Layout por defecto (idéntico al DEFAULT_PRODUCT_LAYOUT del admin). */
 export const DEFAULT_PRODUCT_LAYOUT: ProductLayout = {
   right_column: ['sizes', 'colors', 'add_to_cart', 'shipping_promise', 'whatsapp'],
-  below_product: ['purchase_flow', 'reviews', 'upsells', 'related'],
+  below_product: ['reels', 'purchase_flow', 'reviews', 'upsells', 'related'],
 };
+
+/**
+ * Bloques de ANCHO COMPLETO: sólo tienen sentido en `below_product`.
+ *
+ * Este archivo consume únicamente el orden de `below_product` — la columna
+ * derecha es fija (ver la nota de la Fase 0 arriba). Así que un bloque de ancho
+ * completo guardado en `right_column` no se renderiza en ningún lado y la
+ * sección desaparece de la tienda sin aviso. Pasó con 'reels'.
+ *
+ * Debe coincidir con los `fullWidth: true` de
+ * procurva2/components/catalog/editor/productLayout.ts.
+ */
+const FULL_WIDTH_IDS: readonly string[] = ['reels', 'reviews', 'related'];
 
 /** Prefijo de los tokens que referencian una sección custom (`custom:<uuid>`). */
 export const CUSTOM_SECTION_PREFIX = 'custom:';
@@ -62,5 +76,14 @@ export function resolveProductLayoutOrNull(raw: unknown): ProductLayout | null {
     arr.filter(
       (t): t is string => typeof t === 'string' && isValidToken(t) && !seen.has(t) && (seen.add(t), true),
     );
-  return { right_column: clean(pl.right_column), below_product: clean(pl.below_product) };
+  const right = clean(pl.right_column);
+  // RED DE SEGURIDAD: bloques de ancho completo guardados en la columna derecha
+  // (config vieja, de antes de que el editor lo impidiera). Se MUEVEN al
+  // principio de below_product en vez de descartarse — descartarlos dejaría la
+  // sección invisible, que es exactamente el bug que esto cierra.
+  const misplaced = right.filter((t) => FULL_WIDTH_IDS.includes(t));
+  return {
+    right_column: right.filter((t) => !FULL_WIDTH_IDS.includes(t)),
+    below_product: [...misplaced, ...clean(pl.below_product)],
+  };
 }

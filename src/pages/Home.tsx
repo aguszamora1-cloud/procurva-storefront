@@ -13,6 +13,7 @@ import { CategoriesSection } from '@/components/home/CategoriesSection';
 import { ProductsSection } from '@/components/home/ProductsSection';
 import { NewsletterSection } from '@/components/home/NewsletterSection';
 import { StoriesSection } from '@/components/home/StoriesSection';
+import { ReelsSection } from '@/components/home/ReelsSection';
 import { SocialProofSection } from '@/components/home/SocialProofSection';
 import { OutfitsSection } from '@/components/home/OutfitsSection';
 import { CustomBannerSection } from '@/components/home/CustomBannerSection';
@@ -35,6 +36,7 @@ const DEFAULT_SECTION_ORDER = [
   'outfits',
   'upsell',
   'probador',
+  'reels',
   'stories',
   'social_proof',
   'newsletter',
@@ -133,6 +135,9 @@ export function Home() {
     // Outfits son exclusivos de la tienda minorista (no aplican a mayorista).
     outfits: config.storeType !== 'wholesale' && config.isPro && config.sections.outfits ? <OutfitsSection /> : null,
     stories: config.isPro && config.sections.stories ? <StoriesSection /> : null,
+    // Videos verticales de la tienda (catalog_reels, placement='home'). No
+    // renderiza nada si el comercio todavía no cargó ninguno.
+    reels: config.isPro && config.sections.reels ? <ReelsSection /> : null,
     social_proof: config.isPro && config.sections.socialProof ? <SocialProofSection /> : null,
     newsletter: config.isPro && config.sections.newsletter ? <NewsletterSection /> : null,
   };
