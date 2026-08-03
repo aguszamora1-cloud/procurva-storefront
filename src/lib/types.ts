@@ -32,7 +32,25 @@ export interface Variant {
 /** Secciones personalizadas (catalog_custom_sections). Sólo lectura. */
 export type CustomSectionType = 'banner' | 'text';
 export type CustomSectionPageContext = 'home' | 'product_detail';
-export type ProductDetailSlot = 'above_description' | 'below_description' | 'below_gallery' | 'below_product';
+export type ProductDetailSlot =
+  | 'above_description'
+  | 'below_description'
+  | 'below_gallery'
+  | 'below_product'
+  // Columna derecha de la ficha (al lado de la foto). A diferencia del resto,
+  // este slot cae en un contenedor ANGOSTO: 466px en desktop grande y 267px a
+  // 768px, contra el ancho completo de los otros cuatro. Por eso las secciones
+  // que caen acá se renderizan con `variant="column"` (ver CustomSectionNode).
+  | 'right_column';
+
+/**
+ * Cómo se renderiza una sección custom según dónde cae.
+ *  - 'default': ancho completo (home y los cuatro slots de ancho completo del detalle).
+ *  - 'column':  columna derecha de la ficha — sin ritmo vertical propio (lo pone
+ *               el `space-y-6` del contenedor) y sin modos que necesiten espacio
+ *               horizontal (carrusel con flechas, mockup de celular).
+ */
+export type CustomSectionVariant = 'default' | 'column';
 
 export interface CustomSectionBannerSlide {
   image_url?: string;
@@ -381,6 +399,13 @@ export interface RawCatalogSettings {
     outfit_presentacion?: 'card_destacada' | 'en_lista';
     outfit_desempate?: 'orden_manual' | 'mas_vendido';
   } | null;
+  // Presentación del bloque "Escalones por cantidad" ("Lleva N") de la ficha.
+  // Los escalones en sí salen de category_volume_tiers (por categoría); esto es
+  // sólo cómo se muestran. Por canal, como todo `settings`. Ausencia = default
+  // (ver QUANTITY_TIERS_DEFAULTS en src/components/QuantityTierSelector.tsx).
+  quantityTiersLayout?: 'cards' | 'list';   // default 'cards'
+  quantityTiersShowSavings?: boolean;       // default false
+  quantityTiersShowCardPrice?: boolean;     // default true
   // Shipping promise
   shipping_promise_enabled?: boolean;
   shipping_promise_title?: string;
@@ -637,6 +662,11 @@ export interface StoreConfig {
   // Bloque "Complementarios" (cross-selling) de la ficha, resuelto con defaults.
   // La visibilidad on/off es sections.upsell (no vive acá).
   complementaryBlock: ComplementaryBlockConfig;
+  // Presentación del bloque de escalones por cantidad ("Lleva N") de la ficha.
+  // Defaults en QUANTITY_TIERS_DEFAULTS (components/QuantityTierSelector.tsx).
+  quantityTiersLayout: 'cards' | 'list';
+  quantityTiersShowSavings: boolean;
+  quantityTiersShowCardPrice: boolean;
   // Shipping
   shippingPromiseEnabled: boolean;
   shippingPromiseTitle: string;

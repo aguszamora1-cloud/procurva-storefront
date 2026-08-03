@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/check-tier-selector-mirror.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "tsc --noEmit"
+    "typecheck": "node scripts/check-tier-selector-mirror.mjs && tsc --noEmit",
+    "lint": "node scripts/check-tier-selector-mirror.mjs && tsc --noEmit"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

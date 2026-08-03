@@ -1,5 +1,6 @@
 import type { PurchaseFlowStep, RawCatalogSettings, ResolvedStorefront, StoreConfig } from './types';
 import { resolveProductLayoutOrNull } from './productLayout';
+import { resolveQuantityTiersSettings } from '../components/QuantityTierSelector';
 
 /** Pasos por defecto del flujo de compra (si el comercio no configuró los suyos). */
 export const DEFAULT_PURCHASE_FLOW: PurchaseFlowStep[] = [
@@ -222,6 +223,18 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
         mostrarOutfit: bool(c.mostrar_outfit, true),
         outfitPresentacion: c.outfit_presentacion === 'en_lista' ? 'en_lista' : 'card_destacada',
         outfitDesempate: c.outfit_desempate === 'mas_vendido' ? 'mas_vendido' : 'orden_manual',
+      };
+    })(),
+
+    // Escalones por cantidad ("Lleva N"): sólo la PRESENTACIÓN. Los escalones y
+    // sus % salen de category_volume_tiers. Ausencia de clave = default, resuelto
+    // por resolveQuantityTiersSettings (misma fuente que usa el admin).
+    ...(() => {
+      const q = resolveQuantityTiersSettings(s);
+      return {
+        quantityTiersLayout: q.quantityTiersLayout,
+        quantityTiersShowSavings: q.quantityTiersShowSavings,
+        quantityTiersShowCardPrice: q.quantityTiersShowCardPrice,
       };
     })(),
 

@@ -20,6 +20,7 @@ import { PriceStack } from '@/components/PriceStack';
 import { CouponPdpChip } from '@/components/CouponChip';
 import { WholesalePurchasePanel } from '@/components/WholesalePurchasePanel';
 import { PromoCountdown } from '@/components/PromoCountdown';
+import { QuantityTierSelector, tierTotalSavings, type QuantityTierOption } from '@/components/QuantityTierSelector';
 import { CardBadge } from '@/components/CardBadge';
 import { ProductDetailCustomSlot, CustomSectionNode } from '@/components/ProductDetailCustomSlot';
 import { RelatedProducts } from '@/components/RelatedProducts';
@@ -382,6 +383,32 @@ export function ProductDetail() {
   // Precio por unidad de un escalón (tarjeta y efectivo por separado). El % sale
   // de la DB; las bases son finalPrice/finalCash (ya con promo automática).
   const tierPrices = (discountPct: number) => tierUnitPrices(finalPrice, finalCash, discountPct);
+  // Escalones ya calculados para QuantityTierSelector (el componente no calcula).
+  // Protagonista = contado si hay; la línea "tarjeta" sólo si es más caro.
+  // El ahorro sale del MISMO precio que se muestra en el baseline "Lleva 1" (que
+  // ya tiene la promo automática aplicada), no del precio de lista.
+  const baselineUnitPrice = (() => {
+    const p = tierPrices(0);
+    return p.cash ?? p.card;
+  })();
+  const tierOptions: QuantityTierOption[] = tierCards.map((t) => {
+    const p = tierPrices(t.discountPct);
+    const unitPrice = p.cash ?? p.card;
+    return {
+      units: t.units,
+      discountPct: t.discountPct,
+      unitPrice,
+      cardPrice: p.cash != null && p.cash < p.card ? p.card : null,
+      // Tachado sólo en 'list' y sólo con descuento: ahí cada fila se lee sola y
+      // necesita contra qué comparar. En 'cards' la comparación la da la tarjeta
+      // "Lleva 1" de al lado, así que sumarlo sería ruido. El baseline no lleva.
+      strikePrice:
+        config.quantityTiersLayout === 'list' && t.discountPct > 0 ? baselineUnitPrice : null,
+      savings: tierTotalSavings(baselineUnitPrice, unitPrice, t.units),
+      isFeatured: t.isFeatured,
+      isActive: tierUnits === t.units,
+    };
+  });
   // Resuelve la variante (fila product_variants) de un talle+color.
   const variantFor = (size: string | null, color: string | null): Variant | null =>
     variants.find((v) => (colors.length === 0 || v.color === color) && (sizes.length === 0 || v.size === size)) ?? null;
@@ -566,48 +593,19 @@ export function ProductDetail() {
             <PromoCountdown endsAt={qtyPromo.ends_at} color={qtyPromo.badge_color} />
           )}
 
-          {/* Volume tiers por categoría: tarjetas de escalón seleccionables (DB). */}
+          {/* Volume tiers por categoría: tarjetas de escalón seleccionables (DB).
+              El cálculo de precios queda acá (tierPrices); QuantityTierSelector
+              es sólo presentación. */}
           {hasTiers && (
-          <div className="space-y-2">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Elegí cuántas llevás</p>
-            <div className={`grid gap-2 ${tierCards.length >= 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-              {tierCards.map((t) => {
-                const active = tierUnits === t.units;
-                const featured = t.isFeatured; // escalón destacado (la estrella) desde la DB
-                const p = tierPrices(t.discountPct);
-                return (
-                  <button
-                    key={t.units}
-                    type="button"
-                    onClick={() => setTierUnits(t.units)}
-                    className={`relative flex flex-col items-center gap-1 rounded-lg border-[1.5px] px-2 py-3 text-center transition-all ${
-                      active ? 'border-accent bg-accent/5' : featured ? 'border-accent/50 bg-background hover:border-accent' : 'border-line bg-background hover:border-text'
-                    }`}
-                  >
-                    {featured && (
-                      <span className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-on-accent">
-                        Más elegido
-                      </span>
-                    )}
-                    <span className="text-[13px] font-bold text-text">Lleva {t.units}</span>
-                    {t.discountPct > 0 ? (
-                      <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[11px] font-bold text-accent">{t.discountPct}% OFF</span>
-                    ) : (
-                      <span className="text-[11px] font-semibold text-subtle">Precio normal</span>
-                    )}
-                    {/* Contado protagonista + tarjeta chica (el badge "% OFF" ya indica el descuento). */}
-                    <span className="flex flex-col items-center leading-tight">
-                      <span className="text-[15px] font-extrabold text-accent">{formatPrice(p.cash ?? p.card)}</span>
-                      {p.cash != null && p.cash < p.card && (
-                        <span className="mt-0.5 text-[10px] text-subtle">{formatPrice(p.card)} tarjeta</span>
-                      )}
-                      <span className="mt-0.5 text-[10px] text-subtle">c/u</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+            <QuantityTierSelector
+              title="Elegí cuántas llevás"
+              options={tierOptions}
+              formatPrice={formatPrice}
+              onSelect={setTierUnits}
+              layout={config.quantityTiersLayout}
+              showSavings={config.quantityTiersShowSavings}
+              showCardPrice={config.quantityTiersShowCardPrice}
+            />
           )}
 
           {/* Volume tiers: N sub-selectores (uno por unidad) cuando el escalón es
@@ -759,6 +757,13 @@ export function ProductDetail() {
           {/* Acordeones de políticas (mayorista): van DEBAJO de los bloques de
               complementarios/outfit, antes de "Calculá tu envío". */}
           {isWholesale && <PolicyAccordions />}
+
+          {/* Secciones custom de la columna derecha (imagen simple o texto).
+              Posición fija por ahora, justo antes de "Calculá tu envío": la Fase
+              siguiente incorpora este slot a la zona ordenable de la columna.
+              Aplica a los dos canales — es un slot, no un token de layout, así
+              que no depende del orden configurable (que en mayorista es fijo). */}
+          <ProductDetailCustomSlot sections={pdSections} slot="right_column" variant="column" />
 
           <ShippingCalculator />
 
