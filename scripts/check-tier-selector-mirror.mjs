@@ -21,7 +21,10 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CANONICAL = resolve(repoRoot, 'src/components/QuantityTierSelector.tsx');
 const MIRROR = resolve(repoRoot, '../ProCurva/procurva2/components/catalog/shared/QuantityTierSelector.tsx');
 
-const sha = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
+// Normalizamos los finales de línea antes de hashear: git puede dejar CRLF en un
+// repo y LF en el otro (autocrlf, clones distintos), y los archivos serían
+// idénticos en contenido pero con sha distinto. Eso daría un falso positivo.
+const sha = (p) => createHash('sha256').update(readFileSync(p, 'utf8').replace(/\r\n/g, '\n')).digest('hex');
 
 if (!existsSync(CANONICAL)) {
   console.error(`✖ No existe el componente canónico:\n    ${CANONICAL}`);
