@@ -758,13 +758,6 @@ export function ProductDetail() {
               complementarios/outfit, antes de "Calculá tu envío". */}
           {isWholesale && <PolicyAccordions />}
 
-          {/* Secciones custom de la columna derecha (imagen simple o texto).
-              Posición fija por ahora, justo antes de "Calculá tu envío": la Fase
-              siguiente incorpora este slot a la zona ordenable de la columna.
-              Aplica a los dos canales — es un slot, no un token de layout, así
-              que no depende del orden configurable (que en mayorista es fijo). */}
-          <ProductDetailCustomSlot sections={pdSections} slot="right_column" variant="column" />
-
           <ShippingCalculator />
 
           {config.sections.trustBadges && <TrustBadges />}
