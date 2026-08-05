@@ -1,11 +1,9 @@
-import { Fragment, useMemo, type ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { useStore } from '@/context/StoreProvider';
 import { useProducts } from '@/hooks/useProducts';
-import { useFeaturedSections } from '@/hooks/useFeaturedSections';
-import { useTopSelling } from '@/hooks/useTopSelling';
-import { usePromotions } from '@/context/PromotionsContext';
+import { useHomeSections } from '@/hooks/useHomeSections';
+import { sectionListPath } from '@/lib/homeSections';
 import { useFirstPaintGate } from '@/context/FirstPaintContext';
-import type { Product } from '@/lib/types';
 import { Seo } from '@/components/Seo';
 import { Hero } from '@/components/Hero';
 import { TrustBadges } from '@/components/TrustBadges';
@@ -79,28 +77,14 @@ function withMissingSections(saved: string[], available: Record<string, ReactNod
   return out;
 }
 
-const SECTION_LIMIT = 12;
-
-// Modelo auto + pins: primero los productos FIJADOS (en el orden del admin, sólo
-// los que existen en el catálogo cargado), después el resto por la regla
-// automática de la sección, sin duplicar, hasta el límite.
-function buildSection(products: Product[], pinIds: string[], autoOrdered: Product[]): Product[] {
-  const byId = new Map(products.map((p) => [p.id, p]));
-  const pinned = pinIds.map((id) => byId.get(id)).filter((p): p is Product => Boolean(p));
-  const pinnedSet = new Set(pinned.map((p) => p.id));
-  const rest = autoOrdered.filter((p) => !pinnedSet.has(p.id));
-  return [...pinned, ...rest].slice(0, SECTION_LIMIT);
-}
-
 export function Home() {
   const config = useStore();
   const { products, isLoading } = useProducts();
   const { sections: customSections, isLoading: customLoading } = useCustomSections();
-  // Pins (productos fijados) por canal, desde storefront_featured_products.
-  const fs = useFeaturedSections();
-  // Ranking de ventas para la regla automática de Destacados.
-  const top = useTopSelling();
-  const { promoForProduct, priceFor } = usePromotions();
+  // Las tres secciones de productos, COMPLETAS (sin cortar). El corte lo hace
+  // ProductsSection sobre las cards ya expandidas por color, con el máximo que
+  // configuró el comercio; el resto queda detrás del "Ver más productos".
+  const { featured, newArrivals, offers } = useHomeSections(products);
 
   // Gate de pintado: sin productos no hay grillas ni categorías, así que la
   // tienda espera al catálogo antes de mostrarse (ver FirstPaintContext). Las
@@ -108,37 +92,6 @@ export function Home() {
   // del orden y aparecer después corría todo lo que tienen abajo.
   useFirstPaintGate('home-products', isLoading);
   useFirstPaintGate('home-custom-sections', customLoading);
-
-  // Destacados: pins arriba + resto por MÁS VENDIDOS (rank de unidades; los sin
-  // ventas caen por recencia, que es el orden base de `products`).
-  const featured = useMemo(() => {
-    const auto = products.slice().sort((a, b) => {
-      const ra = top.rank.has(a.id) ? (top.rank.get(a.id) as number) : Number.MAX_SAFE_INTEGER;
-      const rb = top.rank.has(b.id) ? (top.rank.get(b.id) as number) : Number.MAX_SAFE_INTEGER;
-      return ra - rb;
-    });
-    return buildSection(products, fs.featured, auto);
-  }, [products, fs.featured, top.rank]);
-
-  // Nuevos ingresos: pins arriba + resto por created_at DESC (orden base de `products`).
-  const newArrivals = useMemo(
-    () => buildSection(products, fs.newArrivals, products),
-    [products, fs.newArrivals],
-  );
-
-  // Ofertas: la membresía se DERIVA de las promos vigentes (fuente única). Los
-  // pins sólo cuentan si el producto SIGUE en promoción (el pin no fuerza oferta).
-  // Resto por mayor descuento %.
-  const offers = useMemo(() => {
-    const refPrice = (p: Product) =>
-      config.storeType === 'wholesale' ? p.wholesale_price ?? 0 : p.retail_price ?? 0;
-    const discPct = (p: Product) => priceFor(refPrice(p), p).discountPct ?? 0;
-    const inPromo = products.filter((p) => promoForProduct(p) !== null);
-    const inPromoIds = new Set(inPromo.map((p) => p.id));
-    const auto = inPromo.slice().sort((a, b) => discPct(b) - discPct(a));
-    const pinIds = fs.offersOrder.filter((id) => inPromoIds.has(id));
-    return buildSection(products, pinIds, auto);
-  }, [products, fs.offersOrder, promoForProduct, priceFor, config.storeType]);
 
   const productSkeleton = (
     <div className="mx-auto max-w-none px-6 py-8 md:py-16">
@@ -158,18 +111,18 @@ export function Home() {
     featured: config.sections.featured
       ? isLoading
         ? productSkeleton
-        : <ProductsSection label="Lo más buscado" title="Destacados" products={featured} linkTo="/productos" />
+        : <ProductsSection label="Lo más buscado" title="Destacados" products={featured} maxItems={config.sectionMaxItems} linkTo={sectionListPath('featured')} />
       : null,
     new_arrivals:
       config.sections.newArrivals && !isLoading
-        ? <ProductsSection label="Recién llegados" title="Nuevos ingresos" products={newArrivals} linkTo="/productos" />
+        ? <ProductsSection label="Recién llegados" title="Nuevos ingresos" products={newArrivals} maxItems={config.sectionMaxItems} linkTo={sectionListPath('new_arrivals')} />
         : null,
     // Ofertas: se muestra sólo si el comercio no la apagó Y hay productos en
     // promoción para el canal. La membresía sale de las promos, no del admin.
     // `section_offers` nace en true: la sección ya existía sin flag, así que el
     // default tiene que reproducir lo que las 66 tiendas ven hoy.
     offers: config.sections.offers && !isLoading && offers.length > 0
-      ? <ProductsSection label="Aprovechá" title="Ofertas" products={offers} linkTo="/productos" />
+      ? <ProductsSection label="Aprovechá" title="Ofertas" products={offers} maxItems={config.sectionMaxItems} linkTo={sectionListPath('offers')} />
       : null,
     // Outfits son exclusivos de la tienda minorista (no aplican a mayorista).
     outfits: config.storeType !== 'wholesale' && config.isPro && config.sections.outfits ? <OutfitsSection /> : null,

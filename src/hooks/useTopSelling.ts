@@ -17,11 +17,19 @@ export interface TopSelling {
   ok: boolean;
 }
 
-export function useTopSelling(): TopSelling {
+export function useTopSelling(opts: { enabled?: boolean } = {}): TopSelling {
+  const { enabled = true } = opts;
   const { companyId } = useStoreStatus();
   const [state, setState] = useState<TopSelling>({ rank: new Map(), loading: true, ok: false });
 
   useEffect(() => {
+    // `enabled: false` = el consumidor no necesita el ranking (el listado sin
+    // ?seccion=destacados, por ejemplo): no pagamos el RPC. Queda como si la RPC
+    // no estuviera disponible, que es un estado que los consumidores ya manejan.
+    if (!enabled) {
+      setState({ rank: new Map(), loading: false, ok: false });
+      return;
+    }
     if (!companyId) return;
     let cancelled = false;
     setState((s) => ({ ...s, loading: true }));
@@ -45,7 +53,7 @@ export function useTopSelling(): TopSelling {
     return () => {
       cancelled = true;
     };
-  }, [companyId]);
+  }, [companyId, enabled]);
 
   return state;
 }

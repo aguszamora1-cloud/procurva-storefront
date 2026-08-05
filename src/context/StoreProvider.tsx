@@ -49,10 +49,12 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // para el primer paint instantáneo y SIEMPRE revalida en segundo plano, así una
 // edición en el admin (texto de la franja promo, secciones, etc.) se refleja en
 // el próximo reload en vez de quedar pegada hasta que venza un TTL.
-// v5: la resolución pasó a la RPC get_storefront_by_slug (dual store), la entrada
-// ahora guarda storeType/requiresPassword. v4 invalidó el TTL viejo; v3 sumó
-// newsletter_popup; v2 fue el fix de normalización del plan.
-const cacheKey = (slug: string) => `procurva_store_config_v6:${slug}`;
+// v7 suma sectionMaxItems (límite de cards por sección del home): sin el bump,
+// una entrada cacheada v6 traería la config sin ese campo y el primer frame lo
+// leería como undefined. v5: la resolución pasó a la RPC get_storefront_by_slug
+// (dual store), la entrada ahora guarda storeType/requiresPassword. v4 invalidó
+// el TTL viejo; v3 sumó newsletter_popup; v2 fue el fix de normalización del plan.
+const cacheKey = (slug: string) => `procurva_store_config_v7:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 

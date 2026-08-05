@@ -131,6 +131,14 @@ export interface Product {
   // migración aún no se aplicó (useProduct cae a un SELECT sin este embed).
   product_media?: ProductMediaRow[] | null;
   categories: string[] | null;
+  // Marca del producto. OJO: acá se usa SOLO products.brand explícito. El ERP
+  // cae al nombre del proveedor cuando está vacío, pero eso NO puede salir a la
+  // tienda: publicaría la lista de proveedores del comercio.
+  brand?: string | null;
+  // Segmento / público (Masculino, Femenino, Unisex, Kids…). products.segment,
+  // migración 20260761. Es la dimensión que reemplaza a tener "Campera - Kids"
+  // y "Campera - Masculino" como dos categorías distintas.
+  segment?: string | null;
   catalog_visible: boolean | null;
   catalog_badge_text: string | null;
   catalog_badge_color: string | null;
@@ -382,6 +390,10 @@ export interface RawCatalogSettings {
   section_trust_badges?: boolean;
   // Orden de las secciones del home (keys), configurado en el admin (drag & drop).
   sections_order?: string[];
+  // Máximo de CARDS visibles por sección de productos del home (Destacados,
+  // Nuevos ingresos, Ofertas). Se cuenta sobre las cards ya expandidas por color,
+  // no sobre productos. Ausente = 12 (el límite histórico). Rango válido: 4-24.
+  section_max_items?: number;
   // Layout personalizable de la ficha de producto (drag & drop del admin). Cada
   // token es un id de bloque predefinido o una referencia `custom:<uuid>` a una
   // sección custom del detalle. Ausente/null = layout por defecto (render legacy).
@@ -654,6 +666,9 @@ export interface StoreConfig {
   };
   // Orden de las secciones del home (keys del admin). Vacío = orden por defecto.
   sectionsOrder: string[];
+  // Máximo de cards por sección de productos del home. Siempre resuelto (default
+  // 12, clamp 4-24) — ver normalizeStoreConfig.
+  sectionMaxItems: number;
   /** Título de la sección de videos del home. Lo escribe el comercio. */
   reelsTitle: string;
   // Layout de la ficha de producto resuelto (o null si el tenant no configuró

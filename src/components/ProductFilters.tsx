@@ -4,15 +4,23 @@ import { colorToHex, formatPrice } from '@/lib/utils';
 
 export interface ProductFiltersProps {
   categories: string[];
+  /** Segmentos presentes en el catálogo (Masculino, Femenino, Kids…). */
+  segments: string[];
+  /** Marcas cargadas explícitamente en las fichas (nunca el proveedor). */
+  brands: string[];
   sizes: string[];
   colors: string[];
   priceBounds: { min: number; max: number };
   selectedCats: Set<string>;
+  selectedSegments: Set<string>;
+  selectedBrands: Set<string>;
   selectedSizes: Set<string>;
   selectedColors: Set<string>;
   priceMin: string;
   priceMax: string;
   onToggleCat: (v: string) => void;
+  onToggleSegment: (v: string) => void;
+  onToggleBrand: (v: string) => void;
   onToggleSize: (v: string) => void;
   onToggleColor: (v: string) => void;
   onPriceMin: (v: string) => void;
@@ -82,15 +90,21 @@ function CheckboxRow({
 export function ProductFilters(props: ProductFiltersProps) {
   const {
     categories,
+    segments,
+    brands,
     sizes,
     colors,
     priceBounds,
     selectedCats,
+    selectedSegments,
+    selectedBrands,
     selectedSizes,
     selectedColors,
     priceMin,
     priceMax,
     onToggleCat,
+    onToggleSegment,
+    onToggleBrand,
     onToggleSize,
     onToggleColor,
     onPriceMin,
@@ -106,6 +120,34 @@ export function ProductFilters(props: ProductFiltersProps) {
               <li key={c}>
                 <CheckboxRow checked={selectedCats.has(c)} onChange={() => onToggleCat(c)}>
                   <span className="capitalize">{c}</span>
+                </CheckboxRow>
+              </li>
+            ))}
+          </ul>
+        </Accordion>
+      )}
+
+      {segments.length > 0 && (
+        <Accordion title="Segmento" count={selectedSegments.size || undefined}>
+          <ul className="space-y-2.5">
+            {segments.map((s) => (
+              <li key={s}>
+                <CheckboxRow checked={selectedSegments.has(s)} onChange={() => onToggleSegment(s)}>
+                  <span className="capitalize">{s}</span>
+                </CheckboxRow>
+              </li>
+            ))}
+          </ul>
+        </Accordion>
+      )}
+
+      {brands.length > 0 && (
+        <Accordion title="Marcas" count={selectedBrands.size || undefined}>
+          <ul className="space-y-2.5">
+            {brands.map((b) => (
+              <li key={b}>
+                <CheckboxRow checked={selectedBrands.has(b)} onChange={() => onToggleBrand(b)}>
+                  <span>{b}</span>
                 </CheckboxRow>
               </li>
             ))}

@@ -29,9 +29,13 @@ const COLS_BASE = `
   pack_only_sale, created_at,
   product_variants ( size, color, stock, image_url )
 `;
-const PRODUCT_COLUMNS = `${COLS_BASE}, is_featured, is_new_arrival, display_variants_separately, curva_surtida_enabled, free_shipping`;
+// brand y segment alimentan los filtros de Marca / Segmento del listado. Van
+// en el grupo OPCIONAL a propósito: segment nace con la migración 20260761 y,
+// si todavía no se aplicó, un SELECT explícito tira 42703 y se lleva puesto el
+// catálogo entero (ver el fallback de abajo).
+const PRODUCT_COLUMNS = `${COLS_BASE}, is_featured, is_new_arrival, display_variants_separately, curva_surtida_enabled, free_shipping, brand, segment`;
 
-const OPTIONAL_COLS_RE = /is_featured|is_new_arrival|display_variants_separately|curva_surtida_enabled|free_shipping/i;
+const OPTIONAL_COLS_RE = /is_featured|is_new_arrival|display_variants_separately|curva_surtida_enabled|free_shipping|brand|segment/i;
 
 // Una vez que detectamos en esta sesión que las columnas opcionales NO existen
 // (migración sin aplicar), recordamos ir directo a COLS_BASE para no pagar el
@@ -41,7 +45,10 @@ let preferBaseColumns = false;
 // Cache stale-while-revalidate de productos (mismo patrón que la config del
 // tenant): servimos el catálogo cacheado para el primer paint instantáneo y
 // SIEMPRE revalidamos contra Supabase en segundo plano. v1: payload recortado.
-const CACHE_VERSION = 'v1';
+// v2: + brand y segment (filtros de Marca/Segmento). Hay que subir la versión
+// cuando cambian las columnas: si no, el visitante que vuelve pinta desde un
+// cache viejo y los filtros nuevos aparecen vacíos hasta que revalide.
+const CACHE_VERSION = 'v2';
 const cacheKey = (companyId: string, storeType: string) =>
   `procurva_products_${CACHE_VERSION}:${companyId}:${storeType}`;
 

@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
-import { useFeaturedSections } from '@/hooks/useFeaturedSections';
+import { useHomeSections, sectionProducts } from '@/hooks/useHomeSections';
+import { sectionFromParam, type HomeSectionKey } from '@/lib/homeSections';
 import { useStore } from '@/context/StoreProvider';
 import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { ProductGrid, ProductGridSkeleton } from '@/components/ProductGrid';
@@ -24,26 +25,75 @@ const toggleInSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>) 
 /** Normaliza texto para buscar sin distinguir acentos ni mayúsculas. */
 const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
+/**
+ * Encabezado del listado cuando se llega desde una sección del home (?seccion=).
+ *
+ * El copy NO es el mismo para las tres, porque las tres no hacen lo mismo:
+ * Destacados y Nuevos ingresos traen TODO el catálogo reordenado (su regla
+ * automática rellena con `products` entero), así que hablar de "filtro" o de
+ * "ver todo el catálogo" sería mentir — el catálogo completo ya está a la
+ * vista. Ofertas sí recorta (sólo productos con promo vigente) y por eso usa el
+ * mismo patrón que ?q=.
+ */
+const SECTION_VIEWS: Record<HomeSectionKey, { label: string; title: string; note: string; clear: string }> = {
+  featured: {
+    label: 'Catálogo',
+    title: 'Destacados',
+    note: 'Todo el catálogo, con los destacados primero.',
+    clear: 'Quitar este orden',
+  },
+  new_arrivals: {
+    label: 'Catálogo',
+    title: 'Nuevos ingresos',
+    note: 'Todo el catálogo, con los ingresos más nuevos primero.',
+    clear: 'Quitar este orden',
+  },
+  offers: {
+    label: 'Ofertas',
+    title: 'Ofertas',
+    note: 'Sólo los productos con promociones vigentes.',
+    clear: 'Ver todo el catálogo',
+  },
+};
+
 export function ProductList() {
   const { products, isLoading, error, reload } = useProducts();
   const config = useStore();
   const { categories, isLoading: categoriesLoading } = useCategories(products);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Sección del home de la que venimos (?seccion=), si es una válida. La arma el
+  // MISMO hook que el home: el "Ver más productos" tiene que caer exactamente
+  // sobre el conjunto que se venía viendo, no sobre una reimplementación.
+  const seccion = sectionFromParam(searchParams.get('seccion'));
+  const home = useHomeSections(products, { enabled: seccion !== null });
   // Orden de Destacados / Nuevos ingresos que el comerciante armó en el ERP
   // (panel "Organizar" + ficha del producto). Se refleja acá como orden.
-  const { featured, newArrivals, loading: featuredLoading } = useFeaturedSections();
+  const { featured, newArrivals } = home.pins;
 
   // El listado aparece de una sola vez: esperamos el catálogo, los filtros
   // (categorías) y el orden de Destacados/Nuevos, que reordena la grilla.
-  useFirstPaintGate('product-list', isLoading || categoriesLoading || featuredLoading);
-  const [searchParams, setSearchParams] = useSearchParams();
+  useFirstPaintGate('product-list', isLoading || categoriesLoading || home.loading);
   const preCat = searchParams.get('categoria');
   // Búsqueda por texto (?q=). Filtra por nombre/marca/descripción sin acentos.
   const query = (searchParams.get('q') ?? '').trim();
-  // Criterio de orden del listado (?orden=). Default: Destacados.
-  const orden = searchParams.get('orden') ?? 'destacados';
+  // Criterio de orden del listado (?orden=). Default: el de la sección cuando se
+  // llega desde el home (así el listado abre igual que la vidriera), Destacados
+  // en el catálogo suelto.
+  const defaultOrden = seccion ? 'seccion' : 'destacados';
+  const orden = searchParams.get('orden') ?? defaultOrden;
+
+  // Conjunto base: la sección completa si venimos de una, si no el catálogo.
+  // Los filtros de la izquierda se aplican encima, igual que siempre.
+  const baseProducts = useMemo(
+    () => (seccion ? sectionProducts(home, seccion) : products),
+    [seccion, home, products],
+  );
 
   // La categoría que viene en la URL (?categoria=) queda preseleccionada.
   const [selectedCats, setSelectedCats] = useState<Set<string>>(() => new Set(preCat ? [preCat] : []));
+  const [selectedSegments, setSelectedSegments] = useState<Set<string>>(new Set());
+  const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
   const [selectedSizes, setSelectedSizes] = useState<Set<string>>(new Set());
   const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set());
   const [priceMin, setPriceMin] = useState('');
@@ -52,23 +102,49 @@ export function ProductList() {
 
   const categoryNames = useMemo(() => categories.map((c) => c.name), [categories]);
 
+  // Segmento y marca salen del catálogo cargado, no de una tabla de config: si
+  // el comercio todavía no los cargó, el accordion directamente no aparece.
+  // La marca es SOLO products.brand — nunca el proveedor, que en el ERP es el
+  // fallback pero acá sería publicar a quién le compra el comercio.
+  //
+  // Todas las opciones de filtro salen del conjunto base, no del catálogo
+  // entero: dentro de Ofertas no tiene sentido ofrecer un talle que ninguna
+  // oferta tiene. Sin ?seccion=, baseProducts ES el catálogo y no cambia nada.
+  const allSegments = useMemo(() => {
+    const set = new Set<string>();
+    baseProducts.forEach((p) => {
+      const s = (p.segment ?? '').trim();
+      if (s) set.add(s);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [baseProducts]);
+
+  const allBrands = useMemo(() => {
+    const set = new Set<string>();
+    baseProducts.forEach((p) => {
+      const b = (p.brand ?? '').trim();
+      if (b) set.add(b);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [baseProducts]);
+
   const allSizes = useMemo(() => {
     const set = new Set<string>();
-    products.forEach((p) => availableSizes(p).forEach((s) => set.add(s)));
+    baseProducts.forEach((p) => availableSizes(p).forEach((s) => set.add(s)));
     return sortSizes(Array.from(set));
-  }, [products]);
+  }, [baseProducts]);
 
   const allColors = useMemo(() => {
     const set = new Set<string>();
-    products.forEach((p) => availableColors(p).forEach((c) => set.add(c)));
+    baseProducts.forEach((p) => availableColors(p).forEach((c) => set.add(c)));
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
-  }, [products]);
+  }, [baseProducts]);
 
   const priceBounds = useMemo(() => {
-    const prices = products.map((p) => getPriceInfo(p).mainPrice).filter((n) => n > 0);
+    const prices = baseProducts.map((p) => getPriceInfo(p).mainPrice).filter((n) => n > 0);
     if (prices.length === 0) return { min: 0, max: 0 };
     return { min: Math.floor(Math.min(...prices)), max: Math.ceil(Math.max(...prices)) };
-  }, [products]);
+  }, [baseProducts]);
 
   const min = priceMin.trim() === '' ? null : Number(priceMin);
   const max = priceMax.trim() === '' ? null : Number(priceMax);
@@ -76,13 +152,15 @@ export function ProductList() {
   // Filtros combinados: AND entre tipos de filtro, OR dentro de cada uno.
   const filtered = useMemo(
     () =>
-      products.filter((p) => {
+      baseProducts.filter((p) => {
         if (query) {
           const nq = norm(query);
-          const hay = norm([p.name, (p as { sku?: string }).sku, (p as { brand?: string }).brand, (p as { description?: string }).description].filter(Boolean).join(' '));
+          const hay = norm([p.name, (p as { sku?: string }).sku, p.brand, (p as { description?: string }).description].filter(Boolean).join(' '));
           if (!hay.includes(nq)) return false;
         }
         if (selectedCats.size > 0 && !productCategories(p).some((c) => selectedCats.has(c))) return false;
+        if (selectedSegments.size > 0 && !selectedSegments.has((p.segment ?? '').trim())) return false;
+        if (selectedBrands.size > 0 && !selectedBrands.has((p.brand ?? '').trim())) return false;
         if (selectedSizes.size > 0 && !availableSizes(p).some((s) => selectedSizes.has(s))) return false;
         if (selectedColors.size > 0 && !availableColors(p).some((c) => selectedColors.has(c))) return false;
         const price = getPriceInfo(p).mainPrice;
@@ -90,7 +168,7 @@ export function ProductList() {
         if (max != null && !Number.isNaN(max) && price > max) return false;
         return true;
       }),
-    [products, query, selectedCats, selectedSizes, selectedColors, min, max],
+    [baseProducts, query, selectedCats, selectedSegments, selectedBrands, selectedSizes, selectedColors, min, max],
   );
 
   // Orden final del listado. Los pins del comerciante (Destacados / Nuevos
@@ -101,6 +179,10 @@ export function ProductList() {
       (b.created_at ?? '').localeCompare(a.created_at ?? '');
     const arr = [...filtered];
     switch (orden) {
+      // Orden de la sección: `filtered` ya viene en ese orden (baseProducts sale
+      // del mismo hook que arma la vidriera), así que no se reordena nada.
+      case 'seccion':
+        return arr;
       case 'precio_asc':
         return arr.sort((a, b) => getPriceInfo(a).mainPrice - getPriceInfo(b).mainPrice);
       case 'precio_desc':
@@ -129,16 +211,34 @@ export function ProductList() {
 
   const setOrden = (value: string) => {
     const next = new URLSearchParams(searchParams);
-    if (value === 'destacados') next.delete('orden');
+    // El orden por defecto no viaja en la URL (es el implícito de la vista).
+    if (value === defaultOrden) next.delete('orden');
     else next.set('orden', value);
     setSearchParams(next, { replace: true });
   };
 
+  /** Saca ?seccion= (y su orden implícito) volviendo al catálogo completo. */
+  const clearSeccion = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('seccion');
+    if (next.get('orden') === 'seccion') next.delete('orden');
+    setSearchParams(next, { replace: true });
+  };
+
+  const sectionView = seccion ? SECTION_VIEWS[seccion] : null;
+
   const activeCount =
-    selectedCats.size + selectedSizes.size + selectedColors.size + (min != null || max != null ? 1 : 0);
+    selectedCats.size +
+    selectedSegments.size +
+    selectedBrands.size +
+    selectedSizes.size +
+    selectedColors.size +
+    (min != null || max != null ? 1 : 0);
 
   const clearAll = () => {
     setSelectedCats(new Set());
+    setSelectedSegments(new Set());
+    setSelectedBrands(new Set());
     setSelectedSizes(new Set());
     setSelectedColors(new Set());
     setPriceMin('');
@@ -161,15 +261,21 @@ export function ProductList() {
 
   const panelProps = {
     categories: categoryNames,
+    segments: allSegments,
+    brands: allBrands,
     sizes: allSizes,
     colors: allColors,
     priceBounds,
     selectedCats,
+    selectedSegments,
+    selectedBrands,
     selectedSizes,
     selectedColors,
     priceMin,
     priceMax,
     onToggleCat: toggleInSet(setSelectedCats),
+    onToggleSegment: toggleInSet(setSelectedSegments),
+    onToggleBrand: toggleInSet(setSelectedBrands),
     onToggleSize: toggleInSet(setSelectedSizes),
     onToggleColor: toggleInSet(setSelectedColors),
     onPriceMin: setPriceMin,
@@ -200,11 +306,27 @@ export function ProductList() {
       />
       <header className="mb-8">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-[2px] text-accent">
-          {query ? 'Búsqueda' : 'Catálogo'}
+          {query ? 'Búsqueda' : sectionView ? sectionView.label : 'Catálogo'}
         </p>
         <h1 className="font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[44px]">
-          {query ? <>Resultados para “{query}”</> : 'Todos los productos'}
+          {query ? <>Resultados para “{query}”</> : sectionView ? sectionView.title : 'Todos los productos'}
         </h1>
+        {/* Sin búsqueda activa: aclaramos qué es esta vista. Para Destacados y
+            Nuevos ingresos es un ORDEN sobre el catálogo entero, no un recorte;
+            para Ofertas sí es un subconjunto. */}
+        {!query && sectionView && (
+          <>
+            <p className="mt-2 text-[14px] text-on-surface-muted">{sectionView.note}</p>
+            <button
+              type="button"
+              onClick={clearSeccion}
+              className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.5px] text-on-surface-muted transition-colors hover:text-accent"
+            >
+              <X className="h-3.5 w-3.5" />
+              {sectionView.clear}
+            </button>
+          </>
+        )}
         {query && (
           <button
             type="button"
@@ -244,6 +366,9 @@ export function ProductList() {
                 onChange={(e) => setOrden(e.target.value)}
                 className="rounded-md border border-line bg-background px-3 py-2 text-[13px] font-medium text-on-surface focus:border-accent focus:outline-none"
               >
+                {/* Sólo cuando se llega desde una sección: es el orden con el
+                    que abrió la vista y tiene que poder recuperarse. */}
+                {sectionView && <option value="seccion">Orden de {sectionView.title.toLowerCase()}</option>}
                 <option value="destacados">Destacados</option>
                 <option value="nuevos">Más nuevos</option>
                 <option value="precio_asc">Precio: menor a mayor</option>

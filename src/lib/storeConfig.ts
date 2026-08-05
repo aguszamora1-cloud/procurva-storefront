@@ -203,6 +203,23 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     sectionsOrder: Array.isArray(s.sections_order)
       ? s.sections_order.filter((k): k is string => typeof k === 'string')
       : [],
+    // Máximo de CARDS por sección de productos del home. El corte se hace sobre
+    // las cards ya expandidas por color (ver limitSectionCards), no sobre
+    // productos: antes se cortaba en 12 PRODUCTOS y una sección con productos
+    // multicolor terminaba pintando 30+ cards.
+    //
+    // Default 12 = el SECTION_LIMIT histórico, a propósito: así el deploy cambia
+    // SÓLO el significado del límite y no el número que ve cada tienda.
+    //
+    // Se resuelve ACÁ y no en el punto de lectura porque el sessionStorage
+    // cachea esta StoreConfig ya normalizada: un default resuelto al leer nunca
+    // llegaría a la entrada cacheada. El clamp también va acá — el JSONB puede
+    // traer 0, negativos o basura y la tienda no puede quedar en cero cards.
+    sectionMaxItems: (() => {
+      const v = s.section_max_items;
+      if (typeof v !== 'number' || !Number.isFinite(v)) return 12;
+      return Math.min(24, Math.max(4, Math.round(v)));
+    })(),
     // Título de la sección de videos del home (section_titles.reels.title del
     // admin). Del lado del comprador nunca se llama "Reels": ese es el nombre
     // interno del panel.
