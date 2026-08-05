@@ -345,13 +345,22 @@ export function ProductList() {
 
       <div className="flex gap-8">
         {/* Sidebar de filtros (desktop) */}
+        {/* Sidebar de filtros (desktop).
+            El panel es `sticky`: se queda fijo mientras scrolleás los
+            resultados. Sin una altura máxima eso deja el fondo de la lista
+            INALCANZABLE en cuanto los filtros pasan el alto de la pantalla —
+            queda anclado y el scroll de la página ya no lo mueve. Por eso el
+            contenedor se acota al viewport y la lista scrollea adentro, con el
+            encabezado ("Filtros" + Limpiar) siempre visible arriba. */}
         <aside className="hidden w-64 shrink-0 lg:block">
-          <div className="sticky top-24">
-            <div className="mb-1 flex items-center justify-between border-b border-line pb-3">
+          <div className="sticky top-24 flex max-h-[calc(100vh-8rem)] flex-col">
+            <div className="mb-1 flex shrink-0 items-center justify-between border-b border-line pb-3">
               <h2 className="text-[15px] font-bold uppercase tracking-[1px] text-on-surface">Filtros</h2>
               {clearButton}
             </div>
-            <ProductFilters {...panelProps} />
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+              <ProductFilters {...panelProps} />
+            </div>
           </div>
         </aside>
 
