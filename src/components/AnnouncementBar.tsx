@@ -1,4 +1,5 @@
 import { useStore } from '@/context/StoreProvider';
+import { MarqueeStrip, marqueeMessages } from '@/components/MarqueeStrip';
 
 /**
  * Franja superior de anuncios del storefront. Réplica del AnnouncementBar de
@@ -12,40 +13,17 @@ import { useStore } from '@/context/StoreProvider';
  * El texto llega acá ya resuelto en `config.announcement` a propósito: la barra
  * no tiene que saber de qué campo salió, así uniforma el estilo (mayúsculas +
  * marquee) venga de donde venga.
+ *
+ * El render lo pone MarqueeStrip, compartido con las barras de anuncios que el
+ * comercio agrega como sección en cualquier posición del home.
  */
 export function AnnouncementBar() {
   const config = useStore();
 
-  const messages = config.announcement
-    .split('\n')
-    .map((m) => m.trim())
-    .filter(Boolean);
-
-  if (messages.length === 0) return null;
-
-  // Repetimos los mensajes para llenar la barra (como los 3 beneficios de RSW)
-  // y luego duplicamos el track para un loop sin saltos al desplazar -50%.
-  const base: string[] = [];
-  while (base.length < 6) base.push(...messages);
-  const loop = [...base, ...base];
-
-  // Velocidad lenta tipo RSW (~6.5s por ítem visible, mínimo 35s).
-  const durationS = Math.max(Math.round(base.length * 6.5), 35);
-
   return (
-    <div className="overflow-hidden bg-primary text-on-primary">
-      <div className="py-2">
-        <ul className="animate-marquee flex w-max items-center" style={{ animationDuration: `${durationS}s` }}>
-          {loop.map((text, i) => (
-            <li
-              key={`${text}-${i}`}
-              className="whitespace-nowrap pr-12 text-[12px] font-semibold uppercase tracking-[0.5px] md:text-[13px]"
-            >
-              {text}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+    // Siempre animada: `top_bar_animated` nace en false y esta barra scrollea
+    // desde siempre, así que atarla a ese flag frenaría la franja de casi todas
+    // las tiendas. Quien quiera una barra estática usa la sección de anuncios.
+    <MarqueeStrip messages={marqueeMessages(config.announcement)} className="bg-primary text-on-primary" />
   );
 }

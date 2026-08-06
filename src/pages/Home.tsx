@@ -16,6 +16,7 @@ import { SocialProofSection } from '@/components/home/SocialProofSection';
 import { OutfitsSection } from '@/components/home/OutfitsSection';
 import { CustomBannerSection } from '@/components/home/CustomBannerSection';
 import { CustomTextSection } from '@/components/home/CustomTextSection';
+import { CustomMarqueeSection } from '@/components/home/CustomMarqueeSection';
 import { PromoBannerAuto } from '@/components/PromoBannerAuto';
 import { useCustomSections } from '@/hooks/useCustomSections';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
@@ -111,18 +112,18 @@ export function Home() {
     featured: config.sections.featured
       ? isLoading
         ? productSkeleton
-        : <ProductsSection label="Lo más buscado" title="Destacados" products={featured} maxItems={config.sectionMaxItems} linkTo={sectionListPath('featured')} />
+        : <ProductsSection {...config.sectionHeadings.featured} products={featured} maxItems={config.sectionMaxItems} linkTo={sectionListPath('featured')} />
       : null,
     new_arrivals:
       config.sections.newArrivals && !isLoading
-        ? <ProductsSection label="Recién llegados" title="Nuevos ingresos" products={newArrivals} maxItems={config.sectionMaxItems} linkTo={sectionListPath('new_arrivals')} />
+        ? <ProductsSection {...config.sectionHeadings.new_arrivals} products={newArrivals} maxItems={config.sectionMaxItems} linkTo={sectionListPath('new_arrivals')} />
         : null,
     // Ofertas: se muestra sólo si el comercio no la apagó Y hay productos en
     // promoción para el canal. La membresía sale de las promos, no del admin.
     // `section_offers` nace en true: la sección ya existía sin flag, así que el
     // default tiene que reproducir lo que las 66 tiendas ven hoy.
     offers: config.sections.offers && !isLoading && offers.length > 0
-      ? <ProductsSection label="Aprovechá" title="Ofertas" products={offers} maxItems={config.sectionMaxItems} linkTo={sectionListPath('offers')} />
+      ? <ProductsSection {...config.sectionHeadings.offers} products={offers} maxItems={config.sectionMaxItems} linkTo={sectionListPath('offers')} />
       : null,
     // Outfits son exclusivos de la tienda minorista (no aplican a mayorista).
     outfits: config.storeType !== 'wholesale' && config.isPro && config.sections.outfits ? <OutfitsSection /> : null,
@@ -149,6 +150,9 @@ export function Home() {
         break;
       case 'text':
         nodes[key] = <CustomTextSection section={cs} />;
+        break;
+      case 'marquee':
+        nodes[key] = <CustomMarqueeSection section={cs} />;
         break;
       default:
         nodes[key] = null;

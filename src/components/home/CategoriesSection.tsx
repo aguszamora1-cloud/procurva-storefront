@@ -112,7 +112,7 @@ function CategoryCard({
 
 export function CategoriesSection({ products }: { products: Product[] }) {
   const { categories, isLoading } = useCategories(products);
-  const { categoriesDisplayMode, categoriesSection } = useStore();
+  const { categoriesDisplayMode, categoriesSection, sectionHeadings } = useStore();
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   // Gate del primer paint: el orden/visibilidad de categorías es otro fetch, y
@@ -130,7 +130,7 @@ export function CategoriesSection({ products }: { products: Product[] }) {
 
   return (
     <section className="mx-auto max-w-none px-6 py-8 md:py-16">
-      <SectionHeader label="Explorá" title="Categorías" linkTo="/categorias" linkText="Ver todas" />
+      <SectionHeader {...sectionHeadings.categories} linkTo="/categorias" linkText="Ver todas" />
 
       {categoriesDisplayMode === 'carousel' ? (
         <div className="relative">

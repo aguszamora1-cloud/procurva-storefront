@@ -54,7 +54,11 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // leería como undefined. v5: la resolución pasó a la RPC get_storefront_by_slug
 // (dual store), la entrada ahora guarda storeType/requiresPassword. v4 invalidó
 // el TTL viejo; v3 sumó newsletter_popup; v2 fue el fix de normalización del plan.
-const cacheKey = (slug: string) => `procurva_store_config_v7:${slug}`;
+// v8: la StoreConfig cacheada ahora incluye `sectionHeadings` (títulos de las
+// secciones del home). Una entrada v7 no lo trae y el primer paint leería
+// `sectionHeadings.featured` sobre undefined, así que la versión tiene que subir
+// con cada campo nuevo que la UI lea sin guarda.
+const cacheKey = (slug: string) => `procurva_store_config_v8:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 

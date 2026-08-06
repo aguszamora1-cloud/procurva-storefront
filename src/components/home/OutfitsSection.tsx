@@ -583,6 +583,7 @@ export function OutfitsSection() {
   // Sin gate de pintado a propósito: useOutfits encadena tres queries (~2s) y la
   // sección va bien abajo del fold, atrás del Reveal por scroll. Retener la home
   // entera por esto sólo la haría arrancar medio segundo más tarde.
+  const { sectionHeadings } = useStore();
   const { outfits } = useOutfits();
   const [openId, setOpenId] = useState<string | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -676,7 +677,7 @@ export function OutfitsSection() {
 
   return (
     <section id="outfits" className="mx-auto w-full scroll-mt-24 px-6 py-8 md:py-16">
-      <SectionHeader label="Combiná tu look" title="Outfits" />
+      <SectionHeader {...sectionHeadings.outfits} />
       <div className="relative">
         {/* Carrusel horizontal swipeable: 85vw en mobile (con peek + snap), 2 en tablet, 3 en desktop.
             touchAction 'pan-x pan-y': el navegador enruta el gesto por su dirección

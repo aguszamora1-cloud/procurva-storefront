@@ -60,6 +60,44 @@ const firstStr = (...vals: unknown[]): string => {
 };
 
 /**
+ * Encabezados por defecto de las secciones del home: `label` es el volanta chico
+ * de arriba y `title` el titular grande (SectionHeader los pinta en ese orden).
+ *
+ * Son los textos que la tienda venía mostrando hardcodeados. El comercio los
+ * pisa desde el editor (Catálogo Online → sección → Título / Subtítulo), que
+ * guarda en `catalog_settings.section_titles`. OJO con el cruce de nombres: el
+ * campo "Subtítulo" del panel es el volanta de arriba (`label` acá), no el
+ * párrafo de abajo.
+ */
+const SECTION_HEADING_DEFAULTS: Record<string, { label: string; title: string }> = {
+  categories: { label: 'Explorá', title: 'Categorías' },
+  featured: { label: 'Lo más buscado', title: 'Destacados' },
+  new_arrivals: { label: 'Recién llegados', title: 'Nuevos ingresos' },
+  offers: { label: 'Aprovechá', title: 'Ofertas' },
+  outfits: { label: 'Combiná tu look', title: 'Outfits' },
+  social_proof: { label: 'Lo que dicen', title: 'Reseñas de clientes' },
+};
+
+/**
+ * Encabezados resueltos por sección: lo que cargó el comercio, y si está vacío,
+ * el default histórico. Se resuelve acá (y no en cada componente) por la misma
+ * razón que el resto de la config: la StoreConfig se cachea ya normalizada.
+ */
+function resolveSectionHeadings(
+  raw: Record<string, { title?: string; subtitle?: string }> | undefined,
+): Record<string, { label: string; title: string }> {
+  const out: Record<string, { label: string; title: string }> = {};
+  for (const [key, def] of Object.entries(SECTION_HEADING_DEFAULTS)) {
+    const cfg = raw?.[key];
+    out[key] = {
+      label: str(cfg?.subtitle) || def.label,
+      title: str(cfg?.title) || def.title,
+    };
+  }
+  return out;
+}
+
+/**
  * Normaliza el payload saneado de la RPC `get_storefront_by_slug` /
  * `verify_storefront_password` (con su `settings` JSONB por tienda) a la
  * StoreConfig que consume la UI. Reusa las claves que el panel "Catálogo
@@ -224,6 +262,9 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     // admin). Del lado del comprador nunca se llama "Reels": ese es el nombre
     // interno del panel.
     reelsTitle: firstStr(s.section_titles?.reels?.title) || 'Videos',
+    // Encabezados (volanta + titular) de las secciones del home, con el default
+    // histórico de cada una si el comercio no cargó el suyo.
+    sectionHeadings: resolveSectionHeadings(s.section_titles),
     // Layout de la ficha resuelto (null = el tenant no lo configuró → render legacy).
     productLayout: resolveProductLayoutOrNull(s.product_layout),
 

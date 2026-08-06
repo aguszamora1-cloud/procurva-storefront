@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SectionHeader } from '@/components/SectionHeader';
+import { useStore } from '@/context/StoreProvider';
 import { useTestimonials } from '@/hooks/useTestimonials';
 import type { Testimonial } from '@/lib/types';
 
@@ -40,6 +41,7 @@ function TestimonialCard({ t }: { t: Testimonial }) {
 
 /** Sección de testimonios / reseñas (Social Proof, Extra PRO). Carrusel horizontal. */
 export function SocialProofSection() {
+  const { sectionHeadings } = useStore();
   const { testimonials } = useTestimonials();
   const scrollerRef = useRef<HTMLDivElement>(null);
   // Pausa el auto-scroll mientras el cliente interactúa (hover, swipe, foco).
@@ -115,7 +117,7 @@ export function SocialProofSection() {
 
   return (
     <section className="mx-auto max-w-none px-6 py-8 md:py-16">
-      <SectionHeader label="Lo que dicen" title="Reseñas de clientes" />
+      <SectionHeader {...sectionHeadings.social_proof} />
       <div
         className="relative"
         onMouseEnter={() => { pausedRef.current = true; }}

@@ -30,7 +30,7 @@ export interface Variant {
 }
 
 /** Secciones personalizadas (catalog_custom_sections). Sólo lectura. */
-export type CustomSectionType = 'banner' | 'text';
+export type CustomSectionType = 'banner' | 'text' | 'marquee';
 export type CustomSectionPageContext = 'home' | 'product_detail';
 export type ProductDetailSlot =
   | 'above_description'
@@ -83,13 +83,32 @@ export interface CustomSectionTextContent {
   slot?: ProductDetailSlot;
 }
 
+/**
+ * Barra de anuncios (marquee) como sección custom: la misma franja de la barra
+ * superior, pero ubicable en cualquier posición del home y repetible.
+ *
+ * `messages` es un solo string con una línea por ítem (igual que
+ * `storefront_announcement`): el comercio ya conoce esa forma de cargarlo desde
+ * la barra superior, y evita un editor de lista para tres frases.
+ */
+export interface CustomSectionMarqueeContent {
+  messages?: string;
+  background_color?: string;
+  text_color?: string;
+  /** false = texto estático centrado (sin scroll). Default true. */
+  animated?: boolean;
+  /** Segundos de una vuelta completa. Más alto = más lento. Default 35. */
+  speed_seconds?: number;
+  slot?: ProductDetailSlot;
+}
+
 export interface CustomSection {
   id: string;
   company_id: string;
   catalog_type: 'retail' | 'wholesale';
   section_type: CustomSectionType;
   label: string;
-  content: CustomSectionBannerContent | CustomSectionTextContent;
+  content: CustomSectionBannerContent | CustomSectionTextContent | CustomSectionMarqueeContent;
   is_visible: boolean;
   page_context: CustomSectionPageContext;
   position: number;
@@ -671,6 +690,12 @@ export interface StoreConfig {
   sectionMaxItems: number;
   /** Título de la sección de videos del home. Lo escribe el comercio. */
   reelsTitle: string;
+  /**
+   * Encabezados de las secciones del home, YA RESUELTOS (lo que cargó el
+   * comercio en `section_titles`, o el default histórico de la sección).
+   * `label` es el volanta chico y `title` el titular grande.
+   */
+  sectionHeadings: Record<string, { label: string; title: string }>;
   // Layout de la ficha de producto resuelto (o null si el tenant no configuró
   // uno). null = render legacy fijo (idéntico a antes). Ver productLayout.ts.
   productLayout: ProductLayout | null;
