@@ -8,7 +8,7 @@ import { useStore } from '@/context/StoreProvider';
 import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { SectionHeader } from '@/components/SectionHeader';
 
-type CardStyle = 'overlay' | 'below' | 'full';
+export type CardStyle = 'overlay' | 'below' | 'full';
 
 function categoryImage(products: Product[], category: string): string | null {
   const p = products.find((prod) => productCategories(prod).includes(category));
@@ -17,7 +17,7 @@ function categoryImage(products: Product[], category: string): string | null {
 
 // Columnas en desktop según la config del comercio; en mobile SIEMPRE 2. Clases
 // literales para que Tailwind las detecte en build.
-const COLS_CLASS: Record<2 | 3 | 4, string> = {
+export const COLS_CLASS: Record<2 | 3 | 4, string> = {
   2: 'grid-cols-2',
   3: 'grid-cols-2 md:grid-cols-3',
   4: 'grid-cols-2 md:grid-cols-4',
@@ -50,7 +50,7 @@ function CardImage({ img, name }: { img: string | null; name: string }) {
  * override de texto). La imagen es la propia (catalog_category_order.image_url)
  * o, si no hay, la foto del primer producto de la categoría.
  */
-function CategoryCard({
+export function CategoryCard({
   cat,
   products,
   style,

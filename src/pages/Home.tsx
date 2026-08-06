@@ -20,6 +20,11 @@ import { CustomMarqueeSection } from '@/components/home/CustomMarqueeSection';
 import { CustomProductsSection } from '@/components/home/CustomProductsSection';
 import { CustomCountdownSection } from '@/components/home/CustomCountdownSection';
 import { CustomCtaSection } from '@/components/home/CustomCtaSection';
+import { CustomSplitSection } from '@/components/home/CustomSplitSection';
+import { CustomVideoSection } from '@/components/home/CustomVideoSection';
+import { CustomFaqSection } from '@/components/home/CustomFaqSection';
+import { CustomDividerSection } from '@/components/home/CustomDividerSection';
+import { CustomCategoriesSection } from '@/components/home/CustomCategoriesSection';
 import { PromoBannerAuto } from '@/components/PromoBannerAuto';
 import { useCustomSections } from '@/hooks/useCustomSections';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
@@ -165,6 +170,21 @@ export function Home() {
         break;
       case 'cta':
         nodes[key] = <CustomCtaSection section={cs} />;
+        break;
+      case 'split':
+        nodes[key] = <CustomSplitSection section={cs} />;
+        break;
+      case 'video':
+        nodes[key] = <CustomVideoSection section={cs} />;
+        break;
+      case 'faq':
+        nodes[key] = <CustomFaqSection section={cs} />;
+        break;
+      case 'divider':
+        nodes[key] = <CustomDividerSection section={cs} />;
+        break;
+      case 'categories':
+        nodes[key] = <CustomCategoriesSection section={cs} />;
         break;
       default:
         nodes[key] = null;

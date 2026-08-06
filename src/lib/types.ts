@@ -30,7 +30,18 @@ export interface Variant {
 }
 
 /** Secciones personalizadas (catalog_custom_sections). Sólo lectura. */
-export type CustomSectionType = 'banner' | 'text' | 'marquee' | 'products' | 'countdown' | 'cta';
+export type CustomSectionType =
+  | 'banner'
+  | 'text'
+  | 'marquee'
+  | 'products'
+  | 'countdown'
+  | 'cta'
+  | 'split'
+  | 'video'
+  | 'faq'
+  | 'divider'
+  | 'categories';
 export type CustomSectionPageContext = 'home' | 'product_detail';
 export type ProductDetailSlot =
   | 'above_description'
@@ -149,6 +160,63 @@ export interface CustomSectionCtaContent {
   slot?: ProductDetailSlot;
 }
 
+/** Imagen y texto lado a lado ("Sobre nosotros", "Cómo comprar"). */
+export interface CustomSectionSplitContent {
+  heading?: string;
+  body?: string;
+  image_url?: string;
+  /** De qué lado va la imagen en desktop. En mobile siempre va arriba. */
+  image_side?: 'left' | 'right';
+  button_text?: string;
+  button_link?: string;
+  background_color?: string;
+  text_color?: string;
+  slot?: ProductDetailSlot;
+}
+
+/** Video de YouTube, Vimeo o un archivo propio (mp4/webm). */
+export interface CustomSectionVideoContent {
+  url?: string;
+  heading?: string;
+  aspect?: '16:9' | '9:16' | '1:1';
+  /** Sólo para archivos propios: arranca solo y en silencio (los embeds no). */
+  autoplay?: boolean;
+  background_color?: string;
+  slot?: ProductDetailSlot;
+}
+
+/** Preguntas frecuentes en acordeón. */
+export interface CustomSectionFaqContent {
+  heading?: string;
+  items?: { q?: string; a?: string }[];
+  background_color?: string;
+  slot?: ProductDetailSlot;
+}
+
+/** Separador: una línea o simplemente aire entre dos secciones. */
+export interface CustomSectionDividerContent {
+  style?: 'line' | 'space';
+  /** Alto total en px (el aire de arriba y abajo de la línea). */
+  height?: number;
+  color?: string;
+  slot?: ProductDetailSlot;
+}
+
+/**
+ * Grilla de categorías elegidas a mano. La sección fija de Categorías se arma
+ * sola con todas las visibles; ésta muestra sólo las que el comercio elige, en
+ * el orden que las pone.
+ */
+export interface CustomSectionCategoriesContent {
+  heading?: string;
+  label?: string;
+  /** Nombres de categoría, en orden. Vacío = todas las visibles. */
+  items?: string[];
+  columns?: 2 | 3 | 4;
+  card_style?: 'overlay' | 'below' | 'full';
+  slot?: ProductDetailSlot;
+}
+
 export interface CustomSection {
   id: string;
   company_id: string;
@@ -161,7 +229,12 @@ export interface CustomSection {
     | CustomSectionMarqueeContent
     | CustomSectionProductsContent
     | CustomSectionCountdownContent
-    | CustomSectionCtaContent;
+    | CustomSectionCtaContent
+    | CustomSectionSplitContent
+    | CustomSectionVideoContent
+    | CustomSectionFaqContent
+    | CustomSectionDividerContent
+    | CustomSectionCategoriesContent;
   is_visible: boolean;
   page_context: CustomSectionPageContext;
   position: number;
