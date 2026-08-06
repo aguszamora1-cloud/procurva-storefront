@@ -79,9 +79,19 @@ const SECTION_HEADING_DEFAULTS: Record<string, { label: string; title: string }>
 };
 
 /**
- * Encabezados resueltos por sección: lo que cargó el comercio, y si está vacío,
- * el default histórico. Se resuelve acá (y no en cada componente) por la misma
- * razón que el resto de la config: la StoreConfig se cachea ya normalizada.
+ * Encabezados resueltos por sección: lo que cargó el comercio, y si no cargó
+ * nada, el default histórico. Se resuelve acá (y no en cada componente) por la
+ * misma razón que el resto de la config: la StoreConfig se cachea ya normalizada.
+ *
+ * El VOLANTA (el "Subtítulo" del panel) distingue tres estados, no dos:
+ *  - la clave no existe  → el comercio nunca tocó esta sección → default;
+ *  - la clave está vacía → la borró a propósito → NO se muestra volanta;
+ *  - con texto           → ese texto.
+ * Sin esa distinción, borrar el campo devolvía el default y no había forma de
+ * dejar la sección sólo con el titular.
+ *
+ * El TITULAR no funciona así a propósito: vacío cae al default. Una grilla sin
+ * ningún encabezado se lee como un bug de la tienda, no como una decisión.
  */
 function resolveSectionHeadings(
   raw: Record<string, { title?: string; subtitle?: string }> | undefined,
@@ -89,8 +99,9 @@ function resolveSectionHeadings(
   const out: Record<string, { label: string; title: string }> = {};
   for (const [key, def] of Object.entries(SECTION_HEADING_DEFAULTS)) {
     const cfg = raw?.[key];
+    const clearedLabel = typeof cfg?.subtitle === 'string' && !cfg.subtitle.trim();
     out[key] = {
-      label: str(cfg?.subtitle) || def.label,
+      label: clearedLabel ? '' : str(cfg?.subtitle) || def.label,
       title: str(cfg?.title) || def.title,
     };
   }

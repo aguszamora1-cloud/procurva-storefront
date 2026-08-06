@@ -30,7 +30,7 @@ export interface Variant {
 }
 
 /** Secciones personalizadas (catalog_custom_sections). Sólo lectura. */
-export type CustomSectionType = 'banner' | 'text' | 'marquee';
+export type CustomSectionType = 'banner' | 'text' | 'marquee' | 'products' | 'countdown' | 'cta';
 export type CustomSectionPageContext = 'home' | 'product_detail';
 export type ProductDetailSlot =
   | 'above_description'
@@ -102,13 +102,66 @@ export interface CustomSectionMarqueeContent {
   slot?: ProductDetailSlot;
 }
 
+/**
+ * Grilla de productos armada por el comercio. A diferencia de las tres secciones
+ * fijas del home (Destacados / Nuevos / Ofertas), acá la membresía la elige él:
+ * por categoría, marca o segmento. Es lo que permite tener "Camperas de
+ * invierno" y "Solo Nike" al mismo tiempo, cada una en su posición.
+ *
+ * El filtro corre sobre el catálogo que ya está en memoria (useProducts trae
+ * todo), así que no agrega ninguna query.
+ */
+export interface CustomSectionProductsContent {
+  heading?: string;
+  /** Volanta chica arriba del titular. */
+  label?: string;
+  source?: 'all' | 'category' | 'brand' | 'segment';
+  /** Nombre de la categoría / marca / segmento según `source`. */
+  value?: string;
+  max_items?: number;
+  sort?: 'default' | 'newest' | 'price_asc' | 'price_desc';
+  slot?: ProductDetailSlot;
+}
+
+/** Cuenta regresiva a una fecha (fin de una promo, lanzamiento). */
+export interface CustomSectionCountdownContent {
+  heading?: string;
+  subheading?: string;
+  /** Fecha/hora de fin en ISO. Vencida = la sección no se muestra. */
+  ends_at?: string;
+  background_color?: string;
+  text_color?: string;
+  button_text?: string;
+  button_link?: string;
+  slot?: ProductDetailSlot;
+}
+
+/** Bloque de llamada a la acción: título, bajada y un botón. */
+export interface CustomSectionCtaContent {
+  heading?: string;
+  body?: string;
+  button_text?: string;
+  /** URL externa, ruta interna (/productos) o wa.me. */
+  button_link?: string;
+  background_color?: string;
+  text_color?: string;
+  text_align?: 'left' | 'center' | 'right';
+  slot?: ProductDetailSlot;
+}
+
 export interface CustomSection {
   id: string;
   company_id: string;
   catalog_type: 'retail' | 'wholesale';
   section_type: CustomSectionType;
   label: string;
-  content: CustomSectionBannerContent | CustomSectionTextContent | CustomSectionMarqueeContent;
+  content:
+    | CustomSectionBannerContent
+    | CustomSectionTextContent
+    | CustomSectionMarqueeContent
+    | CustomSectionProductsContent
+    | CustomSectionCountdownContent
+    | CustomSectionCtaContent;
   is_visible: boolean;
   page_context: CustomSectionPageContext;
   position: number;

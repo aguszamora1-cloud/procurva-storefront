@@ -17,6 +17,9 @@ import { OutfitsSection } from '@/components/home/OutfitsSection';
 import { CustomBannerSection } from '@/components/home/CustomBannerSection';
 import { CustomTextSection } from '@/components/home/CustomTextSection';
 import { CustomMarqueeSection } from '@/components/home/CustomMarqueeSection';
+import { CustomProductsSection } from '@/components/home/CustomProductsSection';
+import { CustomCountdownSection } from '@/components/home/CustomCountdownSection';
+import { CustomCtaSection } from '@/components/home/CustomCtaSection';
 import { PromoBannerAuto } from '@/components/PromoBannerAuto';
 import { useCustomSections } from '@/hooks/useCustomSections';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
@@ -153,6 +156,15 @@ export function Home() {
         break;
       case 'marquee':
         nodes[key] = <CustomMarqueeSection section={cs} />;
+        break;
+      case 'products':
+        nodes[key] = <CustomProductsSection section={cs} />;
+        break;
+      case 'countdown':
+        nodes[key] = <CustomCountdownSection section={cs} />;
+        break;
+      case 'cta':
+        nodes[key] = <CustomCtaSection section={cs} />;
         break;
       default:
         nodes[key] = null;
