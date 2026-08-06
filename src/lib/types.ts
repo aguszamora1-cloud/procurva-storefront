@@ -188,7 +188,14 @@ export interface CustomSectionVideoContent {
 /** Preguntas frecuentes en acordeón. */
 export interface CustomSectionFaqContent {
   heading?: string;
+  /** Bajada debajo del título ("Todo lo que necesitás saber antes de comprar"). */
+  subheading?: string;
   items?: { q?: string; a?: string }[];
+  /** Tarjeta de cierre con link a WhatsApp. Sin número configurado no se muestra. */
+  contact_enabled?: boolean;
+  contact_title?: string;
+  contact_description?: string;
+  contact_button_text?: string;
   background_color?: string;
   slot?: ProductDetailSlot;
 }
