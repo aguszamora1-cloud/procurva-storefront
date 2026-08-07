@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { CustomSection, CustomSectionBannerContent, CustomSectionBannerSlide } from '@/lib/types';
+import type {
+  CustomSection,
+  CustomSectionBannerContent,
+  CustomSectionBannerSlide,
+  CustomSectionVariant,
+} from '@/lib/types';
 
 /** Normaliza el content del banner a slides, tolerando el esquema viejo (1 imagen en root). */
 function getSlides(content: CustomSectionBannerContent): CustomSectionBannerSlide[] {
@@ -40,12 +45,33 @@ function Slide({ slide, label, load }: { slide: CustomSectionBannerSlide; label:
 }
 
 /** Banner custom: despacha según content.display_mode (default 'carousel'). */
-export function CustomBannerSection({ section }: { section: CustomSection }) {
+export function CustomBannerSection({
+  section,
+  variant = 'default',
+}: {
+  section: CustomSection;
+  variant?: CustomSectionVariant;
+}) {
   const content = section.content as CustomSectionBannerContent;
   const slides = useMemo(() => getSlides(content), [content]);
   const count = slides.length;
 
   if (count === 0) return null;
+
+  // Columna derecha de la ficha: SIEMPRE imagen simple, sea cual sea el
+  // display_mode guardado. No es una preferencia estética — el carrusel dibuja
+  // flechas de 36px y dots encima de una imagen que a 768px mide 267px de ancho,
+  // y el mockup de celular trae su propio marco con ancho mínimo propio. El
+  // editor ya no ofrece esos modos en este slot, pero lo forzamos igual acá: las
+  // filas guardadas antes (o editadas a mano) llegan con su display_mode intacto,
+  // y la UI del admin no puede ser la única garantía de lo que se renderiza.
+  if (variant === 'column') {
+    return (
+      <section className="w-full overflow-hidden rounded-[10px]">
+        <Slide slide={slides[0]} label={section.label} load />
+      </section>
+    );
+  }
 
   // 1 imagen → estático (cualquier modo).
   if (count === 1) {
