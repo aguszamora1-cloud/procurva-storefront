@@ -4,7 +4,7 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { useStore } from '@/context/StoreProvider';
 import { sanitizeBasicHtml } from '@/lib/sanitizeHtml';
 import { whatsappLink } from '@/lib/utils';
-import type { CustomSection, CustomSectionFaqContent } from '@/lib/types';
+import type { CustomSection, CustomSectionFaqContent, CustomSectionVariant } from '@/lib/types';
 
 /**
  * Preguntas frecuentes en acordeón. Las políticas de envío/cambios/pagos ya
@@ -20,7 +20,13 @@ import type { CustomSection, CustomSectionFaqContent } from '@/lib/types';
  * la respuesta puede medir dos renglones o diez y la transición sale igual de
  * suave, sin framer-motion (no está en el storefront) y sin números mágicos.
  */
-export function CustomFaqSection({ section }: { section: CustomSection }) {
+export function CustomFaqSection({
+  section,
+  variant = 'default',
+}: {
+  section: CustomSection;
+  variant?: CustomSectionVariant;
+}) {
   const c = section.content as CustomSectionFaqContent;
   const config = useStore();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -36,15 +42,35 @@ export function CustomFaqSection({ section }: { section: CustomSection }) {
   const wa = config.whatsapp ? whatsappLink(config.whatsapp, 'Hola! Quería hacer una consulta.') : '';
   const showContact = !!c.contact_enabled && !!wa;
 
+  // En la columna derecha de la ficha (466px en desktop, 267px a 768px) el
+  // contenedor ya pone ancho y ritmo vertical: el padding de la home metería
+  // 128px de aire. El título tampoco puede ser el h2 de 40px del home, así que
+  // baja a la escala de la ficha — el mismo criterio que CustomTextSection.
+  const inColumn = variant === 'column';
+
   return (
     <section
       style={c.background_color ? { backgroundColor: c.background_color } : undefined}
-      className="mx-auto max-w-none px-6 py-8 md:py-16"
+      className={
+        inColumn
+          ? c.background_color
+            ? 'rounded-lg px-4 py-4'
+            : ''
+          : 'mx-auto max-w-none px-6 py-8 md:py-16'
+      }
     >
-      <div className="mx-auto max-w-3xl">
-        {heading && <SectionHeader title={heading} subtitle={subheading || undefined} />}
+      <div className={inColumn ? '' : 'mx-auto max-w-3xl'}>
+        {heading &&
+          (inColumn ? (
+            <div className="mb-3">
+              <h2 className="text-[15px] font-semibold text-text">{heading}</h2>
+              {subheading && <p className="mt-1 text-[13px] text-muted">{subheading}</p>}
+            </div>
+          ) : (
+            <SectionHeader title={heading} subtitle={subheading || undefined} />
+          ))}
 
-        <div className="space-y-2.5">
+        <div className={inColumn ? 'space-y-2' : 'space-y-2.5'}>
           {items.map((item, i) => {
             const open = openIndex === i;
             const answer = sanitizeBasicHtml(item.a || '');
@@ -61,17 +87,19 @@ export function CustomFaqSection({ section }: { section: CustomSection }) {
                   onClick={() => setOpenIndex(open ? null : i)}
                   aria-expanded={open}
                   aria-controls={panelId}
-                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left md:px-6"
+                  className={`flex w-full items-center justify-between text-left ${
+                    inColumn ? 'gap-3 px-4 py-3' : 'gap-4 px-5 py-4 md:px-6'
+                  }`}
                 >
                   <span
-                    className={`text-[14px] font-semibold transition-colors duration-200 md:text-[15px] ${
-                      open ? 'text-text' : 'text-muted'
-                    }`}
+                    className={`font-semibold transition-colors duration-200 ${
+                      inColumn ? 'text-[13.5px]' : 'text-[14px] md:text-[15px]'
+                    } ${open ? 'text-text' : 'text-muted'}`}
                   >
                     {item.q}
                   </span>
                   <ChevronDown
-                    size={18}
+                    size={inColumn ? 16 : 18}
                     className={`flex-none transition-all duration-200 ${
                       open ? 'rotate-180 scale-110 text-accent' : 'text-subtle'
                     }`}
@@ -95,7 +123,9 @@ export function CustomFaqSection({ section }: { section: CustomSection }) {
                     }`}
                   >
                     <div
-                      className="px-5 pb-4 pt-1 text-[14px] leading-relaxed text-muted md:px-6 [&_a]:underline [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                      className={`leading-relaxed text-muted [&_a]:underline [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 ${
+                        inColumn ? 'px-4 pb-3 pt-0.5 text-[13px]' : 'px-5 pb-4 pt-1 text-[14px] md:px-6'
+                      }`}
                       dangerouslySetInnerHTML={{ __html: answer }}
                     />
                   </div>
@@ -106,21 +136,29 @@ export function CustomFaqSection({ section }: { section: CustomSection }) {
         </div>
 
         {showContact && (
-          <div className="mx-auto mt-10 max-w-md rounded-lg border border-line-soft px-6 py-7 text-center md:mt-12">
-            <span className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-line text-muted">
-              <MessageCircle size={16} />
-            </span>
-            <p className="text-[14px] font-semibold text-text">
+          <div
+            className={`rounded-lg border border-line-soft text-center ${
+              inColumn ? 'mt-4 px-4 py-5' : 'mx-auto mt-10 max-w-md px-6 py-7 md:mt-12'
+            }`}
+          >
+            {!inColumn && (
+              <span className="mb-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-line text-muted">
+                <MessageCircle size={16} />
+              </span>
+            )}
+            <p className={`font-semibold text-text ${inColumn ? 'text-[13.5px]' : 'text-[14px]'}`}>
               {(c.contact_title || '').trim() || '¿Te quedó alguna duda?'}
             </p>
-            <p className="mt-1 text-[13px] text-muted">
+            <p className={`mt-1 text-muted ${inColumn ? 'text-[12.5px]' : 'text-[13px]'}`}>
               {(c.contact_description || '').trim() || 'Escribinos y te respondemos a la brevedad.'}
             </p>
             <a
               href={wa}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-2 rounded-md bg-accent px-5 py-2.5 text-[13px] font-semibold text-on-accent transition-opacity hover:opacity-90"
+              className={`mt-4 inline-flex items-center gap-2 rounded-md bg-accent font-semibold text-on-accent transition-opacity hover:opacity-90 ${
+                inColumn ? 'px-4 py-2 text-[12.5px]' : 'px-5 py-2.5 text-[13px]'
+              }`}
             >
               <MessageCircle size={15} />
               {(c.contact_button_text || '').trim() || 'Escribinos por WhatsApp'}
