@@ -95,7 +95,7 @@ export function OutfitForProductBlock({ product, className }: Props) {
             <div className="h-16 w-14 flex-shrink-0 rounded-lg bg-secondary" />
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-subtle">Es parte de un look</p>
+            <p className="text-[12px] font-semibold text-subtle">Es parte de un look</p>
             <p className="truncate text-sm font-semibold text-text">{outfit.name}</p>
             <p className="text-[11px] text-subtle">{outfit.products.length} prendas</p>
             <div className="mt-1">{priceEl}</div>
@@ -125,7 +125,7 @@ export function OutfitForProductBlock({ product, className }: Props) {
         </div>
       )}
       <div className="p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-subtle">Es parte de un look</p>
+        <p className="text-[12px] font-semibold text-subtle">Es parte de un look</p>
         <h3 className="mb-1 font-heading text-lg font-semibold text-text">{outfit.name}</h3>
         {outfit.description && <p className="mb-2 text-xs text-subtle">{outfit.description}</p>}
         <div className="mb-3">{priceEl}</div>

@@ -347,7 +347,7 @@ export function WholesalePurchasePanel({
           asigna los colores server-side → en ambos no se elige color. */}
       {needColor && tab !== 'pack' && tab !== 'surtida' && (
         <div>
-          <p className="mb-2.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">
+          <p className="mb-2.5 text-[13px] font-semibold text-muted">
             Color{color && <span className="text-text">: {color}</span>}
           </p>
           <div className="flex flex-wrap gap-2.5">
@@ -394,7 +394,7 @@ export function WholesalePurchasePanel({
 
       {tab === 'sueltos' && sueltoTabAvailable && (
         <div className="space-y-1">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Talles y cantidades</p>
+          <p className="text-[13px] font-semibold text-muted">Talles y cantidades</p>
           {sizes.map((size, idx) => {
             const v = vsColor.find((vv) => vv.size === size);
             if (!v) return null;
@@ -695,7 +695,7 @@ export function WholesalePurchasePanel({
           {/* Distribución de talles (readonly) o, sin distribución, el total */}
           {packDist.length > 0 ? (
             <div>
-              <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Qué incluye</p>
+              <p className="mb-2 text-[13px] font-semibold text-muted">Qué incluye</p>
               <div className="divide-y divide-line overflow-hidden rounded-lg border border-line">
                 {packDist.map((r) => (
                   <div key={r.size} className="flex items-center justify-between px-3.5 py-2.5">

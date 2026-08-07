@@ -103,7 +103,7 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
 
   return (
     <section className={`rounded-2xl border border-line p-4 ${className ?? ''}`}>
-      <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-text">Sumá otros colores</h3>
+      <h3 className="mb-1 text-[15px] font-semibold text-text">Sumá otros colores</h3>
       <p className="mb-3 text-xs text-subtle">Mismo modelo, otros colores — por curva.</p>
 
       {single ? (

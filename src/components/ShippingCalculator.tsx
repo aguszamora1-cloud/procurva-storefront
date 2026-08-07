@@ -51,7 +51,7 @@ export function ShippingCalculator() {
 
   return (
     <div className="border-t border-line pt-6">
-      <p className="mb-2 text-[12px] font-bold uppercase tracking-[1px] text-subtle">Calculá tu envío</p>
+      <p className="mb-2 text-[13px] font-semibold text-subtle">Calculá tu envío</p>
 
       <div className="flex gap-2">
         <input

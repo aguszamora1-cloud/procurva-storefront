@@ -20,7 +20,7 @@ export function PurchaseFlow() {
   if (!purchaseFlowEnabled || purchaseFlowSteps.length === 0) return null;
   return (
     <div className="border-t border-line pt-6">
-      <p className="mb-4 text-[11px] font-semibold uppercase tracking-[2px] text-accent">Así funciona tu compra</p>
+      <p className="mb-4 text-[13px] font-semibold text-accent">Así funciona tu compra</p>
       <div>
         {purchaseFlowSteps.map((step, index) => {
           const last = index === purchaseFlowSteps.length - 1;

@@ -119,7 +119,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[1.5px] text-muted">Altura (cm)</span>
+          <span className="mb-1.5 block text-[12px] font-semibold text-muted">Altura (cm)</span>
           <input
             type="number"
             inputMode="numeric"
@@ -130,7 +130,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
           />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[1.5px] text-muted">Peso (kg)</span>
+          <span className="mb-1.5 block text-[12px] font-semibold text-muted">Peso (kg)</span>
           <input
             type="number"
             inputMode="numeric"
@@ -153,7 +153,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
 
       {reco && (
         <div className="mt-4 animate-fade-in rounded-md border border-line bg-background p-5 text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[1.5px] text-muted">Te recomendamos</p>
+          <p className="text-[12px] font-semibold text-muted">Te recomendamos</p>
           <p className="mt-1 font-heading text-4xl font-extrabold text-text">{matched ?? reco}</p>
           {matched ? (
             <>

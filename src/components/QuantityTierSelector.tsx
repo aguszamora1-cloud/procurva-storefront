@@ -256,7 +256,7 @@ export function QuantityTierSelector({
   return (
     <div className="space-y-2">
       {title ? (
-        <p className={`text-[12px] font-semibold uppercase tracking-[0.06em] ${s.heading}`}>{title}</p>
+        <p className={`text-[13px] font-semibold ${s.heading}`}>{title}</p>
       ) : null}
       <div
         role={interactive ? 'radiogroup' : undefined}

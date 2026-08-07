@@ -212,7 +212,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
-              <h2 className="flex items-center gap-2 font-heading text-[16px] font-bold uppercase tracking-tight text-text">
+              <h2 className="flex items-center gap-2 font-heading text-[16px] font-bold tracking-tight text-text">
                 <Sparkles size={18} className="text-accent" /> Probador virtual
               </h2>
               <button
@@ -230,7 +230,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
               <div className="grid grid-cols-2 gap-3">
                 {/* Foto del usuario */}
                 <div>
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Tu foto</p>
+                  <p className="mb-1.5 text-[12px] font-semibold text-muted">Tu foto</p>
                   {userImage ? (
                     <div className="relative aspect-[3/4] overflow-hidden rounded-md border border-line">
                       <img src={userImage} alt="Tu foto" className="h-full w-full object-cover" />
@@ -275,7 +275,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
 
                 {/* Prenda */}
                 <div>
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">La prenda</p>
+                  <p className="mb-1.5 text-[12px] font-semibold text-muted">La prenda</p>
                   <div className="relative aspect-[3/4] overflow-hidden rounded-md border border-line bg-secondary">
                     {garmentImageUrl ? (
                       <img src={garmentImageUrl} alt={garmentName} className="h-full w-full object-cover" />
@@ -304,7 +304,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
               {/* Resultado */}
               {status === 'completed' && resultUrl && (
                 <div className="mt-4">
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Resultado</p>
+                  <p className="mb-1.5 text-[12px] font-semibold text-muted">Resultado</p>
                   <div className="overflow-hidden rounded-md border border-line">
                     <img src={resultUrl} alt={`Probador — ${garmentName}`} className="w-full" />
                   </div>

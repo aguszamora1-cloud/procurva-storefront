@@ -35,7 +35,7 @@ export function PolicyAccordions({ className }: Props) {
               onClick={() => setOpenPolicy(open ? null : p.key)}
               className="flex w-full items-center justify-between py-3.5 text-left"
             >
-              <span className="flex items-center gap-2.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">
+              <span className="flex items-center gap-2.5 text-[13px] font-semibold text-muted">
                 <p.Icon size={16} className="text-subtle" />
                 {p.label}
               </span>

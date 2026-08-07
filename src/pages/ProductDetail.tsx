@@ -703,7 +703,7 @@ export function ProductDetail() {
                 aria-expanded={showSizeFinder}
                 className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-secondary"
               >
-                <span className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-text">
+                <span className="flex items-center gap-2 text-[13px] font-semibold text-text">
                   <Ruler size={16} /> ¿No sabés tu talle?
                 </span>
                 <span className="flex items-center gap-1 text-[12px] font-semibold text-accent">
@@ -832,7 +832,7 @@ export function ProductDetail() {
 
           {product.description && (
             <div className="border-t border-line pt-6">
-              <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">Descripción</p>
+              <p className="mb-2 text-[13px] font-semibold text-muted">Descripción</p>
               <p className="whitespace-pre-line text-[14px] leading-relaxed text-muted">{product.description}</p>
             </div>
           )}
