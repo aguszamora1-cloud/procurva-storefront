@@ -226,9 +226,21 @@ export function ProductDetail() {
   useEffect(() => {
     const el = addBtnRef.current;
     if (!el) return;
-    const obs = new IntersectionObserver(([entry]) => setShowSticky(!entry.isIntersecting), {
-      rootMargin: '0px 0px -64px 0px',
-    });
+    const obs = new IntersectionObserver(
+      (entries) => {
+        // La ÚLTIMA entry, no la primera. Un solo callback puede traer varias
+        // observaciones encoladas, y la primera puede ser un estado intermedio ya
+        // vencido. Pasa de verdad, no en teoría: al elegir "Lleva 3" el layout se
+        // reacomoda y el navegador entrega [isIntersecting:true (top 467),
+        // isIntersecting:false (top 867)] en la misma tanda — medido a 375×667.
+        // Leyendo `[entry]` se tomaba el `true` viejo y la barra sticky se
+        // ESCONDÍA justo cuando el botón se iba de pantalla: el comprador quedaba
+        // sin ningún botón de agregar, ni el inline ni el sticky.
+        const last = entries[entries.length - 1];
+        if (last) setShowSticky(!last.isIntersecting);
+      },
+      { rootMargin: '0px 0px -64px 0px' },
+    );
     obs.observe(el);
     return () => obs.disconnect();
   }, [product?.id]);
