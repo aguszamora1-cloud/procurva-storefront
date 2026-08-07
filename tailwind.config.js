@@ -1,3 +1,10 @@
+// Con extensión a propósito: este config lo importa como ESM
+// `scripts/check-dead-opacity.mjs`, y Node no resuelve el subpath sin `.js`
+// (ERR_MODULE_NOT_FOUND). PostCSS lo carga por otro camino y no se entera, así
+// que sin la extensión el dev server anda igual pero se cae `npm run check` —
+// y con él el `prebuild`, o sea el deploy.
+import plugin from 'tailwindcss/plugin.js';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -30,5 +37,18 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Variantes por tipo de puntero. Tailwind 3 no las trae (llegan en v4); los
+    // nombres son los mismos que usa v4, así que el día que se migre esto se
+    // borra y las clases quedan igual.
+    //
+    // Para qué: los controles táctiles (chips de talle y color) necesitan 44px
+    // de alto con el dedo, pero con mouse esos mismos 44px se ven macizos. La
+    // medida base es la táctil y `pointer-fine:` la baja — así, si el navegador
+    // no soporta la media query, queda el tamaño accesible, no el chico.
+    plugin(({ addVariant }) => {
+      addVariant('pointer-fine', '@media (pointer: fine)');
+      addVariant('pointer-coarse', '@media (pointer: coarse)');
+    }),
+  ],
 };

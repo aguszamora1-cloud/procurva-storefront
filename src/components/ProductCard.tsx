@@ -115,7 +115,12 @@ export function ProductCard({ product, priority = false }: { product: Product; p
                 to={`/producto/${product.id}?color=${encodeURIComponent(c)}`}
                 title={c}
                 aria-label={`Ver ${c}`}
-                className="h-5 w-5 rounded-full border border-line ring-1 ring-inset ring-black/5 transition-transform hover:scale-110"
+                // Mismo contorno que el círculo del ColorSelector de la ficha
+                // (ver el comentario largo de ahí): ring-inset negro 25% por
+                // dentro para que un swatch claro no se pierda sobre la tarjeta,
+                // outline blanco 50% por fuera para el caso inverso. Fijo, sin
+                // regla condicional por luminancia. Si tocás uno, tocá el otro.
+                className="h-5 w-5 rounded-full outline outline-1 outline-white/50 ring-1 ring-inset ring-black/25 transition-transform hover:scale-110"
                 style={{ backgroundColor: colorToHex(c) }}
               />
             ))}

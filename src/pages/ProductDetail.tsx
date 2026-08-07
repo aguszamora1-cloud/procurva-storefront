@@ -31,6 +31,7 @@ import { PolicyAccordions } from '@/components/PolicyAccordions';
 import { ProductReviews } from '@/components/ProductReviews';
 import { ProductReels } from '@/components/ProductReels';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
+import { UnitVariantRows, type UnitSelection } from '@/components/UnitVariantRows';
 import { VirtualTryOn, mapFashnCategory } from '@/components/VirtualTryOn';
 import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSections';
 import { useProductBadges } from '@/hooks/useProductBadges';
@@ -145,7 +146,7 @@ export function ProductDetail() {
   // PROTOTIPO volume tiers: cantidad de unidades del escalón elegido (1 = flujo
   // normal suelto) y la variante elegida por cada unidad (talle + color).
   const [tierUnits, setTierUnits] = useState(1);
-  const [tierSelections, setTierSelections] = useState<{ size: string | null; color: string | null }[]>([]);
+  const [tierSelections, setTierSelections] = useState<UnitSelection[]>([]);
   const [showSticky, setShowSticky] = useState(false);
   const [showSizeFinder, setShowSizeFinder] = useState(false);
   const addBtnRef = useRef<HTMLButtonElement>(null);
@@ -188,6 +189,13 @@ export function ProductDetail() {
     !variants.some(
       (v) => v.size === size && (colors.length === 0 || !selectedColor || v.color === selectedColor) && (v.stock ?? 0) > 0,
     );
+
+  // Color agotado: ninguna variante de ese color tiene stock. A diferencia de
+  // sizeDisabled NO cruza con el talle elegido, a propósito: si lo hiciera, elegir
+  // un talle podría deshabilitar todos los colores y dejar al comprador trabado sin
+  // forma de volver atrás. El talle sí se recalcula al cambiar de color (ese es el
+  // orden de elección real), así que la asimetría es la correcta.
+  const colorDisabled = (color: string) => !variants.some((v) => v.color === color && (v.stock ?? 0) > 0);
 
   const images = product ? productImages(product) : [];
   // Galería unificada: si product_media ya tiene imágenes, es la fuente (orden
@@ -432,14 +440,34 @@ export function ProductDetail() {
 
   // Modo escalón activo: hay escalones y el comprador eligió N>1.
   const inTierMode = hasTiers && tierUnits > 1;
-  // Selecciones efectivas por unidad según el toggle de la categoría:
-  //  - variantPerUnit=true  -> cada unidad su variante (tierSelections).
-  //  - variantPerUnit=false -> las N comparten la variante del selector único.
-  const effectiveTierSelections = !inTierMode
+  // Filas por unidad: se muestran siempre que haya más de una unidad, que la
+  // categoría pida variante por unidad y que haya ALGO que elegir. Sin ese último
+  // guard, un producto de un solo color y un solo talle sacaría N filas idénticas
+  // de una sola opción cada una.
+  const perUnitOpen = inTierMode && variantPerUnit && (colors.length > 1 || sizes.length > 1);
+  // Selecciones efectivas por unidad:
+  //  - filas por unidad -> cada unidad su variante (tierSelections).
+  //  - si no (categoría con variantPerUnit=false, o nada que elegir) -> las N
+  //    comparten la variante del selector único. Es el mecanismo que ya existía
+  //    para variantPerUnit=false, que sigue siendo un flag real de la categoría
+  //    (`category_volume_tiers.variant_per_unit`), no código muerto.
+  const effectiveTierSelections: UnitSelection[] = !inTierMode
     ? []
-    : variantPerUnit
+    : perUnitOpen
       ? tierSelections
       : Array.from({ length: tierUnits }, () => ({ size: selectedSize, color: selectedColor }));
+
+  // Resumen de la variante para la barra sticky mobile. Cuando las N unidades
+  // comparten variante se puede nombrar de verdad; con las filas por unidad puede
+  // haber cualquier combinación.
+  const tierVariantLabel = (() => {
+    const sel = effectiveTierSelections;
+    if (sel.length === 0) return null;
+    const [first] = sel;
+    if (!sel.every((s) => s.size === first.size && s.color === first.color)) return 'surtido';
+    const parts = [first.color, first.size].filter(Boolean);
+    return parts.length > 0 ? parts.join(' · ') : null;
+  })();
 
   // ¿Todas las N unidades tienen una variante válida y con stock suficiente?
   // (Respeta el stock agregado: si dos unidades eligen la misma variante, exige
@@ -498,9 +526,9 @@ export function ProductDetail() {
   const primaryAdd = inTierMode ? handleAddTier : handleAdd;
   const primaryDisabled = inTierMode ? !tierValid : !canAdd;
   const primaryLabel = inTierMode ? tierCtaLabel : ctaLabel;
-  // Mostrar los selectores únicos (talle/color de 1 unidad) cuando NO estamos en
-  // modo escalón, o cuando el escalón comparte una sola variante (variantPerUnit=false).
-  const showSingleSelectors = !inTierMode || !variantPerUnit;
+  // Mostrar los selectores únicos (un talle y un color) salvo cuando están
+  // abiertas las filas por unidad.
+  const showSingleSelectors = !perUnitOpen;
 
   return (
     <>
@@ -620,37 +648,54 @@ export function ProductDetail() {
             />
           )}
 
-          {/* Volume tiers: N sub-selectores (uno por unidad) cuando el escalón es
-              mayor a 1 y la categoría usa "variante por unidad". Talle → color. */}
-          {inTierMode && variantPerUnit && (
-            <div className="space-y-3">
-              {tierSelections.map((sel, i) => (
-                <div key={i} className="space-y-3 rounded-lg border border-line p-3">
-                  <p className="text-[12px] font-bold uppercase tracking-[0.06em] text-text">Unidad {i + 1}</p>
-                  {needSize && (
-                    <SizeSelector
-                      sizes={sizes}
-                      selected={sel.size}
-                      isDisabled={sizeDisabledFor(sel.color)}
-                      onSelect={(s) => updateTierUnit(i, { size: s })}
-                    />
-                  )}
-                  {needColor && (
-                    <ColorSelector
-                      colors={colors}
-                      selected={sel.color}
-                      onSelect={(c) => updateTierUnit(i, { color: c, size: null })}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
+          {/* ZONA DE VARIANTES — check, filas por unidad, color, talle y el
+              acordeón del recomendador. Va en su propio contenedor con `space-y-3`
+              (12px) en vez del `space-y-6` (24px) de la columna: son partes de una
+              misma decisión y con los chips más bajos ese aire de 24px entre color
+              y talle los desarmaba en bloques sueltos. Contra sus vecinos —precio
+              arriba, promesa de envío abajo— sigue habiendo 24px. */}
+          <div className="space-y-3">
+          {/* Filas por unidad: "Unidad N" + sus chips, color → talle, igual que el
+              flujo suelto de abajo. */}
+          {perUnitOpen && (
+            <UnitVariantRows
+              selections={tierSelections}
+              sizes={sizes}
+              colors={colors}
+              sizeDisabledFor={sizeDisabledFor}
+              colorDisabled={colorDisabled}
+              onChange={updateTierUnit}
+            />
+          )}
+
+          {/* COLOR antes que TALLE, un solo orden en toda la ficha (también en las
+              filas por unidad). El color es el eje que manda: los talles con stock
+              se calculan contra el color elegido y elegir color resetea el talle;
+              al revés el comprador elegía un talle que después se le borraba. */}
+          {showSingleSelectors && needColor && (
+            <ColorSelector
+              colors={colors}
+              selected={selectedColor}
+              isDisabled={colorDisabled}
+              onSelect={(c) => {
+                setSelectedColor(c);
+                setSelectedSize(null);
+              }}
+            />
           )}
 
           {showSingleSelectors && needSize && <SizeSelector sizes={sizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />}
 
-          {/* Recomendador de talle — plan TIENDA+, sólo si section_probador. Panel inline desplegable. */}
-          {showSingleSelectors && config.isPaid && config.sections.probador && (
+          {/* Recomendador de talle — plan TIENDA+, sólo si section_probador. Panel
+              inline desplegable.
+
+              Va SIEMPRE acá, pegado abajo de la zona de talle y una sola vez, tanto
+              en el flujo suelto como con las filas por unidad (antes desaparecía al
+              abrir las cajas UNIDAD). Nunca por unidad: la pregunta que contesta es
+              "cuál es MI talle", que tiene una sola respuesta. Por eso, con las
+              filas, aplicar la recomendación la escribe en todas las unidades —
+              quedan a la vista justo arriba y se pueden cambiar de a una. */}
+          {needSize && config.isPaid && config.sections.probador && (
             <div className="overflow-hidden rounded-md border border-line">
               <button
                 type="button"
@@ -671,22 +716,18 @@ export function ProductDetail() {
               </button>
               {showSizeFinder && (
                 <div className="animate-fade-in border-t border-line bg-secondary px-4 py-4">
-                  <SizeFinder sizes={sizes} onSelect={setSelectedSize} />
+                  <SizeFinder
+                    sizes={sizes}
+                    onSelect={(s) => {
+                      setSelectedSize(s);
+                      if (perUnitOpen) setTierSelections((prev) => prev.map((u) => ({ ...u, size: s })));
+                    }}
+                  />
                 </div>
               )}
             </div>
           )}
-
-          {showSingleSelectors && needColor && (
-            <ColorSelector
-              colors={colors}
-              selected={selectedColor}
-              onSelect={(c) => {
-                setSelectedColor(c);
-                setSelectedSize(null);
-              }}
-            />
-          )}
+          </div>
 
           {/* Promesa de envío */}
           {config.shippingPromiseEnabled && (
@@ -850,7 +891,13 @@ export function ProductDetail() {
               )}
             </p>
             {inTierMode ? (
-              <p className="mt-0.5 truncate text-[11px] text-subtle">Lleva {tierUnits}</p>
+              // Cuando las N unidades comparten variante la barra puede nombrarla
+              // de verdad en vez de quedarse en "Lleva N". Con las filas por unidad
+              // y variantes distintas no hay una variante que nombrar: "surtido".
+              <p className="mt-0.5 truncate text-[11px] text-subtle">
+                Lleva {tierUnits}
+                {tierVariantLabel ? ` · ${tierVariantLabel}` : ''}
+              </p>
             ) : (
               (selectedColor || selectedSize) && (
                 <p className="mt-0.5 truncate text-[11px] text-subtle">{[selectedColor, selectedSize].filter(Boolean).join(' · ')}</p>
