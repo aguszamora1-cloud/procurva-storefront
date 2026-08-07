@@ -155,6 +155,50 @@ html {
 }
 
 @layer utilities {
+  /* ── Tintes translúcidos de los colores del tenant ─────────────────────────
+     Reemplazo de los modificadores de opacidad de Tailwind (`bg-accent/5`),
+     que en este repo NO FUNCIONAN: los colores del tema son `var(--color-*)`
+     inyectadas en runtime, sin el placeholder `<alpha-value>`, así que Tailwind
+     no genera la clase y el elemento queda transparente — sin error de build ni
+     de tipos. Acá el tinte se arma con color-mix(), que sí resuelve la var en
+     runtime (soportado por todos los navegadores del baseline; ya se usa en
+     CardBadge, PromoCountdown y WholesalePurchasePanel).
+
+     El sufijo -aNN es el porcentaje de opacidad. Agregá el escalón que
+     necesites en vez de volver a escribir /NN — scripts/check-dead-opacity.mjs
+     falla el build si aparece.
+
+     No sirven para components/QuantityTierSelector.tsx: ese archivo está
+     espejado byte a byte con el ERP, que no tiene estas utilidades ni define
+     las `--color-*`. Ahí el color-mix va inline en un valor arbitrario. */
+  .bg-accent-a05 {
+    background-color: color-mix(in srgb, var(--color-accent) 5%, transparent);
+  }
+  .bg-accent-a10 {
+    background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  }
+  .border-accent-a40 {
+    border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  }
+  .border-accent-a50 {
+    border-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
+  }
+  .border-accent-a60 {
+    border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
+  }
+  /* Los ring-* de Tailwind pintan con box-shadow, así que la utilidad tiene que
+     setear la variable --tw-ring-color (igual que hace el `ring-accent` nativo),
+     no la propiedad ring-color. */
+  .ring-accent-a25 {
+    --tw-ring-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
+  }
+  .ring-accent-a40 {
+    --tw-ring-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+  }
+  .bg-on-primary-a20 {
+    background-color: color-mix(in srgb, var(--color-on-primary) 20%, transparent);
+  }
+
   .shape-circle {
     border-radius: 9999px !important;
   }

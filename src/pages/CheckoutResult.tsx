@@ -50,7 +50,7 @@ function TransferDetails({ amount }: { amount: number | null }) {
     'shrink-0 rounded-[7px] border border-line px-3 py-1.5 text-[12px] font-bold text-accent transition-colors hover:bg-accent hover:text-on-accent';
 
   return (
-    <div className="mt-2 w-full max-w-[440px] rounded-[12px] border border-accent/40 bg-accent/5 p-4 text-left">
+    <div className="mt-2 w-full max-w-[440px] rounded-[12px] border border-accent-a40 bg-accent-a05 p-4 text-left">
       <p className="mb-3 text-[13px] font-bold text-text">Datos para la transferencia</p>
       <div className="space-y-2.5">
         {ta.alias && (

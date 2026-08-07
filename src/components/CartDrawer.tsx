@@ -152,7 +152,7 @@ export function CartDrawer() {
           <div className="border-t border-line px-6 py-5">
             {/* Nudges: promos por cantidad a las que les falta poco para activarse. */}
             {nudges.map((n) => (
-              <div key={n.key} className="mb-3 rounded-lg border border-dashed border-accent/40 bg-accent/5 px-3 py-2 text-[12px] font-semibold text-accent">
+              <div key={n.key} className="mb-3 rounded-lg border border-dashed border-accent-a40 bg-accent-a05 px-3 py-2 text-[12px] font-semibold text-accent">
                 Agregá {n.missing} más y ahorrá — {n.message}
               </div>
             ))}

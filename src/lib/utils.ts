@@ -201,42 +201,19 @@ export function productCategories(product: Pick<Product, 'categories'>): string[
   return [];
 }
 
-/** Mapa de nombres de color (es) → hex para los swatches. Fallback gris. */
-const COLOR_HEX: Record<string, string> = {
-  negro: '#111111',
-  blanco: '#ffffff',
-  gris: '#9ca3af',
-  'gris claro': '#d1d5db',
-  'gris oscuro': '#4b5563',
-  rojo: '#dc2626',
-  bordo: '#7f1d1d',
-  azul: '#2563eb',
-  'azul marino': '#1e3a8a',
-  marino: '#1e3a8a',
-  celeste: '#38bdf8',
-  verde: '#16a34a',
-  'verde militar': '#4d5d3a',
-  amarillo: '#facc15',
-  naranja: '#f97316',
-  rosa: '#f472b6',
-  fucsia: '#db2777',
-  violeta: '#7c3aed',
-  morado: '#7c3aed',
-  marron: '#92400e',
-  marrón: '#92400e',
-  beige: '#e7d8b8',
-  crema: '#f5efe0',
-  camel: '#c19a6b',
-  nude: '#e8c5a8',
-  dorado: '#d4af37',
-  plateado: '#c0c0c0',
-};
-
-export function colorToHex(color: string | null | undefined): string {
-  if (!color) return '#9ca3af';
-  const key = color.trim().toLowerCase();
-  return COLOR_HEX[key] ?? '#9ca3af';
-}
+/**
+ * Nombre de color → hex para los swatches, con gris de fallback.
+ *
+ * El mapa vive en lib/colorHelper.ts, espejado con el ERP (ver el guard
+ * scripts/check-color-helper-mirror.mjs). Antes había acá un mapa propio de 27
+ * claves con match exacto que resolvía el 50% de los colores reales; el
+ * compartido tiene 94 claves más match por substring y llega al 71%.
+ *
+ * Para el selector de color de la ficha NO uses esto: usá resolveColorHex()
+ * directo, que devuelve null cuando no conoce el color en vez de mentir con un
+ * punto gris.
+ */
+export { getColorHex as colorToHex, resolveColorHex } from './colorHelper';
 
 /** Color del badge de catálogo → hex. Tonos vibrantes para que resalten. */
 const BADGE_HEX: Record<string, string> = {

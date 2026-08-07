@@ -408,7 +408,7 @@ export function ProductList() {
         <SlidersHorizontal className="h-4 w-4" />
         Filtros
         {activeCount > 0 && (
-          <span className="ml-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-md bg-on-primary/20 px-1.5 text-[11px]">
+          <span className="ml-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-md bg-on-primary-a20 px-1.5 text-[11px]">
             {activeCount}
           </span>
         )}

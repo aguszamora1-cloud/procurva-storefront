@@ -130,17 +130,36 @@ function cardsGridCols(count: number): string {
   return count >= 3 ? 'grid-cols-3' : 'grid-cols-2';
 }
 
-/** Sets de clases por paleta. Literales (no plantillas) para que Tailwind los vea. */
+/**
+ * Sets de clases por paleta. Literales (no plantillas) para que Tailwind los vea.
+ *
+ * OJO con la translucidez, que es distinta en cada repo:
+ *
+ *  - En el ADMIN los colores del tema son hex estáticos en tailwind.config.js
+ *    (accent: '#0052FF'), así que los modificadores de opacidad de Tailwind
+ *    funcionan normal: `border-accent/50`, `bg-accent-soft/60`.
+ *
+ *  - En el STOREFRONT son `var(--color-*)` inyectadas en runtime por tenant, y
+ *    SIN el placeholder `<alpha-value>`. Tailwind NO genera la clase con
+ *    modificador sobre esos tokens: `bg-accent/10` no existe en el CSS de salida
+ *    y el elemento se cae en silencio (ni error de build ni de tipos). Por eso
+ *    acá la translucidez va con `color-mix()` en valor arbitrario, que sí
+ *    resuelve la var en runtime. Mismo CSS que ya se usa inline en
+ *    WholesalePurchasePanel y CardBadge.
+ *
+ * No unifiques las dos ramas en una sola clase: lo que funciona en un repo se
+ * cae mudo en el otro.
+ */
 const SKINS = {
   storefront: {
     surface: 'bg-background',
     borderIdle: 'border-line hover:border-text',
-    borderFeatured: 'border-accent/50 hover:border-accent',
-    borderActive: 'border-accent bg-accent/5',
+    borderFeatured: 'border-[color:color-mix(in_srgb,var(--color-accent)_50%,transparent)] hover:border-accent',
+    borderActive: 'border-accent bg-[color:color-mix(in_srgb,var(--color-accent)_5%,transparent)]',
     heading: 'text-muted',
     title: 'text-text',
     muted: 'text-subtle',
-    badge: 'bg-accent/10 text-accent',
+    badge: 'bg-[color:color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-accent',
     ribbon: 'bg-accent text-on-accent',
     price: 'text-accent',
     // 'list': el seleccionado se marca sólo con el borde, sin cambiar el fondo.
@@ -150,6 +169,8 @@ const SKINS = {
   admin: {
     surface: 'bg-white dark:bg-gray-900',
     borderIdle: 'border-gray-200 dark:border-gray-700 hover:border-gray-400',
+    // check-dead-opacity: ok — el skin 'admin' sólo se usa en procurva2, donde
+    // `accent` es un hex estático y el modificador de opacidad sí se genera.
     borderFeatured: 'border-accent/50 hover:border-accent',
     borderActive: 'border-accent bg-accent-soft/60',
     heading: 'text-gray-400',

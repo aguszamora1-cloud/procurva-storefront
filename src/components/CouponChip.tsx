@@ -48,7 +48,7 @@ export function CouponChip({ items, mode, storeType, hasNonStackablePromo, showA
     return (
       <div
         className={`flex items-center justify-between gap-2 rounded-[8px] px-3 py-2 ${
-          active ? 'bg-accent/10' : 'bg-amber-50'
+          active ? 'bg-accent-a10' : 'bg-amber-50'
         } ${className}`}
       >
         <div className="flex min-w-0 items-center gap-2">
@@ -98,7 +98,7 @@ export function CouponChip({ items, mode, storeType, hasNonStackablePromo, showA
     <button
       type="button"
       onClick={() => setApplied(true)}
-      className={`flex w-full items-center gap-2 rounded-[8px] border border-dashed border-accent/50 bg-accent/5 px-3 py-2 text-left text-[12px] font-semibold text-accent transition-colors hover:bg-accent/10 ${className}`}
+      className={`flex w-full items-center gap-2 rounded-[8px] border border-dashed border-accent-a50 bg-accent-a05 px-3 py-2 text-left text-[12px] font-semibold text-accent transition-colors hover:bg-accent-a10 ${className}`}
     >
       <Tag size={15} className="shrink-0" />
       <span className="truncate">Tenés un cupón: {code} — Tocá para aplicar</span>
@@ -180,7 +180,7 @@ export function CouponPdpChip({ product, hasNonStackablePromo = false, className
   };
 
   return (
-    <div className={`flex items-center gap-2.5 rounded-lg border border-dashed border-accent/50 bg-accent/5 px-3 py-2.5 ${className}`}>
+    <div className={`flex items-center gap-2.5 rounded-lg border border-dashed border-accent-a50 bg-accent-a05 px-3 py-2.5 ${className}`}>
       <Tag className="h-4 w-4 shrink-0 text-accent" />
       <div className="min-w-0 flex-1">
         <p className="text-[13px] font-semibold text-accent">
@@ -196,7 +196,7 @@ export function CouponPdpChip({ product, hasNonStackablePromo = false, className
         type="button"
         onClick={copy}
         aria-label="Copiar código del cupón"
-        className="flex shrink-0 items-center gap-1 rounded-[6px] px-2 py-1 text-[12px] font-semibold text-accent transition-colors hover:bg-accent/10"
+        className="flex shrink-0 items-center gap-1 rounded-[6px] px-2 py-1 text-[12px] font-semibold text-accent transition-colors hover:bg-accent-a10"
       >
         {copied ? <Check size={14} /> : <Copy size={14} />}
         {copied ? '¡Copiado!' : 'Copiar'}

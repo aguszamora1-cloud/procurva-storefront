@@ -251,7 +251,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
                       onDragLeave={() => setDragOver(false)}
                       onDrop={onDrop}
                       className={`flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed px-2 text-center transition-colors ${
-                        dragOver ? 'border-accent bg-accent/5' : 'border-line hover:border-accent/60 hover:bg-secondary'
+                        dragOver ? 'border-accent bg-accent-a05' : 'border-line hover:border-accent-a60 hover:bg-secondary'
                       }`}
                     >
                       {status === 'uploading' ? (

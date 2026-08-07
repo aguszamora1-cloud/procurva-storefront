@@ -137,8 +137,8 @@ function RadioCard({
 }) {
   return (
     <label
-      className={`flex cursor-pointer items-start gap-3 rounded-[12px] px-4 py-3.5 transition-colors focus-within:ring-2 focus-within:ring-accent/40 ${
-        checked ? 'border-2 border-accent' : 'border border-line hover:border-accent/50'
+      className={`flex cursor-pointer items-start gap-3 rounded-[12px] px-4 py-3.5 transition-colors focus-within:ring-2 focus-within:ring-accent-a40 ${
+        checked ? 'border-2 border-accent' : 'border border-line hover:border-accent-a50'
       } ${className}`}
     >
       <input
@@ -802,7 +802,7 @@ export function Checkout() {
   // text-[16px] evita el zoom automático de iOS al enfocar un input (<16px).
   // Borde 1px neutro, radio 8px, sin sombra: sólo el focus ring del input.
   const inputCls =
-    'w-full rounded-[8px] border border-line bg-background px-3.5 py-2.5 text-[16px] font-normal text-text outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/25';
+    'w-full rounded-[8px] border border-line bg-background px-3.5 py-2.5 text-[16px] font-normal text-text outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent-a25';
   const labelCls = 'text-[13px] font-medium text-muted';
 
   // Link de WhatsApp para las salidas de contacto del panel (dudas / sin cobertura).
