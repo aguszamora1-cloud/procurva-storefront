@@ -260,13 +260,29 @@ export function ProductDetail() {
 
   // Volume tiers: mantener `tierSelections` con exactamente `tierUnits` slots (uno
   // por unidad), preservando lo ya elegido al cambiar de escalón.
+  //
+  // Las unidades NUEVAS arrancan con lo que ya eligió arriba (selectedSize/Color),
+  // no vacías: pasar de "Lleva 1" a "Lleva 3" con el color y el talle ya puestos
+  // tiene que llegar a las tres unidades, si no las filas abren en blanco y el
+  // comprador vuelve a elegir lo mismo tres veces.
+  // Devuelve `prev` cuando el largo ya coincide, para que re-correr por un cambio
+  // de color no pise las filas por unidad ni fuerce un render de más.
   useEffect(() => {
     setTierSelections((prev) => {
+      // Fuera del modo escalón el array se vacía. Si se mantuviera un slot en
+      // "Lleva 1", quedaría congelado con lo que hubiera al momento de crearlo
+      // —típicamente color sí, talle todavía no— y al pasar a "Lleva 3" la
+      // unidad 1 heredaría ESO mientras las otras dos arrancan con la elección
+      // actual: el comprador ya eligió talle arriba y la primera fila igual le
+      // aparece vacía. Antes lo tapaba el check, que reconstruía el array entero
+      // al abrir las filas.
+      if (tierUnits <= 1) return prev.length === 0 ? prev : [];
+      if (prev.length === tierUnits) return prev;
       const next = prev.slice(0, tierUnits);
-      while (next.length < tierUnits) next.push({ size: null, color: null });
+      while (next.length < tierUnits) next.push({ size: selectedSize, color: selectedColor });
       return next;
     });
-  }, [tierUnits]);
+  }, [tierUnits, selectedSize, selectedColor]);
 
   // Al cambiar de producto (la ruta reusa el componente), volver al escalón base.
   useEffect(() => {
@@ -435,8 +451,18 @@ export function ProductDetail() {
   // Talles sin stock para el color de esa unidad (deshabilitados en su SizeSelector).
   const sizeDisabledFor = (color: string | null) => (size: string) =>
     !variants.some((v) => v.size === size && (colors.length === 0 || !color || v.color === color) && (v.stock ?? 0) > 0);
-  const updateTierUnit = (i: number, patch: Partial<{ size: string | null; color: string | null }>) =>
+  const updateTierUnit = (i: number, patch: Partial<UnitSelection>) => {
     setTierSelections((prev) => prev.map((u, idx) => (idx === i ? { ...u, ...patch } : u)));
+    // Las filas por unidad no tocan selectedColor/selectedSize, así que espejamos
+    // la PRIMERA unidad en ellos. Dos razones: la galería salta a la foto de la
+    // variante por `selectedColor` (sin esto la foto se queda en el color
+    // anterior), y al volver a "Lleva 1" el flujo suelto aparece con lo último
+    // que el comprador eligió y no con algo viejo.
+    if (i === 0) {
+      if (patch.color !== undefined) setSelectedColor(patch.color);
+      if (patch.size !== undefined) setSelectedSize(patch.size);
+    }
+  };
 
   // Modo escalón activo: hay escalones y el comprador eligió N>1.
   const inTierMode = hasTiers && tierUnits > 1;

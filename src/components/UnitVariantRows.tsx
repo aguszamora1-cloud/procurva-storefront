@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { ColorSelector } from '@/components/ColorSelector';
 import { SizeSelector } from '@/components/SizeSelector';
 
@@ -45,7 +46,15 @@ export function UnitVariantRows({ selections, sizes, colors, sizeDisabledFor, co
   return (
     <div className="divide-y divide-line">
       {selections.map((sel, i) => (
-        <div key={i} className="space-y-1 py-2.5 first:pt-1 last:pb-0">
+        // `key` por índice a propósito: hace que al subir de escalón sólo las
+        // filas NUEVAS sean nodos nuevos, y la animación de entrada —que la
+        // dispara el montaje— corra sólo en ellas. Ver .animate-unit-row-in en
+        // globals.css: el escalonado sale de --unit-index.
+        <div
+          key={i}
+          className="animate-unit-row-in space-y-1 py-2.5 first:pt-1 last:pb-0"
+          style={{ '--unit-index': i } as CSSProperties}
+        >
           <p className="text-[12px] font-semibold text-subtle">Unidad {i + 1}</p>
           {colors.length > 0 && (
             <ColorSelector
