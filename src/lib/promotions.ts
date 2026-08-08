@@ -11,8 +11,39 @@
 import type { Product, StoreType } from './types';
 
 export interface PromotionItem {
-  item_type: 'category' | 'product';
+  // 'product_color' (migración 20260768) acota la promo a UN color del producto:
+  // item_id viaja como '<product_id>|<Color>'. Ver parsePromoColorItemId.
+  item_type: 'category' | 'product' | 'product_color';
   item_id: string;
+}
+
+/**
+ * Producto para el motor de promos. `variant_color` viene poblado en las "virtual
+ * cards" por color (toCatalogCards) y es lo que hace que la grilla resuelva el
+ * precio del color correcto sin que cada call site tenga que pasarlo a mano.
+ */
+export type PromoProduct = Pick<Product, 'id' | 'categories'> & { variant_color?: string | null };
+
+/** Comparación de colores tolerante: el color es texto libre de product_variants. */
+const normColor = (c: string): string => c.trim().toLowerCase();
+
+/** '<product_id>|<Color>' -> partes. null si el item_id está mal formado. */
+export function parsePromoColorItemId(itemId: string): { productId: string; color: string } | null {
+  const i = itemId.indexOf('|');
+  if (i <= 0) return null;
+  const color = itemId.slice(i + 1).trim();
+  return color ? { productId: itemId.slice(0, i), color } : null;
+}
+
+/** Colores de un producto alcanzados por la promo (vacío si no es por color). */
+export function promoColorsForProduct(promo: Promotion, productId: string): string[] {
+  const out: string[] = [];
+  for (const i of promo.ecommerce_promotion_items ?? []) {
+    if (i.item_type !== 'product_color') continue;
+    const parsed = parsePromoColorItemId(i.item_id);
+    if (parsed && parsed.productId === productId) out.push(parsed.color);
+  }
+  return out;
 }
 
 /** Fila de ecommerce_promotions + sus items (scope categories/products). */
@@ -88,12 +119,42 @@ export function promoDiscountValue(promo: Promotion, storeType: StoreType): numb
   return Number(v ?? 0);
 }
 
-/** ¿La promo alcanza a este producto? (scope all / categorías / productos). */
-export function promoAppliesToProduct(promo: Promotion, product: Pick<Product, 'id' | 'categories'>): boolean {
+/**
+ * ¿La promo alcanza a este producto? (scope all / categorías / productos).
+ *
+ * `color` es el color EN CONTEXTO (el elegido en la ficha, el de la línea del
+ * carrito, o el de la virtual card). Si se omite, cae a `product.variant_color`.
+ *
+ * Regla clave: una promo acotada a colores puntuales NO aplica cuando no hay
+ * color en contexto. Es a propósito — una card agrupada muestra UN precio para
+ * todo el producto; descontarlo ahí sería prometer un precio que solo vale para
+ * el rojo. El badge de "hay promo en algún color" lo resuelve promoColorsForProduct.
+ *
+ * Segunda regla: los items 'product_color' se IGNORAN en mayorista. El panel
+ * mayorista muestra un precio por producto y arma curvas/packs que mezclan
+ * colores (la curva surtida ni siquiera tiene color hasta que el server la
+ * explota), así que un descuento por color se filtraría a los demás. Éste es el
+ * único lugar donde se decide, igual que promoDiscountValue con el canal.
+ */
+export function promoAppliesToProduct(
+  promo: Promotion,
+  product: PromoProduct,
+  storeType: StoreType,
+  color?: string | null,
+): boolean {
   if (promo.scope === 'all') return true;
   const items = promo.ecommerce_promotion_items ?? [];
   if (promo.scope === 'products') {
-    return items.some((i) => i.item_type === 'product' && i.item_id === product.id);
+    // undefined = "no me pasaron color" -> uso el de la virtual card.
+    // null explícito = "esta línea no tiene color" -> no cae al de la card.
+    const effColor = color !== undefined ? color : product.variant_color ?? null;
+    const colorApplies = storeType !== 'wholesale' && !!effColor;
+    return items.some((i) => {
+      if (i.item_type === 'product') return i.item_id === product.id;
+      if (i.item_type !== 'product_color' || !colorApplies) return false;
+      const parsed = parsePromoColorItemId(i.item_id);
+      return !!parsed && parsed.productId === product.id && normColor(parsed.color) === normColor(effColor as string);
+    });
   }
   if (promo.scope === 'categories') {
     const cats = Array.isArray(product.categories) ? product.categories.filter(Boolean) : [];
@@ -131,15 +192,16 @@ export function applyPromoToPrice(price: number, promo: Promotion, storeType: St
  */
 export function getPromotionalPrice(
   originalPrice: number,
-  product: Pick<Product, 'id' | 'categories'>,
+  product: PromoProduct,
   promotions: Promotion[],
   storeType: StoreType,
+  color?: string | null,
 ): PromoResult {
   let best: { promo: Promotion; finalPrice: number } | null = null;
   for (const promo of promotions) {
     if (isQuantityPromo(promo)) continue; // las de cantidad se aplican en el carrito, no per-unit
     if (promoDiscountValue(promo, storeType) <= 0) continue;
-    if (!promoAppliesToProduct(promo, product)) continue;
+    if (!promoAppliesToProduct(promo, product, storeType, color)) continue;
     const finalPrice = applyPromoToPrice(originalPrice, promo, storeType);
     if (finalPrice >= originalPrice) continue; // no descuenta nada
     if (!best || finalPrice < best.finalPrice) best = { promo, finalPrice };
@@ -162,16 +224,17 @@ const scopeRank = (p: Promotion): number => (p.scope === 'products' ? 0 : p.scop
 
 /** Mejor promo POR CANTIDAD aplicable a un producto (para badge/banner condicional). */
 export function quantityPromoForProduct(
-  product: Pick<Product, 'id' | 'categories'>,
+  product: PromoProduct,
   promotions: Promotion[],
   storeType: StoreType,
+  color?: string | null,
 ): Promotion | null {
   let best: Promotion | null = null;
   let bestV = 0;
   for (const promo of promotions) {
     if (!isQuantityPromo(promo)) continue;
     const v = promoDiscountValue(promo, storeType);
-    if (v <= 0 || !promoAppliesToProduct(promo, product)) continue;
+    if (v <= 0 || !promoAppliesToProduct(promo, product, storeType, color)) continue;
     if (!best || scopeRank(promo) < scopeRank(best) || (scopeRank(promo) === scopeRank(best) && v > bestV)) {
       best = promo;
       bestV = v;
@@ -195,6 +258,8 @@ export interface QtyPromoCartLine {
   key: string;
   productId: string;
   categories: string[];
+  /** Color de la línea, para las promos acotadas a un color. null = sin color. */
+  color: string | null;
   qty: number;
   /** Precio unitario actual (puede ya incluir una promo automática). */
   unitPriceBase: number;
@@ -215,8 +280,8 @@ export interface QtyPromoLineResult {
   unitPriceOriginal: number;
 }
 
-const matchesLine = (promo: Promotion, line: QtyPromoCartLine): boolean =>
-  promoAppliesToProduct(promo, { id: line.productId, categories: line.categories });
+const matchesLine = (promo: Promotion, line: QtyPromoCartLine, storeType: StoreType): boolean =>
+  promoAppliesToProduct(promo, { id: line.productId, categories: line.categories }, storeType, line.color);
 
 /**
  * Calcula las promos por cantidad sobre TODO el carrito. Devuelve un mapa por
@@ -233,13 +298,13 @@ export function computeQuantityPromos(
   const totalForPromo = new Map<string, number>();
   for (const promo of qPromos) {
     let total = 0;
-    for (const line of lines) if (matchesLine(promo, line)) total += line.qty;
+    for (const line of lines) if (matchesLine(promo, line, storeType)) total += line.qty;
     totalForPromo.set(promo.id, total);
   }
 
   const out = new Map<string, QtyPromoLineResult>();
   for (const line of lines) {
-    const applicable = qPromos.filter((p) => matchesLine(p, line));
+    const applicable = qPromos.filter((p) => matchesLine(p, line, storeType));
     // Promo activa que deje el mejor precio.
     let activeBest: { promo: Promotion; finalUnit: number } | null = null;
     // Promo no activa más cercana al mínimo (para el nudge).
@@ -280,17 +345,61 @@ export function computeQuantityPromos(
   return out;
 }
 
-/** Mejor promo aplicable a un producto (para badge/countdown), sin un precio puntual. */
-export function bestPromoForProduct(
-  product: Pick<Product, 'id' | 'categories'>,
+/** Promo que alcanza SOLO algunos colores del producto (para el badge informativo). */
+export interface PromoColorHint {
+  promo: Promotion;
+  /** Colores de este producto que sí están en promo. */
+  colors: string[];
+}
+
+/**
+ * Caso de la card AGRUPADA (un producto, varios colores, un solo precio): hay una
+ * promo vigente pero solo para algunos colores, así que el precio de la card NO
+ * baja. Devuelve la promo + los colores alcanzados para poder avisarlo ("30% OFF
+ * en Rojo") en vez de callarlo o, peor, tachar un precio que no aplica.
+ *
+ * Devuelve null si la card ya tiene color propio (ahí la promo aplica de verdad)
+ * o si la promo alcanza al producto entero.
+ */
+export function colorPromoHintForProduct(
+  product: PromoProduct,
   promotions: Promotion[],
   storeType: StoreType,
+): PromoColorHint | null {
+  if (product.variant_color) return null;
+  // En mayorista las promos por color no se aplican (ver promoAppliesToProduct):
+  // anunciarlas sería prometer un descuento que el panel no hace.
+  if (storeType === 'wholesale') return null;
+  let best: PromoColorHint | null = null;
+  let bestValue = 0;
+  for (const promo of promotions) {
+    if (isQuantityPromo(promo)) continue;
+    const v = promoDiscountValue(promo, storeType);
+    if (v <= 0) continue;
+    // Si ya alcanza al producto entero, el precio de la card baja solo: no es "hint".
+    if (promoAppliesToProduct(promo, product, storeType, null)) continue;
+    const colors = promoColorsForProduct(promo, product.id);
+    if (colors.length === 0) continue;
+    if (!best || v > bestValue) {
+      best = { promo, colors };
+      bestValue = v;
+    }
+  }
+  return best;
+}
+
+/** Mejor promo aplicable a un producto (para badge/countdown), sin un precio puntual. */
+export function bestPromoForProduct(
+  product: PromoProduct,
+  promotions: Promotion[],
+  storeType: StoreType,
+  color?: string | null,
 ): Promotion | null {
   let best: Promotion | null = null;
   for (const promo of promotions) {
     if (isQuantityPromo(promo)) continue; // las de cantidad tienen su propio badge condicional
     const v = promoDiscountValue(promo, storeType);
-    if (v <= 0 || !promoAppliesToProduct(promo, product)) continue;
+    if (v <= 0 || !promoAppliesToProduct(promo, product, storeType, color)) continue;
     if (!best) {
       best = promo;
     } else {

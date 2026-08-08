@@ -4,9 +4,13 @@ import { formatPrice, getPriceInfo } from '@/lib/utils';
 import type { Product } from '@/lib/types';
 
 interface Props {
-  product: Pick<Product, 'id' | 'categories' | 'retail_price' | 'retail_price_card' | 'retail_price_transfer' | 'compare_at_price'>;
+  product: Pick<Product, 'id' | 'categories' | 'retail_price' | 'retail_price_card' | 'retail_price_transfer' | 'compare_at_price'> & {
+    variant_color?: string | null;
+  };
   /** 'card' = grilla. 'detail' = ficha (precio accent grande + badge inline). */
   variant?: 'card' | 'detail';
+  /** Color elegido, para las promos acotadas a un color (ver PriceStack). */
+  color?: string | null;
 }
 
 /**
@@ -19,7 +23,7 @@ interface Props {
  *     transferencia es más barato. Luego, cuotas sin interés sobre el precio de tarjeta.
  * El badge de promo sobre la imagen lo pone ProductCard.
  */
-export function PriceDisplay({ product, variant = 'card' }: Props) {
+export function PriceDisplay({ product, variant = 'card', color }: Props) {
   const config = useStore();
   const { priceFor } = usePromotions();
   const { mainPrice, cardPrice, cashPrice, cashDiscountPct, comparePrice, hasCard } = getPriceInfo(product);
@@ -31,10 +35,10 @@ export function PriceDisplay({ product, variant = 'card' }: Props) {
   const detail = variant === 'detail';
 
   // Promoción automática sobre el precio principal (y el de contado, si hay).
-  const promoMain = priceFor(mainPrice, product);
+  const promoMain = priceFor(mainPrice, product, color);
   const onPromo = Boolean(promoMain.promo);
   const shownMain = onPromo ? promoMain.finalPrice : mainPrice;
-  const shownCash = cashPrice != null ? (onPromo ? priceFor(cashPrice, product).finalPrice : cashPrice) : null;
+  const shownCash = cashPrice != null ? (onPromo ? priceFor(cashPrice, product, color).finalPrice : cashPrice) : null;
 
   // Tachado: en promo, el precio sin promo; si no, el precio de lista anterior.
   const strikePrice = onPromo ? mainPrice : comparePrice;

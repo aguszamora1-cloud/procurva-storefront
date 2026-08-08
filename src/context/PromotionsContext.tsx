@@ -3,13 +3,16 @@ import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
 import {
   bestPromoForProduct,
+  colorPromoHintForProduct,
   getPromotionalPrice,
   quantityPromoForProduct,
   quantityPromoMessage,
+  type PromoColorHint,
+  type PromoProduct,
   type Promotion,
   type PromoResult,
 } from '@/lib/promotions';
-import type { Product, StoreType } from '@/lib/types';
+import type { StoreType } from '@/lib/types';
 
 /**
  * Promociones automáticas activas de la tienda (ecommerce_promotions). Se cargan
@@ -17,17 +20,25 @@ import type { Product, StoreType } from '@/lib/types';
  * en vez de una query por producto. Los helpers son storeType-aware: usan el
  * descuento minorista o mayorista según el modo de la tienda resuelto.
  */
+/**
+ * Todos los helpers aceptan un `color` opcional: es el color EN CONTEXTO (el
+ * elegido en la ficha o el de la línea del carrito), necesario para las promos
+ * acotadas a un color (item_type='product_color'). Si no se pasa, cae al
+ * `variant_color` de la virtual card — por eso la grilla ya funciona sin cambios.
+ */
 interface PromotionsValue {
   promotions: Promotion[];
   loading: boolean;
   /** Mejor promo aplicable a un producto (para badge/countdown). */
-  promoForProduct: (product: Pick<Product, 'id' | 'categories'>) => Promotion | null;
+  promoForProduct: (product: PromoProduct, color?: string | null) => Promotion | null;
   /** Precio promocional de un precio de referencia para un producto (storeType-aware). */
-  priceFor: (originalPrice: number, product: Pick<Product, 'id' | 'categories'>) => PromoResult;
+  priceFor: (originalPrice: number, product: PromoProduct, color?: string | null) => PromoResult;
   /** Mejor promo POR CANTIDAD aplicable a un producto (badge/banner condicional). */
-  quantityPromoFor: (product: Pick<Product, 'id' | 'categories'>) => Promotion | null;
+  quantityPromoFor: (product: PromoProduct, color?: string | null) => Promotion | null;
   /** Mensaje de la promo por cantidad de un producto (o null si no tiene). */
-  quantityMessageFor: (product: Pick<Product, 'id' | 'categories'>) => string | null;
+  quantityMessageFor: (product: PromoProduct, color?: string | null) => string | null;
+  /** Promo vigente solo en ALGUNOS colores de un producto sin color en contexto. */
+  colorPromoHintFor: (product: PromoProduct) => PromoColorHint | null;
   /** Promos con banner de tienda completa (scope 'all' + banner_image_url). */
   bannerPromotions: Promotion[];
 }
@@ -39,6 +50,7 @@ const PromotionsContext = createContext<PromotionsValue>({
   priceFor: (p) => ({ finalPrice: p, promo: null, savings: 0, discountPct: 0 }),
   quantityPromoFor: () => null,
   quantityMessageFor: () => null,
+  colorPromoHintFor: () => null,
   bannerPromotions: [],
 });
 
@@ -89,26 +101,33 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
   const effectiveStoreType: StoreType = storeType ?? 'retail';
 
   const promoForProduct = useCallback(
-    (product: Pick<Product, 'id' | 'categories'>) => bestPromoForProduct(product, promotions, effectiveStoreType),
+    (product: PromoProduct, color?: string | null) =>
+      bestPromoForProduct(product, promotions, effectiveStoreType, color),
     [promotions, effectiveStoreType],
   );
 
   const priceFor = useCallback(
-    (originalPrice: number, product: Pick<Product, 'id' | 'categories'>) =>
-      getPromotionalPrice(originalPrice, product, promotions, effectiveStoreType),
+    (originalPrice: number, product: PromoProduct, color?: string | null) =>
+      getPromotionalPrice(originalPrice, product, promotions, effectiveStoreType, color),
     [promotions, effectiveStoreType],
   );
 
   const quantityPromoFor = useCallback(
-    (product: Pick<Product, 'id' | 'categories'>) => quantityPromoForProduct(product, promotions, effectiveStoreType),
+    (product: PromoProduct, color?: string | null) =>
+      quantityPromoForProduct(product, promotions, effectiveStoreType, color),
     [promotions, effectiveStoreType],
   );
 
   const quantityMessageFor = useCallback(
-    (product: Pick<Product, 'id' | 'categories'>) => {
-      const promo = quantityPromoForProduct(product, promotions, effectiveStoreType);
+    (product: PromoProduct, color?: string | null) => {
+      const promo = quantityPromoForProduct(product, promotions, effectiveStoreType, color);
       return promo ? quantityPromoMessage(promo, effectiveStoreType) : null;
     },
+    [promotions, effectiveStoreType],
+  );
+
+  const colorPromoHintFor = useCallback(
+    (product: PromoProduct) => colorPromoHintForProduct(product, promotions, effectiveStoreType),
     [promotions, effectiveStoreType],
   );
 
@@ -119,8 +138,8 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<PromotionsValue>(
-    () => ({ promotions, loading, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, bannerPromotions }),
-    [promotions, loading, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, bannerPromotions],
+    () => ({ promotions, loading, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, colorPromoHintFor, bannerPromotions }),
+    [promotions, loading, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, colorPromoHintFor, bannerPromotions],
   );
 
   return <PromotionsContext.Provider value={value}>{children}</PromotionsContext.Provider>;

@@ -111,6 +111,8 @@ interface PdpProps {
   product: Product;
   /** El producto tiene una promo automática NO acumulable con cupones. */
   hasNonStackablePromo?: boolean;
+  /** Color elegido en la ficha: el precio base debe ser el de ESE color. */
+  color?: string | null;
   className?: string;
 }
 
@@ -129,7 +131,7 @@ interface PdpProps {
  * precio + nota "desde $min"; (d) promo no acumulable → oculto; (e) canal
  * equivocado → oculto.
  */
-export function CouponPdpChip({ product, hasNonStackablePromo = false, className = '' }: PdpProps) {
+export function CouponPdpChip({ product, hasNonStackablePromo = false, color = null, className = '' }: PdpProps) {
   const { savedCoupon, couponRecord } = useCoupon();
   const { priceFor } = usePromotions();
   const storeType = useStoreType() ?? 'retail';
@@ -140,7 +142,7 @@ export function CouponPdpChip({ product, hasNonStackablePromo = false, className
   const { mainPrice } = getPriceInfo(product);
   if (mainPrice <= 0) return null;
   // Precio principal EXACTO de PriceDisplay (con promo automática si la hay).
-  const basePrice = priceFor(mainPrice, product).finalPrice;
+  const basePrice = priceFor(mainPrice, product, color).finalPrice;
 
   // Carrito sintético de 1 unidad de este producto: reusa la evaluación (canal,
   // alcance, promo no acumulable). El mínimo se maneja aparte (es informativo).

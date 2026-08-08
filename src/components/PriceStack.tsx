@@ -5,9 +5,18 @@ import type { Product } from '@/lib/types';
 import { PriceHierarchy, type PriceVariant } from './PriceHierarchy';
 
 interface Props {
-  product: Pick<Product, 'id' | 'categories' | 'retail_price' | 'retail_price_card' | 'retail_price_transfer' | 'compare_at_price'>;
+  product: Pick<Product, 'id' | 'categories' | 'retail_price' | 'retail_price_card' | 'retail_price_transfer' | 'compare_at_price'> & {
+    variant_color?: string | null;
+  };
   /** 'card' = grilla · 'detail' = ficha · 'compact' = filas chicas (complementarios). */
   variant?: PriceVariant;
+  /**
+   * Color elegido, para las promos acotadas a un color. Lo pasa la FICHA (donde el
+   * color se elige); la grilla no lo necesita porque la virtual card ya trae
+   * `variant_color`. Sin esto, la ficha mostraría el precio de lista mientras el
+   * carrito cobra el promocional.
+   */
+  color?: string | null;
 }
 
 /**
@@ -16,7 +25,7 @@ interface Props {
  * carrito/checkout/orden/cupones) y delega la JERARQUÍA en `PriceHierarchy`
  * (contado protagonista, tarjeta secundaria). 'compact' omite las cuotas.
  */
-export function PriceStack({ product, variant = 'card' }: Props) {
+export function PriceStack({ product, variant = 'card', color }: Props) {
   const config = useStore();
   const { priceFor } = usePromotions();
   const { mainPrice, cardPrice, cashPrice, cashDiscountPct, comparePrice, hasCard } = getPriceInfo(product);
@@ -26,10 +35,10 @@ export function PriceStack({ product, variant = 'card' }: Props) {
   }
 
   // Promoción automática aplicada al precio de tarjeta y al de contado.
-  const promoMain = priceFor(mainPrice, product);
+  const promoMain = priceFor(mainPrice, product, color);
   const onPromo = Boolean(promoMain.promo);
   const shownCard = onPromo ? promoMain.finalPrice : mainPrice;
-  const shownCash = cashPrice != null ? (onPromo ? priceFor(cashPrice, product).finalPrice : cashPrice) : null;
+  const shownCash = cashPrice != null ? (onPromo ? priceFor(cashPrice, product, color).finalPrice : cashPrice) : null;
   const hasCashDiscount = shownCash != null && shownCash > 0 && shownCash < shownCard && cashDiscountPct > 0;
 
   const installments =

@@ -56,6 +56,8 @@ export function useCartPromos(): CartPromosValue {
         key: cartLineKey(it),
         productId: it.product_id,
         categories: Array.isArray(it.categories) ? (it.categories.filter(Boolean) as string[]) : [],
+        // Color de la línea: lo necesitan las promos acotadas a un color.
+        color: it.color ?? null,
         qty: it.qty,
         unitPriceBase: it.unit_price,
         unitPriceOriginal: it.unit_price_original ?? it.unit_price,

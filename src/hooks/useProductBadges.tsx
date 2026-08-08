@@ -33,6 +33,12 @@ export interface ProductBadgesOptions {
    * solo se muestra en el detalle, no en las cards del listado.
    */
   includeQuantityPromo?: boolean;
+  /**
+   * Color en contexto (el elegido en la ficha). La grilla no lo pasa: las virtual
+   * cards ya traen `variant_color` y el motor cae a ese. Sin esto, una promo
+   * acotada a un color no mostraría badge en la ficha aunque el precio sí baje.
+   */
+  color?: string | null;
 }
 
 /** Texto legible sobre `bg`: contraste si es hex, var de acento si es CSS var. */
@@ -55,13 +61,13 @@ export function useProductBadges(
   product: Product | null | undefined,
   options: ProductBadgesOptions = {},
 ): ProductBadges {
-  const { includeQuantityPromo = true } = options;
+  const { includeQuantityPromo = true, color } = options;
   // TS lo tipa como siempre presente, pero defensivamente lo tratamos como
   // opcional: un cache normalizado viejo (pre-badges) podría no traer el campo.
   const storeBadges = useStore().badges;
   const cfg = storeBadges as typeof storeBadges | undefined;
   const isWholesale = useStoreType() === 'wholesale';
-  const { promoForProduct, quantityPromoFor } = usePromotions();
+  const { promoForProduct, quantityPromoFor, colorPromoHintFor } = usePromotions();
 
   // Globales con defaults defensivos.
   const style: BadgeStyle = cfg?.style ?? 'solid';
@@ -72,8 +78,12 @@ export function useProductBadges(
   // Los hooks de arriba ya corrieron, así que respetamos las reglas de hooks.
   if (!product) return { outOfStock: false, badges: [], style, position, showIcons };
 
-  const promo = promoForProduct(product);
-  const qtyPromo = quantityPromoFor(product);
+  const promo = promoForProduct(product, color);
+  const qtyPromo = quantityPromoFor(product, color);
+  // Card agrupada (un producto, varios colores, UN precio) con una promo que solo
+  // alcanza algunos colores: el precio no baja, así que el badge lo dice en vez de
+  // prometer un descuento que no aplica a todo el producto.
+  const colorHint = promo ? null : colorPromoHintFor(product);
   const { comparePrice, compareDiscountPct } = getPriceInfo(product);
   const onSale = Boolean(comparePrice && compareDiscountPct > 0);
 
@@ -107,6 +117,13 @@ export function useProductBadges(
   if (promo) {
     const bg = promo.badge_color || 'var(--color-accent)';
     badges.push({ key: 'promo', bg, color: onBg(bg), label: promo.badge_text || 'PROMO' });
+  } else if (colorHint) {
+    const bg = colorHint.promo.badge_color || 'var(--color-accent)';
+    const base = colorHint.promo.badge_text || 'PROMO';
+    // Hasta 2 colores se nombran; de ahí en más el badge quedaría ilegible.
+    const donde =
+      colorHint.colors.length <= 2 ? colorHint.colors.join(' y ') : `${colorHint.colors.length} colores`;
+    badges.push({ key: 'promo_color', bg, color: onBg(bg), label: `${base} en ${donde}` });
   } else if (qtyPromo && includeQuantityPromo) {
     const bg = qtyPromo.badge_color || 'var(--color-accent)';
     badges.push({ key: 'qty_promo', bg, color: onBg(bg), label: qtyPromo.badge_text || 'PROMO' });

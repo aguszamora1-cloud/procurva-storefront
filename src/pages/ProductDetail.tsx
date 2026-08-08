@@ -137,12 +137,15 @@ export function ProductDetail() {
   const { priceFor, promoForProduct, quantityPromoFor, quantityMessageFor } = usePromotions();
   const { tiersForProduct } = useCategoryTiers();
   const { sections: pdSections } = useProductDetailCustomSections();
-  // Badges de la ficha: misma fuente de verdad que la grilla (config.badges +
-  // candidatos/prioridad). En el detalle se renderizan inline (sin esquina).
-  const { badges: detailBadges, style: badgeStyle, showIcons: badgeShowIcons } = useProductBadges(product);
-
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  // Badges de la ficha: misma fuente de verdad que la grilla (config.badges +
+  // candidatos/prioridad). En el detalle se renderizan inline (sin esquina).
+  // Va DESPUÉS de selectedColor porque el badge de promo depende del color elegido
+  // (una promo puede alcanzar solo algunos colores).
+  const { badges: detailBadges, style: badgeStyle, showIcons: badgeShowIcons } = useProductBadges(product, {
+    color: selectedColor,
+  });
   // PROTOTIPO volume tiers: cantidad de unidades del escalón elegido (1 = flujo
   // normal suelto) y la variante elegida por cada unidad (talle + color).
   const [tierUnits, setTierUnits] = useState(1);
@@ -343,12 +346,15 @@ export function ProductDetail() {
 
   const { mainPrice, cashPrice } = getPriceInfo(product);
   // Promoción automática vigente: descuenta el precio que se muestra y el que va al carrito.
-  const promo = promoForProduct(product);
-  const finalPrice = priceFor(mainPrice, product).finalPrice; // precio prominente con promo aplicada
-  const finalCash = cashPrice != null ? priceFor(cashPrice, product).finalPrice : null;
+  // Se pasa el color elegido porque una promo puede alcanzar SOLO algunos colores
+  // (item_type='product_color'): sin esto, elegir "Rojo" mostraría el precio de
+  // lista aunque el rojo esté liquidado (y al revés, en los otros colores).
+  const promo = promoForProduct(product, selectedColor);
+  const finalPrice = priceFor(mainPrice, product, selectedColor).finalPrice; // precio prominente con promo aplicada
+  const finalCash = cashPrice != null ? priceFor(cashPrice, product, selectedColor).finalPrice : null;
   // Promo por cantidad (descuento condicional: se activa al llegar al mínimo en el carrito).
-  const qtyPromo = quantityPromoFor(product);
-  const qtyPromoMsg = quantityMessageFor(product);
+  const qtyPromo = quantityPromoFor(product, selectedColor);
+  const qtyPromoMsg = quantityMessageFor(product, selectedColor);
   const displayPrice = finalPrice; // precio prominente (tarjeta/transferencia, ya con promo)
   const needColor = colors.length > 0;
   const needSize = sizes.length > 0;
@@ -633,11 +639,11 @@ export function ProductDetail() {
 
           {!isWholesale && (
           <>
-          <PriceStack product={product} variant="detail" />
+          <PriceStack product={product} variant="detail" color={selectedColor} />
 
           {/* Chip informativo del cupón guardado: cuánto pagarías por este producto
               con el cupón + copiar el código. No aplica nada (eso pasa en el checkout). */}
-          <CouponPdpChip product={product} hasNonStackablePromo={promo?.stackable_with_coupons === false} className="mt-3" />
+          <CouponPdpChip product={product} hasNonStackablePromo={promo?.stackable_with_coupons === false} color={selectedColor} className="mt-3" />
 
           {/* Promo por cantidad: banner informativo. El precio NO se tacha (el
               descuento se aplica recién al llegar al mínimo en el carrito). */}
