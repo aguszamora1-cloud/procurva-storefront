@@ -146,9 +146,16 @@ export function Home() {
   // Secciones personalizadas: cada una se referencia en sections_order como
   // `custom:<uuid>`. Las agregamos al mapa de nodos para que se intercalen.
   const customKeys: string[] = [];
+  // Secciones que NO se revelan con fade (ver el render de abajo).
+  const noReveal = new Set<string>();
   for (const cs of customSections) {
     const key = `custom:${cs.id}`;
     customKeys.push(key);
+    // Franjas finas de color a sangre: el fade del Reveal no se lee como una
+    // animación sino como un hueco blanco entre la sección de arriba y la de
+    // abajo (el placeholder ocupa el alto en opacity-0). En una barra de ~40px
+    // no hay nada que "revelar": tiene que estar pintada desde el principio.
+    if (cs.section_type === 'marquee' || cs.section_type === 'divider') noReveal.add(key);
     // Switch (no ternario): un section_type que este build no conoce todavía
     // debe NO renderizar nada. Con el ternario anterior caía en el `else` y se
     // dibujaba como sección de texto (encabezado y cuerpo vacíos).
@@ -214,8 +221,11 @@ export function Home() {
         const node = nodes[key];
         if (!node) return null;
         // Hero y trust badges van arriba del fold: se muestran de una, sin fade
-        // (animarlos perjudicaría la carga inicial y el LCP).
-        if (key === 'hero' || key === 'trust_badges') return <Fragment key={key}>{node}</Fragment>;
+        // (animarlos perjudicaría la carga inicial y el LCP). Las franjas finas
+        // (barras de anuncios, separadores) tampoco: ver `noReveal`.
+        if (key === 'hero' || key === 'trust_badges' || noReveal.has(key)) {
+          return <Fragment key={key}>{node}</Fragment>;
+        }
         return <Reveal key={key}>{node}</Reveal>;
       })}
     </div>
