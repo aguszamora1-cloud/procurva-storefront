@@ -28,9 +28,18 @@ export function CategoriesIndex() {
         slug={config.slug}
         siteName={config.name}
       />
+      {/* La volanta sale de la misma config que la sección del home: si el
+          comercio la borró en el editor, tampoco aparece acá. El H1 no: es una
+          página propia y necesita titular sí o sí. */}
       <header className="mb-8">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[2px] text-accent">Explorá</p>
-        <h1 className="font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[44px]">Categorías</h1>
+        {config.sectionHeadings.categories?.label && (
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[2px] text-accent">
+            {config.sectionHeadings.categories.label}
+          </p>
+        )}
+        <h1 className="font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[44px]">
+          {config.sectionHeadings.categories?.title || 'Categorías'}
+        </h1>
       </header>
 
       {isLoading ? (
