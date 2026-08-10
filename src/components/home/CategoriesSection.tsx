@@ -191,7 +191,7 @@ export function CategoriesSection({ products }: { products: Product[] }) {
                 type="button"
                 aria-label="Anterior"
                 onClick={() => scrollByDir(-1)}
-                className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-background/90 text-on-surface shadow-card-hover backdrop-blur transition-colors hover:text-accent md:h-10 md:w-10 md:bg-background"
+                className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-background-a90 text-on-surface shadow-card-hover backdrop-blur transition-colors hover:text-accent md:h-10 md:w-10 md:bg-background"
               >
                 <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
               </button>
@@ -199,7 +199,7 @@ export function CategoriesSection({ products }: { products: Product[] }) {
                 type="button"
                 aria-label="Siguiente"
                 onClick={() => scrollByDir(1)}
-                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-background/90 text-on-surface shadow-card-hover backdrop-blur transition-colors hover:text-accent md:h-10 md:w-10 md:bg-background"
+                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-background-a90 text-on-surface shadow-card-hover backdrop-blur transition-colors hover:text-accent md:h-10 md:w-10 md:bg-background"
               >
                 <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
               </button>

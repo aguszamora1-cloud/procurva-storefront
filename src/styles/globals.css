@@ -198,6 +198,11 @@ html {
   .bg-on-primary-a20 {
     background-color: color-mix(in srgb, var(--color-on-primary) 20%, transparent);
   }
+  /* Flechas del carrusel de categorías: apoyan sobre la foto, así que el fondo
+     tiene que dejar ver algo abajo sin perder el contraste del ícono. */
+  .bg-background-a90 {
+    background-color: color-mix(in srgb, var(--color-background) 90%, transparent);
+  }
 
   .shape-circle {
     border-radius: 9999px !important;
