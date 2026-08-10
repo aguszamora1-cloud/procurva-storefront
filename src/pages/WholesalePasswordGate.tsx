@@ -76,7 +76,7 @@ export function WholesalePasswordGate() {
           <button
             type="submit"
             disabled={submitting || !password.trim()}
-            className="w-full bg-neutral-900 px-8 py-3.5 text-sm font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="w-full bg-neutral-900 px-8 py-3.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {submitting ? 'Verificando…' : 'Ingresar'}
           </button>

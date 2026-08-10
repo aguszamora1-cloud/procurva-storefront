@@ -17,7 +17,7 @@ export function StoreNotFound() {
       </p>
       <a
         href="https://procurva.app"
-        className="mt-8 inline-flex items-center gap-2 bg-neutral-900 px-8 py-3.5 text-sm font-bold uppercase tracking-wide text-white transition-opacity hover:opacity-90"
+        className="mt-8 inline-flex items-center gap-2 bg-neutral-900 px-8 py-3.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
       >
         ¿Querés tu propia tienda? → ProCurva
       </a>

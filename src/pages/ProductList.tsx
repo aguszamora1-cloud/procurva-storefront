@@ -289,7 +289,7 @@ export function ProductList() {
       type="button"
       onClick={clearAll}
       disabled={activeCount === 0}
-      className="text-[12px] font-semibold uppercase tracking-[0.5px] text-on-surface-muted transition-colors hover:text-accent disabled:opacity-40 disabled:hover:text-on-surface-muted"
+      className="text-[14px] font-medium text-on-surface-muted transition-colors hover:text-accent disabled:opacity-40 disabled:hover:text-on-surface-muted"
     >
       Limpiar filtros
     </button>
@@ -320,7 +320,7 @@ export function ProductList() {
             <button
               type="button"
               onClick={clearSeccion}
-              className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.5px] text-on-surface-muted transition-colors hover:text-accent"
+              className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-medium text-on-surface-muted transition-colors hover:text-accent"
             >
               <X className="h-3.5 w-3.5" />
               {sectionView.clear}
@@ -335,7 +335,7 @@ export function ProductList() {
               next.delete('q');
               setSearchParams(next, { replace: true });
             }}
-            className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.5px] text-on-surface-muted transition-colors hover:text-accent"
+            className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-medium text-on-surface-muted transition-colors hover:text-accent"
           >
             <X className="h-3.5 w-3.5" />
             Limpiar búsqueda
@@ -403,7 +403,7 @@ export function ProductList() {
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-md bg-primary px-6 py-3 text-[13px] font-bold uppercase tracking-[0.5px] text-on-primary shadow-lg lg:hidden"
+        className="fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-md bg-primary px-6 py-3 text-[15px] font-medium text-on-primary shadow-lg lg:hidden"
       >
         <SlidersHorizontal className="h-4 w-4" />
         Filtros
@@ -453,7 +453,7 @@ export function ProductList() {
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
-            className="block w-full rounded-[10px] bg-accent py-3.5 text-center text-[14px] font-bold uppercase tracking-[0.5px] text-on-accent transition-transform hover:scale-[1.01]"
+            className="block w-full rounded-[10px] bg-accent py-3.5 text-center text-[15px] font-medium text-on-accent transition-transform hover:scale-[1.01]"
           >
             Ver {countLabel}
           </button>

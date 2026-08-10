@@ -46,7 +46,7 @@ export function CustomSplitSection({ section }: { section: CustomSection }) {
           {c.button_text && c.button_link && (
             <SectionLink
               to={c.button_link}
-              className="mt-2 inline-flex w-fit items-center border border-current px-8 py-3.5 text-[13px] font-bold uppercase tracking-[0.5px] transition-opacity hover:opacity-75"
+              className="mt-2 inline-flex w-fit items-center border border-current px-8 py-3.5 text-[14px] font-medium transition-opacity hover:opacity-75"
             >
               {c.button_text}
             </SectionLink>

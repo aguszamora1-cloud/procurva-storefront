@@ -21,11 +21,11 @@ export function RouteNotFound() {
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <Link
           to="/"
-          className="rounded-[10px] bg-primary px-8 py-3.5 text-[14px] font-bold uppercase tracking-[0.5px] text-on-primary transition-all hover:bg-accent hover:text-on-accent"
+          className="rounded-[10px] bg-primary px-8 py-3.5 text-[15px] font-medium text-on-primary transition-all hover:bg-accent hover:text-on-accent"
         >
           Volver al inicio
         </Link>
-        <Link to="/productos" className="text-[13px] uppercase tracking-wide text-subtle hover:text-accent">
+        <Link to="/productos" className="text-[14px] text-subtle hover:text-accent">
           Ver productos
         </Link>
       </div>

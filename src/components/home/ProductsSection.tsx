@@ -39,7 +39,7 @@ export function ProductsSection({ label, title, subtitle, products, maxItems, li
         <div className="mt-8 flex justify-center md:mt-10">
           <Link
             to={linkTo}
-            className="inline-flex items-center border border-line px-8 py-3.5 text-[13px] font-bold uppercase tracking-[0.5px] text-on-surface transition-colors hover:border-accent hover:text-accent"
+            className="inline-flex items-center border border-line px-8 py-3.5 text-[14px] font-medium text-on-surface transition-colors hover:border-accent hover:text-accent"
           >
             Ver más productos
           </Link>

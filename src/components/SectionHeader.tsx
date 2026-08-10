@@ -38,7 +38,7 @@ export function SectionHeader({ label, title, subtitle, linkTo, linkText }: Prop
   const link = linkTo ? (
     <Link
       to={linkTo}
-      className="shrink-0 whitespace-nowrap text-[13px] font-semibold uppercase tracking-[0.5px] text-muted transition-colors hover:text-accent"
+      className="shrink-0 whitespace-nowrap text-[14px] font-medium text-muted transition-colors hover:text-accent"
     >
       {linkText ?? 'Ver todo'}
     </Link>

@@ -122,7 +122,7 @@ export function NewsletterSection() {
                 type="submit"
                 disabled={status === 'loading'}
                 style={{ backgroundColor: buttonBg, color: buttonFg }}
-                className={`px-6 py-3 text-sm font-bold uppercase tracking-[0.03em] transition-opacity hover:opacity-90 disabled:opacity-60 ${FOCUS_RING}`}
+                className={`px-6 py-3 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-60 ${FOCUS_RING}`}
               >
                 {status === 'loading' ? 'Enviando…' : buttonText}
               </button>

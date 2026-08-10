@@ -6,7 +6,7 @@ import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
 
 const drawerLink = ({ isActive }: { isActive: boolean }) =>
-  `block py-3 text-[15px] tracking-[1px] font-semibold uppercase transition-colors ${
+  `block py-3 text-[15px] font-medium transition-colors ${
     isActive ? 'text-accent' : 'text-on-surface hover:text-accent'
   }`;
 
@@ -245,14 +245,14 @@ export function Navbar() {
             type="button"
             onClick={open}
             aria-label="Abrir carrito"
-            className="relative inline-flex items-center gap-2 text-[14px] font-semibold uppercase tracking-[0.5px] text-on-surface transition-colors hover:text-accent"
+            className="relative inline-flex items-center gap-2 text-[14px] font-medium text-on-surface transition-colors hover:text-accent"
           >
             <svg className="sm:hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
               <path d="M3 6h18" />
               <path d="M16 10a4 4 0 0 1-8 0" />
             </svg>
-            <span className="hidden sm:inline">CARRITO</span>
+            <span className="hidden sm:inline">Carrito</span>
             {itemCount > 0 && (
               <span className="shape-circle absolute -right-3 -top-2 inline-flex h-[18px] min-w-[18px] items-center justify-center bg-accent px-1.5 py-0.5 text-[10px] font-bold leading-none text-on-accent sm:static sm:translate-y-0">
                 {itemCount}
@@ -293,7 +293,7 @@ export function Navbar() {
           )}
           <button
             type="submit"
-            className="shrink-0 rounded-md bg-primary px-4 py-2 text-[13px] font-bold uppercase tracking-[0.5px] text-on-primary transition-transform hover:scale-[1.02]"
+            className="shrink-0 rounded-md bg-primary px-4 py-2 text-[14px] font-medium text-on-primary transition-transform hover:scale-[1.02]"
           >
             Buscar
           </button>
@@ -364,7 +364,7 @@ export function Navbar() {
                     key={c}
                     to={`/categoria/${encodeURIComponent(c)}`}
                     onClick={() => setMenuOpen(false)}
-                    className="block py-2 text-[13px] font-medium uppercase tracking-[0.5px] text-on-surface-muted transition-colors hover:text-accent"
+                    className="block py-2 text-[14px] text-on-surface-muted transition-colors hover:text-accent"
                   >
                     {c}
                   </Link>
@@ -378,7 +378,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={goToOutfits}
-              className="block w-full py-3 text-left text-[15px] font-semibold uppercase tracking-[1px] text-on-surface transition-colors hover:text-accent"
+              className="block w-full py-3 text-left text-[15px] font-medium text-on-surface transition-colors hover:text-accent"
             >
               Outfits
             </button>

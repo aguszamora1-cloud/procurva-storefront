@@ -18,10 +18,12 @@ const CTA_SHAPE: Record<string, string> = {
   pill: 'rounded-full',
 };
 
+// Cuerpos más grandes que los de antes: el texto dejó de ir en mayúsculas y en
+// minúscula el mismo tamaño se lee mucho más chico.
 const CTA_SIZE: Record<string, string> = {
-  sm: 'px-6 py-2.5 text-[11px] md:px-7 md:text-[12px]',
-  md: 'px-8 py-4 text-[12px] md:px-10 md:text-[13px]',
-  lg: 'px-10 py-5 text-[13px] md:px-14 md:text-[15px]',
+  sm: 'px-6 py-2.5 text-[13px] md:px-7 md:text-[14px]',
+  md: 'px-8 py-4 text-[15px] md:px-10 md:text-[16px]',
+  lg: 'px-10 py-5 text-[17px] md:px-14 md:text-[18px]',
 };
 
 // 'light'/'dark' son colores fijos a propósito: el CTA va sobre una foto, no
@@ -36,7 +38,7 @@ const CTA_VARIANT: Record<string, string> = {
 
 function ctaClass(cta: { shape: string; size: string; variant: string }): string {
   return [
-    'inline-flex items-center justify-center font-bold uppercase tracking-[0.5px] transition-all duration-200 hover:scale-[1.02]',
+    'inline-flex items-center justify-center font-medium transition-all duration-200 hover:scale-[1.02]',
     CTA_SHAPE[cta.shape] ?? CTA_SHAPE.rounded,
     CTA_SIZE[cta.size] ?? CTA_SIZE.md,
     CTA_VARIANT[cta.variant] ?? CTA_VARIANT.accent,

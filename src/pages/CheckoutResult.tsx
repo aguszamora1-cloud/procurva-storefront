@@ -174,7 +174,7 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
           href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-1 inline-flex items-center justify-center gap-2.5 rounded-[10px] bg-[#25D366] px-8 py-4 text-[15px] font-bold uppercase tracking-[0.5px] text-white shadow-sm transition-transform hover:scale-[1.02]"
+          className="mt-1 inline-flex items-center justify-center gap-2.5 rounded-[10px] bg-[#25D366] px-8 py-4 text-[15px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
         >
           <MessageCircle size={20} strokeWidth={2.2} />
           Coordinar pago por WhatsApp
@@ -182,15 +182,15 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
       )}
       <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
         {variant === 'failure' ? (
-          <Link to="/checkout" className="rounded-[10px] bg-primary px-7 py-3.5 text-[14px] font-bold uppercase tracking-[0.5px] text-on-primary transition-all hover:bg-accent hover:text-on-accent">
+          <Link to="/checkout" className="rounded-[10px] bg-primary px-7 py-3.5 text-[15px] font-medium text-on-primary transition-all hover:bg-accent hover:text-on-accent">
             Reintentar
           </Link>
         ) : (
-          <Link to="/productos" className="rounded-[10px] bg-primary px-7 py-3.5 text-[14px] font-bold uppercase tracking-[0.5px] text-on-primary transition-all hover:bg-accent hover:text-on-accent">
+          <Link to="/productos" className="rounded-[10px] bg-primary px-7 py-3.5 text-[15px] font-medium text-on-primary transition-all hover:bg-accent hover:text-on-accent">
             Seguir comprando
           </Link>
         )}
-        <Link to="/" className="text-[12px] uppercase tracking-wide text-subtle hover:text-accent">
+        <Link to="/" className="text-[14px] text-subtle hover:text-accent">
           Volver al inicio
         </Link>
       </div>

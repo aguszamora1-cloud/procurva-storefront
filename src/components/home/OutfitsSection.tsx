@@ -559,11 +559,10 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
           <button
             onClick={handleAdd}
             disabled={!canAdd}
-            className="mt-3 w-full text-[13px] font-bold uppercase transition-colors"
+            className="mt-3 w-full text-[15px] font-medium transition-colors"
             style={{
               background: actionBg,
               color: '#fff',
-              letterSpacing: '1.5px',
               padding: '14px',
               borderRadius: '8px',
               cursor: canAdd ? 'pointer' : 'not-allowed',
