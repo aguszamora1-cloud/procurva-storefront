@@ -61,7 +61,9 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // v9: se suman `heroCta` (forma/tamaño/color del botón del hero) y `heroMode`.
 // Hero.tsx lee `config.heroCta.shape` sin guarda, así que una entrada v8 —que no
 // trae el objeto— reventaría el primer paint.
-const cacheKey = (slug: string) => `procurva_store_config_v9:${slug}`;
+// v10: suma `showVariantColors`. Una entrada v9 no lo trae y ProductCard lo lee
+// sin guarda: los círculos se apagarían solos en el primer paint de la sesión.
+const cacheKey = (slug: string) => `procurva_store_config_v10:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 

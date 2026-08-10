@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useStoreType } from '@/context/StoreProvider';
+import { useStore, useStoreType } from '@/context/StoreProvider';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
 import { usePromotions } from '@/context/PromotionsContext';
 import { applyPromoToPrice } from '@/lib/promotions';
@@ -27,7 +27,11 @@ export function ProductCard({ product, priority = false }: { product: Product; p
   const detailHref = product.variant_color
     ? `/producto/${product.id}?color=${encodeURIComponent(product.variant_color)}`
     : `/producto/${product.id}`;
-  const siblingColors = product.variant_color ? product.sibling_colors ?? [] : [];
+  // Los círculos de color se pueden apagar por tienda: una tienda cuyas variantes
+  // no son colores reales (talles, medidas, "Único") termina con una fila de
+  // grises sin sentido debajo del precio.
+  const { showVariantColors } = useStore();
+  const siblingColors = showVariantColors && product.variant_color ? product.sibling_colors ?? [] : [];
   const isWholesale = useStoreType() === 'wholesale';
   const { curveTiers, curvaSurtidaTiers, productPacks } = useWholesalePricing();
   const { promoForProduct } = usePromotions();
@@ -107,7 +111,10 @@ export function ProductCard({ product, priority = false }: { product: Product; p
             Fuera del <Link> de arriba para no anidar links. El contenedor reserva su
             alto SIEMPRE (con o sin colores) para que el footer arranque a la misma
             altura en todas las tarjetas de la fila. */}
-        <div className="mt-2 flex min-h-[20px] flex-wrap items-center gap-1.5">
+        {/* Con los círculos apagados no se reserva nada: el hueco existe para
+            emparejar las cards ENTRE SÍ, y si no hay círculos en ninguna, todas
+            quedan parejas igual. */}
+        <div className={`mt-2 flex flex-wrap items-center gap-1.5 ${showVariantColors ? 'min-h-[20px]' : ''}`}>
           {siblingColors.length > 0 &&
             siblingColors.slice(0, 5).map((c) => (
               <Link

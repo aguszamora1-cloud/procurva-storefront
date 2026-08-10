@@ -487,6 +487,8 @@ export interface RawCatalogSettings {
   category_title_align?: 'left' | 'center' | 'right';
   // Modo de visualización de la sección de categorías en el home.
   categories_display_mode?: 'grid' | 'carousel';
+  /** Círculos de color de las variantes en las cards del listado. Default true. */
+  show_variant_colors?: boolean;
   // Diseño de la sección de categorías: columnas (en desktop) y estilo de card.
   // Las imágenes por categoría NO viven acá: se guardan en
   // catalog_category_order.image_url (las lee useCategories como cat.imageUrl).
@@ -791,6 +793,12 @@ export interface StoreConfig {
   sectionTitleAlign: 'left' | 'center' | 'right';
   // Modo de visualización de la sección de categorías del home.
   categoriesDisplayMode: 'grid' | 'carousel';
+  /**
+   * Círculos de color de las variantes debajo del precio, en las cards del
+   * listado. Se apagan para las tiendas cuyas variantes no son colores reales.
+   * No afecta al selector de color de la ficha: ahí hay que poder elegir.
+   */
+  showVariantColors: boolean;
   // Diseño de la sección de categorías: columnas (desktop, 2 fijas en mobile) y
   // estilo de card. Las imágenes por categoría viven en catalog_category_order.
   categoriesSection: {

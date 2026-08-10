@@ -212,6 +212,10 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     // Modo de visualización de la sección de categorías. Default 'grid'.
     categoriesDisplayMode: s.categories_display_mode === 'carousel' ? 'carousel' : 'grid',
 
+    // Círculos de color en las cards. Default true: es lo que venían mostrando
+    // todas las tiendas, y la clave no existe en ninguna todavía.
+    showVariantColors: bool(s.show_variant_colors, true),
+
     // Diseño de la sección de categorías. Columns default 3; cardStyle default 'overlay'.
     categoriesSection: {
       columns: ((): 2 | 3 | 4 => {
