@@ -14,7 +14,7 @@ import { cartLineKey, groupCartItems, evalMinOrder } from '@/lib/cart';
 import { applyPromoToPrice } from '@/lib/promotions';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, checkCartStock, CouponError, StockError, type CouponErrorCode, type CustomerInfo, type StockShortfall, type PriceBreakdown } from '@/lib/orders';
-import { expandMethod, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
+import { expandMethod, hasOwnZoneCoverage, methodAvailableForChannel, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption, type StoreChannel } from '@/lib/shipping';
 import { looksLikePhone } from '@/lib/phone';
 import { computeDiscount, eligibleSubtotal, eligibleItems } from '@/lib/coupons';
 import { track } from '@/lib/tracking';
@@ -346,8 +346,21 @@ export function Checkout() {
     };
   }, [config.companyId]);
 
+  // La lista de métodos es ÚNICA para la tienda minorista y la mayorista, así que
+  // primero la acotamos al canal de esta tienda: el mismo envío puede tener precio
+  // distinto según el canal (típico: en mayorista lo paga siempre el cliente) y se
+  // resuelve cargando un método por canal. Sin `channels` definido, el método vale
+  // para los dos (los métodos viejos no cambian de conducta).
+  // Si el filtro deja la lista vacía (config a medias), caemos al fallback
+  // "a coordinar" antes que dejar al cliente sin forma de elegir la entrega.
+  const channelMethods = useMemo(() => {
+    const channel: StoreChannel = isWholesale ? 'mayorista' : 'minorista';
+    const filtered = methods.filter((m) => methodAvailableForChannel(m, channel));
+    return filtered.length > 0 ? filtered : FALLBACK_METHODS;
+  }, [methods, isWholesale]);
+
   // ¿Hay métodos de envío a domicilio? Si sólo hay retiro en local no pedimos CP.
-  const hasDeliveryMethods = useMemo(() => methods.some((m) => m.requiresAddress), [methods]);
+  const hasDeliveryMethods = useMemo(() => channelMethods.some((m) => m.requiresAddress), [channelMethods]);
 
   // CP efectivo: el del calculador (appliedCp) o, si no, el que el cliente tipea en el
   // campo de dirección (form.zip). Así puede completar la dirección sin pasar por el
@@ -369,13 +382,13 @@ export function Checkout() {
   const availableMethods = useMemo(() => {
     // En la zona de reparto propio (cadete), se ocultan las transportadoras
     // nacionales (Correo Argentino / Vía Cargo): si llegamos con cadete, no las ofrecemos ahí.
-    const ownZone = hasOwnZoneCoverage(methods, cpNum);
-    return methods.filter((m) => {
+    const ownZone = hasOwnZoneCoverage(channelMethods, cpNum);
+    return channelMethods.filter((m) => {
       if (!m.requiresAddress) return true;         // retiro: no depende del CP
       if (!cpNum) return !coversEverywhere(m);      // sin CP: solo logística propia (zona acotada)
       return methodAvailableForPostalCode(m, cpNum, ownZone);
     });
-  }, [methods, cpNum]);
+  }, [channelMethods, cpNum]);
 
   // Grupos del selector: "Retirar en el local" (retiro presencial, sin dirección) vs
   // "Envío" (el paquete viaja: domicilio + retiro en sucursal del correo). El predicado

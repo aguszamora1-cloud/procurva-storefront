@@ -11,10 +11,32 @@ export type ShippingIconName = 'truck' | 'store' | 'bike' | 'package';
  */
 export type ShippingKind = 'local-pickup' | 'home' | 'branch';
 
+/** Canal de la tienda donde se ofrece un método (espejo de `StoreChannel` en procurva2). */
+export type StoreChannel = 'minorista' | 'mayorista';
+
+/**
+ * Canales en los que se ofrece el método. `undefined` = ambos (comportamiento
+ * histórico: los métodos cargados antes de existir este campo no cambian).
+ */
+export function parseChannels(raw: unknown): StoreChannel[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const valid = raw.filter((c): c is StoreChannel => c === 'minorista' || c === 'mayorista');
+  // Vacío o los dos = sin restricción, mismo criterio con el que lo guarda el panel.
+  return valid.length === 0 || valid.length === 2 ? undefined : valid;
+}
+
+/** ¿El método se ofrece en el canal dado? Sin `channels` definido → sí (ambos). */
+export function methodAvailableForChannel(m: ShippingOption, channel: StoreChannel): boolean {
+  if (!m.channels) return true;
+  return m.channels.includes(channel);
+}
+
 /** Método de envío normalizado, derivado de companies.settings.shippingMethods. */
 export interface ShippingOption {
   id: string;
   name: string;
+  /** Canales donde se ofrece. undefined = ambos. */
+  channels?: StoreChannel[];
   /** Naturaleza del método (agrupación y copy en el checkout). */
   kind: ShippingKind;
   /** true si el método necesita dirección (no es retiro en local). */
@@ -165,6 +187,7 @@ export function toShippingOption(m: any): ShippingOption {
   return {
     id: String(m.id ?? m.name),
     name: String(m.name ?? 'Envío'),
+    channels: parseChannels(m.channels),
     kind: isPickup ? 'local-pickup' : 'home',
     requiresAddress: !isPickup,
     pickupAddress: typeof m.pickupAddress === 'string' && m.pickupAddress.trim() ? m.pickupAddress.trim() : undefined,
@@ -193,10 +216,12 @@ export function expandMethod(m: any): ShippingOption[] {
     const eta = etaFor(m, false);
     const coversAllPostalCodes = m.coversAllPostalCodes === true;
     const postalCodeRanges = parsePostalCodeRanges(m.postalCodes);
+    const channels = parseChannels(m.channels);
     return [
       {
         id: `${baseId}:domicilio`,
         name: `${baseName} (Envío a domicilio)`,
+        channels,
         kind: 'home',
         requiresAddress: true,
         cost: variantCost(m.homeDeliveryCost, m.cost),
@@ -209,6 +234,7 @@ export function expandMethod(m: any): ShippingOption[] {
       {
         id: `${baseId}:sucursal`,
         name: `${baseName} (Retiro en sucursal)`,
+        channels,
         kind: 'branch',
         requiresAddress: true,
         cost: variantCost(m.branchCost, m.cost),
