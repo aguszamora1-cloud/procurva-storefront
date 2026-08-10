@@ -2,6 +2,7 @@ import { CustomBannerSection } from '@/components/home/CustomBannerSection';
 import { CustomTextSection } from '@/components/home/CustomTextSection';
 import { CustomMarqueeSection } from '@/components/home/CustomMarqueeSection';
 import { CustomFaqSection } from '@/components/home/CustomFaqSection';
+import { CustomLocationsSection } from '@/components/home/CustomLocationsSection';
 import type { CustomSection, CustomSectionVariant, ProductDetailSlot } from '@/lib/types';
 
 /**
@@ -32,6 +33,8 @@ export function CustomSectionNode({
       return <CustomMarqueeSection section={section} />;
     case 'faq':
       return <CustomFaqSection section={section} variant={variant} />;
+    case 'locations':
+      return <CustomLocationsSection section={section} variant={variant} />;
     default:
       return null;
   }

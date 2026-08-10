@@ -25,6 +25,7 @@ import { CustomVideoSection } from '@/components/home/CustomVideoSection';
 import { CustomFaqSection } from '@/components/home/CustomFaqSection';
 import { CustomDividerSection } from '@/components/home/CustomDividerSection';
 import { CustomCategoriesSection } from '@/components/home/CustomCategoriesSection';
+import { CustomLocationsSection } from '@/components/home/CustomLocationsSection';
 import { PromoBannerAuto } from '@/components/PromoBannerAuto';
 import { useCustomSections } from '@/hooks/useCustomSections';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
@@ -192,6 +193,9 @@ export function Home() {
         break;
       case 'categories':
         nodes[key] = <CustomCategoriesSection section={cs} />;
+        break;
+      case 'locations':
+        nodes[key] = <CustomLocationsSection section={cs} />;
         break;
       default:
         nodes[key] = null;

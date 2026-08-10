@@ -41,7 +41,8 @@ export type CustomSectionType =
   | 'video'
   | 'faq'
   | 'divider'
-  | 'categories';
+  | 'categories'
+  | 'locations';
 export type CustomSectionPageContext = 'home' | 'product_detail';
 export type ProductDetailSlot =
   | 'above_description'
@@ -234,6 +235,72 @@ export interface CustomSectionCategoriesContent {
   slot?: ProductDetailSlot;
 }
 
+/**
+ * Contenido del tipo 'locations' ("Dónde encontrarnos").
+ *
+ * Guarda REFERENCIAS, no ubicaciones: los datos viven en `storefront_locations`
+ * y los trae `useLocations`. Si estuvieran embebidos acá, cambiar una dirección
+ * obligaría a editar cada sección que la muestre.
+ *
+ * `location_ids` ausente o vacío = todas las ubicaciones activas del tenant.
+ */
+export interface CustomSectionLocationsContent {
+  /** Pisa el título derivado del tipo de ubicaciones. */
+  title?: string;
+  location_ids?: string[] | null;
+  slot?: ProductDetailSlot;
+}
+
+/** Tipo de ubicación física: define el CTA y qué se muestra de cada una. */
+export type StorefrontLocationType = 'local' | 'showroom' | 'pickup' | 'warehouse';
+
+/** Franja horaria de un día (0 = domingo). */
+export interface StorefrontLocationHourRange {
+  day: number;
+  open: string;
+  close: string;
+}
+
+/**
+ * Horarios de una ubicación. `ranges` es lo que permite el pill "Abierto ahora";
+ * `note` es texto libre. NULL es el caso NORMAL (1 de 8 comercios los carga),
+ * no un dato faltante: sin horarios, esa línea simplemente no se pinta.
+ */
+export interface StorefrontLocationHours {
+  ranges?: StorefrontLocationHourRange[];
+  note?: string;
+}
+
+/** Fila de `storefront_locations` (sólo lectura desde el storefront). */
+export interface StorefrontLocation {
+  id: string;
+  location_type: StorefrontLocationType;
+  name: string;
+  /** Dirección tal cual la escribió el comercio. NO se parsea ni se usa para armar un mapa. */
+  address_line: string;
+  city: string | null;
+  province: string | null;
+  lat: number | null;
+  lng: number | null;
+  /**
+   * De dónde salieron lat/lng cuando el comercio pegó el link:
+   *  - 'place':  el punto del local. Es el único caso en que se embebe el mapa.
+   *  - 'camera': el encuadre del mapa, que puede estar a cuadras del negocio.
+   *  - null:     fila anterior a la migración 20260772, origen desconocido.
+   * Con 'camera' o null se muestra la dirección y el botón, sin mapa: del lado
+   * del visitante nadie puede darse cuenta de que el pin está corrido.
+   */
+  coords_source: 'place' | 'camera' | null;
+  maps_url: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  hours: StorefrontLocationHours | null;
+  by_appointment: boolean;
+  photo_url: string | null;
+  notes: string | null;
+  position: number;
+}
+
 export interface CustomSection {
   id: string;
   company_id: string;
@@ -251,7 +318,8 @@ export interface CustomSection {
     | CustomSectionVideoContent
     | CustomSectionFaqContent
     | CustomSectionDividerContent
-    | CustomSectionCategoriesContent;
+    | CustomSectionCategoriesContent
+    | CustomSectionLocationsContent;
   is_visible: boolean;
   page_context: CustomSectionPageContext;
   position: number;

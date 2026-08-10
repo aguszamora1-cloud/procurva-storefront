@@ -203,6 +203,13 @@ html {
   .bg-background-a90 {
     background-color: color-mix(in srgb, var(--color-background) 90%, transparent);
   }
+  /* Separador interno de una tarjeta: la línea del tema a media intensidad, para
+     dividir sin cortar. `border-line/60` era la forma intuitiva de escribirlo y
+     es justo la que no genera CSS — quedaba en el gris por defecto de Tailwind,
+     que no es el color del tema de la tienda. */
+  .border-line-a60 {
+    border-color: color-mix(in srgb, var(--color-line) 60%, transparent);
+  }
 
   .shape-circle {
     border-radius: 9999px !important;
