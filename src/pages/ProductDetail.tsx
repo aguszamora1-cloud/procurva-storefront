@@ -761,16 +761,23 @@ export function ProductDetail() {
           )}
           </div>
 
-          {/* Promesa de envío */}
-          {config.shippingPromiseEnabled && (
+          {/* Promesa de envío. Si el comercio vació el título (y no cargó
+              subtítulo) no queda una línea con el camioncito y nada más: la
+              promesa entera desaparece. */}
+          {config.shippingPromiseEnabled && (config.shippingPromiseTitle || config.shippingPromiseSubtitle) && (
             <p
               className="flex items-center gap-2 text-[14px]"
               style={{ color: config.shippingPromiseColor }}
             >
               <Truck size={17} className="flex-none" />
-              <span className="font-semibold">{config.shippingPromiseTitle}</span>
+              {config.shippingPromiseTitle && (
+                <span className="font-semibold">{config.shippingPromiseTitle}</span>
+              )}
               {config.shippingPromiseSubtitle && (
-                <span className="opacity-70">· {config.shippingPromiseSubtitle}</span>
+                <span className="opacity-70">
+                  {config.shippingPromiseTitle ? '· ' : ''}
+                  {config.shippingPromiseSubtitle}
+                </span>
               )}
             </p>
           )}

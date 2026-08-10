@@ -113,7 +113,8 @@ export function ComplementaryBlock({ contexto, product, preferredSize, className
 
   return (
     <section className={`rounded-2xl border border-line p-4 ${className ?? ''}`}>
-      <h3 className="mb-3 text-[15px] font-semibold text-text">{block.titulo}</h3>
+      {/* Título vaciado desde el editor → el bloque va sin encabezado. */}
+      {block.titulo && <h3 className="mb-3 text-[15px] font-semibold text-text">{block.titulo}</h3>}
       <ul className="space-y-2">
         {shown.map((card) => (
           <ComplementRow

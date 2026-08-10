@@ -216,8 +216,11 @@ export function NewsletterPopup() {
           </div>
         ) : (
           <>
-            <h2 className="pr-6 text-xl font-extrabold uppercase leading-tight tracking-tight md:text-2xl">{popup.title}</h2>
-            {popup.subtitle && <p className="mt-1.5 text-sm opacity-70">{popup.subtitle}</p>}
+            {/* Título vaciado desde el editor → el popup va directo al formulario. */}
+            {popup.title && (
+              <h2 className="pr-6 text-xl font-extrabold uppercase leading-tight tracking-tight md:text-2xl">{popup.title}</h2>
+            )}
+            {popup.subtitle && <p className={`text-sm opacity-70 ${popup.title ? 'mt-1.5' : 'pr-6'}`}>{popup.subtitle}</p>}
 
             <form className="mt-5 space-y-3" onSubmit={submit}>
               {popup.askName && (

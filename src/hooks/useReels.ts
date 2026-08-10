@@ -3,7 +3,13 @@ import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
 import type { Reel } from '@/lib/types';
 
-const COLS = 'id, url, poster_url, caption, duration_ms, product_id, sort_order';
+const COLS_BASE = 'id, url, poster_url, caption, duration_ms, product_id, sort_order';
+// linked_product_id nace con 20260773, que se aplica A MANO. Si todavía no
+// corrió, nombrarla en el SELECT tira 42703 y se lleva puesta la sección entera
+// (mismo patrón de fallback que useProducts). Recordamos el diagnóstico por
+// sesión para no pagar el doble-query en cada navegación.
+const COLS = `${COLS_BASE}, linked_product_id`;
+let preferBaseColumns = false;
 
 /**
  * Videos verticales del tenant (tabla catalog_reels), ordenados por sort_order.
@@ -40,18 +46,27 @@ export function useReels(
     let cancelled = false;
     setIsLoading(true);
     (async () => {
-      let q = supabase
-        .from('catalog_reels')
-        .select(COLS)
-        .eq('company_id', companyId)
-        .eq('placement', placement)
-        .eq('is_visible', true);
-      q = placement === 'product' ? q.eq('product_id', productId as string) : q.is('product_id', null);
-      // 'both' o el canal activo. storeType puede no estar resuelto todavía.
-      const channel = storeType === 'wholesale' ? 'wholesale' : 'retail';
-      q = q.in('catalog_type', ['both', channel]);
+      const run = (cols: string) => {
+        let q = supabase
+          .from('catalog_reels')
+          .select(cols)
+          .eq('company_id', companyId)
+          .eq('placement', placement)
+          .eq('is_visible', true);
+        q = placement === 'product' ? q.eq('product_id', productId as string) : q.is('product_id', null);
+        // 'both' o el canal activo. storeType puede no estar resuelto todavía.
+        const channel = storeType === 'wholesale' ? 'wholesale' : 'retail';
+        q = q.in('catalog_type', ['both', channel]);
+        return q.order('sort_order', { ascending: true });
+      };
 
-      const { data, error } = await q.order('sort_order', { ascending: true });
+      let { data, error } = preferBaseColumns ? await run(COLS_BASE) : await run(COLS);
+      // 20260773 sin aplicar: reintentamos sin la columna. Los videos se ven
+      // igual, sólo que sin card de producto.
+      if (error && /linked_product_id/i.test(error.message)) {
+        preferBaseColumns = true;
+        ({ data, error } = await run(COLS_BASE));
+      }
       if (cancelled) return;
       if (error) {
         // 42P01 / PGRST205 = migración sin aplicar. No rompemos la página.
@@ -60,7 +75,7 @@ export function useReels(
         }
         setReels([]);
       } else {
-        setReels((data as Reel[]) ?? []);
+        setReels(((data ?? []) as unknown as Reel[]));
       }
       setIsLoading(false);
     })();

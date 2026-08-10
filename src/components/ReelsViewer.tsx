@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { X, Volume2, VolumeX } from 'lucide-react';
+import { ReelProductCard, reelProductId, useReelProducts } from './ReelProductCard';
 import type { Reel } from '@/lib/types';
 
 interface Props {
@@ -96,6 +96,10 @@ export function ReelsViewer({ reels, startIndex, onClose }: Props) {
     videoRefs.current[i] = el;
   }, []);
 
+  // Productos comprables de estos videos, resueltos de una sola vez (no se puede
+  // pedir por slide: los hooks no van dentro del map).
+  const productsByReel = useReelProducts(reels);
+
   return (
     <div className="fixed inset-0 z-[1000] bg-black">
       <button
@@ -122,6 +126,8 @@ export function ReelsViewer({ reels, startIndex, onClose }: Props) {
         {reels.map((reel, i) => {
           // Ventana de montaje: sólo anterior / actual / siguiente.
           const mounted = Math.abs(i - active) <= 1;
+          const pid = reelProductId(reel);
+          const product = pid ? productsByReel[pid] : undefined;
           return (
             <div
               key={reel.id}
@@ -148,19 +154,19 @@ export function ReelsViewer({ reels, startIndex, onClose }: Props) {
                 <img src={reel.poster_url} alt="" className="h-full w-full object-contain" />
               )}
 
-              {(reel.caption || reel.product_id) && (
+              {/* Epígrafe + card del producto vinculado. La card sólo aparece si
+                  el producto existe y es visible en este canal: un vínculo a un
+                  producto oculto o borrado no deja un cartel roto encima del
+                  video, simplemente no se pinta. */}
+              {(reel.caption || product) && (
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-4 pb-6 pt-12">
                   {reel.caption && (
                     <p className="mb-3 text-[14px] leading-snug text-white">{reel.caption}</p>
                   )}
-                  {reel.product_id && (
-                    <Link
-                      to={`/producto/${reel.product_id}`}
-                      onClick={onClose}
-                      className="pointer-events-auto inline-flex items-center rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-black"
-                    >
-                      Ver producto
-                    </Link>
+                  {product && (
+                    <div className="mx-auto max-w-md">
+                      <ReelProductCard product={product} onNavigate={onClose} onAdded={onClose} />
+                    </div>
                   )}
                 </div>
               )}

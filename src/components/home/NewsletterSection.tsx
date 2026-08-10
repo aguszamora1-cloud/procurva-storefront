@@ -73,8 +73,9 @@ export function NewsletterSection() {
   return (
     <section className="bg-primary text-[var(--color-on-primary)]">
       <div className={`mx-auto max-w-2xl px-4 py-10 md:py-16 ${alignClass}`}>
-        <h2>{title}</h2>
-        <p className="mt-2 text-sm opacity-80">{subtitle}</p>
+        {/* Vaciados desde el editor → no se pintan (ni ellos ni su margen). */}
+        {title && <h2>{title}</h2>}
+        {subtitle && <p className={`text-sm opacity-80 ${title ? 'mt-2' : ''}`}>{subtitle}</p>}
 
         {status === 'done' ? (
           <div className="mt-6" role="status" aria-live="polite">

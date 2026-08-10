@@ -272,6 +272,13 @@ export interface Reel {
   caption: string | null;
   duration_ms: number | null;
   product_id: string | null;
+  /**
+   * Producto COMPRABLE desde el visor (card con quick-add). Distinto de
+   * product_id, que define el pool/placement y lo custodia un CHECK: un video
+   * del home tiene product_id NULL y puede tener linked_product_id. Ver la
+   * migración 20260773. `undefined` = la columna todavía no existe en esa base.
+   */
+  linked_product_id?: string | null;
   sort_order: number;
 }
 

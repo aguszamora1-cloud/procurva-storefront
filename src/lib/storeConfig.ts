@@ -60,6 +60,25 @@ const firstStr = (...vals: unknown[]): string => {
 };
 
 /**
+ * Texto de PANTALLA con tres estados, no dos (el mismo criterio que
+ * resolveSectionHeadings, generalizado):
+ *   - clave ausente → el comercio nunca tocó el campo → default histórico;
+ *   - string vacío  → lo borró a propósito → '' y no se pinta NADA;
+ *   - con texto     → ese texto.
+ *
+ * Con `str(v) || default` los dos primeros casos colapsaban en uno: borrar el
+ * campo en el editor devolvía el default y no había forma de dejar la sección
+ * sin ese texto.
+ *
+ * OJO: es sólo para texto decorativo (títulos, bajadas, epígrafes). Los textos
+ * FUNCIONALES —labels de botones, de badges, mensajes de resultado— se siguen
+ * resolviendo con `firstStr(...) || default`: un botón sin texto no es un botón
+ * más limpio, es un botón roto.
+ */
+const optionalText = (raw: unknown, fallback: string): string =>
+  typeof raw === 'string' ? raw.trim() : fallback;
+
+/**
  * Aspecto del botón del hero. Los valores desconocidos (o la clave ausente en
  * las tiendas anteriores al selector) caen al look histórico: esquinas apenas
  * redondeadas, tamaño mediano y color de marca — exactamente lo que el hero
@@ -161,7 +180,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
   // instagram_url completo en las claves nuevas.
   const instagram = firstStr(s.instagram_url, s.social_instagram);
   const tiktok = firstStr(s.tiktok_url, s.social_tiktok);
-  const shippingTitle = firstStr(s.shipping_promise_title) || DEFAULTS.shippingPromiseTitle;
+  const shippingTitle = optionalText(s.shipping_promise_title, DEFAULTS.shippingPromiseTitle);
 
   return {
     companyId: resolved.company_id,
@@ -305,8 +324,8 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     })(),
     // Título de la sección de videos del home (section_titles.reels.title del
     // admin). Del lado del comprador nunca se llama "Reels": ese es el nombre
-    // interno del panel.
-    reelsTitle: firstStr(s.section_titles?.reels?.title) || 'Videos',
+    // interno del panel. Vaciarlo desde el editor deja el carrusel sin titular.
+    reelsTitle: optionalText(s.section_titles?.reels?.title, 'Videos'),
     // Encabezados (volanta + titular) de las secciones del home, con el default
     // histórico de cada una si el comercio no cargó el suyo.
     sectionHeadings: resolveSectionHeadings(s.section_titles),
@@ -319,7 +338,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       const c = s.complementary_block ?? {};
       const max = c.maximo_visible;
       return {
-        titulo: firstStr(c.titulo) || 'Combinalo con',
+        titulo: optionalText(c.titulo, 'Combinalo con'),
         maximoVisible: (max === 2 || max === 3 || max === 4 ? max : 3) as 2 | 3 | 4,
         ocultarSinStock: bool(c.ocultar_sin_stock, true),
         mostrarOtrosColores: bool(c.mostrar_otros_colores, true),
@@ -357,9 +376,12 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
             .map((t) => (typeof t === 'string' ? t : str(t?.text)))
             .filter((t) => t)
         : [];
+      // El primer badge por defecto es el título de la promesa de envío, que
+      // ahora puede estar vaciado a propósito: lo filtramos para no pintar un
+      // badge en blanco.
       return labels.length > 0
         ? labels
-        : [shippingTitle, 'Abonás al recibir', 'Pagás como quieras', 'Compra protegida'];
+        : [shippingTitle, 'Abonás al recibir', 'Pagás como quieras', 'Compra protegida'].filter(Boolean);
     })(),
     trustBadgesBgColor: firstStr(s.trust_badges_bg_color),
     trustBadgesTextColor: firstStr(s.trust_badges_text_color) || '#000000',
@@ -447,9 +469,12 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     gaId: str(s.ga_id),
     metaPixelId: str(s.meta_pixel_id),
 
+    // title/subtitle son decorativos: vaciarlos los saca de la sección.
+    // buttonText y successMessage NO: son funcionales (un botón sin texto y una
+    // confirmación muda se leen como un formulario roto).
     newsletterConfig: {
-      title: firstStr(s.newsletter_config?.title) || 'Suscribite a nuestras novedades',
-      subtitle: firstStr(s.newsletter_config?.subtitle) || 'Recibí ofertas exclusivas y nuevos ingresos',
+      title: optionalText(s.newsletter_config?.title, 'Suscribite a nuestras novedades'),
+      subtitle: optionalText(s.newsletter_config?.subtitle, 'Recibí ofertas exclusivas y nuevos ingresos'),
       buttonText: firstStr(s.newsletter_config?.button_text) || 'Suscribirme',
       successMessage: firstStr(s.newsletter_config?.success_message) || '¡Gracias por suscribirte!',
     },
@@ -458,8 +483,10 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       const p = s.newsletter_popup ?? {};
       return {
         enabled: bool(p.enabled, false),
-        title: firstStr(p.title) || '10% OFF EN TU PRIMERA COMPRA',
-        subtitle: firstStr(p.subtitle) || 'Sumate a la comunidad',
+        // Igual que la sección: título/bajada/pie son decorativos y se pueden
+        // vaciar; el botón y el mensaje de éxito no.
+        title: optionalText(p.title, '10% OFF EN TU PRIMERA COMPRA'),
+        subtitle: optionalText(p.subtitle, 'Sumate a la comunidad'),
         buttonText: firstStr(p.button_text) || 'QUIERO MI 10% OFF',
         successMessage: firstStr(p.success_message) || '¡Listo! Revisá tu email',
         askName: bool(p.ask_name, true),
@@ -467,7 +494,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
         once: bool(p.once, true),
         bgColor: firstStr(p.bg_color) || '#FFFFFF',
         buttonColor: firstStr(p.button_color) || '#000000',
-        footerText: firstStr(p.footer_text) || 'Vas a recibir un correo para validar tu email',
+        footerText: optionalText(p.footer_text, 'Vas a recibir un correo para validar tu email'),
         couponCode: (firstStr(p.coupon_code) || '').toUpperCase(),
       };
     })(),

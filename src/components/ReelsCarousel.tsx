@@ -44,9 +44,14 @@ export function ReelsCarousel({ reels, title, width = 'full' }: Props) {
     // ficha `max-w-[1200px] px-6` (igual que el bloque de compra). Fijar uno
     // solo desalineaba el carrusel en el otro.
     <section className={`mx-auto px-6 py-8 md:py-16 ${width === 'detail' ? 'max-w-[1200px]' : 'max-w-none'}`}>
-      <h2 className="mb-4 font-heading text-[20px] font-semibold uppercase tracking-[1px] text-text md:text-[24px]">
-        {title}
-      </h2>
+      {/* Sin título no se pinta el <h2> NI su margen: si el comercio lo borró
+          desde el editor, el carrusel arranca pegado a lo anterior en vez de
+          dejar un hueco huérfano. Mismo criterio que SectionHeader. */}
+      {title.trim() && (
+        <h2 className="mb-4 font-heading text-[20px] font-semibold uppercase tracking-[1px] text-text md:text-[24px]">
+          {title}
+        </h2>
+      )}
 
       {/* `-mx-6 px-6` deja el scroll a sangre (las tarjetas se deslizan hasta el
           borde de la pantalla) pero mantiene la primera alineada con el título.
