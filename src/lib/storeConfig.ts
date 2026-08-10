@@ -1,4 +1,4 @@
-import type { PurchaseFlowStep, RawCatalogSettings, ResolvedStorefront, StoreConfig } from './types';
+import type { HeroCtaStyle, PurchaseFlowStep, RawCatalogSettings, ResolvedStorefront, StoreConfig } from './types';
 import { resolveProductLayoutOrNull } from './productLayout';
 import { resolveQuantityTiersSettings } from '../components/QuantityTierSelector';
 
@@ -58,6 +58,33 @@ const firstStr = (...vals: unknown[]): string => {
   }
   return '';
 };
+
+/**
+ * Aspecto del botón del hero. Los valores desconocidos (o la clave ausente en
+ * las tiendas anteriores al selector) caen al look histórico: esquinas apenas
+ * redondeadas, tamaño mediano y color de marca — exactamente lo que el hero
+ * pintaba hardcodeado, así que nadie ve cambiar su tienda por este deploy.
+ */
+function resolveHeroCta(raw: { shape?: string; size?: string; variant?: string } | undefined): HeroCtaStyle {
+  const pick = <T extends string>(v: unknown, allowed: readonly T[], fallback: T): T =>
+    typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : fallback;
+  return {
+    shape: pick(raw?.shape, ['rounded', 'square', 'pill'] as const, 'rounded'),
+    size: pick(raw?.size, ['sm', 'md', 'lg'] as const, 'md'),
+    variant: pick(raw?.variant, ['accent', 'light', 'dark', 'outline'] as const, 'accent'),
+  };
+}
+
+/**
+ * Modo del hero. El selector del editor existe desde hace rato pero la tienda
+ * nunca leyó el valor, así que hay tiendas con 'image_only' guardado por defecto
+ * Y textos cargados que hoy se muestran. Respetar el modo a ciegas les apagaría
+ * el título de un día para el otro: sólo se respeta si está explícito, y la
+ * clave ausente queda en 'auto' (se muestra lo que haya).
+ */
+function resolveHeroMode(raw: unknown): 'image_only' | 'image_with_text' | 'auto' {
+  return raw === 'image_only' || raw === 'image_with_text' ? raw : 'auto';
+}
 
 /**
  * Encabezados por defecto de las secciones del home: `label` es el volanta chico
@@ -230,6 +257,8 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     // Sin default: el botón del hero sólo aparece si el comercio cargó el texto.
     heroCtaText: firstStr(s.hero_cta_text),
     heroCtaLink: firstStr(s.hero_cta_link) || DEFAULTS.heroCtaLink,
+    heroCta: resolveHeroCta(s.hero_cta_style),
+    heroMode: resolveHeroMode(s.hero_mode),
 
     sections: {
       categories: bool(s.section_categories, true),

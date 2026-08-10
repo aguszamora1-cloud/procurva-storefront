@@ -7,6 +7,42 @@ import { transformedSrc } from '@/lib/images';
 
 const ROTATE_MS = 6000;
 
+/**
+ * Clases del botón del hero según lo que eligió el comercio (Catálogo Online →
+ * Banner principal → Botón). Los defaults reproducen el look que el hero tenía
+ * hardcodeado: `rounded-md`, tamaño mediano, color de marca.
+ */
+const CTA_SHAPE: Record<string, string> = {
+  rounded: 'rounded-md',
+  square: 'rounded-none',
+  pill: 'rounded-full',
+};
+
+const CTA_SIZE: Record<string, string> = {
+  sm: 'px-6 py-2.5 text-[11px] md:px-7 md:text-[12px]',
+  md: 'px-8 py-4 text-[12px] md:px-10 md:text-[13px]',
+  lg: 'px-10 py-5 text-[13px] md:px-14 md:text-[15px]',
+};
+
+// 'light'/'dark' son colores fijos a propósito: el CTA va sobre una foto, no
+// sobre el fondo del tema, así que seguir los tokens de superficie lo volvería
+// invisible en la mitad de las imágenes.
+const CTA_VARIANT: Record<string, string> = {
+  accent: 'bg-accent text-on-accent shadow-lg',
+  light: 'bg-white text-black shadow-lg',
+  dark: 'bg-black text-white shadow-lg',
+  outline: 'border-2 border-white bg-transparent text-white hover:bg-white hover:text-black',
+};
+
+function ctaClass(cta: { shape: string; size: string; variant: string }): string {
+  return [
+    'inline-flex items-center justify-center font-bold uppercase tracking-[0.5px] transition-all duration-200 hover:scale-[1.02]',
+    CTA_SHAPE[cta.shape] ?? CTA_SHAPE.rounded,
+    CTA_SIZE[cta.size] ?? CTA_SIZE.md,
+    CTA_VARIANT[cta.variant] ?? CTA_VARIANT.accent,
+  ].join(' ');
+}
+
 interface Slide {
   image: string;
   imageMobile: string | null;
@@ -64,8 +100,29 @@ export function Hero() {
     }
   }, [activeImage, transformFailed]);
 
-  const hasText = Boolean(config.heroTitle); // sólo hero_title (no banner_text)
-  const hasCta = Boolean(config.heroCtaText); // sólo si el comercio cargó el texto
+  // 'Solo imagen' apaga textos y botón aunque estén cargados: es un modo, no un
+  // borrado (el comercio conserva lo escrito para cuando vuelva a 'Imagen con
+  // textos'). 'auto' = tiendas que nunca tocaron el selector → como antes.
+  const heroTextAllowed = config.heroMode !== 'image_only';
+  const hasText = heroTextAllowed && Boolean(config.heroTitle); // sólo hero_title (no banner_text)
+  const hasCta = heroTextAllowed && Boolean(config.heroCtaText); // sólo si el comercio cargó el texto
+  const ctaCls = ctaClass(config.heroCta);
+  // El CTA puede apuntar afuera (Instagram, un formulario): las URL absolutas
+  // salen por <a> en otra pestaña; las rutas internas por <Link>, sin recargar.
+  const ctaIsExternal = /^https?:\/\//i.test(config.heroCtaLink);
+  const ctaNode = hasCta
+    ? ctaIsExternal
+      ? (
+          <a href={config.heroCtaLink} target="_blank" rel="noreferrer" className={ctaCls}>
+            {config.heroCtaText}
+          </a>
+        )
+      : (
+          <Link to={config.heroCtaLink} className={ctaCls}>
+            {config.heroCtaText}
+          </Link>
+        )
+    : null;
 
   if (isLoading && slides.length === 0) {
     return <section className="aspect-[4/5] max-h-[680px] w-full bg-secondary md:aspect-auto md:max-h-none md:h-[70vh]" />;
@@ -85,16 +142,7 @@ export function Hero() {
               {config.heroSubtitle}
             </p>
           )}
-          {hasCta && (
-            <div className="mt-10">
-              <Link
-                to={config.heroCtaLink}
-                className="inline-flex items-center justify-center rounded-md bg-accent px-10 py-4 text-[13px] font-bold text-on-accent shadow-lg transition-all duration-200 hover:scale-[1.02]"
-              >
-                {config.heroCtaText}
-              </Link>
-            </div>
-          )}
+          {ctaNode && <div className="mt-10">{ctaNode}</div>}
         </div>
       </section>
     );
@@ -141,36 +189,47 @@ export function Hero() {
         </div>
       ))}
 
-      {/* Gradiente + texto/CTA al pie (estilo RSW). Sólo si hay algo que mostrar. */}
-      {(showText || hasCta) && (
-        <>
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-1/2 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 z-20">
-            <div className="mx-auto max-w-none px-6 py-12 md:px-12 md:py-16">
-              {showText && (
-                <div className="mb-5 max-w-2xl text-white">
-                  {config.heroTitle && (
-                    <h1 className="font-heading text-[36px] font-extrabold uppercase leading-[1.02] tracking-[-0.5px] drop-shadow md:text-[64px]">
-                      {config.heroTitle}
-                    </h1>
-                  )}
-                  {config.heroSubtitle && (
-                    <p className="mt-3 max-w-xl text-[14px] text-white/85 md:text-[17px]">{config.heroSubtitle}</p>
-                  )}
-                </div>
+    </div>
+  );
+
+  // Gradiente + texto/CTA al pie (estilo RSW). Sólo si hay algo que mostrar.
+  // Va FUERA del <a> del banner: un botón adentro de otro link es HTML inválido
+  // y el click terminaba abriendo el link del slide en vez del destino del CTA.
+  // La capa no intercepta clicks (pointer-events-none); sólo el botón sí.
+  const overlay = (showText || hasCta) && (
+    <div className="pointer-events-none absolute inset-0 z-20">
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0">
+        <div className="mx-auto max-w-none px-6 py-12 md:px-12 md:py-16">
+          {showText && (
+            <div className="mb-5 max-w-2xl text-white">
+              {config.heroTitle && (
+                <h1 className="font-heading text-[36px] font-extrabold uppercase leading-[1.02] tracking-[-0.5px] drop-shadow md:text-[64px]">
+                  {config.heroTitle}
+                </h1>
               )}
-              {hasCta && (
-                <Link
-                  to={config.heroCtaLink}
-                  className="inline-flex items-center justify-center rounded-md bg-accent px-8 py-4 text-[12px] font-bold text-on-accent shadow-lg transition-all duration-200 hover:scale-[1.02] md:px-10 md:text-[13px]"
-                >
-                  {config.heroCtaText}
-                </Link>
+              {config.heroSubtitle && (
+                <p className="mt-3 max-w-xl text-[14px] text-white/85 md:text-[17px]">{config.heroSubtitle}</p>
               )}
             </div>
-          </div>
-        </>
+          )}
+          {ctaNode && <div className="pointer-events-auto inline-block">{ctaNode}</div>}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <section className="relative">
+      {slide.link ? (
+        <a href={slide.link} target="_blank" rel="noreferrer">
+          {media}
+        </a>
+      ) : (
+        media
       )}
+
+      {overlay}
 
       {slides.length > 1 && (
         <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 gap-2">
@@ -184,18 +243,6 @@ export function Hero() {
             />
           ))}
         </div>
-      )}
-    </div>
-  );
-
-  return (
-    <section className="relative">
-      {slide.link ? (
-        <a href={slide.link} target="_blank" rel="noreferrer">
-          {media}
-        </a>
-      ) : (
-        media
       )}
     </section>
   );

@@ -72,6 +72,16 @@ export interface CustomSectionBannerSlide {
 
 export type BannerDisplayMode = 'carousel' | 'scroll' | 'phone_mockup';
 
+/** Aspecto del botón (CTA) del hero, elegido por el comercio en el editor. */
+export type HeroCtaShape = 'rounded' | 'square' | 'pill';
+export type HeroCtaSize = 'sm' | 'md' | 'lg';
+export type HeroCtaVariant = 'accent' | 'light' | 'dark' | 'outline';
+export interface HeroCtaStyle {
+  shape: HeroCtaShape;
+  size: HeroCtaSize;
+  variant: HeroCtaVariant;
+}
+
 export interface CustomSectionBannerContent {
   images?: CustomSectionBannerSlide[];
   autoplay?: boolean;
@@ -522,6 +532,14 @@ export interface RawCatalogSettings {
   hero_subtitle?: string;
   hero_cta_text?: string;
   hero_cta_link?: string;
+  /** Aspecto del botón del hero (forma / tamaño / color). Ver HeroCtaStyle. */
+  hero_cta_style?: { shape?: string; size?: string; variant?: string };
+  /**
+   * 'image_only' esconde título, subtítulo y botón sobre la imagen;
+   * 'image_with_text' los muestra. Ausente = tiendas anteriores al selector: se
+   * decide por si hay textos cargados (ver resolveHeroMode).
+   */
+  hero_mode?: string;
   // Secciones
   section_categories?: boolean;
   section_featured?: boolean;
@@ -799,6 +817,13 @@ export interface StoreConfig {
   heroSubtitle: string;
   heroCtaText: string;
   heroCtaLink: string;
+  /** Aspecto del botón del hero, ya normalizado (el render sólo mapea a clases). */
+  heroCta: HeroCtaStyle;
+  /**
+   * 'image_only' = la imagen sola, sin textos ni botón encima.
+   * 'auto' = tiendas que nunca tocaron el selector: se muestra lo que haya cargado.
+   */
+  heroMode: 'image_only' | 'image_with_text' | 'auto';
   // Secciones
   sections: {
     categories: boolean;
