@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Volume2, VolumeX } from 'lucide-react';
 import { ReelProductCard, reelProductId, useReelProducts } from './ReelProductCard';
 import type { Reel } from '@/lib/types';
@@ -8,6 +9,9 @@ interface Props {
   startIndex: number;
   onClose: () => void;
 }
+
+/** Formato en el que se piden los videos. Se usa hasta que el <video> reporta el suyo. */
+const DEFAULT_RATIO = 9 / 16;
 
 /**
  * Visor fullscreen de videos verticales.
@@ -24,6 +28,13 @@ interface Props {
  *  - `muted` y `playsInline` son OBLIGATORIOS: sin muted el autoplay lo bloquea
  *    el navegador, y sin playsInline iOS abre el video en su reproductor
  *    fullscreen nativo y se pierde el visor.
+ *  - Va por PORTAL a <body>. `fixed inset-0` NO alcanza: el visor cuelga de una
+ *    sección envuelta en <Reveal>, que aplica `transform: translateY(...)` para
+ *    el fade de entrada, y cualquier transform (incluso la identidad) convierte
+ *    al elemento en containing block de sus descendientes `fixed`. Sin el portal
+ *    el "fullscreen" medía lo mismo que la sección del carrusel (~600px) y el
+ *    resto del home quedaba a la vista abajo. Mismo motivo por el que el modal
+ *    de OutfitsSection ya se portaba.
  */
 export function ReelsViewer({ reels, startIndex, onClose }: Props) {
   const [active, setActive] = useState(startIndex);
@@ -31,6 +42,10 @@ export function ReelsViewer({ reels, startIndex, onClose }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
   const videoRefs = useRef<Record<number, HTMLVideoElement | null>>({});
+  // Alto/ancho reales del visor y formato de cada video: con eso se calcula el
+  // recuadro EXACTO que ocupa el video, para poder pegarle la card adentro.
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  const [ratios, setRatios] = useState<Record<number, number>>({});
 
   // Posiciona el slide inicial sin animación (antes del primer paint útil).
   useEffect(() => {
@@ -96,11 +111,48 @@ export function ReelsViewer({ reels, startIndex, onClose }: Props) {
     videoRefs.current[i] = el;
   }, []);
 
+  // Medida del visor. useLayoutEffect (no useEffect) para que el primer paint ya
+  // salga con el recuadro bien: si no, se ve un frame con la card a lo ancho de
+  // la pantalla y después salta.
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = () => setBox({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Formato real del video, apenas el navegador lee los metadatos. No se asume
+  // 9:16 y listo: si el comercio sube un 4:5 o un cuadrado, la card tiene que
+  // quedar sobre ESE recuadro y no sobre la franja negra.
+  const onMeta = useCallback((i: number) => (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const v = e.currentTarget;
+    if (!v.videoWidth || !v.videoHeight) return;
+    const r = v.videoWidth / v.videoHeight;
+    setRatios((prev) => (prev[i] === r ? prev : { ...prev, [i]: r }));
+  }, []);
+
+  /**
+   * Recuadro que el video ocupa de verdad dentro del slide — lo mismo que
+   * calcula `object-contain`, pero como caja real para poder anclarle la card
+   * adentro. Sin esto la card colgaba del borde del SLIDE (todo el ancho de la
+   * pantalla), así que en desktop flotaba sobre las bandas negras, más ancha
+   * que el video y despegada de él.
+   */
+  const stageStyle = (i: number): CSSProperties => {
+    if (!box) return { width: '100%', height: '100%' };
+    const r = ratios[i] ?? DEFAULT_RATIO;
+    const w = Math.min(box.w, box.h * r);
+    return { width: w, height: w / r };
+  };
+
   // Productos comprables de estos videos, resueltos de una sola vez (no se puede
   // pedir por slide: los hooks no van dentro del map).
   const productsByReel = useReelProducts(reels);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[1000] bg-black">
       <button
         type="button"
@@ -135,45 +187,47 @@ export function ReelsViewer({ reels, startIndex, onClose }: Props) {
               ref={(el) => {
                 slideRefs.current[i] = el;
               }}
-              className="relative flex h-full w-full snap-start items-center justify-center"
+              className="flex h-full w-full snap-start items-center justify-center"
             >
-              {mounted ? (
-                <video
-                  ref={setVideoRef(i)}
-                  src={reel.url}
-                  poster={reel.poster_url}
-                  muted
-                  playsInline
-                  autoPlay={i === active}
-                  loop
-                  preload="metadata"
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                // Fuera de la ventana: sólo el poster, sin <video> montado.
-                <img src={reel.poster_url} alt="" className="h-full w-full object-contain" />
-              )}
+              {/* Escenario = el recuadro exacto del video. El epígrafe y la card
+                  cuelgan de ACÁ (no del slide), así quedan adentro del video. */}
+              <div className="relative overflow-hidden" style={stageStyle(i)}>
+                {mounted ? (
+                  <video
+                    ref={setVideoRef(i)}
+                    src={reel.url}
+                    poster={reel.poster_url}
+                    muted
+                    playsInline
+                    autoPlay={i === active}
+                    loop
+                    preload="metadata"
+                    onLoadedMetadata={onMeta(i)}
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  // Fuera de la ventana: sólo el poster, sin <video> montado.
+                  <img src={reel.poster_url} alt="" className="h-full w-full object-contain" />
+                )}
 
-              {/* Epígrafe + card del producto vinculado. La card sólo aparece si
-                  el producto existe y es visible en este canal: un vínculo a un
-                  producto oculto o borrado no deja un cartel roto encima del
-                  video, simplemente no se pinta. */}
-              {(reel.caption || product) && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-4 pb-6 pt-12">
-                  {reel.caption && (
-                    <p className="mb-3 text-[14px] leading-snug text-white">{reel.caption}</p>
-                  )}
-                  {product && (
-                    <div className="mx-auto max-w-md">
-                      <ReelProductCard product={product} onNavigate={onClose} onAdded={onClose} />
-                    </div>
-                  )}
-                </div>
-              )}
+                {/* Epígrafe + card del producto vinculado. La card sólo aparece si
+                    el producto existe y es visible en este canal: un vínculo a un
+                    producto oculto o borrado no deja un cartel roto encima del
+                    video, simplemente no se pinta. */}
+                {(reel.caption || product) && (
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-3 pb-4 pt-12">
+                    {reel.caption && (
+                      <p className="mb-2.5 text-[14px] leading-snug text-white">{reel.caption}</p>
+                    )}
+                    {product && <ReelProductCard product={product} onNavigate={onClose} onAdded={onClose} />}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
