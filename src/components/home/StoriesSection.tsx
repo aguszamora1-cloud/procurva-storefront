@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useStories } from '@/hooks/useStories';
 import type { Story } from '@/lib/types';
@@ -51,7 +52,14 @@ export function StoriesSection() {
         ))}
       </div>
 
-      {lightbox && (
+      {/* Por PORTAL a <body>: esta sección va envuelta en <Reveal>, que aplica un
+          transform para el fade, y un transform convierte al elemento en
+          containing block de sus descendientes `fixed`. Sin el portal el
+          lightbox se encerraba en la caja de la sección (una franja de ~150px),
+          mientras la imagen se seguía dimensionando contra el viewport con
+          90vh/90vw: se desbordaba del fondo negro. Mismo motivo por el que se
+          portan ReelsViewer y el modal de OutfitsSection. */}
+      {lightbox && createPortal(
         <div
           className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 p-4"
           onClick={() => setLightbox(null)}
@@ -69,7 +77,8 @@ export function StoriesSection() {
           >
             &times;
           </button>
-        </div>
+        </div>,
+        document.body,
       )}
     </section>
   );
