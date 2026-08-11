@@ -26,7 +26,14 @@ export function SectionHeader({ label, title, subtitle, linkTo, linkText }: Prop
   const titleBlock = hasTitle ? (
     <div className={`w-full ${TEXT_ALIGN[align]}`}>
       {label && <p className="mb-2 text-[11px] font-semibold uppercase tracking-[2px] text-accent">{label}</p>}
-      <h2 className="font-heading text-[26px] font-semibold uppercase leading-[1.05] tracking-[1px] text-text md:text-[40px]">
+      {/* Tamaño FLUIDO en mobile: "PRODUCTOS DESTACADOS" a 26px fijos mide casi
+          exactamente el ancho útil de un teléfono de 390px (342px con el px-6 de
+          la sección), así que caía en dos renglones. Con clamp() el titular se
+          achica sólo abajo de ~440px de ancho, que es donde molesta; de 440px
+          para arriba queda en los mismos 26px de siempre y en desktop manda el
+          md:text-[40px]. No se usa `whitespace-nowrap`: un titular muy largo
+          tiene que poder cortar en dos renglones antes que desbordarse. */}
+      <h2 className="font-heading text-[clamp(19px,5.9vw,26px)] font-semibold uppercase leading-[1.05] tracking-[1px] text-text md:text-[40px]">
         {title}
       </h2>
       {subtitle && (
