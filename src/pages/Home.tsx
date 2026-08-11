@@ -121,18 +121,18 @@ export function Home() {
     featured: config.sections.featured
       ? isLoading
         ? productSkeleton
-        : <ProductsSection {...config.sectionHeadings.featured} products={featured} maxItems={config.sectionMaxItems} linkTo={sectionListPath('featured')} />
+        : <ProductsSection {...config.sectionHeadings.featured} products={featured} maxItems={config.sectionMaxItems} display={config.sectionDisplayModes.featured} linkTo={sectionListPath('featured')} />
       : null,
     new_arrivals:
       config.sections.newArrivals && !isLoading
-        ? <ProductsSection {...config.sectionHeadings.new_arrivals} products={newArrivals} maxItems={config.sectionMaxItems} linkTo={sectionListPath('new_arrivals')} />
+        ? <ProductsSection {...config.sectionHeadings.new_arrivals} products={newArrivals} maxItems={config.sectionMaxItems} display={config.sectionDisplayModes.new_arrivals} linkTo={sectionListPath('new_arrivals')} />
         : null,
     // Ofertas: se muestra sólo si el comercio no la apagó Y hay productos en
     // promoción para el canal. La membresía sale de las promos, no del admin.
     // `section_offers` nace en true: la sección ya existía sin flag, así que el
     // default tiene que reproducir lo que las 66 tiendas ven hoy.
     offers: config.sections.offers && !isLoading && offers.length > 0
-      ? <ProductsSection {...config.sectionHeadings.offers} products={offers} maxItems={config.sectionMaxItems} linkTo={sectionListPath('offers')} />
+      ? <ProductsSection {...config.sectionHeadings.offers} products={offers} maxItems={config.sectionMaxItems} display={config.sectionDisplayModes.offers} linkTo={sectionListPath('offers')} />
       : null,
     // Outfits son exclusivos de la tienda minorista (no aplican a mayorista).
     outfits: config.storeType !== 'wholesale' && config.isPro && config.sections.outfits ? <OutfitsSection /> : null,

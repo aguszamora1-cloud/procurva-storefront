@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Tag } from 'lucide-react';
+import { Tag } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import { mainImage, productCategories } from '@/lib/utils';
 import { useCategories, type CategoryInfo } from '@/hooks/useCategories';
 import { useStore } from '@/context/StoreProvider';
 import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { SectionHeader } from '@/components/SectionHeader';
+import { CarouselRow } from '@/components/CarouselRow';
 
 export type CardStyle = 'overlay' | 'below' | 'full';
 
@@ -130,82 +130,32 @@ export function CategoryCard({
 export function CategoriesSection({ products }: { products: Product[] }) {
   const { categories, isLoading } = useCategories(products);
   const { categoriesDisplayMode, categoriesSection, sectionHeadings } = useStore();
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  // ¿La fila sobra del ancho visible? Se mide en vez de contar cards: cuántas
-  // entran depende del breakpoint y de las columnas configuradas, y con flechas
-  // sobre un carrusel que no scrollea el visitante hace clic y no pasa nada.
-  const [canScroll, setCanScroll] = useState(false);
 
   // Gate del primer paint: el orden/visibilidad de categorías es otro fetch, y
   // sin esperarlo la fila de categorías aparecía suelta después del navbar.
   useFirstPaintGate('home-categories', isLoading);
 
-  useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
-    const update = () => setCanScroll(el.scrollWidth - el.clientWidth > 8);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [categories.length, categoriesDisplayMode, categoriesSection.columns]);
-
   if (categories.length === 0) return null;
   const shown = categories.slice(0, 8);
   const style = categoriesSection.cardStyle;
-
-  const scrollByDir = (dir: number) => {
-    const el = scrollerRef.current;
-    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' });
-  };
 
   return (
     <section className="mx-auto max-w-none px-6 py-8 md:py-16">
       <SectionHeader {...sectionHeadings.categories} linkTo="/categorias" linkText="Ver todas" />
 
       {categoriesDisplayMode === 'carousel' ? (
-        <div className="relative">
-          {/* Fila horizontal: swipe + flechas, también en mobile. */}
-          <div
-            ref={scrollerRef}
-            className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {shown.map((cat) => (
-              <CategoryCard
-                key={cat.name}
-                cat={cat}
-                products={products}
-                style={style}
-                className={`shrink-0 grow-0 snap-start ${CAROUSEL_ITEM_CLASS[categoriesSection.columns]}`}
-              />
-            ))}
-          </div>
-
-          {/* Flechas. También en mobile: el swipe es descubrible sólo si algo
-              avisa que la fila sigue, y la card cortada al borde no alcanza —
-              se lee como un error de layout. Más chicas en mobile (36px) para
-              no tapar la card de abajo. Sólo si la fila realmente scrollea. */}
-          {canScroll && (
-            <>
-              <button
-                type="button"
-                aria-label="Anterior"
-                onClick={() => scrollByDir(-1)}
-                className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-background-a90 text-on-surface shadow-card-hover backdrop-blur transition-colors hover:text-accent md:h-10 md:w-10 md:bg-background"
-              >
-                <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
-              </button>
-              <button
-                type="button"
-                aria-label="Siguiente"
-                onClick={() => scrollByDir(1)}
-                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-background-a90 text-on-surface shadow-card-hover backdrop-blur transition-colors hover:text-accent md:h-10 md:w-10 md:bg-background"
-              >
-                <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
-              </button>
-            </>
-          )}
-        </div>
+        // Fila horizontal: swipe + flechas, también en mobile.
+        <CarouselRow>
+          {shown.map((cat) => (
+            <CategoryCard
+              key={cat.name}
+              cat={cat}
+              products={products}
+              style={style}
+              className={`shrink-0 grow-0 snap-start ${CAROUSEL_ITEM_CLASS[categoriesSection.columns]}`}
+            />
+          ))}
+        </CarouselRow>
       ) : (
         // Grid: gap fijo de 12px (gap-3); columnas configurables en desktop, 2 en mobile.
         <div className={`grid gap-3 ${COLS_CLASS[categoriesSection.columns]}`}>

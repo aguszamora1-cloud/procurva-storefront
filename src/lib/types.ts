@@ -142,6 +142,8 @@ export interface CustomSectionProductsContent {
   value?: string;
   max_items?: number;
   sort?: 'default' | 'newest' | 'price_asc' | 'price_desc';
+  /** Grilla o carrusel. Ausente = lo que esté configurado para todo el home. */
+  display_mode?: 'grid' | 'carousel';
   slot?: ProductDetailSlot;
 }
 
@@ -641,6 +643,14 @@ export interface RawCatalogSettings {
   // Nuevos ingresos, Ofertas). Se cuenta sobre las cards ya expandidas por color,
   // no sobre productos. Ausente = 12 (el límite histórico). Rango válido: 4-24.
   section_max_items?: number;
+  // Cómo se muestran las secciones de productos del home (Destacados, Nuevos
+  // ingresos, Ofertas y las personalizadas que no elijan lo suyo): grilla o fila
+  // horizontal scrolleable. Ausente = 'grid' (lo que venían mostrando todas).
+  products_display_mode?: 'grid' | 'carousel';
+  // Override POR SECCIÓN del modo de arriba, ej: { new_arrivals: 'carousel' }.
+  // Clave ausente para una sección = usa products_display_mode. Mismo formato
+  // que section_titles (mapa por key de sección).
+  section_display_modes?: Record<string, 'grid' | 'carousel'>;
   // Layout personalizable de la ficha de producto (drag & drop del admin). Cada
   // token es un id de bloque predefinido o una referencia `custom:<uuid>` a una
   // sección custom del detalle. Ausente/null = layout por defecto (render legacy).
@@ -929,6 +939,17 @@ export interface StoreConfig {
   // Máximo de cards por sección de productos del home. Siempre resuelto (default
   // 12, clamp 4-24) — ver normalizeStoreConfig.
   sectionMaxItems: number;
+  /**
+   * Modo POR DEFECTO de las secciones de productos: grilla o fila horizontal
+   * scrolleable. Es el que usan las secciones personalizadas que no eligen el
+   * suyo; para las tres fijas del home usá `sectionDisplayModes`.
+   */
+  productsDisplayMode: 'grid' | 'carousel';
+  /**
+   * Modo YA RESUELTO de cada sección fija de productos (featured / new_arrivals
+   * / offers): el override de la sección, o el modo por defecto si no tiene.
+   */
+  sectionDisplayModes: Record<string, 'grid' | 'carousel'>;
   /** Título de la sección de videos del home. Lo escribe el comercio. */
   reelsTitle: string;
   /**

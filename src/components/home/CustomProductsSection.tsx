@@ -36,7 +36,7 @@ function matches(p: Product, source: string, value: string): boolean {
 export function CustomProductsSection({ section }: { section: CustomSection }) {
   const c = section.content as CustomSectionProductsContent;
   const { products, isLoading } = useProducts();
-  const { storeType } = useStore();
+  const { storeType, productsDisplayMode } = useStore();
 
   const source = c.source || 'all';
   const value = c.value || '';
@@ -66,5 +66,9 @@ export function CustomProductsSection({ section }: { section: CustomSection }) {
   const heading = (c.heading || '').trim() || value || 'Productos';
   const maxItems = typeof c.max_items === 'number' && c.max_items > 0 ? Math.min(48, c.max_items) : 12;
 
-  return <ProductsSection label={c.label} title={heading} products={selected} maxItems={maxItems} />;
+  // Grilla o carrusel: lo que eligió ESTA sección, y si no eligió nada, lo que
+  // esté configurado para el resto del home.
+  const display = c.display_mode === 'grid' || c.display_mode === 'carousel' ? c.display_mode : productsDisplayMode;
+
+  return <ProductsSection label={c.label} title={heading} products={selected} maxItems={maxItems} display={display} />;
 }

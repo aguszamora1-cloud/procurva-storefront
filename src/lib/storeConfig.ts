@@ -155,6 +155,29 @@ function resolveSectionHeadings(
   return out;
 }
 
+/** Secciones fijas de productos del home que pueden elegir grilla o carrusel. */
+const PRODUCT_SECTION_KEYS = ['featured', 'new_arrivals', 'offers'];
+
+/**
+ * Modo de visualización de cada sección fija de productos, RESUELTO: el override
+ * que cargó el comercio para esa sección, o el modo por defecto de la tienda.
+ *
+ * Que el default entre acá (y no en el punto de lectura) es lo que permite que
+ * el home pase `config.sectionDisplayModes[key]` sin repetir el fallback en cada
+ * sección — y que la StoreConfig cacheada ya traiga el valor final.
+ */
+function resolveSectionDisplayModes(
+  raw: Record<string, string> | undefined,
+  fallback: 'grid' | 'carousel',
+): Record<string, 'grid' | 'carousel'> {
+  const out: Record<string, 'grid' | 'carousel'> = {};
+  for (const key of PRODUCT_SECTION_KEYS) {
+    const v = raw?.[key];
+    out[key] = v === 'grid' || v === 'carousel' ? v : fallback;
+  }
+  return out;
+}
+
 /**
  * Normaliza el payload saneado de la RPC `get_storefront_by_slug` /
  * `verify_storefront_password` (con su `settings` JSONB por tienda) a la
@@ -181,6 +204,9 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
   const instagram = firstStr(s.instagram_url, s.social_instagram);
   const tiktok = firstStr(s.tiktok_url, s.social_tiktok);
   const shippingTitle = optionalText(s.shipping_promise_title, DEFAULTS.shippingPromiseTitle);
+  // Modo por defecto de las secciones de productos, del que cuelgan los
+  // overrides por sección.
+  const productsMode: 'grid' | 'carousel' = s.products_display_mode === 'carousel' ? 'carousel' : 'grid';
 
   return {
     companyId: resolved.company_id,
@@ -322,6 +348,14 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       if (typeof v !== 'number' || !Number.isFinite(v)) return 12;
       return Math.min(24, Math.max(4, Math.round(v)));
     })(),
+    // Grilla o carrusel en las secciones de productos del home. Default 'grid':
+    // es lo que venían mostrando todas las tiendas y la clave no existe en
+    // ninguna todavía.
+    productsDisplayMode: productsMode,
+    // Cada sección fija puede pisar ese default (ej. Destacados en grilla y
+    // Nuevos ingresos en carrusel). Se resuelve acá, como el resto de la config:
+    // la StoreConfig se cachea ya normalizada.
+    sectionDisplayModes: resolveSectionDisplayModes(s.section_display_modes, productsMode),
     // Título de la sección de videos del home (section_titles.reels.title del
     // admin). Del lado del comprador nunca se llama "Reels": ese es el nombre
     // interno del panel. Vaciarlo desde el editor deja el carrusel sin titular.
