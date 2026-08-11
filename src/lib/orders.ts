@@ -203,6 +203,12 @@ export async function createCatalogOrder(
     // lo copien a orders.meta.shippingCostCustomer y el desglose de la venta lo
     // muestre como "Envío cobrado al cliente" (pass-through, no infla la ganancia).
     shippingCost?: number;
+    // Nombre del método que eligió el cliente ("Correo Argentino - A domicilio",
+    // "Cadete", "Retiro en Sucursal Centro"…). shipping_method guarda sólo el
+    // literal 'Envío'/'Retiro', así que sin esto el ERP mostraba "Transporte
+    // asignado: No asignado" en pedidos donde el cliente eligió —y pagó— un
+    // transporte concreto. Las Edge Functions lo copian a meta.logistics.carrier.
+    shippingCarrier?: string | null;
     // true si el pago se cobra online por una pasarela (Mercado Pago o GoCuotas).
     // Si es true NO se auto-confirma: la pasarela exige la orden en 'pending' y
     // la venta real la crea su propio webhook recién al aprobarse el pago (si el
@@ -251,6 +257,9 @@ export async function createCatalogOrder(
     // Envío cobrado al cliente (ya incluido en `total`). Se guarda aparte para el
     // desglose de la venta; create_catalog_order_dedup lo mapea a la columna homónima.
     shipping_cost: opts.shippingCost ?? 0,
+    // Transporte elegido (20260775). Si la base todavía no tiene la columna,
+    // jsonb_populate_record descarta la clave sin romper el pedido.
+    shipping_carrier: opts.shippingCarrier?.trim() || null,
     notes: customer.notes || null,
     delivery_time_range: customer.deliveryTime?.trim() || null,
     status: 'pending',

@@ -700,7 +700,10 @@ export function Checkout() {
       // storeType puede ser null mientras resuelve el tenant; por defecto minorista.
       const orderId = await createCatalogOrder(
         config, pricedItems, orderTotal, customer, payLabel, storeType ?? 'retail',
-        { priceMode, viaMercadoPago: routing !== 'wa', discount, manualTransfer: transferManual, shippingCost, priceBreakdown },
+        {
+          priceMode, viaMercadoPago: routing !== 'wa', discount, manualTransfer: transferManual,
+          shippingCost, shippingCarrier: selectedMethod?.name ?? null, priceBreakdown,
+        },
       );
 
       // Prefill local: guardamos los datos reutilizables para autocompletar la
