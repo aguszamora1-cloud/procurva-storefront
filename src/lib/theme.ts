@@ -1,4 +1,51 @@
-import type { StoreConfig } from './types';
+import type { ButtonCornerStyle, CornerStyle, StoreConfig } from './types';
+
+/**
+ * Escalas de esquinas por preset. Las claves son las mismas que la escala de
+ * Tailwind (`rounded-lg` → --radius-lg), así que cambiar de preset reacomoda
+ * toda la tienda sin tocar un solo componente.
+ *
+ * `rounded` reproduce EXACTAMENTE la escala default de Tailwind: es el aspecto
+ * que la tienda tenía antes de existir el token, y el default de la config.
+ */
+const CORNER_SCALES: Record<CornerStyle, Record<string, string>> = {
+  square: {
+    sm: '0px',
+    md: '0px',
+    lg: '0px',
+    xl: '0px',
+    '2xl': '0px',
+    '3xl': '0px',
+    // La pastilla también se endereza: si no, los chips de talle quedarían
+    // flotando redondos entre cards rectas, que es justo lo que se quiere evitar.
+    pill: '0px',
+  },
+  rounded: {
+    sm: '0.125rem',
+    md: '0.375rem',
+    lg: '0.5rem',
+    xl: '0.75rem',
+    '2xl': '1rem',
+    '3xl': '1.5rem',
+    pill: '9999px',
+  },
+  soft: {
+    sm: '0.25rem',
+    md: '0.625rem',
+    lg: '0.875rem',
+    xl: '1.25rem',
+    '2xl': '1.625rem',
+    '3xl': '2.125rem',
+    pill: '9999px',
+  },
+};
+
+/** Radio de los botones. 10px = el `rounded-[10px]` histórico de los CTA. */
+const BUTTON_RADII: Record<ButtonCornerStyle, string> = {
+  square: '0px',
+  rounded: '10px',
+  pill: '9999px',
+};
 
 /** #RGB | #RRGGBB → {r,g,b}. Fallback negro. */
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
@@ -83,6 +130,13 @@ export function applyTheme(config: StoreConfig): void {
 
   set('--font-heading', `'${config.fontHeading}', system-ui, sans-serif`);
   set('--font-body', `'${config.fontBody}', system-ui, sans-serif`);
+
+  // Esquinas. `rounded-full` NO sale de acá a propósito: es literal en el config
+  // de Tailwind, para que elegir "recto" no convierta en cuadrados los swatches
+  // de color ni los avatares.
+  const scale = CORNER_SCALES[config.corners] ?? CORNER_SCALES.rounded;
+  for (const [step, value] of Object.entries(scale)) set(`--radius-${step}`, value);
+  set('--radius-button', BUTTON_RADII[config.buttonCorners] ?? BUTTON_RADII.rounded);
 }
 
 const FONT_LINK_ID = 'tenant-google-fonts';

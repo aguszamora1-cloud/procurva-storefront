@@ -180,7 +180,7 @@ export function CartDrawer() {
             <Link
               to="/checkout"
               onClick={close}
-              className="block w-full rounded-[10px] bg-accent py-4 text-center text-[14px] font-bold text-on-accent transition-all hover:scale-[1.01]"
+              className="block w-full rounded-button bg-accent py-4 text-center text-[14px] font-bold text-on-accent transition-all hover:scale-[1.01]"
             >
               Finalizar compra
             </Link>

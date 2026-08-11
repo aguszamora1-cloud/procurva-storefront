@@ -35,6 +35,32 @@ export default {
         heading: ['var(--font-heading)', 'system-ui', 'sans-serif'],
         body: ['var(--font-body)', 'system-ui', 'sans-serif'],
       },
+      // Esquinas: mismo criterio que los colores. La escala entera sale de CSS
+      // variables que applyTheme reescribe según lo que eligió el comercio, así
+      // que un `rounded-lg` escrito en cualquier componente ya obedece al token
+      // sin tocar el componente.
+      //
+      // `none` y `full` quedan LITERALES a propósito: son intenciones absolutas,
+      // no escalones. `rounded-full` dibuja swatches de color, avatares y dots
+      // del carrusel — si siguieran al token, elegir "recto" convertiría los
+      // círculos de color en cuadrados. Lo que sí es una pastilla decorativa
+      // (chips, badges) usa `rounded-pill`, que abajo sí es variable.
+      borderRadius: {
+        none: '0px',
+        sm: 'var(--radius-sm)',
+        DEFAULT: 'var(--radius-md)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+        xl: 'var(--radius-xl)',
+        '2xl': 'var(--radius-2xl)',
+        '3xl': 'var(--radius-3xl)',
+        full: '9999px',
+        // Pastilla "semántica": redonda por default, pero se endereza cuando el
+        // comercio elige esquinas rectas. Para chips/badges, NO para círculos.
+        pill: 'var(--radius-pill)',
+        // Botones: token propio, para permitir cards rectas + botón cápsula.
+        button: 'var(--radius-button)',
+      },
     },
   },
   plugins: [

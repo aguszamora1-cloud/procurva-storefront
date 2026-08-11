@@ -35,7 +35,7 @@ export function Cart() {
         {seo}
         <ShoppingBag size={56} className="text-subtle" />
         <h1 className="font-heading text-[28px] font-semibold text-text">Tu carrito está vacío</h1>
-        <Link to="/productos" className="rounded-[10px] bg-primary px-8 py-3.5 text-[14px] font-bold text-on-primary transition-all hover:bg-accent hover:text-on-accent">
+        <Link to="/productos" className="rounded-button bg-primary px-8 py-3.5 text-[14px] font-bold text-on-primary transition-all hover:bg-accent hover:text-on-accent">
           Ver productos
         </Link>
       </div>
@@ -183,7 +183,7 @@ export function Cart() {
           {min.ok ? (
             <Link
               to="/checkout"
-              className="block w-full rounded-[10px] bg-accent py-4 text-center text-[14px] font-bold text-on-accent transition-all hover:scale-[1.01]"
+              className="block w-full rounded-button bg-accent py-4 text-center text-[14px] font-bold text-on-accent transition-all hover:scale-[1.01]"
             >
               Finalizar compra
             </Link>
@@ -191,7 +191,7 @@ export function Cart() {
             <button
               type="button"
               disabled
-              className="block w-full cursor-not-allowed rounded-[10px] bg-primary py-4 text-center text-[14px] font-bold text-on-primary opacity-40"
+              className="block w-full cursor-not-allowed rounded-button bg-primary py-4 text-center text-[14px] font-bold text-on-primary opacity-40"
             >
               {!min.unitsOk ? `Faltan ${min.missingUnits} unidades` : `Faltan ${formatPrice(min.missingAmount)}`}
             </button>

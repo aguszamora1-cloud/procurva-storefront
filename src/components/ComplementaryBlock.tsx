@@ -249,7 +249,7 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
             type="button"
             disabled
             aria-label="Sin stock"
-            className="flex-shrink-0 cursor-not-allowed rounded-full border border-line px-2.5 py-1 text-[11px] font-medium text-subtle opacity-70"
+            className="flex-shrink-0 cursor-not-allowed rounded-pill border border-line px-2.5 py-1 text-[11px] font-medium text-subtle opacity-70"
           >
             Sin stock
           </button>
@@ -302,7 +302,7 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
                             setPickSize(null);
                           }
                     }
-                    className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                    className={`rounded-pill border px-2 py-0.5 text-[11px] ${
                       effColor === c ? 'border-primary bg-primary text-on-primary' : 'border-line text-muted'
                     } ${colorOut ? 'cursor-not-allowed opacity-40 line-through' : ''}`}
                   >

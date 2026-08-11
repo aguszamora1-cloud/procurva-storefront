@@ -36,7 +36,7 @@ function outlineText(bg: string): string {
 export function CardBadge({ children, bg, color = '#ffffff', className = '', glow = false, variant = 'solid' }: Props) {
   // Pill compacto: ancho al contenido, esquina de la imagen, sombra sutil. Sin
   // mayúsculas ni full-width (el diseño viejo era una barra sólida pesada).
-  const base = 'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none shadow-sm';
+  const base = 'inline-flex items-center gap-1 whitespace-nowrap rounded-pill px-2.5 py-1 text-[11px] font-semibold leading-none shadow-sm';
 
   if (glow) {
     return (

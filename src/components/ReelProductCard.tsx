@@ -203,7 +203,7 @@ export function ReelProductCard({ product, onNavigate, onAdded }: Props) {
                       setPickColor(c);
                       setPickSize(null);
                     }}
-                    className={`rounded-full border px-2.5 py-1 text-[12px] ${
+                    className={`rounded-pill border px-2.5 py-1 text-[12px] ${
                       effColor === c ? 'border-primary bg-primary text-on-primary' : 'border-line text-muted'
                     } ${colorOut ? 'cursor-not-allowed opacity-40 line-through' : ''}`}
                   >

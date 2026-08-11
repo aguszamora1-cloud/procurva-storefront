@@ -67,7 +67,7 @@ export function CustomBannerSection({
   // y la UI del admin no puede ser la única garantía de lo que se renderiza.
   if (variant === 'column') {
     return (
-      <section className="w-full overflow-hidden rounded-[10px]">
+      <section className="w-full overflow-hidden rounded-xl">
         <Slide slide={slides[0]} label={section.label} load />
       </section>
     );
@@ -274,7 +274,12 @@ function PhoneMockupBanner({
         </h2>
       ) : null}
 
-      {/* Frame del celular */}
+      {/* Frame del celular.
+          Los dos radios de acá quedan en píxeles literales A PROPÓSITO, fuera del
+          token de esquinas: no son una decisión de estilo de la tienda, es el
+          dibujo de un objeto físico. Con el preset "recto" un celular de esquinas
+          cuadradas no se lee como celular, se lee como un bug.
+          check-hardcoded-radius: ok — frame y pantalla del mockup de celular */}
       <div
         className="relative mx-auto w-[260px] sm:w-[320px] aspect-[9/19.5] rounded-[24px] bg-black p-2 shadow-xl"
         onTouchStart={onTouchStart}

@@ -379,7 +379,7 @@ function LocationCard({ location, solo = false }: { location: StorefrontLocation
           </h3>
           {open !== null && (
             <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+              className={`rounded-pill px-2 py-0.5 text-[11px] font-medium ${
                 open ? 'bg-[#e8f5e9] text-[#2e7d32]' : 'bg-secondary text-muted'
               }`}
             >
@@ -387,7 +387,7 @@ function LocationCard({ location, solo = false }: { location: StorefrontLocation
             </span>
           )}
           {type === 'showroom' && location.by_appointment && (
-            <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted">Con cita previa</span>
+            <span className="rounded-pill bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted">Con cita previa</span>
           )}
         </div>
 
@@ -564,7 +564,7 @@ export function CustomLocationsSection({
                 role="tab"
                 aria-selected={i === tab}
                 onClick={() => setTab(i)}
-                className={`rounded-full border px-4 py-2 text-[14px] transition-colors ${
+                className={`rounded-pill border px-4 py-2 text-[14px] transition-colors ${
                   i === tab
                     ? 'border-accent bg-accent text-on-accent'
                     : 'border-line text-on-surface hover:border-accent hover:text-accent'

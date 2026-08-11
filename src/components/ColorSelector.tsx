@@ -84,7 +84,7 @@ export function ColorSelector({ colors, selected, isDisabled, onSelect, hideHead
             <label
               key={color}
               title={displayColorName(color)}
-              className={`inline-flex h-11 max-w-[160px] cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-3 text-[14px] transition-all duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent has-[:focus-visible]:ring-offset-1 pointer-fine:h-9 pointer-fine:gap-1.5 pointer-fine:px-2.5 ${
+              className={`inline-flex h-11 max-w-[160px] cursor-pointer items-center gap-2 rounded-pill border-[1.5px] px-3 text-[14px] transition-all duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent has-[:focus-visible]:ring-offset-1 pointer-fine:h-9 pointer-fine:gap-1.5 pointer-fine:px-2.5 ${
                 active
                   ? SELECTED_CHIP
                   : disabled

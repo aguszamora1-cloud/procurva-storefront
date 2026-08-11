@@ -492,12 +492,12 @@ export function WholesalePurchasePanel({
                       </span>
                       <span className="text-[15px] font-semibold text-text">{label}</span>
                       {showSavings && (
-                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[12px] font-bold leading-none text-emerald-600">
+                        <span className="rounded-pill bg-emerald-500/10 px-2 py-0.5 text-[12px] font-bold leading-none text-emerald-600">
                           -{formatPrice(savings)}/u
                         </span>
                       )}
                       {isLast && (
-                        <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[12px] font-bold leading-none text-amber-700">
+                        <span className="rounded-pill bg-amber-500/10 px-2 py-0.5 text-[12px] font-bold leading-none text-amber-700">
                           Mejor precio
                         </span>
                       )}
@@ -676,7 +676,7 @@ export function WholesalePurchasePanel({
                       setPackCount(1);
                     }}
                     style={sel ? { backgroundColor: 'color-mix(in srgb, var(--color-accent) 8%, transparent)' } : undefined}
-                    className={`rounded-full border px-3.5 py-2 text-[13px] font-semibold transition-colors ${
+                    className={`rounded-pill border px-3.5 py-2 text-[13px] font-semibold transition-colors ${
                       sel ? 'border-accent text-text' : 'border-line text-subtle hover:border-subtle'
                     }`}
                   >
@@ -722,7 +722,7 @@ export function WholesalePurchasePanel({
                 return (
                   <span
                     key={t.min_packs}
-                    className={`rounded-full border px-2.5 py-1 text-[12px] font-medium ${
+                    className={`rounded-pill border px-2.5 py-1 text-[12px] font-medium ${
                       isActive ? 'border-accent text-text' : 'border-line text-subtle'
                     }`}
                   >
@@ -785,7 +785,7 @@ export function WholesalePurchasePanel({
           type="button"
           onClick={() => submit('cart')}
           disabled={!canSubmit || added}
-          className="w-full rounded-[8px] bg-primary px-6 py-[14px] text-center text-[14px] font-semibold text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full rounded-button bg-primary px-6 py-[14px] text-center text-[14px] font-semibold text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {added ? 'Agregado al carrito' : 'Agregar al carrito'}
         </button>
@@ -793,7 +793,7 @@ export function WholesalePurchasePanel({
           type="button"
           onClick={() => submit('buy')}
           disabled={!canSubmit}
-          className="w-full rounded-[8px] border border-line bg-transparent px-6 py-[14px] text-center text-[14px] font-medium text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full rounded-button border border-line bg-transparent px-6 py-[14px] text-center text-[14px] font-medium text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
         >
           Comprar ahora
         </button>

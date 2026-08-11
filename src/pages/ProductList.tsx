@@ -453,7 +453,7 @@ export function ProductList() {
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
-            className="block w-full rounded-[10px] bg-accent py-3.5 text-center text-[15px] font-medium text-on-accent transition-transform hover:scale-[1.01]"
+            className="block w-full rounded-button bg-accent py-3.5 text-center text-[15px] font-medium text-on-accent transition-transform hover:scale-[1.01]"
           >
             Ver {countLabel}
           </button>

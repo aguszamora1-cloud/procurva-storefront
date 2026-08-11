@@ -137,7 +137,7 @@ function RadioCard({
 }) {
   return (
     <label
-      className={`flex cursor-pointer items-start gap-3 rounded-[12px] px-4 py-3.5 transition-colors focus-within:ring-2 focus-within:ring-accent-a40 ${
+      className={`flex cursor-pointer items-start gap-3 rounded-xl px-4 py-3.5 transition-colors focus-within:ring-2 focus-within:ring-accent-a40 ${
         checked ? 'border-2 border-accent' : 'border border-line hover:border-accent-a50'
       } ${className}`}
     >
@@ -554,7 +554,7 @@ export function Checkout() {
         {seo}
         <ShoppingBag size={56} className="text-subtle" />
         <h1 className="font-body text-[24px] font-medium text-text">Tu carrito está vacío</h1>
-        <Link to="/productos" className="rounded-[8px] bg-primary px-8 py-3.5 text-[14px] font-medium text-on-primary transition-opacity hover:opacity-90">
+        <Link to="/productos" className="rounded-button bg-primary px-8 py-3.5 text-[14px] font-medium text-on-primary transition-opacity hover:opacity-90">
           Ver productos
         </Link>
       </div>
@@ -815,7 +815,7 @@ export function Checkout() {
   // text-[16px] evita el zoom automático de iOS al enfocar un input (<16px).
   // Borde 1px neutro, radio 8px, sin sombra: sólo el focus ring del input.
   const inputCls =
-    'w-full rounded-[8px] border border-line bg-background px-3.5 py-2.5 text-[16px] font-normal text-text outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent-a25';
+    'w-full rounded-button border border-line bg-background px-3.5 py-2.5 text-[16px] font-normal text-text outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent-a25';
   const labelCls = 'text-[13px] font-medium text-muted';
 
   // Link de WhatsApp para las salidas de contacto del panel (dudas / sin cobertura).
@@ -1053,7 +1053,7 @@ export function Checkout() {
                         <button
                           type="button"
                           onClick={applyCp}
-                          className="shrink-0 rounded-[8px] border border-line px-4 text-[14px] font-medium text-text transition-colors hover:border-accent hover:text-accent"
+                          className="shrink-0 rounded-button border border-line px-4 text-[14px] font-medium text-text transition-colors hover:border-accent hover:text-accent"
                         >
                           Ver opciones
                         </button>
@@ -1072,7 +1072,7 @@ export function Checkout() {
 
                 {/* Sin cobertura para la zona: en vez de una lista vacía, ofrecemos WhatsApp */}
                 {noDeliveryForZone && (
-                  <div className="rounded-[12px] border border-line px-4 py-3">
+                  <div className="rounded-xl border border-line px-4 py-3">
                     <p className="text-[13px] text-text">No hacemos envíos a tu zona todavía.</p>
                     {waHref ? (
                       <a
@@ -1212,7 +1212,7 @@ export function Checkout() {
                           <span className="mt-0.5 block text-[13px] leading-snug text-subtle">{sub}</span>
                         </span>
                         {isCash && cashDiscountPct > 0 && (
-                          <span className="shrink-0 rounded-full bg-[#27ae60] px-2.5 py-1 text-[11px] font-medium leading-none text-white">
+                          <span className="shrink-0 rounded-pill bg-[#27ae60] px-2.5 py-1 text-[11px] font-medium leading-none text-white">
                             {cashDiscountPct}% off
                           </span>
                         )}
@@ -1224,7 +1224,7 @@ export function Checkout() {
 
               {/* Transferencia directa: sólo anticipamos el monto; alias/CBU en la pantalla de éxito */}
               {transferManual && transferAccount && (
-                <div className="mt-4 rounded-[12px] border border-line p-4">
+                <div className="mt-4 rounded-xl border border-line p-4">
                   <p className="text-[13px] font-medium text-text">Pago por transferencia</p>
                   <p className="mt-1.5 text-[13px] leading-snug text-muted">
                     Al confirmar el pedido te mostramos el alias y CBU para transferir{' '}
@@ -1239,7 +1239,7 @@ export function Checkout() {
 
         {/* ───────── Panel derecho: Tu pedido (sticky, top ~24px) ───────── */}
         <aside className="lg:sticky lg:top-6">
-          <div className="rounded-[12px] border border-line bg-background p-5 sm:p-6">
+          <div className="rounded-xl border border-line bg-background p-5 sm:p-6">
             {/* Encabezado + Editar (vuelve al carrito) */}
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-body text-[16px] font-medium text-text">Tu pedido</h2>
@@ -1268,10 +1268,10 @@ export function Checkout() {
                           src={row.image}
                           alt={row.name}
                           loading="lazy"
-                          className="h-14 w-14 shrink-0 rounded-[8px] border border-line object-cover"
+                          className="h-14 w-14 shrink-0 rounded-lg border border-line object-cover"
                         />
                       ) : (
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[8px] border border-line bg-muted/10 text-subtle">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-line bg-muted/10 text-subtle">
                           <ImageIcon className="h-5 w-5" />
                         </div>
                       )}
@@ -1311,7 +1311,7 @@ export function Checkout() {
                 </p>
               ) : appliedCoupon ? (
                 <div
-                  className={`flex items-center justify-between gap-2 rounded-[8px] border px-3 py-2 ${
+                  className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${
                     discountAmount > 0 ? 'border-[#27ae60]/40' : 'border-amber-300'
                   }`}
                 >
@@ -1370,7 +1370,7 @@ export function Checkout() {
                       type="button"
                       onClick={applyCoupon}
                       disabled={couponStatus === 'loading' || !couponInput.trim()}
-                      className="shrink-0 rounded-[8px] border border-line px-4 text-[14px] font-medium text-text transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                      className="shrink-0 rounded-button border border-line px-4 text-[14px] font-medium text-text transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {couponStatus === 'loading' ? '…' : 'Aplicar'}
                     </button>
@@ -1393,7 +1393,7 @@ export function Checkout() {
 
             {/* Stock insuficiente / error — visibles también en mobile (fuera del bloque desktop) */}
             {stockIssues.length > 0 && (
-              <div className="mb-3 rounded-[8px] border border-red-200 bg-red-50 px-3 py-2.5">
+              <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
                 <p className="flex items-center gap-1.5 text-[13px] font-medium text-red-700">
                   <AlertTriangle className="h-4 w-4 shrink-0" />
                   {stockIssues.length === 1 ? 'Un producto se quedó sin stock' : 'Hay productos sin stock'}
@@ -1413,7 +1413,7 @@ export function Checkout() {
             )}
 
             {error && (
-              <p className="mb-3 rounded-[8px] bg-red-50 px-3 py-2 text-[13px] font-medium text-red-700">{error}</p>
+              <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[13px] font-medium text-red-700">{error}</p>
             )}
 
             {/* CTA + línea de confianza — sólo desktop (en mobile va la barra fija inferior) */}
@@ -1423,7 +1423,7 @@ export function Checkout() {
                   type="button"
                   onClick={handlePay}
                   disabled={ctaDisabled}
-                  className="flex w-full items-center justify-center gap-2 rounded-[8px] bg-primary py-3.5 text-[15px] font-medium text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-button bg-primary py-3.5 text-[15px] font-medium text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading !== null ? (
                     <><Spinner size={16} /> {routing === 'wa' ? 'Procesando…' : 'Redirigiendo…'}</>
@@ -1483,7 +1483,7 @@ export function Checkout() {
                 type="button"
                 onClick={handlePay}
                 disabled={ctaDisabled}
-                className="flex w-full items-center justify-center gap-2 rounded-[8px] bg-primary py-3 text-[14px] font-medium text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-button bg-primary py-3 text-[14px] font-medium text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading !== null ? (
                   <><Spinner size={16} /> {routing === 'wa' ? 'Procesando…' : 'Redirigiendo…'}</>

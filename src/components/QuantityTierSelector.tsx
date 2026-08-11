@@ -291,7 +291,7 @@ export function QuantityTierSelector({
                   // cinta sobresale 11px y el mt-3 de la fila (12px) evita que pise
                   // la fila de arriba o el título.
                   <span
-                    className={`absolute right-3 top-0 -translate-y-1/2 whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${s.ribbon}`}
+                    className={`absolute right-3 top-0 -translate-y-1/2 whitespace-nowrap rounded-pill px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${s.ribbon}`}
                   >
                     Más elegido
                   </span>
@@ -335,7 +335,7 @@ export function QuantityTierSelector({
             <>
               {featured && (
                 <span
-                  className={`absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${s.ribbon}`}
+                  className={`absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-pill px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${s.ribbon}`}
                 >
                   Más elegido
                 </span>

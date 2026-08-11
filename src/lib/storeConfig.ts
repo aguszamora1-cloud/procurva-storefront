@@ -273,6 +273,12 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       })(),
     },
 
+    // Esquinas globales. Default 'rounded' en ambos: es el aspecto que la tienda
+    // ya tenía, así que las tiendas que nunca abran la opción no se mueven.
+    corners: s.corners === 'square' || s.corners === 'soft' ? s.corners : 'rounded',
+    buttonCorners:
+      s.button_corners === 'square' || s.button_corners === 'pill' ? s.button_corners : 'rounded',
+
     topBarAnimated: bool(s.top_bar_animated, false),
     tagline: str(s.tagline),
     // Barra de anuncio, con PRECEDENCIA: manda storefront_announcement; si está

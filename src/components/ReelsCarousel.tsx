@@ -69,7 +69,7 @@ export function ReelsCarousel({ reels, title, width = 'full' }: Props) {
               aria-label={reel.caption || `Ver video ${i + 1}`}
               className="group w-[138px] flex-shrink-0 snap-start text-left md:w-[180px] lg:w-[240px]"
             >
-              <div className="relative aspect-[9/16] w-full overflow-hidden rounded-[10px] bg-secondary">
+              <div className="relative aspect-[9/16] w-full overflow-hidden rounded-xl bg-secondary">
                 <img
                   src={reel.poster_url}
                   alt=""

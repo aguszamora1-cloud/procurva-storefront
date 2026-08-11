@@ -47,10 +47,10 @@ function TransferDetails({ amount }: { amount: number | null }) {
     });
   };
   const copyBtn =
-    'shrink-0 rounded-[7px] border border-line px-3 py-1.5 text-[12px] font-bold text-accent transition-colors hover:bg-accent hover:text-on-accent';
+    'shrink-0 rounded-button border border-line px-3 py-1.5 text-[12px] font-bold text-accent transition-colors hover:bg-accent hover:text-on-accent';
 
   return (
-    <div className="mt-2 w-full max-w-[440px] rounded-[12px] border border-accent-a40 bg-accent-a05 p-4 text-left">
+    <div className="mt-2 w-full max-w-[440px] rounded-xl border border-accent-a40 bg-accent-a05 p-4 text-left">
       <p className="mb-3 text-[13px] font-bold text-text">Datos para la transferencia</p>
       <div className="space-y-2.5">
         {ta.alias && (
@@ -174,7 +174,7 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
           href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-1 inline-flex items-center justify-center gap-2.5 rounded-[10px] bg-[#25D366] px-8 py-4 text-[15px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
+          className="mt-1 inline-flex items-center justify-center gap-2.5 rounded-button bg-[#25D366] px-8 py-4 text-[15px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
         >
           <MessageCircle size={20} strokeWidth={2.2} />
           Coordinar pago por WhatsApp
@@ -182,11 +182,11 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
       )}
       <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
         {variant === 'failure' ? (
-          <Link to="/checkout" className="rounded-[10px] bg-primary px-7 py-3.5 text-[15px] font-medium text-on-primary transition-all hover:bg-accent hover:text-on-accent">
+          <Link to="/checkout" className="rounded-button bg-primary px-7 py-3.5 text-[15px] font-medium text-on-primary transition-all hover:bg-accent hover:text-on-accent">
             Reintentar
           </Link>
         ) : (
-          <Link to="/productos" className="rounded-[10px] bg-primary px-7 py-3.5 text-[15px] font-medium text-on-primary transition-all hover:bg-accent hover:text-on-accent">
+          <Link to="/productos" className="rounded-button bg-primary px-7 py-3.5 text-[15px] font-medium text-on-primary transition-all hover:bg-accent hover:text-on-accent">
             Seguir comprando
           </Link>
         )}

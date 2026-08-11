@@ -130,7 +130,7 @@ export function ProductGallery({ items, alt, activeIndex, onFirstImageReady }: P
         )}
 
         <div
-          className={`relative aspect-[3/4] overflow-hidden rounded-[12px] bg-secondary md:max-h-[80vh] ${
+          className={`relative aspect-[3/4] overflow-hidden rounded-xl bg-secondary md:max-h-[80vh] ${
             activeIsVideo ? '' : 'cursor-zoom-in'
           }`}
           onMouseMove={handleMove}

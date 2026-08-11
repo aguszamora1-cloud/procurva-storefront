@@ -73,6 +73,29 @@ export interface CustomSectionBannerSlide {
 
 export type BannerDisplayMode = 'carousel' | 'scroll' | 'phone_mockup';
 
+/**
+ * Esquinas de toda la tienda: cards, banners, inputs, chips y badges.
+ *
+ *  - 'square'  → 0. Look editorial/streetwear, el que piden las marcas de ropa.
+ *  - 'rounded' → la escala default de Tailwind. Es lo que la tienda mostraba
+ *                antes de que existiera esta opción, así que es el default y
+ *                ninguna tienda existente cambia de aspecto.
+ *  - 'soft'    → escala ampliada, look más amable/mobile.
+ *
+ * NO afecta a `rounded-full`, que es una intención absoluta (círculos: swatches
+ * de color, avatares, dots del carrusel). Las pastillas decorativas que SÍ deben
+ * enderezarse usan `rounded-pill`.
+ */
+export type CornerStyle = 'square' | 'rounded' | 'soft';
+
+/**
+ * Esquinas de los botones, aparte de las cards. Existe para permitir el combo
+ * clásico de indumentaria: tarjetas rectas con botón cápsula. 'pill' acá SÍ es
+ * una cápsula real, porque los botones son anchos y bajos (a diferencia de las
+ * cards de categoría, que son cuadradas y saldrían círculos).
+ */
+export type ButtonCornerStyle = 'square' | 'rounded' | 'pill';
+
 /** Aspecto del botón (CTA) del hero, elegido por el comercio en el editor. */
 export type HeroCtaShape = 'rounded' | 'square' | 'pill';
 export type HeroCtaSize = 'sm' | 'md' | 'lg';
@@ -573,6 +596,12 @@ export interface RawCatalogSettings {
     columns?: 2 | 3 | 4;
     card_style?: 'overlay' | 'below' | 'full';
   };
+  // Esquinas de toda la tienda. `corners` manda sobre cards, banners, inputs y
+  // chips; `button_corners` es aparte para permitir el combo más pedido en
+  // indumentaria (cards rectas + botón cápsula). Ausentes = 'rounded'/'rounded',
+  // que es exactamente el look que la tienda tenía antes del token.
+  corners?: CornerStyle;
+  button_corners?: ButtonCornerStyle;
   tagline?: string;
   whatsapp?: string;
   // Modo de venta de la tienda (seam para la fase de render mayorista).
@@ -890,6 +919,10 @@ export interface StoreConfig {
     columns: 2 | 3 | 4;
     cardStyle: 'overlay' | 'below' | 'full';
   };
+  // Esquinas globales (ver CornerStyle). Las consume applyTheme, que las traduce
+  // a las CSS variables --radius-*; ningún componente las lee directo.
+  corners: CornerStyle;
+  buttonCorners: ButtonCornerStyle;
   // Top bar
   topBarAnimated: boolean;
   tagline: string;

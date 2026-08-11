@@ -63,7 +63,11 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // trae el objeto— reventaría el primer paint.
 // v10: suma `showVariantColors`. Una entrada v9 no lo trae y ProductCard lo lee
 // sin guarda: los círculos se apagarían solos en el primer paint de la sesión.
-const cacheKey = (slug: string) => `procurva_store_config_v10:${slug}`;
+// v11: suma `corners` y `buttonCorners` (esquinas configurables). applyTheme sí
+// tiene guarda —cae a 'rounded' si falta—, así que una entrada v10 no rompe
+// nada; el bump es para que no PARPADEE: una tienda con esquinas rectas pintaría
+// el primer frame redondeado y se enderezaría al resolver el fetch.
+const cacheKey = (slug: string) => `procurva_store_config_v11:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 

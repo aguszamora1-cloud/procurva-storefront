@@ -61,13 +61,13 @@ export function ShippingCalculator() {
           inputMode="numeric"
           maxLength={4}
           placeholder="Tu código postal"
-          className="w-full rounded-[8px] border border-line bg-background px-3.5 py-2.5 text-[16px] text-text outline-none transition-colors focus:border-accent"
+          className="w-full rounded-button border border-line bg-background px-3.5 py-2.5 text-[16px] text-text outline-none transition-colors focus:border-accent"
         />
         <button
           type="button"
           onClick={calcular}
           disabled={status === 'loading' || cp.length === 0}
-          className="flex shrink-0 items-center justify-center rounded-[8px] bg-[#111] px-5 text-[13px] font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex shrink-0 items-center justify-center rounded-button bg-[#111] px-5 text-[13px] font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
         >
           {status === 'loading' ? <Spinner size={14} /> : 'Calcular'}
         </button>
@@ -96,7 +96,7 @@ export function ShippingCalculator() {
             return (
               <div
                 key={o.id}
-                className="rounded-[8px] border border-[#eee] transition-colors hover:border-[#111]"
+                className="rounded-lg border border-[#eee] transition-colors hover:border-[#111]"
                 style={{ padding: '14px 16px' }}
               >
                 <div className="flex items-start justify-between gap-3">

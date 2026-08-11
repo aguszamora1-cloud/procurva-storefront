@@ -40,7 +40,7 @@ export function InlineError({ message, onRetry }: { message?: string; onRetry?: 
         <button
           type="button"
           onClick={onRetry}
-          className="mt-1 rounded-[10px] bg-primary px-7 py-3 text-[13px] font-bold text-on-primary transition-all hover:bg-accent hover:text-on-accent"
+          className="mt-1 rounded-button bg-primary px-7 py-3 text-[13px] font-bold text-on-primary transition-all hover:bg-accent hover:text-on-accent"
         >
           Reintentar
         </button>

@@ -47,7 +47,7 @@ export function CouponChip({ items, mode, storeType, hasNonStackablePromo, showA
     const active = ev.discount > 0;
     return (
       <div
-        className={`flex items-center justify-between gap-2 rounded-[8px] px-3 py-2 ${
+        className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 ${
           active ? 'bg-accent-a10' : 'bg-amber-50'
         } ${className}`}
       >
@@ -85,7 +85,7 @@ export function CouponChip({ items, mode, storeType, hasNonStackablePromo, showA
     else if (ev.reason === 'scope') msg = `El cupón ${code} no aplica a los productos de tu carrito`;
     return (
       <div
-        className={`flex items-center gap-2 rounded-[8px] bg-secondary px-3 py-2 text-[12px] font-medium text-subtle ${className}`}
+        className={`flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-[12px] font-medium text-subtle ${className}`}
       >
         <Tag size={15} className="shrink-0" />
         <span className="truncate">{msg}</span>
@@ -98,7 +98,7 @@ export function CouponChip({ items, mode, storeType, hasNonStackablePromo, showA
     <button
       type="button"
       onClick={() => setApplied(true)}
-      className={`flex w-full items-center gap-2 rounded-[8px] border border-dashed border-accent-a50 bg-accent-a05 px-3 py-2 text-left text-[12px] font-semibold text-accent transition-colors hover:bg-accent-a10 ${className}`}
+      className={`flex w-full items-center gap-2 rounded-button border border-dashed border-accent-a50 bg-accent-a05 px-3 py-2 text-left text-[12px] font-semibold text-accent transition-colors hover:bg-accent-a10 ${className}`}
     >
       <Tag size={15} className="shrink-0" />
       <span className="truncate">Tenés un cupón: {code} — Tocá para aplicar</span>
@@ -198,7 +198,7 @@ export function CouponPdpChip({ product, hasNonStackablePromo = false, color = n
         type="button"
         onClick={copy}
         aria-label="Copiar código del cupón"
-        className="flex shrink-0 items-center gap-1 rounded-[6px] px-2 py-1 text-[12px] font-semibold text-accent transition-colors hover:bg-accent-a10"
+        className="flex shrink-0 items-center gap-1 rounded-button px-2 py-1 text-[12px] font-semibold text-accent transition-colors hover:bg-accent-a10"
       >
         {copied ? <Check size={14} /> : <Copy size={14} />}
         {copied ? '¡Copiado!' : 'Copiar'}
