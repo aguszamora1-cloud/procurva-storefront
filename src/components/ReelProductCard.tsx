@@ -177,7 +177,7 @@ export function ReelProductCard({ product, onNavigate, onAdded }: Props) {
           type="button"
           onClick={outOfStock || added ? undefined : add}
           disabled={outOfStock || !!missingReason}
-          className={`flex flex-shrink-0 items-center gap-1 rounded-lg px-3.5 py-2 text-[13px] font-semibold transition-colors disabled:opacity-50 ${
+          className={`flex flex-shrink-0 items-center gap-1 rounded-button px-3.5 py-2 text-[13px] font-semibold transition-colors disabled:opacity-50 ${
             added ? 'bg-green-600 text-white' : 'bg-primary text-on-primary'
           }`}
         >

@@ -270,7 +270,7 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
             type="button"
             onClick={added ? undefined : onPlus}
             aria-label={added ? 'Agregado' : 'Agregar'}
-            className={`flex flex-shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+            className={`flex flex-shrink-0 items-center gap-1 rounded-button px-3 py-1.5 text-xs font-semibold transition-colors ${
               added ? 'bg-green-600 text-white' : 'bg-primary text-on-primary hover:opacity-90'
             }`}
           >
@@ -335,7 +335,7 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
           <button
             type="button"
             onClick={() => tryAdd()}
-            className="w-full rounded-lg bg-primary py-1.5 text-xs font-semibold text-on-primary disabled:opacity-60"
+            className="w-full rounded-button bg-primary py-1.5 text-xs font-semibold text-on-primary disabled:opacity-60"
             disabled={!!missingReason}
           >
             {missingReason ?? 'Agregar'}
