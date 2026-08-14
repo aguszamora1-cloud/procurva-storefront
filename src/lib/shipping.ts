@@ -59,6 +59,28 @@ export interface ShippingOption {
   coversAllPostalCodes: boolean;
   /** Rangos de CP cubiertos [desde, hasta]. Vacío = sin restricción (disponible para cualquier CP). */
   postalCodeRanges: [number, number][];
+  /**
+   * ¿Se puede pagar EN EFECTIVO con esta entrega? El efectivo se cobra en mano,
+   * así que sólo tiene sentido cuando la entrega es presencial del negocio
+   * (retiro en el local, reparto propio). Si el paquete lo despacha una
+   * transportadora nadie está ahí para cobrarlo. Lo configura el panel del ERP
+   * por método (`allowsCash`); ver `parseAllowsCash` para el default.
+   */
+  allowsCash: boolean;
+}
+
+/**
+ * Lee el flag `allowsCash` del método crudo. Si el negocio nunca lo tocó (todos
+ * los métodos cargados antes de la feature) lo DERIVAMOS en vez de asumir que sí:
+ * el retiro en local y la logística propia cobran en mano, las transportadoras y
+ * cualquier método de cobertura nacional no. Así una tienda de Rosario deja de
+ * ofrecerle "Efectivo" a un pedido que sale por Correo a Entre Ríos sin tener que
+ * configurar nada, y el que quiera lo destilda igual desde el panel.
+ */
+export function parseAllowsCash(m: any, isPickup: boolean): boolean {
+  if (typeof m.allowsCash === 'boolean') return m.allowsCash;
+  if (isPickup) return true;
+  return !(m.type === 'empresa' || m.coversAllPostalCodes === true);
 }
 
 /**
@@ -199,6 +221,7 @@ export function toShippingOption(m: any): ShippingOption {
     description: descriptionFor(isPickup, m.allowedCities),
     coversAllPostalCodes: m.coversAllPostalCodes === true,
     postalCodeRanges: parsePostalCodeRanges(m.postalCodes),
+    allowsCash: parseAllowsCash(m, isPickup),
   };
 }
 
@@ -217,6 +240,9 @@ export function expandMethod(m: any): ShippingOption[] {
     const coversAllPostalCodes = m.coversAllPostalCodes === true;
     const postalCodeRanges = parsePostalCodeRanges(m.postalCodes);
     const channels = parseChannels(m.channels);
+    // Las dos modalidades (domicilio / sucursal) heredan el mismo criterio de
+    // efectivo: es el mismo despacho, sólo cambia dónde termina el paquete.
+    const allowsCash = parseAllowsCash(m, false);
     return [
       {
         id: `${baseId}:domicilio`,
@@ -230,6 +256,7 @@ export function expandMethod(m: any): ShippingOption[] {
         description: '',
         coversAllPostalCodes,
         postalCodeRanges,
+        allowsCash,
       },
       {
         id: `${baseId}:sucursal`,
@@ -243,6 +270,7 @@ export function expandMethod(m: any): ShippingOption[] {
         description: '',
         coversAllPostalCodes,
         postalCodeRanges,
+        allowsCash,
       },
     ];
   }

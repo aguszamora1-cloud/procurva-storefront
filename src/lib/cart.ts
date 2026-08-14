@@ -86,6 +86,10 @@ export interface CartDisplayRow {
   removeKeys: string[];
   // qty editable inline (suelto/retail). Las curvas se editan desde el producto.
   editable: boolean;
+  // Items del carrito que componen la fila (1 en 'suelto', N en curva/pack/tier).
+  // Los tiene el consumidor que necesita el detalle fino —el desglose de talles
+  // del mensaje de WhatsApp, o un total a precio de contado— sin volver a agrupar.
+  items: CartItem[];
 }
 
 /**
@@ -122,6 +126,7 @@ export function groupCartItems(items: CartItem[]): CartDisplayRow[] {
         lineTotal: it.unit_price * it.qty,
         removeKeys: [cartLineKey(it)],
         editable: false,
+        items: [it],
       });
     } else if (it.source === 'pack') {
       const gk = `${it.product_id}::${it.packId ?? ''}`;
@@ -142,6 +147,7 @@ export function groupCartItems(items: CartItem[]): CartDisplayRow[] {
         cashTotal,
         removeKeys: [cartLineKey(it)],
         editable: true,
+        items: [it],
       });
     }
   }
@@ -162,6 +168,7 @@ export function groupCartItems(items: CartItem[]): CartDisplayRow[] {
       lineTotal,
       removeKeys: group.map(cartLineKey),
       editable: false,
+      items: group,
     });
   }
 
@@ -198,6 +205,7 @@ export function groupCartItems(items: CartItem[]): CartDisplayRow[] {
       cashTotal,
       removeKeys: group.map(cartLineKey),
       editable: false,
+      items: group,
     });
   }
 
@@ -218,6 +226,7 @@ export function groupCartItems(items: CartItem[]): CartDisplayRow[] {
       lineTotal,
       removeKeys: group.map(cartLineKey),
       editable: false,
+      items: group,
     });
   }
 
