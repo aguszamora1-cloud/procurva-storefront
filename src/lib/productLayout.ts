@@ -4,11 +4,15 @@
 // array es (a) un id de bloque predefinido (ver KNOWN_ELEMENT_IDS) o (b) una
 // referencia a una sección custom del detalle con el prefijo `custom:<uuid>`.
 //
-// FASE 0 (híbrido + núcleo fijo): el storefront sólo consume el ORDEN de la zona
-// `below_product` (bloques + custom sections de ese slot). La columna derecha
-// (precio/talle/color/agregar/WhatsApp) se mantiene fija; el resto de los slots
-// de custom sections (above_description/below_description/below_gallery) siguen
-// renderizando por su mecanismo legacy.
+// FASE 1: el storefront consume el orden de LAS DOS zonas. `below_product` se
+// recorre en BelowProductBlocks y `right_column` en la columna del detalle
+// (sólo canal MINORISTA: en mayorista manda el WholesalePurchasePanel y el
+// orden es fijo, igual que en el editor). Los bloques de la columna que no son
+// elementos del layout (precio, cupón, escalones, calculadora de envío,
+// descripción…) van anclados a un token — ver ProductDetail.tsx.
+//
+// Los slots de custom sections above_description/below_description/below_gallery
+// siguen renderizando por su mecanismo legacy (híbrido).
 
 export interface ProductLayout {
   right_column: string[];
@@ -35,19 +39,27 @@ export const KNOWN_ELEMENT_IDS = [
 /**
  * Layout por defecto (idéntico al DEFAULT_PRODUCT_LAYOUT del admin).
  *
- * Acá NO se usa para renderizar: sin layout guardado, `resolveProductLayoutOrNull`
- * devuelve null y la ficha cae al render legacy. Es la copia de referencia del
- * default que el ADMIN siembra la primera vez que el comercio toca el editor, y
- * por eso tiene que reproducir exactamente el orden que pinta este archivo:
- * cualquier diferencia se convierte en una ficha reordenada sin que nadie lo pida.
- * Si tocás el orden del render legacy en ProductDetail.tsx, actualizá los dos.
+ * Cumple DOS funciones y las dos exigen que reproduzca exactamente el orden que
+ * pinta ProductDetail.tsx:
+ *  1. Es lo que se usa para renderizar cuando el tenant NO configuró layout.
+ *  2. Es el orden de referencia para reinsertar tokens (ver `reinsertByReference`):
+ *     el núcleo que alguien ocultó y las anclas de los bloques fijos.
+ * Cualquier diferencia con el JSX se convierte en una ficha reordenada sin que
+ * nadie lo haya pedido. Si tocás el orden de la columna, actualizá los dos
+ * (y el gemelo del admin).
+ *
+ * OJO con colores/talles: el orden real es COLOR y después TALLE. Elegir color
+ * resetea el talle, así que al revés el comprador elige un talle que después se
+ * le borra. El default decía `sizes, size_guide, colors`, que nunca fue lo que
+ * el JSX pintaba — con la Fase 0 daba igual (la columna era fija), con la Fase 1
+ * le habría dado vuelta la ficha a todo el que sembró ese default.
  */
 export const DEFAULT_PRODUCT_LAYOUT: ProductLayout = {
   right_column: [
     'quantity_promo',
+    'colors',
     'sizes',
     'size_guide',
-    'colors',
     'shipping_promise',
     'add_to_cart',
     'whatsapp',
@@ -57,6 +69,51 @@ export const DEFAULT_PRODUCT_LAYOUT: ProductLayout = {
   ],
   below_product: ['reels', 'reviews', 'related'],
 };
+
+/**
+ * NÚCLEO: sin estos elementos el producto no se puede comprar (no hay cómo
+ * elegir la variante ni cómo agregarla). El editor no deja ocultarlos, pero un
+ * layout viejo puede tenerlos fuera; acá se reinsertan. Es la misma clase de red
+ * de seguridad que FULL_WIDTH_IDS: preferimos ignorar la config a dejar una
+ * ficha imposible de comprar.
+ */
+export const CORE_RIGHT_IDS: readonly string[] = ['colors', 'sizes', 'add_to_cart'];
+
+/**
+ * Tokens que pueden vivir en `below_product`. El resto son de columna: el
+ * switch de BelowProductBlocks no los conoce, así que un 'sizes' arrastrado
+ * ahí no se renderizaba en ningún lado (el mismo bug de 'reels', al revés).
+ */
+const BELOW_ALLOWED: readonly string[] = ['reels', 'reviews', 'related', 'purchase_flow'];
+
+/**
+ * Reinserta `missing` dentro de `order` en la posición que ocupan en `reference`:
+ * justo detrás del vecino previo de `reference` que sí esté presente (o al
+ * principio si no hay ninguno). Sirve para meter algo de vuelta "donde iba" sin
+ * mandarlo al final, que es lo que rompe la ficha.
+ */
+export function reinsertByReference(order: string[], missing: string[], reference: readonly string[]): string[] {
+  const out = [...order];
+  // En orden de `reference`: así, al insertar varios, cada uno ya ve a los
+  // anteriores colocados y no se invierten entre sí.
+  for (const id of [...missing].sort((a, b) => reference.indexOf(a) - reference.indexOf(b))) {
+    const refIdx = reference.indexOf(id);
+    if (refIdx < 0) {
+      out.push(id);
+      continue;
+    }
+    let at = 0;
+    for (let i = refIdx - 1; i >= 0; i--) {
+      const j = out.indexOf(reference[i]);
+      if (j >= 0) {
+        at = j + 1;
+        break;
+      }
+    }
+    out.splice(at, 0, id);
+  }
+  return out;
+}
 
 /**
  * Bloques de ANCHO COMPLETO: sólo tienen sentido en `below_product`.
@@ -97,13 +154,28 @@ export function resolveProductLayoutOrNull(raw: unknown): ProductLayout | null {
       (t): t is string => typeof t === 'string' && isValidToken(t) && !seen.has(t) && (seen.add(t), true),
     );
   const right = clean(pl.right_column);
-  // RED DE SEGURIDAD: bloques de ancho completo guardados en la columna derecha
-  // (config vieja, de antes de que el editor lo impidiera). Se MUEVEN al
-  // principio de below_product en vez de descartarse — descartarlos dejaría la
-  // sección invisible, que es exactamente el bug que esto cierra.
-  const misplaced = right.filter((t) => FULL_WIDTH_IDS.includes(t));
+  const below = clean(pl.below_product);
+
+  // RED DE SEGURIDAD, en los dos sentidos. Un token guardado en la zona que no
+  // le corresponde no lo renderiza NADIE, así que el bloque desaparece de la
+  // tienda sin aviso (pasó con 'reels'). En vez de descartarlo —que es
+  // exactamente el bug— se MUEVE a la zona donde sí se pinta:
+  //  - los de ancho completo en la columna  -> al principio de below_product
+  //  - los de columna en below_product      -> a su lugar en la columna
+  const fullWidthInRight = right.filter((t) => FULL_WIDTH_IDS.includes(t));
+  const columnOnlyInBelow = below.filter((t) => !isCustomToken(t) && !BELOW_ALLOWED.includes(t));
+
+  let rightFinal = right.filter((t) => !FULL_WIDTH_IDS.includes(t));
+  rightFinal = reinsertByReference(rightFinal, columnOnlyInBelow, DEFAULT_PRODUCT_LAYOUT.right_column);
+  // Núcleo que quedó fuera de las dos zonas (ver CORE_RIGHT_IDS).
+  rightFinal = reinsertByReference(
+    rightFinal,
+    CORE_RIGHT_IDS.filter((id) => !rightFinal.includes(id)),
+    DEFAULT_PRODUCT_LAYOUT.right_column,
+  );
+
   return {
-    right_column: right.filter((t) => !FULL_WIDTH_IDS.includes(t)),
-    below_product: [...misplaced, ...clean(pl.below_product)],
+    right_column: rightFinal,
+    below_product: [...fullWidthInRight, ...below.filter((t) => isCustomToken(t) || BELOW_ALLOWED.includes(t))],
   };
 }

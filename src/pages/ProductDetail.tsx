@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronDown, Eye, Ruler, Tag, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
@@ -38,8 +38,48 @@ import { useProductBadges } from '@/hooks/useProductBadges';
 import { formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
 import { track } from '@/lib/tracking';
-import { isCustomToken, customTokenId, type ProductLayout } from '@/lib/productLayout';
+import {
+  isCustomToken,
+  customTokenId,
+  reinsertByReference,
+  DEFAULT_PRODUCT_LAYOUT,
+  type ProductLayout,
+} from '@/lib/productLayout';
 import type { CustomSection, Product, ProductDetailSlot, StoreConfig, Variant } from '@/lib/types';
+
+/**
+ * Grupos visuales de la columna derecha. Los tokens de un mismo grupo que queden
+ * CONSECUTIVOS se pintan juntos dentro de un contenedor con menos aire
+ * (space-y-3 = 12px en vez de los 24px de la columna): son partes de una misma
+ * decisión y con 24px entre color y talle se leían como bloques sueltos. Si el
+ * comercio los separa en el editor, cada corrida arma su propio grupo.
+ */
+const RIGHT_GROUP: Record<string, 'variant' | 'cta'> = {
+  colors: 'variant',
+  sizes: 'variant',
+  size_guide: 'variant',
+  add_to_cart: 'cta',
+  whatsapp: 'cta',
+  virtual_try: 'cta',
+};
+
+/**
+ * Tokens que esta columna sabe pintar. Los de `below_product` (reels, reviews,
+ * related) se ignoran acá — productLayout.ts ya los saca de right_column, esto
+ * es sólo la segunda línea.
+ */
+const RIGHT_TOKENS: readonly string[] = [
+  'quantity_promo',
+  'colors',
+  'sizes',
+  'size_guide',
+  'shipping_promise',
+  'add_to_cart',
+  'whatsapp',
+  'virtual_try',
+  'upsells',
+  'purchase_flow',
+];
 
 /**
  * Renderiza la zona "debajo del producto" (ancho completo) en el ORDEN del
@@ -562,6 +602,261 @@ export function ProductDetail() {
   // abiertas las filas por unidad.
   const showSingleSelectors = !perUnitOpen;
 
+  // ── Columna derecha ordenable (Fase 1) ─────────────────────────────────────
+  // Hasta la Fase 0 esta columna estaba escrita a mano y `right_column` se
+  // ignoraba entero: lo que el comercio ordenaba u ocultaba en el editor no
+  // pasaba nada en la tienda. Ahora se recorre el array, igual que
+  // BelowProductBlocks con `below_product`.
+  //
+  // Sólo MINORISTA: en mayorista manda el WholesalePurchasePanel y el orden es
+  // fijo (mismo criterio que el editor).
+  const rightLayout = config.productLayout?.right_column ?? DEFAULT_PRODUCT_LAYOUT.right_column;
+
+  /** El bloque que le corresponde a cada elemento del layout. */
+  const rightBlock = (token: string): ReactNode => {
+    switch (token) {
+      case 'quantity_promo':
+        return (
+          <>
+            {/* Promo por cantidad: banner informativo. El precio NO se tacha (el
+                descuento se aplica recién al llegar al mínimo en el carrito). */}
+            {qtyPromo && qtyPromoMsg && (
+              <div
+                className="flex items-center gap-2.5 rounded-lg border px-3 py-2.5"
+                style={{
+                  borderColor: (qtyPromo.badge_color || '#16a34a') + '40',
+                  backgroundColor: (qtyPromo.badge_color || '#16a34a') + '12',
+                }}
+              >
+                <Tag className="h-4 w-4 shrink-0" style={{ color: qtyPromo.badge_color || '#16a34a' }} />
+                <p className="text-[13px] font-semibold" style={{ color: qtyPromo.badge_color || '#16a34a' }}>
+                  {qtyPromoMsg}
+                </p>
+              </div>
+            )}
+            {qtyPromo?.show_countdown && <PromoCountdown endsAt={qtyPromo.ends_at} color={qtyPromo.badge_color} />}
+          </>
+        );
+
+      // COLOR antes que TALLE en el default, un solo orden en toda la ficha
+      // (también en las filas por unidad). El color es el eje que manda: los
+      // talles con stock se calculan contra el color elegido y elegir color
+      // resetea el talle. Si el comercio lo da vuelta desde el editor se
+      // respeta, pero el default no lo hace por algo.
+      case 'colors':
+        return showSingleSelectors && needColor ? (
+          <ColorSelector
+            colors={colors}
+            selected={selectedColor}
+            isDisabled={colorDisabled}
+            onSelect={(c) => {
+              setSelectedColor(c);
+              setSelectedSize(null);
+            }}
+          />
+        ) : null;
+
+      case 'sizes':
+        return showSingleSelectors && needSize ? (
+          <SizeSelector sizes={sizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />
+        ) : null;
+
+      // Recomendador de talle — plan TIENDA+, sólo si section_probador. Panel
+      // inline desplegable. Va una sola vez, tanto en el flujo suelto como con
+      // las filas por unidad (antes desaparecía al abrir las cajas UNIDAD).
+      // Nunca por unidad: la pregunta que contesta es "cuál es MI talle", que
+      // tiene una sola respuesta. Por eso, con las filas, aplicar la
+      // recomendación la escribe en todas las unidades.
+      case 'size_guide':
+        return needSize && config.isPaid && config.sections.probador ? (
+          <div className="overflow-hidden rounded-md border border-line">
+            <button
+              type="button"
+              onClick={() => setShowSizeFinder((v) => !v)}
+              aria-expanded={showSizeFinder}
+              className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-secondary"
+            >
+              <span className="flex items-center gap-2 text-[13px] font-semibold text-text">
+                <Ruler size={16} /> ¿No sabés tu talle?
+              </span>
+              <span className="flex items-center gap-1 text-[12px] font-semibold text-accent">
+                Recomendador de talle
+                <ChevronDown size={16} className={`transition-transform duration-200 ${showSizeFinder ? 'rotate-180' : ''}`} />
+              </span>
+            </button>
+            {showSizeFinder && (
+              <div className="animate-fade-in border-t border-line bg-secondary px-4 py-4">
+                <SizeFinder
+                  sizes={sizes}
+                  onSelect={(s) => {
+                    setSelectedSize(s);
+                    if (perUnitOpen) setTierSelections((prev) => prev.map((u) => ({ ...u, size: s })));
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        ) : null;
+
+      // Promesa de envío. Si el comercio vació el título (y no cargó subtítulo)
+      // no queda una línea con el camioncito y nada más: desaparece entera.
+      case 'shipping_promise':
+        return config.shippingPromiseEnabled && (config.shippingPromiseTitle || config.shippingPromiseSubtitle) ? (
+          <p className="flex items-center gap-2 text-[14px]" style={{ color: config.shippingPromiseColor }}>
+            <Truck size={17} className="flex-none" />
+            {config.shippingPromiseTitle && <span className="font-semibold">{config.shippingPromiseTitle}</span>}
+            {config.shippingPromiseSubtitle && (
+              <span className="opacity-70">
+                {config.shippingPromiseTitle ? '· ' : ''}
+                {config.shippingPromiseSubtitle}
+              </span>
+            )}
+          </p>
+        ) : null;
+
+      case 'add_to_cart':
+        return (
+          <button
+            ref={addBtnRef}
+            type="button"
+            onClick={primaryAdd}
+            disabled={primaryDisabled}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-button bg-primary px-6 py-[18px] text-[16px] font-bold text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent hover:scale-[1.01] active:scale-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:text-on-primary"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+            </svg>
+            {primaryLabel}
+          </button>
+        );
+
+      case 'whatsapp':
+        return inquiry ? (
+          <a
+            href={inquiry}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-button border-[1.5px] border-[#25D366] bg-[#25D366] px-6 py-[14px] text-[14px] font-semibold text-white transition-colors hover:border-[#1DA851] hover:bg-[#1DA851] active:border-[#128C4E] active:bg-[#128C4E]"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M19.4 4.6A10 10 0 0 0 4.1 17.3L3 21l3.8-1.1A10 10 0 1 0 19.4 4.6Zm-7.4 15.3a8 8 0 0 1-4.1-1.1l-.3-.2-2.3.7.7-2.3-.2-.3a8 8 0 1 1 6.2 3.2Zm4.4-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.3.2-.3.6-1 .1-.1 0-.3 0-.4l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.4 0-.6.3l-.6.7a3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.7 2.6 4.2 3.6 1.5.6 2.1.7 2.9.5.5-.1 1.4-.6 1.6-1.2.2-.5.2-1 .2-1.1-.1-.1-.2-.1-.4-.2Z" />
+            </svg>
+            Consultar por WhatsApp
+          </a>
+        ) : null;
+
+      // Probador virtual con IA (FASHN) — plan PRO, sólo si section_virtual_tryon.
+      case 'virtual_try':
+        return config.isPro && config.sections.virtualTryon && images[0] ? (
+          <VirtualTryOn garmentImageUrl={images[0]} garmentName={product.name} garmentCategory={mapFashnCategory(cats)} />
+        ) : null;
+
+      // Complementarios (cross-selling). Se autooculta si no hay nada que sugerir.
+      case 'upsells':
+        return <ComplementaryBlock contexto="ficha" product={product} preferredSize={selectedSize} />;
+
+      case 'purchase_flow':
+        return <PurchaseFlow />;
+
+      default:
+        return null;
+    }
+  };
+
+  /**
+   * Bloques FIJOS de la columna que no son elementos del layout. Van anclados a
+   * un token y se emiten justo DESPUÉS de él: con el layout por defecto esto
+   * reproduce exactamente la columna de antes. Si el comercio oculta el ancla,
+   * el bloque fijo NO se pierde — se reinserta donde lo pone el default.
+   */
+  const rightPins: Record<string, ReactNode> = {
+    // Escalones por categoría (tarjetas seleccionables). El cálculo de precios
+    // queda afuera (tierPrices); QuantityTierSelector es sólo presentación.
+    quantity_promo: hasTiers ? (
+      <QuantityTierSelector
+        title="Elegí cuántas llevás"
+        options={tierOptions}
+        formatPrice={formatPrice}
+        onSelect={setTierUnits}
+        layout={config.quantityTiersLayout}
+        showSavings={config.quantityTiersShowSavings}
+        showCardPrice={config.quantityTiersShowCardPrice}
+      />
+    ) : null,
+
+    shipping_promise: config.sections.socialProof ? (
+      <p className="flex animate-fade-in items-center gap-2 text-[14px] text-subtle">
+        <Eye size={15} /> {viewersFromId(product.id)} personas están viendo este producto
+      </p>
+    ) : null,
+
+    upsells: (
+      <>
+        {/* "Es parte de un look": el outfit que contiene el producto. Solo
+            MINORISTA: catalog_outfits sólo tiene combo_price retail. */}
+        {config.complementaryBlock.mostrarOutfit && <OutfitForProductBlock product={product} />}
+        {/* Secciones custom de la columna: posición fija, antes de "Calculá tu
+            envío". Es un slot, no un token de layout. */}
+        <ProductDetailCustomSlot sections={pdSections} slot="right_column" variant="column" />
+        <ShippingCalculator />
+        {config.sections.trustBadges && <TrustBadges />}
+      </>
+    ),
+  };
+
+  /** La columna derecha minorista, en el orden configurado. */
+  const buildRightColumn = (): ReactNode[] => {
+    const nodes: ReactNode[] = [];
+    // Orden efectivo = los tokens visibles + los ocultos que anclan un bloque
+    // fijo, reinsertados donde van. Sin esto, ocultar "Complementarios" se
+    // llevaba puesta la calculadora de envío.
+    const visible = rightLayout.filter((t) => RIGHT_TOKENS.includes(t));
+    const anchors = Object.keys(rightPins).filter((t) => !visible.includes(t));
+    const order = reinsertByReference(visible, anchors, DEFAULT_PRODUCT_LAYOUT.right_column);
+
+    let unitRowsDone = false;
+    for (let i = 0; i < order.length; i++) {
+      const group = RIGHT_GROUP[order[i]];
+      if (group) {
+        const run: string[] = [];
+        while (i < order.length && RIGHT_GROUP[order[i]] === group) run.push(order[i++]);
+        i--;
+        // Las filas por unidad encabezan la zona de variantes (y reemplazan a
+        // los selectores únicos: showSingleSelectors = !perUnitOpen).
+        const withRows = group === 'variant' && perUnitOpen && !unitRowsDone;
+        const inner = run.map((t) => [t, rightBlock(t)] as const).filter(([, node]) => node !== null);
+        // Grupo entero vacío (producto sin colores, probador apagado…): no
+        // emitimos el contenedor, si no la columna queda con un hueco de 24px.
+        if (!withRows && inner.length === 0) continue;
+        if (withRows) unitRowsDone = true;
+        nodes.push(
+          <div key={`grupo-${run[0]}`} className={group === 'variant' ? 'space-y-3' : 'space-y-3 pt-1'}>
+            {withRows && (
+              <UnitVariantRows
+                selections={tierSelections}
+                sizes={sizes}
+                colors={colors}
+                sizeDisabledFor={sizeDisabledFor}
+                colorDisabled={colorDisabled}
+                onChange={updateTierUnit}
+              />
+            )}
+            {inner.map(([t, node]) => (
+              <Fragment key={t}>{node}</Fragment>
+            ))}
+          </div>,
+        );
+        continue;
+      }
+      if (visible.includes(order[i])) nodes.push(<Fragment key={order[i]}>{rightBlock(order[i])}</Fragment>);
+      const pin = rightPins[order[i]];
+      if (pin) nodes.push(<Fragment key={`ancla-${order[i]}`}>{pin}</Fragment>);
+    }
+    return nodes;
+  };
+
   return (
     <>
       <Seo
@@ -637,242 +932,66 @@ export function ProductDetail() {
             <WholesalePurchasePanel product={product} images={images} promo={promo} onColorChange={setSelectedColor} />
           )}
 
+          {/* MINORISTA: la columna en el ORDEN del layout (Fase 1). Precio y
+              cupón van siempre primero: no son elementos del layout, así que no
+              se ordenan ni se ocultan desde el editor. */}
           {!isWholesale && (
-          <>
-          <PriceStack product={product} variant="detail" color={selectedColor} />
+            <>
+              <PriceStack product={product} variant="detail" color={selectedColor} />
 
-          {/* Chip informativo del cupón guardado: cuánto pagarías por este producto
-              con el cupón + copiar el código. No aplica nada (eso pasa en el checkout). */}
-          <CouponPdpChip product={product} hasNonStackablePromo={promo?.stackable_with_coupons === false} color={selectedColor} className="mt-3" />
-
-          {/* Promo por cantidad: banner informativo. El precio NO se tacha (el
-              descuento se aplica recién al llegar al mínimo en el carrito). */}
-          {qtyPromo && qtyPromoMsg && (
-            <div
-              className="flex items-center gap-2.5 rounded-lg border px-3 py-2.5"
-              style={{
-                borderColor: (qtyPromo.badge_color || '#16a34a') + '40',
-                backgroundColor: (qtyPromo.badge_color || '#16a34a') + '12',
-              }}
-            >
-              <Tag className="h-4 w-4 shrink-0" style={{ color: qtyPromo.badge_color || '#16a34a' }} />
-              <p className="text-[13px] font-semibold" style={{ color: qtyPromo.badge_color || '#16a34a' }}>
-                {qtyPromoMsg}
-              </p>
-            </div>
-          )}
-          {qtyPromo?.show_countdown && (
-            <PromoCountdown endsAt={qtyPromo.ends_at} color={qtyPromo.badge_color} />
-          )}
-
-          {/* Volume tiers por categoría: tarjetas de escalón seleccionables (DB).
-              El cálculo de precios queda acá (tierPrices); QuantityTierSelector
-              es sólo presentación. */}
-          {hasTiers && (
-            <QuantityTierSelector
-              title="Elegí cuántas llevás"
-              options={tierOptions}
-              formatPrice={formatPrice}
-              onSelect={setTierUnits}
-              layout={config.quantityTiersLayout}
-              showSavings={config.quantityTiersShowSavings}
-              showCardPrice={config.quantityTiersShowCardPrice}
-            />
-          )}
-
-          {/* ZONA DE VARIANTES — check, filas por unidad, color, talle y el
-              acordeón del recomendador. Va en su propio contenedor con `space-y-3`
-              (12px) en vez del `space-y-6` (24px) de la columna: son partes de una
-              misma decisión y con los chips más bajos ese aire de 24px entre color
-              y talle los desarmaba en bloques sueltos. Contra sus vecinos —precio
-              arriba, promesa de envío abajo— sigue habiendo 24px. */}
-          <div className="space-y-3">
-          {/* Filas por unidad: "Unidad N" + sus chips, color → talle, igual que el
-              flujo suelto de abajo. */}
-          {perUnitOpen && (
-            <UnitVariantRows
-              selections={tierSelections}
-              sizes={sizes}
-              colors={colors}
-              sizeDisabledFor={sizeDisabledFor}
-              colorDisabled={colorDisabled}
-              onChange={updateTierUnit}
-            />
-          )}
-
-          {/* COLOR antes que TALLE, un solo orden en toda la ficha (también en las
-              filas por unidad). El color es el eje que manda: los talles con stock
-              se calculan contra el color elegido y elegir color resetea el talle;
-              al revés el comprador elegía un talle que después se le borraba. */}
-          {showSingleSelectors && needColor && (
-            <ColorSelector
-              colors={colors}
-              selected={selectedColor}
-              isDisabled={colorDisabled}
-              onSelect={(c) => {
-                setSelectedColor(c);
-                setSelectedSize(null);
-              }}
-            />
-          )}
-
-          {showSingleSelectors && needSize && <SizeSelector sizes={sizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />}
-
-          {/* Recomendador de talle — plan TIENDA+, sólo si section_probador. Panel
-              inline desplegable.
-
-              Va SIEMPRE acá, pegado abajo de la zona de talle y una sola vez, tanto
-              en el flujo suelto como con las filas por unidad (antes desaparecía al
-              abrir las cajas UNIDAD). Nunca por unidad: la pregunta que contesta es
-              "cuál es MI talle", que tiene una sola respuesta. Por eso, con las
-              filas, aplicar la recomendación la escribe en todas las unidades —
-              quedan a la vista justo arriba y se pueden cambiar de a una. */}
-          {needSize && config.isPaid && config.sections.probador && (
-            <div className="overflow-hidden rounded-md border border-line">
-              <button
-                type="button"
-                onClick={() => setShowSizeFinder((v) => !v)}
-                aria-expanded={showSizeFinder}
-                className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-secondary"
-              >
-                <span className="flex items-center gap-2 text-[13px] font-semibold text-text">
-                  <Ruler size={16} /> ¿No sabés tu talle?
-                </span>
-                <span className="flex items-center gap-1 text-[12px] font-semibold text-accent">
-                  Recomendador de talle
-                  <ChevronDown
-                    size={16}
-                    className={`transition-transform duration-200 ${showSizeFinder ? 'rotate-180' : ''}`}
-                  />
-                </span>
-              </button>
-              {showSizeFinder && (
-                <div className="animate-fade-in border-t border-line bg-secondary px-4 py-4">
-                  <SizeFinder
-                    sizes={sizes}
-                    onSelect={(s) => {
-                      setSelectedSize(s);
-                      if (perUnitOpen) setTierSelections((prev) => prev.map((u) => ({ ...u, size: s })));
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-          </div>
-
-          {/* Promesa de envío. Si el comercio vació el título (y no cargó
-              subtítulo) no queda una línea con el camioncito y nada más: la
-              promesa entera desaparece. */}
-          {config.shippingPromiseEnabled && (config.shippingPromiseTitle || config.shippingPromiseSubtitle) && (
-            <p
-              className="flex items-center gap-2 text-[14px]"
-              style={{ color: config.shippingPromiseColor }}
-            >
-              <Truck size={17} className="flex-none" />
-              {config.shippingPromiseTitle && (
-                <span className="font-semibold">{config.shippingPromiseTitle}</span>
-              )}
-              {config.shippingPromiseSubtitle && (
-                <span className="opacity-70">
-                  {config.shippingPromiseTitle ? '· ' : ''}
-                  {config.shippingPromiseSubtitle}
-                </span>
-              )}
-            </p>
-          )}
-
-          {config.sections.socialProof && (
-            <p className="flex animate-fade-in items-center gap-2 text-[14px] text-subtle">
-              <Eye size={15} /> {viewersFromId(product.id)} personas están viendo este producto
-            </p>
-          )}
-
-          <div className="space-y-3 pt-1">
-            <button
-              ref={addBtnRef}
-              type="button"
-              onClick={primaryAdd}
-              disabled={primaryDisabled}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-button bg-primary px-6 py-[18px] text-[16px] font-bold text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent hover:scale-[1.01] active:scale-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:text-on-primary"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="9" cy="21" r="1" />
-                <circle cx="20" cy="21" r="1" />
-                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-              </svg>
-              {primaryLabel}
-            </button>
-
-            {inquiry && (
-              <a
-                href={inquiry}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-button border-[1.5px] border-[#25D366] bg-[#25D366] px-6 py-[14px] text-[14px] font-semibold text-white transition-colors hover:border-[#1DA851] hover:bg-[#1DA851] active:border-[#128C4E] active:bg-[#128C4E]"
-              >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M19.4 4.6A10 10 0 0 0 4.1 17.3L3 21l3.8-1.1A10 10 0 1 0 19.4 4.6Zm-7.4 15.3a8 8 0 0 1-4.1-1.1l-.3-.2-2.3.7.7-2.3-.2-.3a8 8 0 1 1 6.2 3.2Zm4.4-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.3.2-.3.6-1 .1-.1 0-.3 0-.4l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.4 0-.6.3l-.6.7a3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.7 2.6 4.2 3.6 1.5.6 2.1.7 2.9.5.5-.1 1.4-.6 1.6-1.2.2-.5.2-1 .2-1.1-.1-.1-.2-.1-.4-.2Z" />
-                </svg>
-                Consultar por WhatsApp
-              </a>
-            )}
-
-            {/* Probador virtual con IA (FASHN) — plan PRO, sólo si section_virtual_tryon. */}
-            {config.isPro && config.sections.virtualTryon && images[0] && (
-              <VirtualTryOn
-                garmentImageUrl={images[0]}
-                garmentName={product.name}
-                garmentCategory={mapFashnCategory(cats)}
+              {/* Chip informativo del cupón guardado: cuánto pagarías por este
+                  producto con el cupón + copiar el código. No aplica nada (eso
+                  pasa en el checkout). */}
+              <CouponPdpChip
+                product={product}
+                hasNonStackablePromo={promo?.stackable_with_coupons === false}
+                color={selectedColor}
+                className="mt-3"
               />
-            )}
-          </div>
-          </>
+
+              {buildRightColumn()}
+            </>
           )}
 
-          {/* "Sumá otros colores" (mayorista): va ANTES de los complementarios.
-              Solo si el toggle está activo; se autooculta si no aplica. */}
-          {isWholesale && config.complementaryBlock.mostrarOtrosColores && (
-            <OtherColorsBlock product={product} selectedColor={selectedColor} />
+          {/* MAYORISTA: orden FIJO. El bloque de compra es el
+              WholesalePurchasePanel de más arriba; acá va la cola que comparte
+              con el minorista, sin pasar por el layout (el editor tampoco deja
+              ordenar este canal). */}
+          {isWholesale && (
+            <>
+              {/* "Sumá otros colores": va ANTES de los complementarios. Solo si
+                  el toggle está activo; se autooculta si no aplica. */}
+              {config.complementaryBlock.mostrarOtrosColores && (
+                <OtherColorsBlock product={product} selectedColor={selectedColor} />
+              )}
+
+              {/* Complementarios (cross-selling). Se autooculta si no hay nada
+                  que sugerir. */}
+              <ComplementaryBlock contexto="ficha" product={product} preferredSize={selectedSize} />
+
+              {/* El outfit ("Es parte de un look") NO va en mayorista:
+                  catalog_outfits sólo tiene combo_price retail, así que no hay
+                  precio válido que mostrar. */}
+
+              {/* Acordeones de políticas: DEBAJO de los complementarios, antes
+                  de "Calculá tu envío". */}
+              <PolicyAccordions />
+
+              {/* Secciones custom de la columna (imagen simple o texto). Es un
+                  slot, no un token de layout. */}
+              <ProductDetailCustomSlot sections={pdSections} slot="right_column" variant="column" />
+
+              <ShippingCalculator />
+
+              {config.sections.trustBadges && <TrustBadges />}
+
+              {/* "Así funciona tu compra": sin layout queda acá, como siempre.
+                  Con layout, acá sólo si el token está en la columna — si está
+                  en below_product lo pinta BelowProductBlocks, y si no está en
+                  ninguna zona es porque el comercio lo ocultó. */}
+              {(!config.productLayout || config.productLayout.right_column.includes('purchase_flow')) && <PurchaseFlow />}
+            </>
           )}
-
-          {/* Complementarios (cross-selling): debajo del botón de agregar, en la
-              columna derecha. Se autooculta si no hay nada que sugerir. */}
-          <ComplementaryBlock contexto="ficha" product={product} preferredSize={selectedSize} />
-
-          {/* "Es parte de un look": el outfit que contiene el producto (card destacada
-              o en lista según config). Solo MINORISTA: los outfits no tienen precio
-              mayorista cargado (catalog_outfits solo tiene combo_price retail), así que
-              en mayorista no hay precio válido que mostrar → se oculta. */}
-          {!isWholesale && config.complementaryBlock.mostrarOutfit && <OutfitForProductBlock product={product} />}
-
-          {/* Acordeones de políticas (mayorista): van DEBAJO de los bloques de
-              complementarios/outfit, antes de "Calculá tu envío". */}
-          {isWholesale && <PolicyAccordions />}
-
-          {/* Secciones custom de la columna derecha (imagen simple o texto).
-              Posición fija por ahora, justo antes de "Calculá tu envío": la Fase
-              siguiente incorpora este slot a la zona ordenable de la columna.
-              Aplica a los dos canales — es un slot, no un token de layout, así
-              que no depende del orden configurable (que en mayorista es fijo). */}
-          <ProductDetailCustomSlot sections={pdSections} slot="right_column" variant="column" />
-
-          <ShippingCalculator />
-
-          {config.sections.trustBadges && <TrustBadges />}
-
-          {/* "Así funciona tu compra" según el layout: sin layout queda acá, como
-              siempre. Con layout, acá sólo si el token está en la columna derecha
-              — si está en below_product lo pinta BelowProductBlocks, y si no está
-              en ninguna zona es porque el comercio lo ocultó.
-
-              El chequeo de right_column no es decorativo: la Fase 0 ignora esa
-              zona entera, así que un 'purchase_flow' guardado ahí no se
-              renderizaba en NINGÚN lado y el bloque desaparecía de la tienda sin
-              aviso. Es el mismo bug que el de 'reels', pero la red de
-              FULL_WIDTH_IDS no lo agarra: purchase_flow no es de ancho completo,
-              vivir en la columna es legítimo. */}
-          {(!config.productLayout || config.productLayout.right_column.includes('purchase_flow')) && <PurchaseFlow />}
 
           <ProductDetailCustomSlot sections={pdSections} slot="above_description" />
 

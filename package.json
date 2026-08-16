@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "check:mirrors": "node scripts/check-tier-selector-mirror.mjs && node scripts/check-color-helper-mirror.mjs",
+    "check:mirrors": "node scripts/check-tier-selector-mirror.mjs && node scripts/check-color-helper-mirror.mjs && node scripts/check-product-layout-mirror.mjs",
     "check:opacity": "node scripts/check-dead-opacity.mjs",
     "check:radius": "node scripts/check-hardcoded-radius.mjs",
     "check": "npm run check:mirrors && npm run check:opacity && npm run check:radius",
