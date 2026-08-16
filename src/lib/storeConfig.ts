@@ -229,6 +229,15 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     // Horario de entrega: default obligatorio (comportamiento histórico). El
     // comercio puede volverlo opcional desde Catálogo Online → Checkout.
     requireDeliveryTime: bool(s.require_delivery_time, true),
+    // Packaging de regalo: opcional, lo tilda el cliente en el checkout. El
+    // label es texto FUNCIONAL (es la etiqueta de un control), así que no usa
+    // `optionalText` — vaciarlo no debe dejar un checkbox sin nombre.
+    giftWrap: {
+      enabled: bool(s.gift_wrap_enabled, false),
+      label: str(s.gift_wrap_label) || 'Sumar packaging de regalo',
+      description: str(s.gift_wrap_description),
+      price: Math.max(0, Number(s.gift_wrap_price) || 0),
+    },
     policyShipping: str(s.envio_politica),
     policyReturns: str(s.cambios_politica),
     policyPayments: str(s.pagos_politica),

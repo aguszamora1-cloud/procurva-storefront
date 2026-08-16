@@ -97,6 +97,10 @@ export function buildWhatsappOrderWithCustomer(
   // Referencia corta del pedido ya creado (opcional). Si se pasa, se cita en el
   // mensaje; en transferencia además se le pide al cliente que mande el comprobante.
   orderRef?: string,
+  // El cliente pidió packaging de regalo. Se aclara en el mensaje porque este
+  // camino termina en un chat: si el comercio arma el pedido desde WhatsApp sin
+  // abrir el ERP, es lo único que se lo dice.
+  giftWrapLabel?: string | null,
 ): string {
   if (!config.whatsapp || items.length === 0) return '';
 
@@ -120,6 +124,7 @@ export function buildWhatsappOrderWithCustomer(
     '',
     ...lines,
     '',
+    ...(giftWrapLabel ? [`Con packaging de regalo: ${giftWrapLabel}`] : []),
     `Total: ${formatPrice(subtotal)}`,
     `Pago: ${paymentMethod}`,
     ...(orderRef ? [`Pedido: #${orderRef}`] : []),

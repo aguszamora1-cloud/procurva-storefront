@@ -617,6 +617,11 @@ export interface RawCatalogSettings {
   // Si el checkout exige el horario para recibir/retirar el pedido.
   // Ausente/true → obligatorio (comportamiento histórico); false → opcional.
   require_delivery_time?: boolean;
+  // Packaging de regalo opcional en el checkout (mono/papel). Lo elige el cliente.
+  gift_wrap_enabled?: boolean;
+  gift_wrap_label?: string;
+  gift_wrap_description?: string;
+  gift_wrap_price?: number;
   // Políticas de la tienda (acordeones en el detalle).
   envio_politica?: string;
   cambios_politica?: string;
@@ -886,6 +891,14 @@ export interface StoreConfig {
   minOrderMode: 'units' | 'amount' | 'both';
   // El checkout exige el horario de entrega/retiro. Default true (obligatorio).
   requireDeliveryTime: boolean;
+  /**
+   * Packaging de regalo opcional del checkout. `price: 0` = gratis (se muestra
+   * como "Gratis", no como "$ 0"). Siempre presente: si el comercio no lo
+   * configuró viene con enabled:false, así el render no depende de un opcional
+   * (la config cacheada de una build vieja no tiene la clave — ver el bump de
+   * `procurva_store_config_vN` en StoreProvider).
+   */
+  giftWrap: { enabled: boolean; label: string; description: string; price: number };
   // Políticas de la tienda (acordeones del detalle). '' = no mostrar.
   policyShipping: string;
   policyReturns: string;

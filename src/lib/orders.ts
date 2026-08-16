@@ -89,7 +89,7 @@ export async function checkCartStock(
  * Viaja: catalog_orders.price_breakdown -> orders.meta.price_breakdown.
  *
  * Invariante: list_subtotal - promo_discount - payment_discount - coupon_discount
- *             + surcharge + shipping == total
+ *             + surcharge + gift_wrap + shipping == total
  */
 export interface PriceBreakdownItem {
   product_id: string;
@@ -116,6 +116,19 @@ export interface PriceBreakdown {
   coupon_code: string | null;
   shipping: number;
   surcharge: number;
+  /**
+   * Packaging de regalo. Va como cargo propio y NO adentro de la mercadería: el
+   * detalle de la venta calcula el Subtotal como plug (total − cargos − envío),
+   * así que un extra que el ERP no conoce se disfraza de mercadería y le infla
+   * el margen al comercio. Es exactamente lo que pasó con el envío.
+   *
+   * `gift_wrap_selected` es aparte del monto a propósito: el packaging puede ser
+   * GRATIS, y ahí el cargo es 0 pero el pedido igual tiene que salir con el moño.
+   * Mirando sólo la plata, ese pedido sería indistinguible de uno sin regalo.
+   */
+  gift_wrap: number;
+  gift_wrap_selected: boolean;
+  gift_wrap_label: string | null;
   total: number;
   items: PriceBreakdownItem[];
 }

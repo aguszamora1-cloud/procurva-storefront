@@ -232,6 +232,7 @@ export function Checkout() {
   });
   const [floor, setFloor] = useState(() => loadSavedCustomer(config.companyId)?.floor ?? ''); // Piso / Depto (opcional)
   const [showNotes, setShowNotes] = useState(false); // Sección "Notas" colapsada por defecto
+  const [giftWrapOn, setGiftWrapOn] = useState(false); // Packaging de regalo (opt-in del cliente)
   const [showCoupon, setShowCoupon] = useState(false); // Input de cupón colapsado tras "¿Tenés un cupón?"
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false); // Detalle expandible de la barra fija mobile
   const [methods, setMethods] = useState<ShippingOption[]>([]);
@@ -490,6 +491,12 @@ export function Checkout() {
   const shippingKnown = typeof selectedMethod?.cost === 'number';
   const shippingCost = shippingKnown ? (selectedMethod!.cost as number) : 0;
 
+  // Packaging de regalo: lo tilda el cliente. Puede valer 0 (gratis) y en ese
+  // caso NO suma plata pero el pedido igual tiene que salir con el mono, por eso
+  // el flag viaja aparte del monto hasta el desglose.
+  const giftWrap = config.giftWrap;
+  const giftWrapCost = giftWrapOn ? Math.round(giftWrap?.price || 0) : 0;
+
   // Descuento recalculado en vivo contra el subtotal actual (cambia con el
   // método de pago: contado vs tarjeta). Si el subtotal cae por debajo de la
   // compra mínima del cupón, el descuento es 0 (sin romper nada).
@@ -514,7 +521,7 @@ export function Checkout() {
   }, [appliedCoupon, pricedItems]);
   const couponIsPartial = couponEligibleNames.length > 0 && couponEligibleNames.length < pricedItems.length;
 
-  const orderTotal = Math.max(0, itemsSubtotal - discountAmount) + shippingCost;
+  const orderTotal = Math.max(0, itemsSubtotal - discountAmount) + shippingCost + giftWrapCost;
 
   // Total que pagaría el cliente con un método de pago dado. Recalcula el
   // descuento del cupón contra el subtotal del modo (contado vs tarjeta) para
@@ -528,7 +535,7 @@ export function Checkout() {
         disc = Math.round(computeDiscount(appliedCoupon, elig));
       }
     }
-    return Math.max(0, sub - disc) + shippingCost;
+    return Math.max(0, sub - disc) + shippingCost + giftWrapCost;
   };
 
   // Monto exacto a transferir: SIEMPRE el total de contado del método Transferencia
@@ -696,6 +703,9 @@ export function Checkout() {
         coupon_code: discount?.coupon_code ?? null,
         shipping: Math.round(shippingCost),
         surcharge: 0,
+        gift_wrap: giftWrapCost,
+        gift_wrap_selected: giftWrapOn,
+        gift_wrap_label: giftWrapOn ? giftWrap?.label || null : null,
         total: Math.round(orderTotal),
         items: pricedItems.map((i) => {
           const priceFinal =
@@ -794,7 +804,7 @@ export function Checkout() {
           : orderId
             ? String(orderId).toUpperCase()
             : undefined;
-      const href = buildWhatsappOrderWithCustomer(config, pricedItems, orderTotal, customer, payLabel, orderRef);
+      const href = buildWhatsappOrderWithCustomer(config, pricedItems, orderTotal, customer, payLabel, orderRef, giftWrapOn ? giftWrap?.label || 'Packaging de regalo' : null);
       // NO abrimos WhatsApp acá con window.open: en mobile tapa la página (el
       // cliente no ve la confirmación y cree que falló → reintenta y duplica) y el
       // navegador suele bloquear el pop-up. En su lugar, llevamos al cliente a la
@@ -975,6 +985,16 @@ export function Checkout() {
           <span className="text-[13px] font-normal text-subtle">Se coordina</span>
         )}
       </div>
+      {giftWrapOn && (
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] text-muted">{giftWrap?.label || "Packaging de regalo"}</span>
+          {giftWrapCost === 0 ? (
+            <span className="text-[13px] font-medium text-[#27ae60]">Gratis</span>
+          ) : (
+            <span className="text-[13px] font-medium text-text">{formatPrice(giftWrapCost)}</span>
+          )}
+        </div>
+      )}
       <div className="mt-2 flex items-center justify-between border-t border-line pt-3">
         <span className="text-[14px] font-medium text-text">Total</span>
         <span className="text-[22px] font-medium text-text">{formatPrice(orderTotal)}</span>
@@ -1185,6 +1205,36 @@ export function Checkout() {
               )}
             </div>
           </div>
+
+          {/* Packaging de regalo. Opt-in del cliente, apagado por defecto: es un
+              agregado, no algo que haya que destildar. Sólo aparece si el comercio
+              lo activó. El precio puede ser 0 y ahí se anuncia "Gratis" — mostrar
+              "$ 0" da la sensación de que algo se rompió. */}
+          {giftWrap?.enabled && (
+            <div className="mt-9">
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-line p-4 transition-colors hover:bg-secondary">
+                <input
+                  type="checkbox"
+                  checked={giftWrapOn}
+                  onChange={(e) => setGiftWrapOn(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 flex-none accent-[var(--color-accent)]"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="text-[14px] font-medium text-text">{giftWrap.label}</span>
+                    {giftWrap.price > 0 ? (
+                      <span className="text-[13px] font-medium text-text">+{formatPrice(giftWrap.price)}</span>
+                    ) : (
+                      <span className="text-[13px] font-medium text-[#27ae60]">Gratis</span>
+                    )}
+                  </span>
+                  {giftWrap.description && (
+                    <span className="mt-0.5 block text-[13px] text-muted">{giftWrap.description}</span>
+                  )}
+                </span>
+              </label>
+            </div>
+          )}
 
           {/* 3. Método de pago — movido desde el panel derecho */}
           {availablePayMethods.length > 0 && (
