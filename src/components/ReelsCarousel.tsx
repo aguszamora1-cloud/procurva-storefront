@@ -16,6 +16,14 @@ interface Props {
    * desalineado de la foto y el precio.
    */
   width?: 'full' | 'detail';
+  /**
+   * 'column': el carrusel vive en la columna derecha de la ficha (~400px, y 267px
+   * a 768px). Saca el ancho máximo, el padding de sección y el scroll a sangre
+   * —que en una columna se sale del contenedor— y achica las tarjetas para que
+   * entren dos y media. Se mantiene el scroll horizontal en vez de apilar: tres
+   * 9:16 apilados hacen una columna de 1500px de alto.
+   */
+  variant?: 'section' | 'column';
 }
 
 /** mm:ss desde milisegundos. Vacío si no hay duración conocida. */
@@ -34,9 +42,45 @@ function formatDuration(ms: number | null): string {
  * propósito: ver medio video asomando le dice al ojo que hay más para deslizar,
  * sin necesidad de flechas.
  */
-export function ReelsCarousel({ reels, title, width = 'full' }: Props) {
+export function ReelsCarousel({ reels, title, width = 'full', variant = 'section' }: Props) {
   const [openAt, setOpenAt] = useState<number | null>(null);
   if (reels.length === 0) return null;
+
+  const column = variant === 'column';
+
+  if (column) {
+    return (
+      <section>
+        {title.trim() && <p className="mb-3 text-[13px] font-semibold text-muted">{title}</p>}
+        <div className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1">
+          {reels.map((reel, i) => (
+            <button
+              key={reel.id}
+              type="button"
+              onClick={() => setOpenAt(i)}
+              aria-label={reel.caption || `Ver video ${i + 1}`}
+              className="group w-[104px] flex-shrink-0 snap-start text-left"
+            >
+              <div className="relative aspect-[9/16] w-full overflow-hidden rounded-lg bg-secondary">
+                <img
+                  src={reel.poster_url}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+                />
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black/45 backdrop-blur-sm">
+                    <Play className="h-3.5 w-3.5 fill-white text-white" />
+                  </span>
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+        {openAt !== null && <ReelsViewer reels={reels} startIndex={openAt} onClose={() => setOpenAt(null)} />}
+      </section>
+    );
+  }
 
   return (
     // El contenedor sale de `width` porque cada layout tiene el suyo: el home

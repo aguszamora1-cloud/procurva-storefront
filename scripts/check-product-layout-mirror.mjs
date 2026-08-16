@@ -80,7 +80,7 @@ const adminElements = (() => {
   }
   return [...m[1].matchAll(/\{\s*id:\s*'([^']+)'([^}]*)\}/g)].map(([, id, rest]) => ({
     id,
-    fullWidth: /fullWidth:\s*true/.test(rest),
+    below: /below:\s*true/.test(rest),
     core: /core:\s*true/.test(rest),
   }));
 })();
@@ -102,9 +102,11 @@ const checks = [
     b: adminElements.map((e) => e.id).sort(),
   },
   {
-    label: 'bloques de ancho completo',
-    a: [...arrayOf(canon, /FULL_WIDTH_IDS: readonly string\[\] = \[([\s\S]*?)\]/, 'FULL_WIDTH_IDS', 'storefront')].sort(),
-    b: adminElements.filter((e) => e.fullWidth).map((e) => e.id).sort(),
+    // Qué puede vivir en "Debajo del producto". Si divergen, un bloque cae en
+    // una zona que el otro lado no sabe pintar y desaparece sin aviso.
+    label: 'permitidos debajo del producto',
+    a: [...arrayOf(canon, /BELOW_ALLOWED: readonly string\[\] = \[([\s\S]*?)\]/, 'BELOW_ALLOWED', 'storefront')].sort(),
+    b: adminElements.filter((e) => e.below).map((e) => e.id).sort(),
   },
   {
     label: 'núcleo (no ocultable)',

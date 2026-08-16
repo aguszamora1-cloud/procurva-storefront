@@ -116,17 +116,15 @@ export function reinsertByReference(order: string[], missing: string[], referenc
 }
 
 /**
- * Bloques de ANCHO COMPLETO: sólo tienen sentido en `below_product`.
+ * Videos, reseñas y relacionados VIVEN EN LAS DOS ZONAS.
  *
- * Este archivo consume únicamente el orden de `below_product` — la columna
- * derecha es fija (ver la nota de la Fase 0 arriba). Así que un bloque de ancho
- * completo guardado en `right_column` no se renderiza en ningún lado y la
- * sección desaparece de la tienda sin aviso. Pasó con 'reels'.
- *
- * Debe coincidir con los `fullWidth: true` de
- * procurva2/components/catalog/editor/productLayout.ts.
+ * Durante un tiempo estuvieron restringidos a `below_product` y el editor
+ * rechazaba soltarlos en la columna. No era una preferencia estética: la
+ * columna derecha ni se consumía (Fase 0) y después, ya consumiéndose, estos
+ * tres no tenían un layout que entrara en ~400px. Hoy cada uno tiene su
+ * variante de columna (ver ProductDetail.tsx), así que la restricción se
+ * levantó y el comercio elige la zona.
  */
-const FULL_WIDTH_IDS: readonly string[] = ['reels', 'reviews', 'related'];
 
 /** Prefijo de los tokens que referencian una sección custom (`custom:<uuid>`). */
 export const CUSTOM_SECTION_PREFIX = 'custom:';
@@ -156,17 +154,17 @@ export function resolveProductLayoutOrNull(raw: unknown): ProductLayout | null {
   const right = clean(pl.right_column);
   const below = clean(pl.below_product);
 
-  // RED DE SEGURIDAD, en los dos sentidos. Un token guardado en la zona que no
-  // le corresponde no lo renderiza NADIE, así que el bloque desaparece de la
-  // tienda sin aviso (pasó con 'reels'). En vez de descartarlo —que es
-  // exactamente el bug— se MUEVE a la zona donde sí se pinta:
-  //  - los de ancho completo en la columna  -> al principio de below_product
-  //  - los de columna en below_product      -> a su lugar en la columna
-  const fullWidthInRight = right.filter((t) => FULL_WIDTH_IDS.includes(t));
+  // RED DE SEGURIDAD: un token de COLUMNA guardado en `below_product` no lo
+  // renderiza nadie (el switch de BelowProductBlocks no lo conoce), así que el
+  // bloque desaparece de la tienda sin aviso. En vez de descartarlo —que es
+  // exactamente el bug— se MUEVE a su lugar en la columna.
+  //
+  // Ya no hace falta la red en el otro sentido: reels/reviews/related ahora se
+  // pintan en las dos zonas, así que encontrarlos en la columna es una decisión
+  // del comercio, no una config rota.
   const columnOnlyInBelow = below.filter((t) => !isCustomToken(t) && !BELOW_ALLOWED.includes(t));
 
-  let rightFinal = right.filter((t) => !FULL_WIDTH_IDS.includes(t));
-  rightFinal = reinsertByReference(rightFinal, columnOnlyInBelow, DEFAULT_PRODUCT_LAYOUT.right_column);
+  let rightFinal = reinsertByReference(right, columnOnlyInBelow, DEFAULT_PRODUCT_LAYOUT.right_column);
   // Núcleo que quedó fuera de las dos zonas (ver CORE_RIGHT_IDS).
   rightFinal = reinsertByReference(
     rightFinal,
@@ -176,6 +174,6 @@ export function resolveProductLayoutOrNull(raw: unknown): ProductLayout | null {
 
   return {
     right_column: rightFinal,
-    below_product: [...fullWidthInRight, ...below.filter((t) => isCustomToken(t) || BELOW_ALLOWED.includes(t))],
+    below_product: below.filter((t) => isCustomToken(t) || BELOW_ALLOWED.includes(t)),
   };
 }

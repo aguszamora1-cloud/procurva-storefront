@@ -12,9 +12,10 @@ import { ReelsCarousel } from './ReelsCarousel';
  * Si el producto no tiene videos no renderiza NADA: sin estado vacío ni
  * placeholder, para no meter un hueco en fichas que no cargaron videos.
  */
-export function ProductReels({ productId }: { productId: string }) {
+export function ProductReels({ productId, variant = 'section' }: { productId: string; variant?: 'section' | 'column' }) {
   const { reels } = useReels('product', productId);
   if (reels.length === 0) return null;
   // width="detail": la ficha usa max-w-[1200px], no el ancho completo del home.
-  return <ReelsCarousel reels={reels} title="Mirá cómo queda" width="detail" />;
+  // En la columna derecha el ancho lo pone la columna, así que `width` no aplica.
+  return <ReelsCarousel reels={reels} title="Mirá cómo queda" width="detail" variant={variant} />;
 }

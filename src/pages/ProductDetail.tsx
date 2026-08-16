@@ -64,9 +64,9 @@ const RIGHT_GROUP: Record<string, 'variant' | 'cta'> = {
 };
 
 /**
- * Tokens que esta columna sabe pintar. Los de `below_product` (reels, reviews,
- * related) se ignoran acá — productLayout.ts ya los saca de right_column, esto
- * es sólo la segunda línea.
+ * Tokens que esta columna sabe pintar. Incluye a reels/reviews/related, que
+ * ahora tienen variante de columna además de la de ancho completo: el comercio
+ * elige la zona y cada una usa el layout que le corresponde.
  */
 const RIGHT_TOKENS: readonly string[] = [
   'quantity_promo',
@@ -79,6 +79,9 @@ const RIGHT_TOKENS: readonly string[] = [
   'virtual_try',
   'upsells',
   'purchase_flow',
+  'reels',
+  'reviews',
+  'related',
 ];
 
 /**
@@ -759,6 +762,20 @@ export function ProductDetail() {
 
       case 'purchase_flow':
         return <PurchaseFlow />;
+
+      // Los tres de abajo también viven a ancho completo en `below_product`. Acá
+      // van en su variante de COLUMNA: la misma data, con el layout que entra en
+      // ~400px (reseñas apiladas, videos en tarjetas chicas, relacionados de a
+      // dos). Sin esa variante, meterlos en la columna los rompía — por eso
+      // durante un tiempo el editor directamente no lo permitía.
+      case 'reels':
+        return <ProductReels productId={product.id} variant="column" />;
+
+      case 'reviews':
+        return config.isPro && config.sections.productReviews ? <ProductReviews variant="column" /> : null;
+
+      case 'related':
+        return config.isPro && config.sections.upsell ? <RelatedProducts product={product} variant="column" /> : null;
 
       default:
         return null;

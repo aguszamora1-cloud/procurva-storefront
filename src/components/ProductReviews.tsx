@@ -17,20 +17,32 @@ function Stars({ value, size = 15 }: { value: number; size?: number }) {
   );
 }
 
-function ReviewCard({ r }: { r: Testimonial }) {
+/** `compact`: versión para la columna de la ficha (menos aire y tipografía más chica). */
+function ReviewCard({ r, compact }: { r: Testimonial; compact?: boolean }) {
   return (
-    <article className="flex h-full flex-col gap-3 border border-line bg-[var(--color-background)] p-5">
-      <Stars value={r.rating ?? 5} />
-      <p className="flex-1 text-[14px] leading-relaxed text-text">“{r.text}”</p>
-      <div className="mt-1 flex items-center gap-3">
+    <article className={`flex h-full flex-col border border-line bg-[var(--color-background)] ${compact ? 'gap-2 p-3.5' : 'gap-3 p-5'}`}>
+      <Stars value={r.rating ?? 5} size={compact ? 13 : 15} />
+      <p className={`flex-1 leading-relaxed text-text ${compact ? 'text-[13px]' : 'text-[14px]'}`}>“{r.text}”</p>
+      <div className={`flex items-center ${compact ? 'gap-2' : 'mt-1 gap-3'}`}>
         {r.customer_photo_url ? (
-          <img src={r.customer_photo_url} alt={r.customer_name} loading="lazy" className="h-9 w-9 rounded-full object-cover" />
+          <img
+            src={r.customer_photo_url}
+            alt={r.customer_name}
+            loading="lazy"
+            className={`rounded-full object-cover ${compact ? 'h-7 w-7' : 'h-9 w-9'}`}
+          />
         ) : (
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-[11px] font-semibold text-text">
+          <span
+            className={`flex items-center justify-center rounded-full bg-secondary font-semibold text-text ${
+              compact ? 'h-7 w-7 text-[10px]' : 'h-9 w-9 text-[11px]'
+            }`}
+          >
             {initials(r.customer_name)}
           </span>
         )}
-        <span className="text-[12px] font-semibold uppercase tracking-[0.5px] text-text">{r.customer_name}</span>
+        <span className={`font-semibold uppercase tracking-[0.5px] text-text ${compact ? 'text-[11px]' : 'text-[12px]'}`}>
+          {r.customer_name}
+        </span>
       </div>
     </article>
   );
@@ -45,7 +57,7 @@ function ReviewCard({ r }: { r: Testimonial }) {
  * Carrusel horizontal con deslizamiento continuo (tipo cinta), igual que el
  * social proof del home: avanza solo, en loop sin corte, y se pausa al interactuar.
  */
-export function ProductReviews({ title }: { title?: string }) {
+export function ProductReviews({ title, variant = 'section' }: { title?: string; variant?: 'section' | 'column' }) {
   const { testimonials: reviews } = useTestimonials();
   const scrollerRef = useRef<HTMLDivElement>(null);
   // Pausa el auto-scroll mientras el cliente interactúa (hover, swipe, foco).
@@ -116,6 +128,29 @@ export function ProductReviews({ title }: { title?: string }) {
 
   const rounded = Math.round(average);
   const avgLabel = average.toFixed(average % 1 === 0 ? 0 : 1);
+
+  // EN LA COLUMNA: una abajo de la otra, sin carrusel. La cinta que se desliza
+  // sola funciona a ancho completo, pero en ~400px una tarjeta tapa a la
+  // siguiente y el movimiento pelea con el scroll de la página. Acá el
+  // deslizamiento no aporta nada: se leen apiladas.
+  if (variant === 'column') {
+    return (
+      <section>
+        <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p className="text-[13px] font-semibold text-muted">{title?.trim() || 'Opiniones de clientes'}</p>
+          <div className="flex items-center gap-1.5">
+            <Stars value={rounded} size={13} />
+            <span className="text-[13px] font-semibold text-text">{avgLabel}</span>
+          </div>
+        </div>
+        <div className="space-y-2">
+          {reviews.map((r) => (
+            <ReviewCard key={r.id} r={r} compact />
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="border-t border-line pt-6">
