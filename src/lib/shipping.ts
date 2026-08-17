@@ -194,10 +194,37 @@ function variantCost(variant: unknown, fallback: unknown): number | null {
   return typeof v === 'number' ? v : null;
 }
 
+/** Clave "espejo" del precio mayorista para cada costo del método. */
+const WHOLESALE_KEY = {
+  cost: 'wholesaleCost',
+  branchCost: 'wholesaleBranchCost',
+  homeDeliveryCost: 'wholesaleHomeDeliveryCost',
+} as const;
+
+/**
+ * Costo del método para el canal en el que está parado el cliente. En la tienda
+ * mayorista, si el negocio cargó un precio propio manda ése; si no, hereda el
+ * minorista — que es lo que hacían TODOS los métodos antes de que el panel
+ * pudiera diferenciarlos, así que ninguna tienda cambia de precio sola.
+ *
+ * Se resuelve acá, al parsear, y no en cada lugar que muestra un precio: el
+ * `cost` que sale de este módulo ya es el que va a pagar este cliente. Un
+ * override que hubiera que acordarse de aplicar en el calculador, en el listado
+ * del checkout Y en el total es la receta del flete que se cobra distinto del
+ * que se mostró.
+ */
+function costFor(m: any, key: keyof typeof WHOLESALE_KEY, channel: StoreChannel | undefined): unknown {
+  if (channel === 'mayorista') {
+    const ws = m[WHOLESALE_KEY[key]];
+    if (typeof ws === 'number') return ws;
+  }
+  return m[key];
+}
+
 /** Mapea un método crudo (JSONB) a ShippingOption, leyendo costo/tiempo de forma defensiva. */
-export function toShippingOption(m: any): ShippingOption {
+export function toShippingOption(m: any, channel?: StoreChannel): ShippingOption {
   const isPickup = m.isPickup === true || m.type === 'retiro';
-  const rawCost = m.cost ?? m.price ?? m.shipping_cost;
+  const rawCost = costFor(m, 'cost', channel) ?? m.price ?? m.shipping_cost;
   const cost = isPickup
     ? typeof rawCost === 'number' ? rawCost : 0
     : typeof rawCost === 'number' ? rawCost : null;
@@ -231,7 +258,7 @@ export function toShippingOption(m: any): ShippingOption {
  * modalidades seleccionables con precio independiente: envío a domicilio y retiro
  * en sucursal. El resto de los métodos devuelve una sola opción.
  */
-export function expandMethod(m: any): ShippingOption[] {
+export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
   const isPickup = m.isPickup === true || m.type === 'retiro';
   if (!isPickup && m.type === 'empresa') {
     const baseId = String(m.id ?? m.name);
@@ -250,7 +277,7 @@ export function expandMethod(m: any): ShippingOption[] {
         channels,
         kind: 'home',
         requiresAddress: true,
-        cost: variantCost(m.homeDeliveryCost, m.cost),
+        cost: variantCost(costFor(m, 'homeDeliveryCost', channel), costFor(m, 'cost', channel)),
         eta,
         icon: 'truck',
         description: '',
@@ -264,7 +291,7 @@ export function expandMethod(m: any): ShippingOption[] {
         channels,
         kind: 'branch',
         requiresAddress: true,
-        cost: variantCost(m.branchCost, m.cost),
+        cost: variantCost(costFor(m, 'branchCost', channel), costFor(m, 'cost', channel)),
         eta,
         icon: 'store',
         description: '',
@@ -274,7 +301,7 @@ export function expandMethod(m: any): ShippingOption[] {
       },
     ];
   }
-  return [toShippingOption(m)];
+  return [toShippingOption(m, channel)];
 }
 
 /**
@@ -282,13 +309,21 @@ export function expandMethod(m: any): ShippingOption[] {
  * `get_catalog_shipping_methods` (lee companies.settings.shippingMethods sanitizado).
  * Lanza si la RPC falla; el caller decide cómo mostrar el error.
  */
-export async function fetchShippingOptions(companyId: string): Promise<ShippingOption[]> {
+export async function fetchShippingOptions(
+  companyId: string,
+  channel?: StoreChannel,
+): Promise<ShippingOption[]> {
   const { data, error } = await supabase.rpc('get_catalog_shipping_methods', {
     p_company_id: companyId,
   });
   if (error) throw error;
   const raw = Array.isArray(data) ? data : [];
-  return raw.filter((m: any) => m && m.isActive !== false).flatMap(expandMethod);
+  // La lista es única para las dos tiendas, así que la acotamos al canal: sin
+  // esto el calculador puede prometer un método que después el checkout esconde.
+  return raw
+    .filter((m: any) => m && m.isActive !== false)
+    .flatMap((m: any) => expandMethod(m, channel))
+    .filter((o) => (channel ? methodAvailableForChannel(o, channel) : true));
 }
 
 /** Colores del badge de rapidez según el texto del tiempo estimado. */

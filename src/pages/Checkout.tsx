@@ -337,19 +337,24 @@ export function Checkout() {
       if (cancelled) return;
       if (rpcErr) console.error('[Checkout] error cargando métodos de envío:', rpcErr);
       const raw = Array.isArray(data) ? data : [];
-      const active = raw.filter((m: any) => m && m.isActive !== false).flatMap(expandMethod);
+      // El canal entra acá porque el precio se resuelve al parsear: un método
+      // puede costar distinto en la tienda mayorista que en la minorista.
+      const channel: StoreChannel = isWholesale ? 'mayorista' : 'minorista';
+      const active = raw
+        .filter((m: any) => m && m.isActive !== false)
+        .flatMap((m: any) => expandMethod(m, channel));
       const list = active.length > 0 ? active : FALLBACK_METHODS;
       setMethods(list);
     })();
     return () => {
       cancelled = true;
     };
-  }, [config.companyId]);
+  }, [config.companyId, isWholesale]);
 
   // La lista de métodos es ÚNICA para la tienda minorista y la mayorista, así que
-  // primero la acotamos al canal de esta tienda: el mismo envío puede tener precio
-  // distinto según el canal (típico: en mayorista lo paga siempre el cliente) y se
-  // resuelve cargando un método por canal. Sin `channels` definido, el método vale
+  // primero la acotamos al canal de esta tienda. El precio ya vino resuelto por
+  // canal desde `expandMethod`; esto decide qué métodos se OFRECEN, no cuánto
+  // salen. Sin `channels` definido, el método vale
   // para los dos (los métodos viejos no cambian de conducta).
   // Si el filtro deja la lista vacía (config a medias), caemos al fallback
   // "a coordinar" antes que dejar al cliente sin forma de elegir la entrega.

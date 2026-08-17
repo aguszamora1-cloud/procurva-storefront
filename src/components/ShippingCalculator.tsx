@@ -28,7 +28,12 @@ export function ShippingCalculator() {
     if (status === 'loading' || cp.length === 0) return;
     setStatus('loading');
     try {
-      const all = await fetchShippingOptions(config.companyId);
+      // El canal importa dos veces: acota qué métodos se ofrecen y, si el negocio
+      // le puso precio propio a la tienda mayorista, cuánto sale cada uno.
+      const all = await fetchShippingOptions(
+        config.companyId,
+        config.storeType === 'wholesale' ? 'mayorista' : 'minorista',
+      );
       // Filtramos por CP: el retiro en local y los métodos sin restricción siempre
       // aparecen; los envíos sólo si cubren la zona del cliente. Si el CP está en la
       // zona de reparto propio (cadete), se ocultan las transportadoras nacionales.
