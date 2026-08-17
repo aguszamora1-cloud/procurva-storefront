@@ -1,43 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ReviewCard } from '@/components/ReviewCard';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useStore } from '@/context/StoreProvider';
 import { useTestimonials } from '@/hooks/useTestimonials';
-import type { Testimonial } from '@/lib/types';
-
-const initials = (name: string): string =>
-  name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || '?';
-
-function Stars({ value }: { value: number }) {
-  return (
-    <div className="flex gap-0.5 text-[15px] leading-none">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <span key={n} className={n <= value ? 'text-amber-400' : 'text-line'}>
-          ★
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function TestimonialCard({ t }: { t: Testimonial }) {
-  return (
-    <article className="flex h-full flex-col gap-4 border border-line bg-[var(--color-background)] p-6">
-      <Stars value={t.rating ?? 5} />
-      <p className="flex-1 text-[14px] leading-relaxed text-text md:text-[15px]">“{t.text}”</p>
-      <div className="flex items-center gap-3">
-        {t.customer_photo_url ? (
-          <img src={t.customer_photo_url} alt={t.customer_name} loading="lazy" className="h-10 w-10 rounded-full object-cover" />
-        ) : (
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-text">
-            {initials(t.customer_name)}
-          </span>
-        )}
-        <span className="text-[13px] font-semibold uppercase tracking-[0.5px] text-text">{t.customer_name}</span>
-      </div>
-    </article>
-  );
-}
 
 /** Sección de testimonios / reseñas (Social Proof, Extra PRO). Carrusel horizontal. */
 export function SocialProofSection() {
@@ -142,7 +108,7 @@ export function SocialProofSection() {
               aria-hidden={i >= testimonials.length}
               className="shrink-0 basis-[80vw] sm:basis-[calc((100%-1rem)/2)] lg:basis-[calc((100%-2.5rem)/3)]"
             >
-              <TestimonialCard t={t} />
+              <ReviewCard review={t} />
             </div>
           ))}
         </div>

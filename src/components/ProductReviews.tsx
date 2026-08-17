@@ -1,52 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ReviewCard, Stars } from '@/components/ReviewCard';
 import { useTestimonials } from '@/hooks/useTestimonials';
-import type { Testimonial } from '@/lib/types';
-
-const initials = (name: string): string =>
-  name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || '?';
-
-function Stars({ value, size = 15 }: { value: number; size?: number }) {
-  return (
-    <div className="flex gap-0.5 leading-none" style={{ fontSize: size }}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <span key={n} className={n <= value ? 'text-amber-400' : 'text-line'}>
-          ★
-        </span>
-      ))}
-    </div>
-  );
-}
-
-/** `compact`: versión para la columna de la ficha (menos aire y tipografía más chica). */
-function ReviewCard({ r, compact }: { r: Testimonial; compact?: boolean }) {
-  return (
-    <article className={`flex h-full flex-col border border-line bg-[var(--color-background)] ${compact ? 'gap-2 p-3.5' : 'gap-3 p-5'}`}>
-      <Stars value={r.rating ?? 5} size={compact ? 13 : 15} />
-      <p className={`flex-1 leading-relaxed text-text ${compact ? 'text-[13px]' : 'text-[14px]'}`}>“{r.text}”</p>
-      <div className={`flex items-center ${compact ? 'gap-2' : 'mt-1 gap-3'}`}>
-        {r.customer_photo_url ? (
-          <img
-            src={r.customer_photo_url}
-            alt={r.customer_name}
-            loading="lazy"
-            className={`rounded-full object-cover ${compact ? 'h-7 w-7' : 'h-9 w-9'}`}
-          />
-        ) : (
-          <span
-            className={`flex items-center justify-center rounded-full bg-secondary font-semibold text-text ${
-              compact ? 'h-7 w-7 text-[10px]' : 'h-9 w-9 text-[11px]'
-            }`}
-          >
-            {initials(r.customer_name)}
-          </span>
-        )}
-        <span className={`font-semibold uppercase tracking-[0.5px] text-text ${compact ? 'text-[11px]' : 'text-[12px]'}`}>
-          {r.customer_name}
-        </span>
-      </div>
-    </article>
-  );
-}
 
 /**
  * Reseñas en la página de detalle del producto (Extra PRO). Para que sirvan de
@@ -174,7 +128,7 @@ export function ProductReviews({
         {heading}
         <div className={`space-y-2 ${column ? '' : 'mx-auto max-w-[720px] sm:space-y-3'}`}>
           {reviews.map((r) => (
-            <ReviewCard key={r.id} r={r} compact={column} />
+            <ReviewCard key={r.id} review={r} compact={column} />
           ))}
         </div>
       </section>
@@ -191,7 +145,7 @@ export function ProductReviews({
         <div className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1">
           {reviews.map((r) => (
             <div key={r.id} className="w-[86%] shrink-0 snap-start">
-              <ReviewCard r={r} compact />
+              <ReviewCard review={r} compact />
             </div>
           ))}
         </div>
@@ -226,7 +180,7 @@ export function ProductReviews({
               aria-hidden={i >= reviews.length}
               className="shrink-0 basis-[80vw] sm:basis-[calc((100%-0.75rem)/2)] lg:basis-[calc((100%-1.5rem)/3)]"
             >
-              <ReviewCard r={r} />
+              <ReviewCard review={r} />
             </div>
           ))}
         </div>
