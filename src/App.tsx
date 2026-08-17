@@ -32,6 +32,7 @@ const Checkout = lazy(() => import('@/pages/Checkout').then((m) => ({ default: m
 const CheckoutSuccess = lazy(() => import('@/pages/CheckoutResult').then((m) => ({ default: m.CheckoutSuccess })));
 const CheckoutFailure = lazy(() => import('@/pages/CheckoutResult').then((m) => ({ default: m.CheckoutFailure })));
 const CheckoutPending = lazy(() => import('@/pages/CheckoutResult').then((m) => ({ default: m.CheckoutPending })));
+const CustomPage = lazy(() => import('@/pages/CustomPage').then((m) => ({ default: m.CustomPage })));
 
 /** Fallback liviano mientras se descarga el chunk de la página. */
 function PageFallback() {
@@ -66,6 +67,8 @@ function StoreRoutes() {
               <Route path="/producto/:id" element={<ProductDetail />} />
               <Route path="/categorias" element={<CategoriesIndex />} />
               <Route path="/categoria/:name" element={<Category />} />
+              {/* Páginas de texto que publica el comercio (Cambios, FAQ, …). */}
+              <Route path="/pagina/:slug" element={<CustomPage />} />
               <Route path="/carrito" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/checkout/success" element={<CheckoutSuccess />} />

@@ -4,6 +4,7 @@ import { ChevronDown, Search, X } from 'lucide-react';
 import { useStore, useStoreStatus } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
+import type { StoreMenuItem } from '@/lib/types';
 
 const drawerLink = ({ isActive }: { isActive: boolean }) =>
   `block py-3 text-[15px] font-medium transition-colors ${
@@ -16,6 +17,88 @@ interface CategoryOrderRow {
   image_url: string | null;
 }
 
+/**
+ * Buscador de seguimiento del menú: el cliente pega el código y la tienda lo
+ * manda al rastreo del correo.
+ *
+ * Se despliega INLINE dentro del drawer, no en un modal: el drawer es un
+ * `fixed` con `translate-x`, y un `position: fixed` anidado adentro de un
+ * transform toma como referencia al drawer (no al viewport), así que un overlay
+ * ahí quedaría encerrado en la columna de 300px.
+ *
+ * Sobre la URL: la mayoría de los correos resuelven el rastreo con un
+ * formulario y no aceptan el código en la dirección. Sólo sustituimos cuando la
+ * URL declara `{codigo}`; si no, abrimos la página y le copiamos el código al
+ * cliente para que lo pegue (es lo que iba a hacer a mano de todos modos).
+ */
+function TrackingForm({ item }: { item: Extract<StoreMenuItem, { kind: 'tracking' }> }) {
+  const [carrierIndex, setCarrierIndex] = useState(0);
+  const [code, setCode] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    // Los correos imprimen el código con puntos y espacios; ninguno los acepta.
+    const clean = code.replace(/[\s.]/g, '').trim();
+    if (!clean) return;
+    const carrier = item.carriers[carrierIndex] ?? item.carriers[0];
+    const takesCode = carrier.url.includes('{codigo}');
+    // El copiado va ANTES y sin await: `window.open` tiene que salir dentro del
+    // gesto del usuario o el navegador lo bloquea como popup.
+    if (!takesCode) {
+      navigator.clipboard?.writeText(clean).then(
+        () => setCopied(true),
+        () => {},
+      );
+    }
+    const target = takesCode
+      ? carrier.url.replace('{codigo}', encodeURIComponent(clean))
+      : carrier.url;
+    window.open(target, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <form onSubmit={submit} className="mb-2 ml-1.5 space-y-2 border-l border-line-soft pb-1 pl-3">
+      {item.help && <p className="text-[13px] text-muted">{item.help}</p>}
+      {item.carriers.length > 1 && (
+        <select
+          value={carrierIndex}
+          onChange={(e) => setCarrierIndex(Number(e.target.value))}
+          aria-label="Correo"
+          className="w-full rounded-md border border-line bg-background px-2.5 py-2 text-[14px] text-on-surface focus:border-accent focus:outline-none"
+        >
+          {item.carriers.map((c, i) => (
+            <option key={`${c.name}-${i}`} value={i}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      )}
+      <input
+        type="text"
+        value={code}
+        onChange={(e) => {
+          setCode(e.target.value);
+          setCopied(false);
+        }}
+        placeholder="Código de seguimiento"
+        className="w-full rounded-md border border-line bg-background px-2.5 py-2 text-[14px] text-on-surface placeholder:text-on-surface-muted focus:border-accent focus:outline-none"
+      />
+      <button
+        type="submit"
+        className="w-full rounded-button bg-primary px-3 py-2 text-[14px] font-medium text-on-primary transition-colors hover:bg-accent hover:text-on-accent"
+      >
+        Ver mi envío
+      </button>
+      {copied && (
+        <p className="text-[12px] text-muted">
+          Copiamos el código: pegalo en el buscador del correo.
+        </p>
+      )}
+    </form>
+  );
+}
+
 export function Navbar() {
   const config = useStore();
   const { storeType } = useStoreStatus();
@@ -26,6 +109,8 @@ export function Navbar() {
   const [catOpen, setCatOpen] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
   const [scrolled, setScrolled] = useState(false);
+  // Id del buscador de seguimiento desplegado (uno por vez, como el acordeón de categorías).
+  const [trackingOpen, setTrackingOpen] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -383,6 +468,64 @@ export function Navbar() {
               Outfits
             </button>
           )}
+
+          {/* Ítems que agrega el comercio desde el editor visual (Menú de
+              navegación). Van al final, después de los fijos. */}
+          {config.menuItems.map((item) => {
+            if (item.kind === 'tracking') {
+              const open = trackingOpen === item.id;
+              return (
+                <div key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => setTrackingOpen(open ? null : item.id)}
+                    aria-expanded={open}
+                    className="flex w-full items-center justify-between gap-2 py-3 text-left text-[15px] font-medium text-on-surface transition-colors hover:text-accent"
+                  >
+                    <span className="min-w-0 truncate">{item.label}</span>
+                    <ChevronDown
+                      className={`h-4 w-4 shrink-0 text-on-surface-muted transition-transform ${
+                        open ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                  {open && <TrackingForm item={item} />}
+                </div>
+              );
+            }
+
+            if (item.kind === 'page') {
+              return (
+                <NavLink
+                  key={item.id}
+                  to={`/pagina/${item.slug}`}
+                  onClick={() => setMenuOpen(false)}
+                  className={drawerLink}
+                >
+                  {item.label}
+                </NavLink>
+              );
+            }
+
+            // Link externo: <a> nativo. Un href absoluto por <Link> lo trataría
+            // como ruta interna del SPA y terminaría en el 404 de la tienda.
+            return item.external ? (
+              <a
+                key={item.id}
+                href={item.url}
+                target={item.newTab ? '_blank' : undefined}
+                rel={item.newTab ? 'noopener noreferrer' : undefined}
+                onClick={() => setMenuOpen(false)}
+                className="block py-3 text-[15px] font-medium text-on-surface transition-colors hover:text-accent"
+              >
+                {item.label}
+              </a>
+            ) : (
+              <NavLink key={item.id} to={item.url} onClick={() => setMenuOpen(false)} className={drawerLink}>
+                {item.label}
+              </NavLink>
+            );
+          })}
         </nav>
       </aside>
     </header>

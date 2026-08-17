@@ -67,7 +67,10 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // tiene guarda —cae a 'rounded' si falta—, así que una entrada v10 no rompe
 // nada; el bump es para que no PARPADEE: una tienda con esquinas rectas pintaría
 // el primer frame redondeado y se enderezaría al resolver el fetch.
-const cacheKey = (slug: string) => `procurva_store_config_v13:${slug}`;
+// v14: suma `menuItems` (ítems extra del menú lateral). El Navbar lo recorre sin
+// guarda y la página /pagina/:slug lo busca ahí: con una entrada v13 el menú
+// aparecería sin los ítems y un link compartido daría 404 hasta el primer fetch.
+const cacheKey = (slug: string) => `procurva_store_config_v14:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 

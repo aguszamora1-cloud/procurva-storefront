@@ -1,4 +1,11 @@
-import type { HeroCtaStyle, PurchaseFlowStep, RawCatalogSettings, ResolvedStorefront, StoreConfig } from './types';
+import type {
+  HeroCtaStyle,
+  PurchaseFlowStep,
+  RawCatalogSettings,
+  ResolvedStorefront,
+  StoreConfig,
+  StoreMenuItem,
+} from './types';
 import { resolveProductLayoutOrNull } from './productLayout';
 import { resolveQuantityTiersSettings } from '../components/QuantityTierSelector';
 
@@ -11,6 +18,61 @@ export const DEFAULT_PURCHASE_FLOW: PurchaseFlowStep[] = [
 ];
 
 const VALID_STATES = new Set(['done', 'current', 'pending']);
+
+/**
+ * Sanea los ítems extra del menú lateral (`catalog_settings.menu_items`).
+ *
+ * Descarta todo lo que renderizaría un ítem roto: sin texto, un link sin
+ * destino, una página sin contenido, un buscador sin ningún correo cargado. Un
+ * ítem del menú que no lleva a ninguna parte es peor que no tenerlo — el editor
+ * deja crear uno vacío y recién completarlo después, y en ese lapso la tienda no
+ * tiene que mostrarlo.
+ */
+function parseMenuItems(raw: unknown): StoreMenuItem[] {
+  if (!Array.isArray(raw)) return [];
+  const out: StoreMenuItem[] = [];
+  const usedSlugs = new Set<string>();
+
+  for (const entry of raw) {
+    const o = (entry ?? {}) as Record<string, unknown>;
+    if (o.visible === false) continue;
+    const label = str(o.label);
+    const id = str(o.id);
+    if (!label || !id) continue;
+
+    if (o.type === 'link') {
+      const url = str(o.url);
+      if (!url) continue;
+      const external = /^(https?:)?\/\//i.test(url) || /^(mailto|tel):/i.test(url);
+      // El "abrir en pestaña nueva" sólo aplica a destinos externos: dentro de la
+      // tienda queremos navegación SPA, no una pestaña más.
+      out.push({ kind: 'link', id, label, url, external, newTab: external && o.new_tab !== false });
+      continue;
+    }
+
+    if (o.type === 'page') {
+      const slug = str(o.slug);
+      const body = str(o.body);
+      if (!slug || !body || usedSlugs.has(slug)) continue;
+      usedSlugs.add(slug);
+      out.push({ kind: 'page', id, label, slug, body });
+      continue;
+    }
+
+    if (o.type === 'tracking') {
+      const carriers = (Array.isArray(o.carriers) ? o.carriers : [])
+        .map((c) => {
+          const co = (c ?? {}) as Record<string, unknown>;
+          return { name: str(co.name), url: str(co.url) };
+        })
+        .filter((c) => c.name && /^https?:\/\//i.test(c.url));
+      if (carriers.length === 0) continue;
+      out.push({ kind: 'tracking', id, label, help: str(o.help), carriers });
+    }
+  }
+
+  return out;
+}
 
 /** Saneamos los pasos crudos del JSONB: descarta los sin nombre y normaliza el estado. */
 function parsePurchaseFlowSteps(raw: unknown): PurchaseFlowStep[] {
@@ -245,6 +307,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     policyShipping: str(s.envio_politica),
     policyReturns: str(s.cambios_politica),
     policyPayments: str(s.pagos_politica),
+    menuItems: parseMenuItems(s.menu_items),
 
     logoUrl: str(s.logo_url) || str(resolved.logo_url),
     logoHeight: typeof s.logo_height === 'number' ? s.logo_height : 40,

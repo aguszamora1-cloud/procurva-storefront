@@ -628,6 +628,8 @@ export interface RawCatalogSettings {
   envio_politica?: string;
   cambios_politica?: string;
   pagos_politica?: string;
+  /** Ítems extra del menú lateral (crudo, tal como lo guarda el editor del ERP). */
+  menu_items?: unknown;
   top_bar_text?: string;
   top_bar_animated?: boolean;
   // Pagos / cuotas
@@ -875,6 +877,21 @@ export interface ComplementaryBlockConfig {
 }
 
 /** Config normalizada que consume toda la UI. */
+/**
+ * Ítem extra del menú lateral, configurado por el comercio en el editor visual.
+ * Los fijos (Inicio / Productos / Categorías / Outfits) NO salen de acá.
+ */
+export type StoreMenuItem =
+  | { kind: 'link'; id: string; label: string; url: string; external: boolean; newTab: boolean }
+  | {
+      kind: 'tracking';
+      id: string;
+      label: string;
+      help: string;
+      carriers: Array<{ name: string; url: string }>;
+    }
+  | { kind: 'page'; id: string; label: string; slug: string; body: string };
+
 export interface StoreConfig {
   companyId: string;
   name: string;
@@ -912,6 +929,13 @@ export interface StoreConfig {
   policyShipping: string;
   policyReturns: string;
   policyPayments: string;
+  /**
+   * Ítems extra del menú lateral, ya saneados y en orden. Siempre presente
+   * (array vacío si el comercio no configuró ninguno): el render los recorre
+   * sin guarda, y la config cacheada de una build vieja no trae la clave — por
+   * eso se bumpea `procurva_store_config_vN` en StoreProvider.
+   */
+  menuItems: StoreMenuItem[];
   // Branding
   logoUrl: string;
   logoHeight: number;
