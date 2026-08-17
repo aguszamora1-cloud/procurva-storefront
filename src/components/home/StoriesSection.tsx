@@ -45,7 +45,7 @@ export function StoriesSection() {
                 />
               </span>
             </span>
-            <span className="max-w-[72px] truncate text-[11px] font-medium text-text md:max-w-[88px] md:text-xs">
+            <span className="max-w-[72px] truncate text-[calc(11px_*_var(--font-scale,1))] font-medium text-text md:max-w-[88px] md:text-xs">
               {s.title}
             </span>
           </button>

@@ -49,7 +49,7 @@ export function ProductGrid({ products }: { products: Product[] }) {
   const setRef = useViewportImagePrefetch(cards);
 
   if (cards.length === 0) {
-    return <p className="py-16 text-center text-[14px] text-subtle">No hay productos para mostrar.</p>;
+    return <p className="py-16 text-center text-[calc(14px_*_var(--font-scale,1))] text-subtle">No hay productos para mostrar.</p>;
   }
   return (
     <div className="grid grid-cols-2 items-stretch gap-2 lg:grid-cols-4 lg:gap-5">

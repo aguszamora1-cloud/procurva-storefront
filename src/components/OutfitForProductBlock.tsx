@@ -50,7 +50,7 @@ export function OutfitForProductBlock({ product, className }: Props) {
       )}
       <span className="text-base font-bold text-accent">{formatPrice(pricing.comboCash)}</span>
       {hasDual && (
-        <span className="text-[11px] text-subtle">
+        <span className="text-[calc(11px_*_var(--font-scale,1))] text-subtle">
           <span className="font-semibold">{formatPrice(pricing.comboCard)}</span> con tarjeta
         </span>
       )}
@@ -95,9 +95,9 @@ export function OutfitForProductBlock({ product, className }: Props) {
             <div className="h-16 w-14 flex-shrink-0 rounded-lg bg-secondary" />
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-semibold text-subtle">Es parte de un look</p>
+            <p className="text-[calc(12px_*_var(--font-scale,1))] font-semibold text-subtle">Es parte de un look</p>
             <p className="truncate text-sm font-semibold text-text">{outfit.name}</p>
-            <p className="text-[11px] text-subtle">{outfit.products.length} prendas</p>
+            <p className="text-[calc(11px_*_var(--font-scale,1))] text-subtle">{outfit.products.length} prendas</p>
             <div className="mt-1">{priceEl}</div>
           </div>
         </div>
@@ -112,7 +112,7 @@ export function OutfitForProductBlock({ product, className }: Props) {
         <div className="relative aspect-[4/5] w-full bg-secondary">
           <StoreImage src={hero} alt={outfit.name} transformWidth={640} className="h-full w-full object-cover" />
           {pricing.hasCombo && pricing.cashSaving > 0 && (
-            <span className="absolute left-3 top-3 rounded bg-accent px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-on-accent">
+            <span className="absolute left-3 top-3 rounded bg-accent px-2 py-1 text-[calc(10px_*_var(--font-scale,1))] font-bold uppercase tracking-wide text-on-accent">
               Combo · ahorrás {formatPrice(pricing.cashSaving)}
             </span>
           )}
@@ -125,7 +125,7 @@ export function OutfitForProductBlock({ product, className }: Props) {
         </div>
       )}
       <div className="p-4">
-        <p className="text-[12px] font-semibold text-subtle">Es parte de un look</p>
+        <p className="text-[calc(12px_*_var(--font-scale,1))] font-semibold text-subtle">Es parte de un look</p>
         <h3 className="mb-1 font-heading text-lg font-semibold text-text">{outfit.name}</h3>
         {outfit.description && <p className="mb-2 text-xs text-subtle">{outfit.description}</p>}
         <div className="mb-3">{priceEl}</div>

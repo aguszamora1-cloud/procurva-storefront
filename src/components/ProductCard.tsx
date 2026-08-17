@@ -66,7 +66,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
               className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.04]"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-[11px] font-semibold uppercase tracking-[1px] text-on-surface-subtle">
+            <div className="flex h-full w-full items-center justify-center text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-on-surface-subtle">
               Sin imagen
             </div>
           )}
@@ -90,7 +90,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
       {/* Contenido */}
       <div className="flex flex-1 flex-col p-2.5 md:p-4">
         <Link to={detailHref} className="block">
-          <h3 className="mb-1.5 text-[15px] font-bold uppercase leading-[1.3] tracking-[0.02em] text-on-surface transition-colors group-hover:text-accent">
+          <h3 className="mb-1.5 text-[calc(15px_*_var(--font-scale,1))] font-bold uppercase leading-[1.3] tracking-[0.02em] text-on-surface transition-colors group-hover:text-accent">
             {product.name}
           </h3>
           {isWholesale ? (
@@ -132,7 +132,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
               />
             ))}
           {siblingColors.length > 5 && (
-            <span className="text-[11px] text-subtle">+{siblingColors.length - 5}</span>
+            <span className="text-[calc(11px_*_var(--font-scale,1))] text-subtle">+{siblingColors.length - 5}</span>
           )}
         </div>
 
@@ -142,7 +142,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           <div className="mt-auto pt-3">
             <Link
               to={detailHref}
-              className="inline-flex w-full items-center justify-center gap-2 bg-primary py-[14px] text-[14px] font-bold text-on-primary transition-colors duration-200 hover:bg-accent hover:text-on-accent"
+              className="inline-flex w-full items-center justify-center gap-2 bg-primary py-[14px] text-[calc(14px_*_var(--font-scale,1))] font-bold text-on-primary transition-colors duration-200 hover:bg-accent hover:text-on-accent"
             >
               Comprar
             </Link>

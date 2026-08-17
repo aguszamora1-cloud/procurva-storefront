@@ -119,7 +119,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="mb-1.5 block text-[12px] font-semibold text-muted">Altura (cm)</span>
+          <span className="mb-1.5 block text-[calc(12px_*_var(--font-scale,1))] font-semibold text-muted">Altura (cm)</span>
           <input
             type="number"
             inputMode="numeric"
@@ -130,7 +130,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
           />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-[12px] font-semibold text-muted">Peso (kg)</span>
+          <span className="mb-1.5 block text-[calc(12px_*_var(--font-scale,1))] font-semibold text-muted">Peso (kg)</span>
           <input
             type="number"
             inputMode="numeric"
@@ -146,33 +146,33 @@ export function SizeFinder({ sizes, onSelect }: Props) {
         type="button"
         onClick={calc}
         disabled={!canCalc}
-        className="mt-4 w-full rounded-button bg-primary py-3 text-[14px] font-bold text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary disabled:hover:text-on-primary"
+        className="mt-4 w-full rounded-button bg-primary py-3 text-[calc(14px_*_var(--font-scale,1))] font-bold text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary disabled:hover:text-on-primary"
       >
         Calcular mi talle
       </button>
 
       {reco && (
         <div className="mt-4 animate-fade-in rounded-md border border-line bg-background p-5 text-center">
-          <p className="text-[12px] font-semibold text-muted">Te recomendamos</p>
+          <p className="text-[calc(12px_*_var(--font-scale,1))] font-semibold text-muted">Te recomendamos</p>
           <p className="mt-1 font-heading text-4xl font-extrabold text-text">{matched ?? reco}</p>
           {matched ? (
             <>
-              <p className="mt-1 text-[12px] text-subtle">Equivale a un talle {reco}</p>
+              <p className="mt-1 text-[calc(12px_*_var(--font-scale,1))] text-subtle">Equivale a un talle {reco}</p>
               <button
                 type="button"
                 onClick={() => onSelect(matched)}
-                className="mt-4 w-full rounded-button border-2 border-text bg-background py-2.5 text-[13px] font-bold text-text transition-colors hover:bg-text hover:text-background"
+                className="mt-4 w-full rounded-button border-2 border-text bg-background py-2.5 text-[calc(13px_*_var(--font-scale,1))] font-bold text-text transition-colors hover:bg-text hover:text-background"
               >
                 Usar talle {matched}
               </button>
             </>
           ) : (
-            <p className="mt-1 text-[12px] text-subtle">Este talle no está disponible para esta prenda.</p>
+            <p className="mt-1 text-[calc(12px_*_var(--font-scale,1))] text-subtle">Este talle no está disponible para esta prenda.</p>
           )}
         </div>
       )}
 
-      <p className="mt-4 text-center text-[11px] leading-relaxed text-subtle">
+      <p className="mt-4 text-center text-[calc(11px_*_var(--font-scale,1))] leading-relaxed text-subtle">
         La recomendación es orientativa. Ante la duda, te sugerimos consultar la guía de talles.
       </p>
     </div>

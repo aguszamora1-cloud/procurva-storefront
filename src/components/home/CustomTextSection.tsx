@@ -33,7 +33,7 @@ export function CustomTextSection({
         {heading ? (
           <h2
             className={
-              inColumn ? 'text-[15px] font-semibold mb-2 text-text' : 'text-2xl md:text-3xl font-semibold tracking-tight mb-4'
+              inColumn ? 'text-[calc(15px_*_var(--font-scale,1))] font-semibold mb-2 text-text' : 'text-2xl md:text-3xl font-semibold tracking-tight mb-4'
             }
           >
             {heading}
@@ -42,7 +42,7 @@ export function CustomTextSection({
         {body ? (
           <div
             className={`${
-              inColumn ? 'text-[14px] leading-relaxed text-muted' : 'text-base leading-relaxed'
+              inColumn ? 'text-[calc(14px_*_var(--font-scale,1))] leading-relaxed text-muted' : 'text-base leading-relaxed'
             } [&_a]:underline [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5`}
             dangerouslySetInnerHTML={{ __html: body }}
           />

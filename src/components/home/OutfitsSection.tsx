@@ -62,7 +62,7 @@ function OutfitCard({ outfit, onOpen }: { outfit: OutfitWithProducts; onOpen: ()
           )}
         </button>
         {hasCombo && cashSaving > 0 && (
-          <span className="pointer-events-none absolute left-3 top-3 rounded bg-[#e74c3c] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+          <span className="pointer-events-none absolute left-3 top-3 rounded bg-[#e74c3c] px-2 py-1 text-[calc(10px_*_var(--font-scale,1))] font-bold uppercase tracking-wide text-white">
             Combo
           </span>
         )}
@@ -102,8 +102,8 @@ function OutfitCard({ outfit, onOpen }: { outfit: OutfitWithProducts; onOpen: ()
       </div>
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div>
-          <h3 className="font-heading text-[15px] font-semibold uppercase tracking-[0.5px] text-text md:text-[17px]">{outfit.name}</h3>
-          {outfit.description && <p className="mt-1 text-[13px] text-muted">{outfit.description}</p>}
+          <h3 className="font-heading text-[calc(15px_*_var(--font-scale,1))] font-semibold uppercase tracking-[0.5px] text-text md:text-[calc(17px_*_var(--font-scale,1))]">{outfit.name}</h3>
+          {outfit.description && <p className="mt-1 text-[calc(13px_*_var(--font-scale,1))] text-muted">{outfit.description}</p>}
         </div>
         <div className="flex -space-x-2">
           {products.slice(0, 5).map((p) => (
@@ -114,25 +114,25 @@ function OutfitCard({ outfit, onOpen }: { outfit: OutfitWithProducts; onOpen: ()
           {hasDual ? (
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#888]">Tarjeta</span>
-                <span className="text-[15px] font-bold text-[#333]">{formatPrice(comboCard)}</span>
-                {cardSaving > 0 && <span className="text-[12px] font-medium text-[#999] line-through">{formatPrice(cardSum)}</span>}
+                <span className="text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-[#888]">Tarjeta</span>
+                <span className="text-[calc(15px_*_var(--font-scale,1))] font-bold text-[#333]">{formatPrice(comboCard)}</span>
+                {cardSaving > 0 && <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-[#999] line-through">{formatPrice(cardSum)}</span>}
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#27ae60]">Efectivo</span>
-                <span className="text-[15px] font-bold text-[#27ae60]">{formatPrice(comboCash)}</span>
-                {cashSaving > 0 && <span className="text-[12px] font-medium text-[#999] line-through">{formatPrice(cashSum)}</span>}
+                <span className="text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-[#27ae60]">Efectivo</span>
+                <span className="text-[calc(15px_*_var(--font-scale,1))] font-bold text-[#27ae60]">{formatPrice(comboCash)}</span>
+                {cashSaving > 0 && <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-[#999] line-through">{formatPrice(cashSum)}</span>}
               </div>
             </div>
           ) : (
             <span className="flex items-baseline gap-2">
-              <span className="text-[16px] font-semibold text-text">{formatPrice(comboCard)}</span>
-              {cardSaving > 0 && <span className="text-[13px] font-medium text-[#999] line-through">{formatPrice(cardSum)}</span>}
+              <span className="text-[calc(16px_*_var(--font-scale,1))] font-semibold text-text">{formatPrice(comboCard)}</span>
+              {cardSaving > 0 && <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#999] line-through">{formatPrice(cardSum)}</span>}
             </span>
           )}
           <button
             onClick={onOpen}
-            className="text-[12px] font-semibold uppercase text-white"
+            className="text-[calc(12px_*_var(--font-scale,1))] font-semibold uppercase text-white"
             style={{ background: '#111', letterSpacing: '2px', padding: '12px 28px', borderRadius: '4px' }}
           >
             Comprar
@@ -418,8 +418,8 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
           style={{ padding: '14px 14px 12px 20px' }}
         >
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase text-[#999]" style={{ letterSpacing: '1px' }}>Configurar outfit</p>
-            <h2 className="mt-0.5 truncate text-[18px] font-bold leading-tight text-[#111]">{outfit.name}</h2>
+            <p className="text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase text-[#999]" style={{ letterSpacing: '1px' }}>Configurar outfit</p>
+            <h2 className="mt-0.5 truncate text-[calc(18px_*_var(--font-scale,1))] font-bold leading-tight text-[#111]">{outfit.name}</h2>
           </div>
           <button
             onClick={onClose}
@@ -435,7 +435,7 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
             cada prenda ya trae su propia miniatura). */}
         <div className="flex-1 overflow-y-auto" style={{ padding: '0 20px' }}>
           {loadingVariants ? (
-            <p className="py-8 text-center text-[13px] text-[#888]">Cargando opciones…</p>
+            <p className="py-8 text-center text-[calc(13px_*_var(--font-scale,1))] text-[#888]">Cargando opciones…</p>
           ) : (
             enriched.map((p) => {
               const sizes = sizesByProduct[p.id] ?? [];
@@ -451,22 +451,22 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
                       style={{ width: '52px', height: '52px', objectFit: 'cover', borderRadius: '8px' }}
                       className="shrink-0 bg-[#f3f3f3]"
                     />
-                    <p className="flex-1 text-[13px] font-bold uppercase leading-tight text-[#111]">{p.name}</p>
-                    <p className="text-[15px] font-bold text-[#111]">{formatPrice(info.mainPrice)}</p>
+                    <p className="flex-1 text-[calc(13px_*_var(--font-scale,1))] font-bold uppercase leading-tight text-[#111]">{p.name}</p>
+                    <p className="text-[calc(15px_*_var(--font-scale,1))] font-bold text-[#111]">{formatPrice(info.mainPrice)}</p>
                   </div>
 
                   {/* Color fijado del look: no editable */}
                   {colors.length > 0 && pinnedColorByProduct[p.id] && colors.includes(pinnedColorByProduct[p.id]) && (
                     <div className="mt-3">
-                      <p className="text-[11px] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Color</p>
-                      <p className="mt-1 text-[13px] font-bold uppercase text-[#111]">{pinnedColorByProduct[p.id]}</p>
+                      <p className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Color</p>
+                      <p className="mt-1 text-[calc(13px_*_var(--font-scale,1))] font-bold uppercase text-[#111]">{pinnedColorByProduct[p.id]}</p>
                     </div>
                   )}
 
                   {/* Color a elección del cliente */}
                   {colors.length > 0 && !(pinnedColorByProduct[p.id] && colors.includes(pinnedColorByProduct[p.id])) && (
                     <div className="mt-3">
-                      <p className="text-[11px] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Color</p>
+                      <p className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Color</p>
                       <div className="mt-1.5 flex flex-wrap gap-2">
                         {colors.map((c) => {
                           const selected = selectedColors[p.id] === c;
@@ -474,7 +474,7 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
                             <button
                               key={c}
                               onClick={() => setSelectedColors((prev) => ({ ...prev, [p.id]: c }))}
-                              className="text-[12px] font-semibold uppercase"
+                              className="text-[calc(12px_*_var(--font-scale,1))] font-semibold uppercase"
                               style={{
                                 padding: '6px 16px',
                                 borderRadius: '6px',
@@ -495,7 +495,7 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
                   {/* Talle */}
                   {sizes.length > 0 && (
                     <div className="mt-3">
-                      <p className="text-[11px] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Talle</p>
+                      <p className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Talle</p>
                       <div className="mt-1.5 flex flex-wrap gap-2">
                         {sizes.map((s) => {
                           const selected = selectedSizes[p.id] === s;
@@ -505,7 +505,7 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
                               key={s}
                               onClick={() => !disabled && setSelectedSizes((prev) => ({ ...prev, [p.id]: s }))}
                               disabled={disabled}
-                              className="text-[13px] font-semibold"
+                              className="text-[calc(13px_*_var(--font-scale,1))] font-semibold"
                               style={{
                                 minWidth: '44px',
                                 height: '38px',
@@ -526,7 +526,7 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
                   )}
 
                   {comboOutOfStock(p) && (
-                    <p className="mt-2 text-[12px] font-semibold" style={{ color: '#e74c3c' }}>SIN STOCK en esa variante</p>
+                    <p className="mt-2 text-[calc(12px_*_var(--font-scale,1))] font-semibold" style={{ color: '#e74c3c' }}>SIN STOCK en esa variante</p>
                   )}
                 </div>
               );
@@ -537,29 +537,29 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
         {/* Footer sticky: totales + acción */}
         <div style={{ borderTop: '1px solid #eee', padding: '14px 20px 18px' }}>
           {hasCombo && cashSaving > 0 && (
-            <div className="mb-2 flex items-center justify-between text-[12px] font-semibold" style={{ color: '#27ae60' }}>
+            <div className="mb-2 flex items-center justify-between text-[calc(12px_*_var(--font-scale,1))] font-semibold" style={{ color: '#27ae60' }}>
               <span className="uppercase">Precio combo — ahorrás</span>
               <span>{formatPrice(cashSaving)}</span>
             </div>
           )}
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase text-[#888]">Total tarjeta</span>
+            <span className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-[#888]">Total tarjeta</span>
             <span className="flex items-baseline gap-2">
-              {cardSaving > 0 && <span className="text-[13px] font-medium text-[#999] line-through">{formatPrice(cardSum)}</span>}
-              <span className="text-[18px] font-bold text-[#111]">{formatPrice(comboCard)}</span>
+              {cardSaving > 0 && <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#999] line-through">{formatPrice(cardSum)}</span>}
+              <span className="text-[calc(18px_*_var(--font-scale,1))] font-bold text-[#111]">{formatPrice(comboCard)}</span>
             </span>
           </div>
           <div className="mt-1 flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase" style={{ color: '#27ae60' }}>Total efectivo / transferencia</span>
+            <span className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase" style={{ color: '#27ae60' }}>Total efectivo / transferencia</span>
             <span className="flex items-baseline gap-2">
-              {cashSaving > 0 && <span className="text-[13px] font-medium text-[#999] line-through">{formatPrice(cashSum)}</span>}
-              <span className="text-[18px] font-bold" style={{ color: '#27ae60' }}>{formatPrice(hasDual ? comboCash : comboCard)}</span>
+              {cashSaving > 0 && <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#999] line-through">{formatPrice(cashSum)}</span>}
+              <span className="text-[calc(18px_*_var(--font-scale,1))] font-bold" style={{ color: '#27ae60' }}>{formatPrice(hasDual ? comboCash : comboCard)}</span>
             </span>
           </div>
           <button
             onClick={handleAdd}
             disabled={!canAdd}
-            className="mt-3 w-full text-[15px] font-medium transition-colors"
+            className="mt-3 w-full text-[calc(15px_*_var(--font-scale,1))] font-medium transition-colors"
             style={{
               background: actionBg,
               color: '#fff',

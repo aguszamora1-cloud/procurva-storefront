@@ -30,7 +30,7 @@ export function WholesalePriceTable({
   const rows = combinedPriceRows(wholesalePrice, tiers, packs);
   const surtidaRows = curvaSurtidaTiers?.length ? curvaSurtidaRows(curvaSurtidaTiers) : [];
   if (wholesalePrice <= 0 && rows.length <= 1 && surtidaRows.length === 0) {
-    return <p className="text-[15px] font-semibold text-subtle">Consultar precio</p>;
+    return <p className="text-[calc(15px_*_var(--font-scale,1))] font-semibold text-subtle">Consultar precio</p>;
   }
 
   const detail = variant === 'detail';
@@ -50,12 +50,12 @@ export function WholesalePriceTable({
               className="-mx-1.5 flex items-center justify-between gap-2 rounded-md bg-secondary px-1.5 py-1.5"
             >
               <span className="flex flex-col leading-tight">
-                <span className="text-[13px] font-semibold text-on-surface">{r.label}</span>
-                <span className="text-[9px] font-semibold uppercase tracking-[0.3px] text-subtle">Mejor precio</span>
+                <span className="text-[calc(13px_*_var(--font-scale,1))] font-semibold text-on-surface">{r.label}</span>
+                <span className="text-[calc(9px_*_var(--font-scale,1))] font-semibold uppercase tracking-[0.3px] text-subtle">Mejor precio</span>
               </span>
               <span className="flex items-baseline gap-1.5">
-                {onPromo && <span className="text-[12px] font-medium text-subtle line-through tabular-nums">{formatPrice(r.price)}</span>}
-                <span className="text-[15px] font-bold text-on-surface tabular-nums">{formatPrice(promoPrice)}</span>
+                {onPromo && <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle line-through tabular-nums">{formatPrice(r.price)}</span>}
+                <span className="text-[calc(15px_*_var(--font-scale,1))] font-bold text-on-surface tabular-nums">{formatPrice(promoPrice)}</span>
               </span>
             </div>
           );
@@ -63,10 +63,10 @@ export function WholesalePriceTable({
 
         return (
           <div key={`${r.label}-${i}`} className="flex items-center justify-between gap-2">
-            <span className="text-[14px] font-medium text-muted">{r.label}</span>
+            <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-muted">{r.label}</span>
             <span className="flex items-baseline gap-1.5">
-              {onPromo && <span className="text-[12px] font-medium text-subtle line-through tabular-nums">{formatPrice(r.price)}</span>}
-              <span className={onPromo ? 'text-[14px] font-semibold text-accent tabular-nums' : 'text-[14px] font-semibold text-text tabular-nums'}>
+              {onPromo && <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle line-through tabular-nums">{formatPrice(r.price)}</span>}
+              <span className={onPromo ? 'text-[calc(14px_*_var(--font-scale,1))] font-semibold text-accent tabular-nums' : 'text-[calc(14px_*_var(--font-scale,1))] font-semibold text-text tabular-nums'}>
                 {formatPrice(promoPrice)}
               </span>
             </span>
@@ -81,10 +81,10 @@ export function WholesalePriceTable({
         const onPromo = discount != null && promoPrice < r.price;
         return (
           <div key={`surtida-${r.label}-${i}`} className="flex items-center justify-between gap-2">
-            <span className="text-[14px] font-medium text-muted">{r.label}</span>
+            <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-muted">{r.label}</span>
             <span className="flex items-baseline gap-1.5">
-              {onPromo && <span className="text-[12px] font-medium text-subtle line-through tabular-nums">{formatPrice(r.price)}</span>}
-              <span className={onPromo ? 'text-[14px] font-semibold text-accent tabular-nums' : 'text-[14px] font-semibold text-text tabular-nums'}>
+              {onPromo && <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle line-through tabular-nums">{formatPrice(r.price)}</span>}
+              <span className={onPromo ? 'text-[calc(14px_*_var(--font-scale,1))] font-semibold text-accent tabular-nums' : 'text-[calc(14px_*_var(--font-scale,1))] font-semibold text-text tabular-nums'}>
                 {formatPrice(promoPrice)}
               </span>
             </span>

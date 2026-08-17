@@ -375,7 +375,7 @@ export function ProductDetail() {
     return (
       <div className="mx-auto max-w-[1200px] px-6 py-24 text-center">
         <Seo title={`Producto no encontrado · ${config.name}`} slug={config.slug} noindex />
-        <h1 className="font-heading text-[32px] font-extrabold tracking-tight text-text">Producto no encontrado</h1>
+        <h1 className="font-heading text-[calc(32px_*_var(--font-scale,1))] font-extrabold tracking-tight text-text">Producto no encontrado</h1>
         <p className="mt-4 text-muted">
           Volvé al{' '}
           <Link to="/productos" className="text-accent underline">
@@ -632,7 +632,7 @@ export function ProductDetail() {
                 }}
               >
                 <Tag className="h-4 w-4 shrink-0" style={{ color: qtyPromo.badge_color || '#16a34a' }} />
-                <p className="text-[13px] font-semibold" style={{ color: qtyPromo.badge_color || '#16a34a' }}>
+                <p className="text-[calc(13px_*_var(--font-scale,1))] font-semibold" style={{ color: qtyPromo.badge_color || '#16a34a' }}>
                   {qtyPromoMsg}
                 </p>
               </div>
@@ -679,10 +679,10 @@ export function ProductDetail() {
               aria-expanded={showSizeFinder}
               className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-secondary"
             >
-              <span className="flex items-center gap-2 text-[13px] font-semibold text-text">
+              <span className="flex items-center gap-2 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-text">
                 <Ruler size={16} /> ¿No sabés tu talle?
               </span>
-              <span className="flex items-center gap-1 text-[12px] font-semibold text-accent">
+              <span className="flex items-center gap-1 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-accent">
                 Recomendador de talle
                 <ChevronDown size={16} className={`transition-transform duration-200 ${showSizeFinder ? 'rotate-180' : ''}`} />
               </span>
@@ -705,7 +705,7 @@ export function ProductDetail() {
       // no queda una línea con el camioncito y nada más: desaparece entera.
       case 'shipping_promise':
         return config.shippingPromiseEnabled && (config.shippingPromiseTitle || config.shippingPromiseSubtitle) ? (
-          <p className="flex items-center gap-2 text-[14px]" style={{ color: config.shippingPromiseColor }}>
+          <p className="flex items-center gap-2 text-[calc(14px_*_var(--font-scale,1))]" style={{ color: config.shippingPromiseColor }}>
             <Truck size={17} className="flex-none" />
             {config.shippingPromiseTitle && <span className="font-semibold">{config.shippingPromiseTitle}</span>}
             {config.shippingPromiseSubtitle && (
@@ -724,7 +724,7 @@ export function ProductDetail() {
             type="button"
             onClick={primaryAdd}
             disabled={primaryDisabled}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-button bg-primary px-6 py-[18px] text-[16px] font-bold text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent hover:scale-[1.01] active:scale-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:text-on-primary"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-button bg-primary px-6 py-[18px] text-[calc(16px_*_var(--font-scale,1))] font-bold text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent hover:scale-[1.01] active:scale-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:text-on-primary"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="9" cy="21" r="1" />
@@ -741,7 +741,7 @@ export function ProductDetail() {
             href={inquiry}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-button border-[1.5px] border-[#25D366] bg-[#25D366] px-6 py-[14px] text-[14px] font-semibold text-white transition-colors hover:border-[#1DA851] hover:bg-[#1DA851] active:border-[#128C4E] active:bg-[#128C4E]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-button border-[1.5px] border-[#25D366] bg-[#25D366] px-6 py-[14px] text-[calc(14px_*_var(--font-scale,1))] font-semibold text-white transition-colors hover:border-[#1DA851] hover:bg-[#1DA851] active:border-[#128C4E] active:bg-[#128C4E]"
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M19.4 4.6A10 10 0 0 0 4.1 17.3L3 21l3.8-1.1A10 10 0 1 0 19.4 4.6Zm-7.4 15.3a8 8 0 0 1-4.1-1.1l-.3-.2-2.3.7.7-2.3-.2-.3a8 8 0 1 1 6.2 3.2Zm4.4-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.3.2-.3.6-1 .1-.1 0-.3 0-.4l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.4 0-.6.3l-.6.7a3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.7 2.6 4.2 3.6 1.5.6 2.1.7 2.9.5.5-.1 1.4-.6 1.6-1.2.2-.5.2-1 .2-1.1-.1-.1-.2-.1-.4-.2Z" />
@@ -806,7 +806,7 @@ export function ProductDetail() {
     ) : null,
 
     shipping_promise: config.sections.socialProof ? (
-      <p className="flex animate-fade-in items-center gap-2 text-[14px] text-subtle">
+      <p className="flex animate-fade-in items-center gap-2 text-[calc(14px_*_var(--font-scale,1))] text-subtle">
         <Eye size={15} /> {viewersFromId(product.id)} personas están viendo este producto
       </p>
     ) : null,
@@ -889,7 +889,7 @@ export function ProductDetail() {
 
       {/* Breadcrumbs */}
       <div className="mx-auto max-w-[1200px] px-6 pb-2 pt-6">
-        <nav aria-label="Breadcrumb" className="text-[13px] text-subtle">
+        <nav aria-label="Breadcrumb" className="text-[calc(13px_*_var(--font-scale,1))] text-subtle">
           <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
             <li><Link to="/" className="transition-colors hover:text-accent">Inicio</Link></li>
             <li aria-hidden="true">›</li>
@@ -936,7 +936,7 @@ export function ProductDetail() {
               ))}
             </div>
           )}
-          <h1 className="font-heading text-[26px] font-bold leading-[1.15] tracking-[-0.02em] text-text md:text-[32px]">
+          <h1 className="font-heading text-[calc(26px_*_var(--font-scale,1))] font-bold leading-[1.15] tracking-[-0.02em] text-text md:text-[calc(32px_*_var(--font-scale,1))]">
             {product.name}
           </h1>
 
@@ -1016,8 +1016,8 @@ export function ProductDetail() {
 
           {product.description && (
             <div className="border-t border-line pt-6">
-              <p className="mb-2 text-[13px] font-semibold text-muted">Descripción</p>
-              <p className="whitespace-pre-line text-[14px] leading-relaxed text-muted">{product.description}</p>
+              <p className="mb-2 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted">Descripción</p>
+              <p className="whitespace-pre-line text-[calc(14px_*_var(--font-scale,1))] leading-relaxed text-muted">{product.description}</p>
             </div>
           )}
 
@@ -1067,24 +1067,24 @@ export function ProductDetail() {
           <div className="min-w-0 flex-1">
             {/* Contado protagonista + tarjeta chica al lado (si hay descuento de contado). */}
             <p className="flex flex-wrap items-baseline gap-x-1.5 leading-none">
-              <span className="text-[18px] font-extrabold text-accent">
+              <span className="text-[calc(18px_*_var(--font-scale,1))] font-extrabold text-accent">
                 {formatPrice(finalCash != null && finalCash < displayPrice ? finalCash : displayPrice)}
               </span>
               {finalCash != null && finalCash < displayPrice && (
-                <span className="text-[11px] font-medium text-subtle">{formatPrice(displayPrice)} tarjeta</span>
+                <span className="text-[calc(11px_*_var(--font-scale,1))] font-medium text-subtle">{formatPrice(displayPrice)} tarjeta</span>
               )}
             </p>
             {inTierMode ? (
               // Cuando las N unidades comparten variante la barra puede nombrarla
               // de verdad en vez de quedarse en "Lleva N". Con las filas por unidad
               // y variantes distintas no hay una variante que nombrar: "surtido".
-              <p className="mt-0.5 truncate text-[11px] text-subtle">
+              <p className="mt-0.5 truncate text-[calc(11px_*_var(--font-scale,1))] text-subtle">
                 Lleva {tierUnits}
                 {tierVariantLabel ? ` · ${tierVariantLabel}` : ''}
               </p>
             ) : (
               (selectedColor || selectedSize) && (
-                <p className="mt-0.5 truncate text-[11px] text-subtle">{[selectedColor, selectedSize].filter(Boolean).join(' · ')}</p>
+                <p className="mt-0.5 truncate text-[calc(11px_*_var(--font-scale,1))] text-subtle">{[selectedColor, selectedSize].filter(Boolean).join(' · ')}</p>
               )
             )}
           </div>
@@ -1092,7 +1092,7 @@ export function ProductDetail() {
             type="button"
             onClick={primaryAdd}
             disabled={primaryDisabled}
-            className="inline-flex flex-shrink-0 items-center justify-center rounded-md bg-primary px-5 py-3 text-[13px] font-bold text-on-primary disabled:opacity-40"
+            className="inline-flex flex-shrink-0 items-center justify-center rounded-md bg-primary px-5 py-3 text-[calc(13px_*_var(--font-scale,1))] font-bold text-on-primary disabled:opacity-40"
           >
             {inTierMode ? (tierValid ? `Agregar ${tierUnits}` : 'Elegí variantes') : outOfStock ? 'Sin stock' : !variant ? 'Elegí opción' : (variant.stock ?? 0) <= 0 ? 'Sin stock' : 'Agregar'}
           </button>

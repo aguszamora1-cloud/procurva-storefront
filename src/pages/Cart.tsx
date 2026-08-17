@@ -34,8 +34,8 @@ export function Cart() {
       <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-5 px-6 py-24 text-center">
         {seo}
         <ShoppingBag size={56} className="text-subtle" />
-        <h1 className="font-heading text-[28px] font-semibold text-text">Tu carrito está vacío</h1>
-        <Link to="/productos" className="rounded-button bg-primary px-8 py-3.5 text-[14px] font-bold text-on-primary transition-all hover:bg-accent hover:text-on-accent">
+        <h1 className="font-heading text-[calc(28px_*_var(--font-scale,1))] font-semibold text-text">Tu carrito está vacío</h1>
+        <Link to="/productos" className="rounded-button bg-primary px-8 py-3.5 text-[calc(14px_*_var(--font-scale,1))] font-bold text-on-primary transition-all hover:bg-accent hover:text-on-accent">
           Ver productos
         </Link>
       </div>
@@ -45,7 +45,7 @@ export function Cart() {
   return (
     <div className="mx-auto max-w-[1200px] px-6 py-10 md:py-14">
       {seo}
-      <h1 className="mb-8 font-heading text-[32px] font-semibold text-text md:text-[40px]">Tu carrito</h1>
+      <h1 className="mb-8 font-heading text-[calc(32px_*_var(--font-scale,1))] font-semibold text-text md:text-[calc(40px_*_var(--font-scale,1))]">Tu carrito</h1>
 
       <div className="grid gap-10 lg:grid-cols-[1fr_340px]">
         <div>
@@ -59,8 +59,8 @@ export function Cart() {
               <div className="flex flex-1 flex-col">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-[15px] font-semibold text-text">{row.name}</p>
-                    {row.detail && <p className="text-[12px] text-subtle">{row.detail}</p>}
+                    <p className="text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">{row.name}</p>
+                    {row.detail && <p className="text-[calc(12px_*_var(--font-scale,1))] text-subtle">{row.detail}</p>}
                   </div>
                   <button aria-label="Eliminar" onClick={() => row.removeKeys.forEach(removeItem)} className="text-subtle hover:text-accent">
                     <Trash2 size={18} />
@@ -72,13 +72,13 @@ export function Cart() {
                       <button aria-label="Restar" className="px-3 py-1.5 hover:text-accent" onClick={() => updateQty(row.removeKeys[0], row.units - 1)}>
                         <Minus size={14} />
                       </button>
-                      <span className="min-w-[2.5rem] text-center text-[14px]">{row.units}</span>
+                      <span className="min-w-[2.5rem] text-center text-[calc(14px_*_var(--font-scale,1))]">{row.units}</span>
                       <button aria-label="Sumar" className="px-3 py-1.5 hover:text-accent" onClick={() => updateQty(row.removeKeys[0], row.units + 1)}>
                         <Plus size={14} />
                       </button>
                     </div>
                   ) : (
-                    <span className="text-[13px] font-semibold uppercase tracking-wide text-subtle">{row.units} unidades</span>
+                    <span className="text-[calc(13px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-subtle">{row.units} unidades</span>
                   )}
                   {(() => {
                     // Volume tiers: contado protagonista, tarjeta secundaria; tachado = lista.
@@ -89,11 +89,11 @@ export function Cart() {
                       return (
                         <div className="text-right">
                           <span className="flex items-baseline justify-end gap-2">
-                            {showStrike && <span className="text-[13px] text-subtle line-through">{formatPrice(row.originalTotal as number)}</span>}
-                            <span className="text-[16px] font-bold text-accent">{formatPrice(primary)}</span>
+                            {showStrike && <span className="text-[calc(13px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(row.originalTotal as number)}</span>}
+                            <span className="text-[calc(16px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(primary)}</span>
                           </span>
                           {hasCash && (
-                            <span className="mt-0.5 block text-[12px] text-subtle">
+                            <span className="mt-0.5 block text-[calc(12px_*_var(--font-scale,1))] text-subtle">
                               <span className="font-semibold">{formatPrice(row.lineTotal)}</span> con tarjeta
                             </span>
                           )}
@@ -104,8 +104,8 @@ export function Cart() {
                     if (r?.active) {
                       return (
                         <span className="flex items-baseline gap-2">
-                          <span className="text-[13px] text-subtle line-through">{formatPrice(row.lineTotal)}</span>
-                          <span className="text-[16px] font-bold text-accent">{formatPrice(r.unitPriceFinal * row.units)}</span>
+                          <span className="text-[calc(13px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(row.lineTotal)}</span>
+                          <span className="text-[calc(16px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(r.unitPriceFinal * row.units)}</span>
                         </span>
                       );
                     }
@@ -113,44 +113,44 @@ export function Cart() {
                     if (row.cashTotal != null && row.cashTotal < row.lineTotal) {
                       return (
                         <div className="text-right">
-                          <span className="block text-[16px] font-bold text-accent">{formatPrice(row.cashTotal)}</span>
-                          <span className="mt-0.5 block text-[12px] text-subtle">
+                          <span className="block text-[calc(16px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(row.cashTotal)}</span>
+                          <span className="mt-0.5 block text-[calc(12px_*_var(--font-scale,1))] text-subtle">
                             <span className="font-semibold">{formatPrice(row.lineTotal)}</span> con tarjeta
                           </span>
                         </div>
                       );
                     }
-                    return <span className="text-[16px] font-bold text-text">{formatPrice(row.lineTotal)}</span>;
+                    return <span className="text-[calc(16px_*_var(--font-scale,1))] font-bold text-text">{formatPrice(row.lineTotal)}</span>;
                   })()}
                 </div>
               </div>
             </div>
           ))}
-          <button onClick={clear} className="mt-4 text-[12px] text-subtle hover:text-accent">
+          <button onClick={clear} className="mt-4 text-[calc(12px_*_var(--font-scale,1))] text-subtle hover:text-accent">
             Vaciar carrito
           </button>
         </div>
 
         <aside className="h-fit border border-line p-6">
-          <h2 className="mb-4 font-heading text-[18px] font-bold text-text">Resumen</h2>
+          <h2 className="mb-4 font-heading text-[calc(18px_*_var(--font-scale,1))] font-bold text-text">Resumen</h2>
           {nudges.map((n) => (
-            <div key={n.key} className="mb-3 rounded-lg border border-dashed border-accent-a40 bg-accent-a05 px-3 py-2 text-[12px] font-semibold text-accent">
+            <div key={n.key} className="mb-3 rounded-lg border border-dashed border-accent-a40 bg-accent-a05 px-3 py-2 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-accent">
               Agregá {n.missing} más y ahorrá — {n.message}
             </div>
           ))}
           <div className="flex items-center justify-between border-b border-line pb-4">
-            <span className="text-[14px] text-muted">Subtotal</span>
+            <span className="text-[calc(14px_*_var(--font-scale,1))] text-muted">Subtotal</span>
             <span className="text-right">
-              <span className="block text-[20px] font-extrabold text-accent">{formatPrice(hasCashSubtotal ? cashSubtotal : adjustedSubtotal)}</span>
+              <span className="block text-[calc(20px_*_var(--font-scale,1))] font-extrabold text-accent">{formatPrice(hasCashSubtotal ? cashSubtotal : adjustedSubtotal)}</span>
               {hasCashSubtotal && (
-                <span className="mt-0.5 block text-[12px] text-subtle">
+                <span className="mt-0.5 block text-[calc(12px_*_var(--font-scale,1))] text-subtle">
                   <span className="font-semibold">{formatPrice(adjustedSubtotal)}</span> con tarjeta
                 </span>
               )}
             </span>
           </div>
           {quantitySavings > 0 && (
-            <p className="pt-3 text-right text-[12px] font-semibold text-accent">Ahorrás {formatPrice(quantitySavings)} por cantidad</p>
+            <p className="pt-3 text-right text-[calc(12px_*_var(--font-scale,1))] font-semibold text-accent">Ahorrás {formatPrice(quantitySavings)} por cantidad</p>
           )}
           {/* Cupón guardado: chip tri-estado. Sin monto exacto (showAmount=false):
               depende de promos por cantidad y del modo de pago, que se resuelven en
@@ -164,7 +164,7 @@ export function Cart() {
             className="mt-4"
           />
           {min.active && (
-            <div className={`pt-4 text-[12px] font-semibold ${min.ok ? 'text-emerald-600' : 'text-amber-600'}`}>
+            <div className={`pt-4 text-[calc(12px_*_var(--font-scale,1))] font-semibold ${min.ok ? 'text-emerald-600' : 'text-amber-600'}`}>
               {min.ok ? (
                 <p>✓ Mínimo de compra alcanzado</p>
               ) : (
@@ -179,11 +179,11 @@ export function Cart() {
               )}
             </div>
           )}
-          <p className="py-4 text-[12px] text-subtle">El envío se coordina al finalizar la compra.</p>
+          <p className="py-4 text-[calc(12px_*_var(--font-scale,1))] text-subtle">El envío se coordina al finalizar la compra.</p>
           {min.ok ? (
             <Link
               to="/checkout"
-              className="block w-full rounded-button bg-accent py-4 text-center text-[14px] font-bold text-on-accent transition-all hover:scale-[1.01]"
+              className="block w-full rounded-button bg-accent py-4 text-center text-[calc(14px_*_var(--font-scale,1))] font-bold text-on-accent transition-all hover:scale-[1.01]"
             >
               Finalizar compra
             </Link>
@@ -191,12 +191,12 @@ export function Cart() {
             <button
               type="button"
               disabled
-              className="block w-full cursor-not-allowed rounded-button bg-primary py-4 text-center text-[14px] font-bold text-on-primary opacity-40"
+              className="block w-full cursor-not-allowed rounded-button bg-primary py-4 text-center text-[calc(14px_*_var(--font-scale,1))] font-bold text-on-primary opacity-40"
             >
               {!min.unitsOk ? `Faltan ${min.missingUnits} unidades` : `Faltan ${formatPrice(min.missingAmount)}`}
             </button>
           )}
-          <Link to="/productos" className="mt-3 block text-center text-[12px] text-subtle hover:text-accent">
+          <Link to="/productos" className="mt-3 block text-center text-[calc(12px_*_var(--font-scale,1))] text-subtle hover:text-accent">
             Seguir comprando
           </Link>
         </aside>

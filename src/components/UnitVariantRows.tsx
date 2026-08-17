@@ -55,7 +55,7 @@ export function UnitVariantRows({ selections, sizes, colors, sizeDisabledFor, co
           className="animate-unit-row-in space-y-1 py-2.5 first:pt-1 last:pb-0"
           style={{ '--unit-index': i } as CSSProperties}
         >
-          <p className="text-[12px] font-semibold text-subtle">Unidad {i + 1}</p>
+          <p className="text-[calc(12px_*_var(--font-scale,1))] font-semibold text-subtle">Unidad {i + 1}</p>
           {colors.length > 0 && (
             <ColorSelector
               colors={colors}

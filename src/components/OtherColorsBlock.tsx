@@ -103,7 +103,7 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
 
   return (
     <section className={`rounded-2xl border border-line p-4 ${className ?? ''}`}>
-      <h3 className="mb-1 text-[15px] font-semibold text-text">Sumá otros colores</h3>
+      <h3 className="mb-1 text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">Sumá otros colores</h3>
       <p className="mb-3 text-xs text-subtle">Mismo modelo, otros colores — por curva.</p>
 
       {single ? (
@@ -120,7 +120,7 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium text-text">{color}</p>
-                  <p className="text-[11px] text-subtle">
+                  <p className="text-[calc(11px_*_var(--font-scale,1))] text-subtle">
                     Curva {unitsOf(color)} u. · <span className="font-semibold text-text">{formatPrice(curveTotal1(color))}</span>
                   </p>
                 </div>
@@ -157,12 +157,12 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
                   <div className="aspect-square w-full rounded-lg bg-secondary" />
                 )}
                 <p className="truncate text-xs font-medium text-text">{color}</p>
-                <p className="text-[11px] text-subtle">
+                <p className="text-[calc(11px_*_var(--font-scale,1))] text-subtle">
                   Curva {unitsOf(color)} u. · <span className="font-semibold text-text">{formatPrice(curveTotal1(color))}</span>
                 </p>
                 {isSelected ? (
                   // Color activo del principal: no se saca del grid, se marca "en el pedido".
-                  <span className="mt-auto flex items-center justify-center rounded-lg border border-line py-1.5 text-[11px] font-semibold text-subtle">
+                  <span className="mt-auto flex items-center justify-center rounded-lg border border-line py-1.5 text-[calc(11px_*_var(--font-scale,1))] font-semibold text-subtle">
                     En el pedido
                   </span>
                 ) : (

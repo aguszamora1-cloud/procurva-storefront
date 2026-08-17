@@ -33,10 +33,10 @@ export function Category() {
         siteName={config.name}
       />
       <header className="mb-8">
-        <Link to="/categorias" className="text-[11px] font-semibold uppercase tracking-[2px] text-subtle hover:text-accent">
+        <Link to="/categorias" className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[2px] text-subtle hover:text-accent">
           ← Categorías
         </Link>
-        <h1 className="mt-2 font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[44px]">
+        <h1 className="mt-2 font-heading text-[calc(32px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(44px_*_var(--font-scale,1))]">
           {category}
         </h1>
       </header>
@@ -45,7 +45,7 @@ export function Category() {
       ) : error ? (
         <InlineError message="No pudimos cargar los productos." onRetry={reload} />
       ) : filtered.length === 0 ? (
-        <p className="py-16 text-center text-[14px] text-subtle">
+        <p className="py-16 text-center text-[calc(14px_*_var(--font-scale,1))] text-subtle">
           No hay productos disponibles en esta categoría.
         </p>
       ) : (

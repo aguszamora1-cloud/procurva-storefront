@@ -156,15 +156,15 @@ export function ProductReviews({
       <p
         className={
           column
-            ? 'text-[13px] font-semibold text-muted'
-            : 'text-[12px] font-semibold uppercase tracking-[0.06em] text-muted'
+            ? 'text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted'
+            : 'text-[calc(12px_*_var(--font-scale,1))] font-semibold uppercase tracking-[0.06em] text-muted'
         }
       >
         {title?.trim() || 'Opiniones de clientes'}
       </p>
       <div className={`flex items-center ${column ? 'gap-1.5' : 'gap-2'}`}>
         <Stars value={rounded} size={column ? 13 : 15} />
-        <span className="text-[13px] font-semibold text-text">{avgLabel}</span>
+        <span className="text-[calc(13px_*_var(--font-scale,1))] font-semibold text-text">{avgLabel}</span>
       </div>
     </div>
   );

@@ -580,6 +580,8 @@ export interface RawCatalogSettings {
   color_text?: string;
   font_heading?: string;
   font_body?: string;
+  /** Multiplicador global del tamaño de texto. Ausente = 1 (sin cambios). */
+  font_scale?: number;
   theme?: 'dark' | 'light';
   // Alineación de los títulos de todas las secciones del home.
   section_title_align?: 'left' | 'center' | 'right';
@@ -949,6 +951,11 @@ export interface StoreConfig {
   // Tipografía
   fontHeading: string;
   fontBody: string;
+  /**
+   * Multiplicador global del tamaño de texto (1 = el de siempre). Se inyecta
+   * como `--font-scale` y lo consumen todos los tamaños de la tienda.
+   */
+  fontScale: number;
   // Alineación de los títulos de todas las secciones del home.
   sectionTitleAlign: 'left' | 'center' | 'right';
   // Modo de visualización de la sección de categorías del home.

@@ -90,7 +90,7 @@ export function CategoryCard({
           <CardImage img={img} name={cat.name} />
         </div>
         <div className="px-3 py-2.5">
-          <span className="font-heading text-[13px] font-medium uppercase tracking-[0.5px] text-on-surface md:text-[15px]">
+          <span className="font-heading text-[calc(13px_*_var(--font-scale,1))] font-medium uppercase tracking-[0.5px] text-on-surface md:text-[calc(15px_*_var(--font-scale,1))]">
             {cat.name}
           </span>
         </div>
@@ -107,7 +107,7 @@ export function CategoryCard({
           className="absolute inset-0 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.35)' }}
         >
-          <span className="text-center font-heading text-[18px] font-bold uppercase leading-tight tracking-[1px] text-white md:text-[24px]">
+          <span className="text-center font-heading text-[calc(18px_*_var(--font-scale,1))] font-bold uppercase leading-tight tracking-[1px] text-white md:text-[calc(24px_*_var(--font-scale,1))]">
             {cat.name}
           </span>
         </div>
@@ -120,7 +120,7 @@ export function CategoryCard({
     <Link to={to} className={`relative aspect-square ${base}`}>
       <CardImage img={img} name={cat.name} />
       <div className="absolute inset-0" style={{ background: OVERLAY_GRADIENT }} />
-      <span className="absolute bottom-3 left-3 right-3 font-heading text-[14px] font-medium uppercase tracking-[0.5px] text-white md:text-[16px]">
+      <span className="absolute bottom-3 left-3 right-3 font-heading text-[calc(14px_*_var(--font-scale,1))] font-medium uppercase tracking-[0.5px] text-white md:text-[calc(16px_*_var(--font-scale,1))]">
         {cat.name}
       </span>
     </Link>

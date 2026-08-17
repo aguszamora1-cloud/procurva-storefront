@@ -70,7 +70,10 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // v14: suma `menuItems` (ítems extra del menú lateral). El Navbar lo recorre sin
 // guarda y la página /pagina/:slug lo busca ahí: con una entrada v13 el menú
 // aparecería sin los ítems y un link compartido daría 404 hasta el primer fetch.
-const cacheKey = (slug: string) => `procurva_store_config_v14:${slug}`;
+// v15: suma `fontScale`. applyTheme lo escribe en `--font-scale` y TODOS los
+// tamaños de la tienda cuelgan de esa variable: con una entrada v14 el primer
+// paint saldría en el tamaño viejo y se reacomodaría al resolver el fetch.
+const cacheKey = (slug: string) => `procurva_store_config_v15:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 

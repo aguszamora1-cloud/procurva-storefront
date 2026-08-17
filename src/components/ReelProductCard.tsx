@@ -162,10 +162,10 @@ export function ReelProductCard({ product, onNavigate, onAdded }: Props) {
             <div className="h-11 w-11 flex-shrink-0 rounded-lg bg-secondary" />
           )}
           <div className="min-w-0">
-            <p className="truncate text-[13px] font-medium">{product.name}</p>
+            <p className="truncate text-[calc(13px_*_var(--font-scale,1))] font-medium">{product.name}</p>
             {storeType === 'wholesale' ? (
               product.wholesale_price ? (
-                <p className="text-[13px] font-semibold">{formatPrice(product.wholesale_price)}</p>
+                <p className="text-[calc(13px_*_var(--font-scale,1))] font-semibold">{formatPrice(product.wholesale_price)}</p>
               ) : null
             ) : (
               <PriceStack product={product} variant="compact" />
@@ -177,7 +177,7 @@ export function ReelProductCard({ product, onNavigate, onAdded }: Props) {
           type="button"
           onClick={outOfStock || added ? undefined : add}
           disabled={outOfStock || !!missingReason}
-          className={`flex flex-shrink-0 items-center gap-1 rounded-button px-3.5 py-2 text-[13px] font-semibold transition-colors disabled:opacity-50 ${
+          className={`flex flex-shrink-0 items-center gap-1 rounded-button px-3.5 py-2 text-[calc(13px_*_var(--font-scale,1))] font-semibold transition-colors disabled:opacity-50 ${
             added ? 'bg-green-600 text-white' : 'bg-primary text-on-primary'
           }`}
         >
@@ -203,7 +203,7 @@ export function ReelProductCard({ product, onNavigate, onAdded }: Props) {
                       setPickColor(c);
                       setPickSize(null);
                     }}
-                    className={`rounded-pill border px-2.5 py-1 text-[12px] ${
+                    className={`rounded-pill border px-2.5 py-1 text-[calc(12px_*_var(--font-scale,1))] ${
                       effColor === c ? 'border-primary bg-primary text-on-primary' : 'border-line text-muted'
                     } ${colorOut ? 'cursor-not-allowed opacity-40 line-through' : ''}`}
                   >
@@ -223,7 +223,7 @@ export function ReelProductCard({ product, onNavigate, onAdded }: Props) {
                     type="button"
                     disabled={!inStock}
                     onClick={() => setPickSize(s)}
-                    className={`min-w-[36px] rounded-md border px-2 py-1 text-[12px] ${
+                    className={`min-w-[36px] rounded-md border px-2 py-1 text-[calc(12px_*_var(--font-scale,1))] ${
                       effSize === s ? 'border-primary bg-primary text-on-primary' : 'border-line text-muted'
                     } ${!inStock ? 'cursor-not-allowed opacity-40 line-through' : ''}`}
                   >

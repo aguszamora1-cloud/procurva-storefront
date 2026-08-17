@@ -29,15 +29,15 @@ export function CustomCtaSection({ section }: { section: CustomSection }) {
     >
       <div className={`mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10 md:py-16 ${TEXT_ALIGN[align]}`}>
         {heading && (
-          <h2 className="font-heading text-[24px] font-semibold uppercase leading-[1.1] tracking-[1px] md:text-[34px]">
+          <h2 className="font-heading text-[calc(24px_*_var(--font-scale,1))] font-semibold uppercase leading-[1.1] tracking-[1px] md:text-[calc(34px_*_var(--font-scale,1))]">
             {heading}
           </h2>
         )}
-        {body && <p className="max-w-xl text-[14px] leading-relaxed opacity-80 md:text-[15px]">{body}</p>}
+        {body && <p className="max-w-xl text-[calc(14px_*_var(--font-scale,1))] leading-relaxed opacity-80 md:text-[calc(15px_*_var(--font-scale,1))]">{body}</p>}
         {buttonText && buttonLink && (
           <SectionLink
             to={buttonLink}
-            className="mt-2 inline-flex items-center border border-current px-8 py-3.5 text-[14px] font-medium transition-opacity hover:opacity-75"
+            className="mt-2 inline-flex items-center border border-current px-8 py-3.5 text-[calc(14px_*_var(--font-scale,1))] font-medium transition-opacity hover:opacity-75"
           >
             {buttonText}
           </SectionLink>

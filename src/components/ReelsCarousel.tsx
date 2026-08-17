@@ -51,7 +51,7 @@ export function ReelsCarousel({ reels, title, width = 'full', variant = 'section
   if (column) {
     return (
       <section>
-        {title.trim() && <p className="mb-3 text-[13px] font-semibold text-muted">{title}</p>}
+        {title.trim() && <p className="mb-3 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted">{title}</p>}
         <div className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1">
           {reels.map((reel, i) => (
             <button
@@ -92,7 +92,7 @@ export function ReelsCarousel({ reels, title, width = 'full', variant = 'section
           desde el editor, el carrusel arranca pegado a lo anterior en vez de
           dejar un hueco huérfano. Mismo criterio que SectionHeader. */}
       {title.trim() && (
-        <h2 className="mb-4 font-heading text-[20px] font-semibold uppercase tracking-[1px] text-text md:text-[24px]">
+        <h2 className="mb-4 font-heading text-[calc(20px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(24px_*_var(--font-scale,1))]">
           {title}
         </h2>
       )}
@@ -126,7 +126,7 @@ export function ReelsCarousel({ reels, title, width = 'full', variant = 'section
                   </span>
                 </span>
                 {dur && (
-                  <span className="absolute right-1.5 top-1.5 rounded bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                  <span className="absolute right-1.5 top-1.5 rounded bg-black/65 px-1.5 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-semibold text-white">
                     {dur}
                   </span>
                 )}
@@ -135,7 +135,7 @@ export function ReelsCarousel({ reels, title, width = 'full', variant = 'section
                     la portada, y la tarjeta se ve como una unidad. */}
                 {reel.caption && (
                   <div className="absolute inset-x-0 bottom-0 bg-background px-2.5 py-2">
-                    <p className="line-clamp-2 text-[12px] leading-snug text-text md:text-[13px]">
+                    <p className="line-clamp-2 text-[calc(12px_*_var(--font-scale,1))] leading-snug text-text md:text-[calc(13px_*_var(--font-scale,1))]">
                       {reel.caption}
                     </p>
                   </div>

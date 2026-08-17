@@ -21,9 +21,9 @@ const CTA_SHAPE: Record<string, string> = {
 // Cuerpos más grandes que los de antes: el texto dejó de ir en mayúsculas y en
 // minúscula el mismo tamaño se lee mucho más chico.
 const CTA_SIZE: Record<string, string> = {
-  sm: 'px-6 py-2.5 text-[13px] md:px-7 md:text-[14px]',
-  md: 'px-8 py-4 text-[15px] md:px-10 md:text-[16px]',
-  lg: 'px-10 py-5 text-[17px] md:px-14 md:text-[18px]',
+  sm: 'px-6 py-2.5 text-[calc(13px_*_var(--font-scale,1))] md:px-7 md:text-[calc(14px_*_var(--font-scale,1))]',
+  md: 'px-8 py-4 text-[calc(15px_*_var(--font-scale,1))] md:px-10 md:text-[calc(16px_*_var(--font-scale,1))]',
+  lg: 'px-10 py-5 text-[calc(17px_*_var(--font-scale,1))] md:px-14 md:text-[calc(18px_*_var(--font-scale,1))]',
 };
 
 // 'light'/'dark' son colores fijos a propósito: el CTA va sobre una foto, no
@@ -136,11 +136,11 @@ export function Hero() {
     return (
       <section className="relative bg-primary text-[var(--color-on-primary)]">
         <div className="mx-auto max-w-none px-6 py-24 md:px-12 md:py-40">
-          <h1 className="max-w-3xl font-heading text-[44px] font-extrabold uppercase leading-[1] tracking-[-0.5px] md:text-[88px]">
+          <h1 className="max-w-3xl font-heading text-[calc(44px_*_var(--font-scale,1))] font-extrabold uppercase leading-[1] tracking-[-0.5px] md:text-[calc(88px_*_var(--font-scale,1))]">
             {config.heroTitle}
           </h1>
           {config.heroSubtitle && (
-            <p className="mt-6 max-w-md text-[15px] text-[var(--color-on-primary)]/75 md:text-[17px]">
+            <p className="mt-6 max-w-md text-[calc(15px_*_var(--font-scale,1))] text-[var(--color-on-primary)]/75 md:text-[calc(17px_*_var(--font-scale,1))]">
               {config.heroSubtitle}
             </p>
           )}
@@ -206,12 +206,12 @@ export function Hero() {
           {showText && (
             <div className="mb-5 max-w-2xl text-white">
               {config.heroTitle && (
-                <h1 className="font-heading text-[36px] font-extrabold uppercase leading-[1.02] tracking-[-0.5px] drop-shadow md:text-[64px]">
+                <h1 className="font-heading text-[calc(36px_*_var(--font-scale,1))] font-extrabold uppercase leading-[1.02] tracking-[-0.5px] drop-shadow md:text-[calc(64px_*_var(--font-scale,1))]">
                   {config.heroTitle}
                 </h1>
               )}
               {config.heroSubtitle && (
-                <p className="mt-3 max-w-xl text-[14px] text-white/85 md:text-[17px]">{config.heroSubtitle}</p>
+                <p className="mt-3 max-w-xl text-[calc(14px_*_var(--font-scale,1))] text-white/85 md:text-[calc(17px_*_var(--font-scale,1))]">{config.heroSubtitle}</p>
               )}
             </div>
           )}

@@ -289,7 +289,7 @@ export function ProductList() {
       type="button"
       onClick={clearAll}
       disabled={activeCount === 0}
-      className="text-[14px] font-medium text-on-surface-muted transition-colors hover:text-accent disabled:opacity-40 disabled:hover:text-on-surface-muted"
+      className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-surface-muted transition-colors hover:text-accent disabled:opacity-40 disabled:hover:text-on-surface-muted"
     >
       Limpiar filtros
     </button>
@@ -305,10 +305,10 @@ export function ProductList() {
         siteName={config.name}
       />
       <header className="mb-8">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[2px] text-accent">
+        <p className="mb-2 text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[2px] text-accent">
           {query ? 'Búsqueda' : sectionView ? sectionView.label : 'Catálogo'}
         </p>
-        <h1 className="font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[44px]">
+        <h1 className="font-heading text-[calc(32px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(44px_*_var(--font-scale,1))]">
           {query ? <>Resultados para “{query}”</> : sectionView ? sectionView.title : 'Todos los productos'}
         </h1>
         {/* Sin búsqueda activa: aclaramos qué es esta vista. Para Destacados y
@@ -316,11 +316,11 @@ export function ProductList() {
             para Ofertas sí es un subconjunto. */}
         {!query && sectionView && (
           <>
-            <p className="mt-2 text-[14px] text-on-surface-muted">{sectionView.note}</p>
+            <p className="mt-2 text-[calc(14px_*_var(--font-scale,1))] text-on-surface-muted">{sectionView.note}</p>
             <button
               type="button"
               onClick={clearSeccion}
-              className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-medium text-on-surface-muted transition-colors hover:text-accent"
+              className="mt-3 inline-flex items-center gap-1.5 text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-surface-muted transition-colors hover:text-accent"
             >
               <X className="h-3.5 w-3.5" />
               {sectionView.clear}
@@ -335,7 +335,7 @@ export function ProductList() {
               next.delete('q');
               setSearchParams(next, { replace: true });
             }}
-            className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-medium text-on-surface-muted transition-colors hover:text-accent"
+            className="mt-3 inline-flex items-center gap-1.5 text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-surface-muted transition-colors hover:text-accent"
           >
             <X className="h-3.5 w-3.5" />
             Limpiar búsqueda
@@ -355,7 +355,7 @@ export function ProductList() {
         <aside className="hidden w-64 shrink-0 lg:block">
           <div className="sticky top-24 flex max-h-[calc(100vh-8rem)] flex-col">
             <div className="mb-1 flex shrink-0 items-center justify-between border-b border-line pb-3">
-              <h2 className="text-[15px] font-bold uppercase tracking-[1px] text-on-surface">Filtros</h2>
+              <h2 className="text-[calc(15px_*_var(--font-scale,1))] font-bold uppercase tracking-[1px] text-on-surface">Filtros</h2>
               {clearButton}
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
@@ -367,13 +367,13 @@ export function ProductList() {
         {/* Resultados */}
         <div className="min-w-0 flex-1">
           <div className="mb-6 flex items-center justify-between gap-4">
-            <p className="text-[13px] text-on-surface-muted">{countLabel}</p>
-            <label className="flex items-center gap-2 text-[13px] text-on-surface-muted">
+            <p className="text-[calc(13px_*_var(--font-scale,1))] text-on-surface-muted">{countLabel}</p>
+            <label className="flex items-center gap-2 text-[calc(13px_*_var(--font-scale,1))] text-on-surface-muted">
               <span className="hidden sm:inline whitespace-nowrap">Ordenar por</span>
               <select
                 value={orden}
                 onChange={(e) => setOrden(e.target.value)}
-                className="rounded-md border border-line bg-background px-3 py-2 text-[13px] font-medium text-on-surface focus:border-accent focus:outline-none"
+                className="rounded-md border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] font-medium text-on-surface focus:border-accent focus:outline-none"
               >
                 {/* Sólo cuando se llega desde una sección: es el orden con el
                     que abrió la vista y tiene que poder recuperarse. */}
@@ -392,7 +392,7 @@ export function ProductList() {
           ) : error ? (
             <InlineError message="No pudimos cargar los productos." onRetry={reload} />
           ) : filtered.length === 0 ? (
-            <p className="py-16 text-center text-[14px] text-subtle">No hay productos que coincidan con los filtros.</p>
+            <p className="py-16 text-center text-[calc(14px_*_var(--font-scale,1))] text-subtle">No hay productos que coincidan con los filtros.</p>
           ) : (
             <ProductGrid products={sorted} />
           )}
@@ -403,12 +403,12 @@ export function ProductList() {
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-md bg-primary px-6 py-3 text-[15px] font-medium text-on-primary shadow-lg lg:hidden"
+        className="fixed bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-md bg-primary px-6 py-3 text-[calc(15px_*_var(--font-scale,1))] font-medium text-on-primary shadow-lg lg:hidden"
       >
         <SlidersHorizontal className="h-4 w-4" />
         Filtros
         {activeCount > 0 && (
-          <span className="ml-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-md bg-on-primary-a20 px-1.5 text-[11px]">
+          <span className="ml-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-md bg-on-primary-a20 px-1.5 text-[calc(11px_*_var(--font-scale,1))]">
             {activeCount}
           </span>
         )}
@@ -431,7 +431,7 @@ export function ProductList() {
         }`}
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <span className="text-[15px] font-bold uppercase tracking-[1px] text-on-surface">Filtros</span>
+          <span className="text-[calc(15px_*_var(--font-scale,1))] font-bold uppercase tracking-[1px] text-on-surface">Filtros</span>
           <div className="flex items-center gap-4">
             {clearButton}
             <button
@@ -453,7 +453,7 @@ export function ProductList() {
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
-            className="block w-full rounded-button bg-accent py-3.5 text-center text-[15px] font-medium text-on-accent transition-transform hover:scale-[1.01]"
+            className="block w-full rounded-button bg-accent py-3.5 text-center text-[calc(15px_*_var(--font-scale,1))] font-medium text-on-accent transition-transform hover:scale-[1.01]"
           >
             Ver {countLabel}
           </button>

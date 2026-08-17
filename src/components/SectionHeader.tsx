@@ -25,19 +25,19 @@ export function SectionHeader({ label, title, subtitle, linkTo, linkText }: Prop
 
   const titleBlock = hasTitle ? (
     <div className={`w-full ${TEXT_ALIGN[align]}`}>
-      {label && <p className="mb-2 text-[11px] font-semibold uppercase tracking-[2px] text-accent">{label}</p>}
+      {label && <p className="mb-2 text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[2px] text-accent">{label}</p>}
       {/* Tamaño FLUIDO en mobile: "PRODUCTOS DESTACADOS" a 26px fijos mide casi
           exactamente el ancho útil de un teléfono de 390px (342px con el px-6 de
           la sección), así que caía en dos renglones. Con clamp() el titular se
           achica sólo abajo de ~440px de ancho, que es donde molesta; de 440px
           para arriba queda en los mismos 26px de siempre y en desktop manda el
-          md:text-[40px]. No se usa `whitespace-nowrap`: un titular muy largo
+          md:text-[calc(40px_*_var(--font-scale,1))]. No se usa `whitespace-nowrap`: un titular muy largo
           tiene que poder cortar en dos renglones antes que desbordarse. */}
-      <h2 className="font-heading text-[clamp(19px,5.9vw,26px)] font-semibold uppercase leading-[1.05] tracking-[1px] text-text md:text-[40px]">
+      <h2 className="font-heading text-[clamp(19px,5.9vw,26px)] font-semibold uppercase leading-[1.05] tracking-[1px] text-text md:text-[calc(40px_*_var(--font-scale,1))]">
         {title}
       </h2>
       {subtitle && (
-        <p className={`mt-3 max-w-xl text-[14px] text-muted md:text-[15px] ${SUBTITLE_ALIGN[align]}`}>{subtitle}</p>
+        <p className={`mt-3 max-w-xl text-[calc(14px_*_var(--font-scale,1))] text-muted md:text-[calc(15px_*_var(--font-scale,1))] ${SUBTITLE_ALIGN[align]}`}>{subtitle}</p>
       )}
     </div>
   ) : null;
@@ -45,7 +45,7 @@ export function SectionHeader({ label, title, subtitle, linkTo, linkText }: Prop
   const link = linkTo ? (
     <Link
       to={linkTo}
-      className="shrink-0 whitespace-nowrap text-[14px] font-medium text-muted transition-colors hover:text-accent"
+      className="shrink-0 whitespace-nowrap text-[calc(14px_*_var(--font-scale,1))] font-medium text-muted transition-colors hover:text-accent"
     >
       {linkText ?? 'Ver todo'}
     </Link>

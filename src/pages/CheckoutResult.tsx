@@ -47,17 +47,17 @@ function TransferDetails({ amount }: { amount: number | null }) {
     });
   };
   const copyBtn =
-    'shrink-0 rounded-button border border-line px-3 py-1.5 text-[12px] font-bold text-accent transition-colors hover:bg-accent hover:text-on-accent';
+    'shrink-0 rounded-button border border-line px-3 py-1.5 text-[calc(12px_*_var(--font-scale,1))] font-bold text-accent transition-colors hover:bg-accent hover:text-on-accent';
 
   return (
     <div className="mt-2 w-full max-w-[440px] rounded-xl border border-accent-a40 bg-accent-a05 p-4 text-left">
-      <p className="mb-3 text-[13px] font-bold text-text">Datos para la transferencia</p>
+      <p className="mb-3 text-[calc(13px_*_var(--font-scale,1))] font-bold text-text">Datos para la transferencia</p>
       <div className="space-y-2.5">
         {ta.alias && (
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Alias</p>
-              <p className="truncate text-[14px] font-bold text-text">{ta.alias}</p>
+              <p className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-muted">Alias</p>
+              <p className="truncate text-[calc(14px_*_var(--font-scale,1))] font-bold text-text">{ta.alias}</p>
             </div>
             <button type="button" onClick={() => copy(ta.alias, 'alias')} className={copyBtn}>
               {copied === 'alias' ? 'Copiado' : 'Copiar alias'}
@@ -67,8 +67,8 @@ function TransferDetails({ amount }: { amount: number | null }) {
         {ta.cbu && (
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">CBU / CVU</p>
-              <p className="truncate text-[14px] font-bold text-text">{ta.cbu}</p>
+              <p className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-muted">CBU / CVU</p>
+              <p className="truncate text-[calc(14px_*_var(--font-scale,1))] font-bold text-text">{ta.cbu}</p>
             </div>
             <button type="button" onClick={() => copy(ta.cbu, 'cbu')} className={copyBtn}>
               {copied === 'cbu' ? 'Copiado' : 'Copiar CBU'}
@@ -77,19 +77,19 @@ function TransferDetails({ amount }: { amount: number | null }) {
         )}
         {ta.holder && (
           <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Titular</p>
-            <p className="truncate text-[13px] font-medium text-text">{ta.holder}</p>
+            <p className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-muted">Titular</p>
+            <p className="truncate text-[calc(13px_*_var(--font-scale,1))] font-medium text-text">{ta.holder}</p>
           </div>
         )}
         {ta.cuit && (
           <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">CUIT</p>
-            <p className="truncate text-[13px] font-medium text-text">{ta.cuit}</p>
+            <p className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-muted">CUIT</p>
+            <p className="truncate text-[calc(13px_*_var(--font-scale,1))] font-medium text-text">{ta.cuit}</p>
           </div>
         )}
         {!hasStructured && ta.details && (
           <div className="flex items-start justify-between gap-3">
-            <p className="whitespace-pre-line text-[13px] text-text">{ta.details}</p>
+            <p className="whitespace-pre-line text-[calc(13px_*_var(--font-scale,1))] text-text">{ta.details}</p>
             <button type="button" onClick={() => copy(ta.details, 'details')} className={copyBtn}>
               {copied === 'details' ? 'Copiado' : 'Copiar datos'}
             </button>
@@ -97,8 +97,8 @@ function TransferDetails({ amount }: { amount: number | null }) {
         )}
         {amount != null && amount > 0 && (
           <div className="flex items-center justify-between border-t border-line pt-2.5">
-            <span className="text-[12px] font-semibold uppercase tracking-wide text-muted">Monto a transferir</span>
-            <span className="text-[16px] font-extrabold text-text">{formatPrice(amount)}</span>
+            <span className="text-[calc(12px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-muted">Monto a transferir</span>
+            <span className="text-[calc(16px_*_var(--font-scale,1))] font-extrabold text-text">{formatPrice(amount)}</span>
           </div>
         )}
       </div>
@@ -163,10 +163,10 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
     <div className="mx-auto flex max-w-[640px] flex-col items-center gap-5 px-6 py-24 text-center">
       <Seo title={`${title} · ${config.name}`} slug={config.slug} noindex />
       <Icon size={64} className={isTransfer ? 'text-amber-500' : color} strokeWidth={1.5} />
-      <h1 className="font-heading text-[28px] font-semibold uppercase tracking-[1px] text-text md:text-[34px]">{title}</h1>
-      <p className="max-w-[440px] text-[15px] leading-relaxed text-muted">{text}</p>
+      <h1 className="font-heading text-[calc(28px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(34px_*_var(--font-scale,1))]">{title}</h1>
+      <p className="max-w-[440px] text-[calc(15px_*_var(--font-scale,1))] leading-relaxed text-muted">{text}</p>
       {orderId && (
-        <p className="text-[12px] text-subtle">N° de pedido: {orderId.slice(0, 8).toUpperCase()}</p>
+        <p className="text-[calc(12px_*_var(--font-scale,1))] text-subtle">N° de pedido: {orderId.slice(0, 8).toUpperCase()}</p>
       )}
       {isTransfer && <TransferDetails amount={transferAmount} />}
       {whatsappHref && (
@@ -174,7 +174,7 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
           href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-1 inline-flex items-center justify-center gap-2.5 rounded-button bg-[#25D366] px-8 py-4 text-[15px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
+          className="mt-1 inline-flex items-center justify-center gap-2.5 rounded-button bg-[#25D366] px-8 py-4 text-[calc(15px_*_var(--font-scale,1))] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
         >
           <MessageCircle size={20} strokeWidth={2.2} />
           Coordinar pago por WhatsApp
@@ -182,15 +182,15 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
       )}
       <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
         {variant === 'failure' ? (
-          <Link to="/checkout" className="rounded-button bg-primary px-7 py-3.5 text-[15px] font-medium text-on-primary transition-all hover:bg-accent hover:text-on-accent">
+          <Link to="/checkout" className="rounded-button bg-primary px-7 py-3.5 text-[calc(15px_*_var(--font-scale,1))] font-medium text-on-primary transition-all hover:bg-accent hover:text-on-accent">
             Reintentar
           </Link>
         ) : (
-          <Link to="/productos" className="rounded-button bg-primary px-7 py-3.5 text-[15px] font-medium text-on-primary transition-all hover:bg-accent hover:text-on-accent">
+          <Link to="/productos" className="rounded-button bg-primary px-7 py-3.5 text-[calc(15px_*_var(--font-scale,1))] font-medium text-on-primary transition-all hover:bg-accent hover:text-on-accent">
             Seguir comprando
           </Link>
         )}
-        <Link to="/" className="text-[14px] text-subtle hover:text-accent">
+        <Link to="/" className="text-[calc(14px_*_var(--font-scale,1))] text-subtle hover:text-accent">
           Volver al inicio
         </Link>
       </div>

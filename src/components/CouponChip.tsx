@@ -54,11 +54,11 @@ export function CouponChip({ items, mode, storeType, hasNonStackablePromo, showA
         <div className="flex min-w-0 items-center gap-2">
           <Check size={16} className={`shrink-0 ${active ? 'text-accent' : 'text-amber-600'}`} />
           {active ? (
-            <p className="truncate text-[12px] font-bold text-accent">
+            <p className="truncate text-[calc(12px_*_var(--font-scale,1))] font-bold text-accent">
               Cupón {code} aplicado{showAmount ? ` — -${formatPrice(ev.discount)}` : ''}
             </p>
           ) : (
-            <p className="truncate text-[12px] font-semibold text-amber-700">
+            <p className="truncate text-[calc(12px_*_var(--font-scale,1))] font-semibold text-amber-700">
               {ev.reason === 'min'
                 ? `Te faltan ${formatPrice(ev.missingForMin)} para usar ${code}`
                 : `El cupón ${code} no aplica a este pedido`}
@@ -85,7 +85,7 @@ export function CouponChip({ items, mode, storeType, hasNonStackablePromo, showA
     else if (ev.reason === 'scope') msg = `El cupón ${code} no aplica a los productos de tu carrito`;
     return (
       <div
-        className={`flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-[12px] font-medium text-subtle ${className}`}
+        className={`flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle ${className}`}
       >
         <Tag size={15} className="shrink-0" />
         <span className="truncate">{msg}</span>
@@ -98,7 +98,7 @@ export function CouponChip({ items, mode, storeType, hasNonStackablePromo, showA
     <button
       type="button"
       onClick={() => setApplied(true)}
-      className={`flex w-full items-center gap-2 rounded-button border border-dashed border-accent-a50 bg-accent-a05 px-3 py-2 text-left text-[12px] font-semibold text-accent transition-colors hover:bg-accent-a10 ${className}`}
+      className={`flex w-full items-center gap-2 rounded-button border border-dashed border-accent-a50 bg-accent-a05 px-3 py-2 text-left text-[calc(12px_*_var(--font-scale,1))] font-semibold text-accent transition-colors hover:bg-accent-a10 ${className}`}
     >
       <Tag size={15} className="shrink-0" />
       <span className="truncate">Tenés un cupón: {code} — Tocá para aplicar</span>
@@ -185,20 +185,20 @@ export function CouponPdpChip({ product, hasNonStackablePromo = false, color = n
     <div className={`flex items-center gap-2.5 rounded-lg border border-dashed border-accent-a50 bg-accent-a05 px-3 py-2.5 ${className}`}>
       <Tag className="h-4 w-4 shrink-0 text-accent" />
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-semibold text-accent">
+        <p className="text-[calc(13px_*_var(--font-scale,1))] font-semibold text-accent">
           {isPercent
             ? `Con el cupón ${code} pagás ${formatPrice(discounted)}`
             : `Con el cupón ${code}: ${formatPrice(couponRecord.discount_value)} de descuento`}
         </p>
         {minNote && (
-          <p className="text-[11px] text-subtle">En compras desde {formatPrice(couponRecord.min_subtotal as number)}</p>
+          <p className="text-[calc(11px_*_var(--font-scale,1))] text-subtle">En compras desde {formatPrice(couponRecord.min_subtotal as number)}</p>
         )}
       </div>
       <button
         type="button"
         onClick={copy}
         aria-label="Copiar código del cupón"
-        className="flex shrink-0 items-center gap-1 rounded-button px-2 py-1 text-[12px] font-semibold text-accent transition-colors hover:bg-accent-a10"
+        className="flex shrink-0 items-center gap-1 rounded-button px-2 py-1 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-accent transition-colors hover:bg-accent-a10"
       >
         {copied ? <Check size={14} /> : <Copy size={14} />}
         {copied ? '¡Copiado!' : 'Copiar'}

@@ -94,7 +94,7 @@ export function NewsletterSection() {
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
                 </button>
-                <p className="mt-1 text-[11px] opacity-60">
+                <p className="mt-1 text-[calc(11px_*_var(--font-scale,1))] opacity-60">
                   {copied ? '¡Copiado!' : 'Ya te lo guardamos — lo vas a ver aplicable cuando compres.'}
                 </p>
               </div>
@@ -144,13 +144,13 @@ export function NewsletterSection() {
               <button
                 type="button"
                 onClick={() => setShowName(true)}
-                className={`mt-2 text-[13px] underline underline-offset-4 opacity-70 transition-opacity hover:opacity-100 ${FOCUS_RING}`}
+                className={`mt-2 text-[calc(13px_*_var(--font-scale,1))] underline underline-offset-4 opacity-70 transition-opacity hover:opacity-100 ${FOCUS_RING}`}
               >
                 Agregar mi nombre (opcional)
               </button>
             )}
 
-            <p className="mt-3 text-[12px] opacity-60">
+            <p className="mt-3 text-[calc(12px_*_var(--font-scale,1))] opacity-60">
               Sin spam. Te escribimos solo cuando hay novedades o descuentos.
             </p>
           </div>

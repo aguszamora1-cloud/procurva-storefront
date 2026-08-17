@@ -20,7 +20,7 @@ function isPreview(): boolean {
 export function PreviewBanner() {
   if (!isPreview()) return null;
   return (
-    <div className="bg-accent-a10 text-accent text-center text-[12px] font-medium px-4 py-2 leading-snug">
+    <div className="bg-accent-a10 text-accent text-center text-[calc(12px_*_var(--font-scale,1))] font-medium px-4 py-2 leading-snug">
       Producto de ejemplo — así se verán tus productos reales cuando los cargues.
     </div>
   );

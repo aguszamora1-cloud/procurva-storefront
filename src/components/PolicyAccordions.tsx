@@ -35,13 +35,13 @@ export function PolicyAccordions({ className }: Props) {
               onClick={() => setOpenPolicy(open ? null : p.key)}
               className="flex w-full items-center justify-between py-3.5 text-left"
             >
-              <span className="flex items-center gap-2.5 text-[13px] font-semibold text-muted">
+              <span className="flex items-center gap-2.5 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted">
                 <p.Icon size={16} className="text-subtle" />
                 {p.label}
               </span>
               <ChevronDown size={16} className={`text-subtle transition-transform ${open ? 'rotate-180' : ''}`} />
             </button>
-            {open && <p className="whitespace-pre-line pb-4 text-[13px] font-medium leading-relaxed text-muted">{p.text}</p>}
+            {open && <p className="whitespace-pre-line pb-4 text-[calc(13px_*_var(--font-scale,1))] font-medium leading-relaxed text-muted">{p.text}</p>}
           </div>
         );
       })}

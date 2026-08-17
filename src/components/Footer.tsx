@@ -68,10 +68,10 @@ export function Footer() {
               className={`w-auto object-contain ${SILHOUETTE_CLASS[logoSilhouette]}`}
             />
           ) : (
-            <p className="font-heading text-[22px] font-extrabold uppercase tracking-[-0.5px]">{config.name}</p>
+            <p className="font-heading text-[calc(22px_*_var(--font-scale,1))] font-extrabold uppercase tracking-[-0.5px]">{config.name}</p>
           )}
           {config.footerText && (
-            <p className="mt-3 text-[13px] leading-relaxed text-[var(--color-on-primary)]/60">{config.footerText}</p>
+            <p className="mt-3 text-[calc(13px_*_var(--font-scale,1))] leading-relaxed text-[var(--color-on-primary)]/60">{config.footerText}</p>
           )}
           <div className="mt-5 flex items-center gap-3">
             {ig && <SocialCircle href={ig} label="Instagram"><IgIcon /></SocialCircle>}
@@ -82,8 +82,8 @@ export function Footer() {
 
         {/* Tienda */}
         <div>
-          <p className="mb-4 text-[11px] font-semibold tracking-[1px] text-[var(--color-on-primary)]/50">TIENDA</p>
-          <ul className="space-y-2.5 text-[14px]">
+          <p className="mb-4 text-[calc(11px_*_var(--font-scale,1))] font-semibold tracking-[1px] text-[var(--color-on-primary)]/50">TIENDA</p>
+          <ul className="space-y-2.5 text-[calc(14px_*_var(--font-scale,1))]">
             <li><Link to="/productos" className="text-[var(--color-on-primary)]/85 transition-colors hover:text-accent">Productos</Link></li>
             <li><Link to="/categorias" className="text-[var(--color-on-primary)]/85 transition-colors hover:text-accent">Categorías</Link></li>
             <li><Link to="/carrito" className="text-[var(--color-on-primary)]/85 transition-colors hover:text-accent">Carrito</Link></li>
@@ -92,8 +92,8 @@ export function Footer() {
 
         {/* Contacto */}
         <div>
-          <p className="mb-4 text-[11px] font-semibold tracking-[1px] text-[var(--color-on-primary)]/50">CONTACTO</p>
-          <ul className="space-y-2.5 text-[14px]">
+          <p className="mb-4 text-[calc(11px_*_var(--font-scale,1))] font-semibold tracking-[1px] text-[var(--color-on-primary)]/50">CONTACTO</p>
+          <ul className="space-y-2.5 text-[calc(14px_*_var(--font-scale,1))]">
             {wa && <li><a href={wa} target="_blank" rel="noreferrer" className="text-[var(--color-on-primary)]/85 transition-colors hover:text-accent">WhatsApp</a></li>}
             {ig && <li><a href={ig} target="_blank" rel="noreferrer" className="text-[var(--color-on-primary)]/85 transition-colors hover:text-accent">Instagram</a></li>}
             {config.contactEmail && <li><a href={`mailto:${config.contactEmail}`} className="text-[var(--color-on-primary)]/85 transition-colors hover:text-accent">{config.contactEmail}</a></li>}
@@ -104,12 +104,12 @@ export function Footer() {
       {/* Métodos de pago */}
       <div className="border-t border-[var(--color-on-primary)]/10">
         <div className="mx-auto flex max-w-none flex-wrap items-center justify-between gap-4 px-6 py-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[1px] text-[var(--color-on-primary)]/50">Aceptamos</p>
+          <p className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-[var(--color-on-primary)]/50">Aceptamos</p>
           <div className="flex flex-wrap items-center gap-2">
             {payments.map((p) => (
               <span
                 key={p}
-                className="inline-flex items-center rounded border border-[var(--color-on-primary)]/15 bg-[var(--color-on-primary)]/[0.04] px-2.5 py-1 text-[11px] tracking-wide text-[var(--color-on-primary)]/85"
+                className="inline-flex items-center rounded border border-[var(--color-on-primary)]/15 bg-[var(--color-on-primary)]/[0.04] px-2.5 py-1 text-[calc(11px_*_var(--font-scale,1))] tracking-wide text-[var(--color-on-primary)]/85"
               >
                 {PAYMENT_LABELS[p] ?? p}
               </span>
@@ -120,7 +120,7 @@ export function Footer() {
 
       {/* Bottom bar */}
       <div className="border-t border-[var(--color-on-primary)]/10">
-        <div className="mx-auto flex max-w-none flex-wrap justify-between gap-2 px-6 py-5 text-[11px] tracking-[0.5px] text-[var(--color-on-primary)]/50">
+        <div className="mx-auto flex max-w-none flex-wrap justify-between gap-2 px-6 py-5 text-[calc(11px_*_var(--font-scale,1))] tracking-[0.5px] text-[var(--color-on-primary)]/50">
           <span>© {new Date().getFullYear()} {config.name.toUpperCase()}</span>
           {config.showPoweredBy && (
             <a href="https://procurva.app" target="_blank" rel="noreferrer" className="transition-colors hover:text-accent">

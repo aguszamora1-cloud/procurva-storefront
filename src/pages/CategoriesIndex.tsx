@@ -33,11 +33,11 @@ export function CategoriesIndex() {
           página propia y necesita titular sí o sí. */}
       <header className="mb-8">
         {config.sectionHeadings.categories?.label && (
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[2px] text-accent">
+          <p className="mb-2 text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[2px] text-accent">
             {config.sectionHeadings.categories.label}
           </p>
         )}
-        <h1 className="font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[44px]">
+        <h1 className="font-heading text-[calc(32px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(44px_*_var(--font-scale,1))]">
           {config.sectionHeadings.categories?.title || 'Categorías'}
         </h1>
       </header>
@@ -47,7 +47,7 @@ export function CategoriesIndex() {
       ) : error ? (
         <InlineError message="No pudimos cargar las categorías." onRetry={reload} />
       ) : categories.length === 0 ? (
-        <p className="py-16 text-center text-[14px] text-subtle">No hay categorías para mostrar.</p>
+        <p className="py-16 text-center text-[calc(14px_*_var(--font-scale,1))] text-subtle">No hay categorías para mostrar.</p>
       ) : (
         <div className={`grid gap-2 lg:gap-5 ${categoryGridCols(categories.length)}`}>
           {categories.map((cat) => {
@@ -74,10 +74,10 @@ export function CategoriesIndex() {
                   </div>
                 )}
                 <div className="absolute inset-0 flex flex-col items-start justify-end bg-gradient-to-t from-black/65 via-black/10 to-transparent p-4">
-                  <span className="font-heading text-[15px] font-bold uppercase tracking-[0.5px] text-white md:text-[17px]">
+                  <span className="font-heading text-[calc(15px_*_var(--font-scale,1))] font-bold uppercase tracking-[0.5px] text-white md:text-[calc(17px_*_var(--font-scale,1))]">
                     {cat.name}
                   </span>
-                  <span className="text-[12px] text-white/70">{cat.count} productos</span>
+                  <span className="text-[calc(12px_*_var(--font-scale,1))] text-white/70">{cat.count} productos</span>
                 </div>
               </Link>
             );

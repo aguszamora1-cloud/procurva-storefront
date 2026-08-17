@@ -131,6 +131,12 @@ export function applyTheme(config: StoreConfig): void {
   set('--font-heading', `'${config.fontHeading}', system-ui, sans-serif`);
   set('--font-body', `'${config.fontBody}', system-ui, sans-serif`);
 
+  // Escala global del texto. TODOS los tamaños de la tienda se escriben como
+  // `calc(Npx * var(--font-scale, 1))`, así que con 1 la tienda renderiza
+  // exactamente lo de siempre y el comercio puede agrandar sin que toquemos
+  // nada. Es por canal: minorista y mayorista tienen su propio `settings`.
+  set('--font-scale', String(config.fontScale));
+
   // Esquinas. `rounded-full` NO sale de acá a propósito: es literal en el config
   // de Tailwind, para que elegir "recto" no convierta en cuadrados los swatches
   // de color ni los avatares.

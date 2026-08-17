@@ -31,7 +31,7 @@ export function PriceStack({ product, variant = 'card', color }: Props) {
   const { mainPrice, cardPrice, cashPrice, cashDiscountPct, comparePrice, hasCard } = getPriceInfo(product);
 
   if (mainPrice <= 0) {
-    return <p className="text-[16px] font-semibold text-subtle">Consultar precio</p>;
+    return <p className="text-[calc(16px_*_var(--font-scale,1))] font-semibold text-subtle">Consultar precio</p>;
   }
 
   // Promoción automática aplicada al precio de tarjeta y al de contado.

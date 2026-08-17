@@ -333,13 +333,13 @@ export function WholesalePurchasePanel({
       {promo && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-line bg-secondary px-3 py-2">
           <span
-            className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-bold uppercase leading-none tracking-wide text-white"
+            className="inline-flex items-center rounded px-2 py-0.5 text-[calc(11px_*_var(--font-scale,1))] font-bold uppercase leading-none tracking-wide text-white"
             style={{ backgroundColor: promo.badge_color || 'var(--color-accent)' }}
           >
             {promo.badge_text || 'PROMO'}
           </span>
-          <span className="text-[13px] font-semibold text-text">{promo.name}</span>
-          <span className="text-[12px] font-medium text-subtle">· precios con descuento aplicado</span>
+          <span className="text-[calc(13px_*_var(--font-scale,1))] font-semibold text-text">{promo.name}</span>
+          <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle">· precios con descuento aplicado</span>
         </div>
       )}
 
@@ -347,7 +347,7 @@ export function WholesalePurchasePanel({
           asigna los colores server-side → en ambos no se elige color. */}
       {needColor && tab !== 'pack' && tab !== 'surtida' && (
         <div>
-          <p className="mb-2.5 text-[13px] font-semibold text-muted">
+          <p className="mb-2.5 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted">
             Color{color && <span className="text-text">: {color}</span>}
           </p>
           <div className="flex flex-wrap gap-2.5">
@@ -381,7 +381,7 @@ export function WholesalePurchasePanel({
                 key={t}
                 type="button"
                 onClick={() => setTab(t)}
-                className={`-mb-px flex-1 border-b-2 pb-2.5 pt-1 text-[15px] transition-colors ${
+                className={`-mb-px flex-1 border-b-2 pb-2.5 pt-1 text-[calc(15px_*_var(--font-scale,1))] transition-colors ${
                   active ? 'border-accent font-semibold text-text' : 'border-transparent font-medium text-subtle hover:text-text'
                 }`}
               >
@@ -394,7 +394,7 @@ export function WholesalePurchasePanel({
 
       {tab === 'sueltos' && sueltoTabAvailable && (
         <div className="space-y-1">
-          <p className="text-[13px] font-semibold text-muted">Talles y cantidades</p>
+          <p className="text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted">Talles y cantidades</p>
           {sizes.map((size, idx) => {
             const v = vsColor.find((vv) => vv.size === size);
             if (!v) return null;
@@ -406,9 +406,9 @@ export function WholesalePurchasePanel({
                 key={size}
                 className={`flex items-center justify-between py-3 ${idx < sizes.length - 1 ? 'border-b border-line' : ''} ${outOfStock ? 'opacity-50' : ''}`}
               >
-                <span className="text-[15px] font-semibold text-text">{size}</span>
+                <span className="text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">{size}</span>
                 {outOfStock ? (
-                  <span className="text-[12px] font-medium text-subtle">Sin stock</span>
+                  <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle">Sin stock</span>
                 ) : (
                   <div className="inline-flex items-center overflow-hidden rounded-md border border-line">
                     <button
@@ -420,7 +420,7 @@ export function WholesalePurchasePanel({
                     >
                       <Minus size={14} />
                     </button>
-                    <span className={`min-w-[32px] text-center text-[15px] ${q === 0 ? 'text-subtle' : 'font-medium text-text'}`}>{q}</span>
+                    <span className={`min-w-[32px] text-center text-[calc(15px_*_var(--font-scale,1))] ${q === 0 ? 'text-subtle' : 'font-medium text-text'}`}>{q}</span>
                     <button
                       type="button"
                       aria-label="Sumar"
@@ -438,15 +438,15 @@ export function WholesalePurchasePanel({
           })}
           {/* Resumen suelto */}
           <div className="flex items-end justify-between border-t border-line pt-3">
-            <span className="text-[14px] font-medium text-subtle">Total: {totalSueltosUnits} un.</span>
+            <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-subtle">Total: {totalSueltosUnits} un.</span>
             <div className="text-right">
-              <p className="text-[13px] font-medium leading-none text-subtle">Precio por unidad</p>
+              <p className="text-[calc(13px_*_var(--font-scale,1))] font-medium leading-none text-subtle">Precio por unidad</p>
               <p className="mt-1 flex items-baseline justify-end gap-1">
                 {promo && d(wholesalePrice) < wholesalePrice && (
-                  <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(wholesalePrice)}</span>
+                  <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-subtle line-through">{formatPrice(wholesalePrice)}</span>
                 )}
-                <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(wholesalePrice))}</span>
-                <span className="text-[13px] font-medium text-subtle">c/u</span>
+                <span className={`text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(wholesalePrice))}</span>
+                <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-subtle">c/u</span>
               </p>
             </div>
           </div>
@@ -455,9 +455,9 @@ export function WholesalePurchasePanel({
 
       {tab === 'curva' && (
         <div className="space-y-2">
-          <p className="text-[13px] font-medium text-subtle">{curveCompositionText(dist)}</p>
+          <p className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-subtle">{curveCompositionText(dist)}</p>
           {tiers.length === 0 ? (
-            <div className="rounded-md border border-dashed border-line py-6 text-center text-[13px] font-medium text-subtle">
+            <div className="rounded-md border border-dashed border-line py-6 text-center text-[calc(13px_*_var(--font-scale,1))] font-medium text-subtle">
               Sin escala de precios por curva
             </div>
           ) : (
@@ -490,25 +490,25 @@ export function WholesalePurchasePanel({
                       >
                         {sel && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
                       </span>
-                      <span className="text-[15px] font-semibold text-text">{label}</span>
+                      <span className="text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">{label}</span>
                       {showSavings && (
-                        <span className="rounded-pill bg-emerald-500/10 px-2 py-0.5 text-[12px] font-bold leading-none text-emerald-600">
+                        <span className="rounded-pill bg-emerald-500/10 px-2 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold leading-none text-emerald-600">
                           -{formatPrice(savings)}/u
                         </span>
                       )}
                       {isLast && (
-                        <span className="rounded-pill bg-amber-500/10 px-2 py-0.5 text-[12px] font-bold leading-none text-amber-700">
+                        <span className="rounded-pill bg-amber-500/10 px-2 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold leading-none text-amber-700">
                           Mejor precio
                         </span>
                       )}
-                      {tierOut && <span className="text-[12px] font-medium text-subtle">Sin stock</span>}
+                      {tierOut && <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle">Sin stock</span>}
                     </span>
                     <span className="flex shrink-0 items-baseline gap-1">
                       {promo && d(tier.price_per_unit) < tier.price_per_unit && (
-                        <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(tier.price_per_unit)}</span>
+                        <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-subtle line-through">{formatPrice(tier.price_per_unit)}</span>
                       )}
-                      <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(tier.price_per_unit))}</span>
-                      <span className="text-[13px] font-medium text-subtle">c/u</span>
+                      <span className={`text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(tier.price_per_unit))}</span>
+                      <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-subtle">c/u</span>
                     </span>
                   </button>
                 );
@@ -520,7 +520,7 @@ export function WholesalePurchasePanel({
                   <button
                     type="button"
                     onClick={pickCustom}
-                    className={`flex w-full items-center gap-2 py-2 text-left text-[13px] font-medium ${tierIdx === -1 ? 'text-text' : 'text-muted'}`}
+                    className={`flex w-full items-center gap-2 py-2 text-left text-[calc(13px_*_var(--font-scale,1))] font-medium ${tierIdx === -1 ? 'text-text' : 'text-muted'}`}
                   >
                     <Plus size={14} /> <span>Más curvas</span>
                   </button>
@@ -536,7 +536,7 @@ export function WholesalePurchasePanel({
                         >
                           <Minus size={14} />
                         </button>
-                        <span className="min-w-[70px] text-center text-[15px] font-medium text-text">
+                        <span className="min-w-[70px] text-center text-[calc(15px_*_var(--font-scale,1))] font-medium text-text">
                           {customCurves} {customCurves === 1 ? 'curva' : 'curvas'}
                         </span>
                         <button
@@ -550,10 +550,10 @@ export function WholesalePurchasePanel({
                       </div>
                       <span className="flex items-baseline gap-1">
                         {promo && d(lastTier.price_per_unit) < lastTier.price_per_unit && (
-                          <span className="text-[14px] font-medium text-subtle line-through">{formatPrice(lastTier.price_per_unit)}</span>
+                          <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-subtle line-through">{formatPrice(lastTier.price_per_unit)}</span>
                         )}
-                        <span className={`text-[26px] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(lastTier.price_per_unit))}</span>
-                        <span className="text-[13px] font-medium text-subtle">c/u</span>
+                        <span className={`text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(lastTier.price_per_unit))}</span>
+                        <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-subtle">c/u</span>
                       </span>
                     </div>
                   )}
@@ -564,7 +564,7 @@ export function WholesalePurchasePanel({
 
           {/* Aviso de stock insuficiente para armar la(s) curva(s) */}
           {color && (maxCurves === 0 || (!!activeTier && selectedCurves > maxCurves)) && (
-            <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-[12px] font-medium leading-snug text-red-600">
+            <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-[calc(12px_*_var(--font-scale,1))] font-medium leading-snug text-red-600">
               <AlertCircle size={15} className="mt-px flex-none" />
               <span>
                 {maxCurves === 0
@@ -578,18 +578,18 @@ export function WholesalePurchasePanel({
           {/* Resumen curva (solo si el stock alcanza) */}
           {activeTier && totalCurvaUnits > 0 && curveStockOk && (
             <div className="flex items-center justify-between border-t border-line pt-3">
-              <span className="text-[14px] font-medium text-muted">
+              <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-muted">
                 {selectedCurves} {selectedCurves === 1 ? 'curva' : 'curvas'} · {totalCurvaUnits} un.
               </span>
               <div className="text-right">
-                <p className="text-[13px] font-medium leading-none text-subtle">Total</p>
-                <p className="mt-1 text-[26px] font-bold leading-none text-text">{formatPrice(totalCurvaUnits * d(activeTierPrice))}</p>
+                <p className="text-[calc(13px_*_var(--font-scale,1))] font-medium leading-none text-subtle">Total</p>
+                <p className="mt-1 text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none text-text">{formatPrice(totalCurvaUnits * d(activeTierPrice))}</p>
                 <p className="mt-1.5 flex items-baseline justify-end gap-1">
                   {promo && d(activeTierPrice) < activeTierPrice && (
-                    <span className="text-[12px] font-medium text-subtle line-through">{formatPrice(activeTierPrice)}</span>
+                    <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle line-through">{formatPrice(activeTierPrice)}</span>
                   )}
-                  <span className={`text-[15px] font-semibold ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(activeTierPrice))}</span>
-                  <span className="text-[12px] font-medium text-subtle">c/u</span>
+                  <span className={`text-[calc(15px_*_var(--font-scale,1))] font-semibold ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(activeTierPrice))}</span>
+                  <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle">c/u</span>
                 </p>
               </div>
             </div>
@@ -599,17 +599,17 @@ export function WholesalePurchasePanel({
 
       {tab === 'surtida' && (
         <div className="space-y-3">
-          <p className="text-[13px] font-medium text-subtle">{curveCompositionText(dist)} — colores surtidos por el negocio</p>
+          <p className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-subtle">{curveCompositionText(dist)} — colores surtidos por el negocio</p>
 
           {/* Aviso: colores asignados al confirmar */}
-          <div className="flex items-start gap-2 rounded-md border border-line bg-secondary px-3 py-2.5 text-[12px] font-medium leading-snug text-muted">
+          <div className="flex items-start gap-2 rounded-md border border-line bg-secondary px-3 py-2.5 text-[calc(12px_*_var(--font-scale,1))] font-medium leading-snug text-muted">
             <AlertCircle size={15} className="mt-px flex-none" />
             <span>Los colores se asignan según disponibilidad al confirmar tu pedido.</span>
           </div>
 
           {/* Selector de cantidad de curvas */}
           <div className="flex items-center justify-between border-t border-line pt-3">
-            <span className="text-[14px] font-medium text-muted">Cantidad de curvas</span>
+            <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-muted">Cantidad de curvas</span>
             <div className="inline-flex items-center overflow-hidden rounded-md border border-line">
               <button
                 type="button"
@@ -620,7 +620,7 @@ export function WholesalePurchasePanel({
               >
                 <Minus size={14} />
               </button>
-              <span className="min-w-[40px] text-center text-[15px] font-medium text-text">{surtidaCurves}</span>
+              <span className="min-w-[40px] text-center text-[calc(15px_*_var(--font-scale,1))] font-medium text-text">{surtidaCurves}</span>
               <button
                 type="button"
                 aria-label="Sumar curva"
@@ -636,23 +636,23 @@ export function WholesalePurchasePanel({
               de surtida válido; si no, aviso ruidoso (no se inventa wholesalePrice). */}
           {surtidaPrice != null ? (
             <div className="flex items-center justify-between border-t border-line pt-3">
-              <span className="text-[14px] font-medium text-muted">
+              <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-muted">
                 {surtidaCurves} {surtidaCurves === 1 ? 'curva' : 'curvas'} · {surtidaUnits} un.
               </span>
               <div className="text-right">
-                <p className="text-[13px] font-medium leading-none text-subtle">Total estimado</p>
-                <p className="mt-1 text-[26px] font-bold leading-none text-text">{formatPrice(surtidaUnits * d(surtidaPrice))}</p>
+                <p className="text-[calc(13px_*_var(--font-scale,1))] font-medium leading-none text-subtle">Total estimado</p>
+                <p className="mt-1 text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none text-text">{formatPrice(surtidaUnits * d(surtidaPrice))}</p>
                 <p className="mt-1.5 flex items-baseline justify-end gap-1">
                   {promo && d(surtidaPrice) < surtidaPrice && (
-                    <span className="text-[12px] font-medium text-subtle line-through">{formatPrice(surtidaPrice)}</span>
+                    <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle line-through">{formatPrice(surtidaPrice)}</span>
                   )}
-                  <span className={`text-[15px] font-semibold ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(surtidaPrice))}</span>
-                  <span className="text-[12px] font-medium text-subtle">c/u</span>
+                  <span className={`text-[calc(15px_*_var(--font-scale,1))] font-semibold ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(surtidaPrice))}</span>
+                  <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle">c/u</span>
                 </p>
               </div>
             </div>
           ) : (
-            <div className="flex items-start gap-2 rounded-md border border-line bg-secondary px-3 py-2.5 text-[12px] font-medium leading-snug text-muted">
+            <div className="flex items-start gap-2 rounded-md border border-line bg-secondary px-3 py-2.5 text-[calc(12px_*_var(--font-scale,1))] font-medium leading-snug text-muted">
               <AlertCircle size={15} className="mt-px flex-none" />
               <span>Este producto todavía no tiene precio de curva surtida configurado. No se puede comprar por curva surtida por ahora.</span>
             </div>
@@ -676,7 +676,7 @@ export function WholesalePurchasePanel({
                       setPackCount(1);
                     }}
                     style={sel ? { backgroundColor: 'color-mix(in srgb, var(--color-accent) 8%, transparent)' } : undefined}
-                    className={`rounded-pill border px-3.5 py-2 text-[13px] font-semibold transition-colors ${
+                    className={`rounded-pill border px-3.5 py-2 text-[calc(13px_*_var(--font-scale,1))] font-semibold transition-colors ${
                       sel ? 'border-accent text-text' : 'border-line text-subtle hover:border-subtle'
                     }`}
                   >
@@ -688,28 +688,28 @@ export function WholesalePurchasePanel({
           )}
 
           {/* Nombre + unidades del pack */}
-          <p className="text-[15px] font-semibold text-text">
+          <p className="text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">
             {selectedPack.name} — {selectedPack.total_units} {selectedPack.total_units === 1 ? 'unidad' : 'unidades'}
           </p>
 
           {/* Distribución de talles (readonly) o, sin distribución, el total */}
           {packDist.length > 0 ? (
             <div>
-              <p className="mb-2 text-[13px] font-semibold text-muted">Qué incluye</p>
+              <p className="mb-2 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted">Qué incluye</p>
               <div className="divide-y divide-line overflow-hidden rounded-lg border border-line">
                 {packDist.map((r) => (
                   <div key={r.size} className="flex items-center justify-between px-3.5 py-2.5">
-                    <span className="text-[14px] font-semibold text-text">{r.size}</span>
-                    <span className="text-[13px] font-medium text-subtle">{r.quantity} u.</span>
+                    <span className="text-[calc(14px_*_var(--font-scale,1))] font-semibold text-text">{r.size}</span>
+                    <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-subtle">{r.quantity} u.</span>
                   </div>
                 ))}
               </div>
               {selectedPack.pack_type === 'free_color' && (
-                <p className="mt-2 text-[12px] font-medium text-subtle">Color a definir con el vendedor.</p>
+                <p className="mt-2 text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle">Color a definir con el vendedor.</p>
               )}
             </div>
           ) : (
-            <div className="rounded-lg border border-line px-3.5 py-3 text-[14px] font-medium text-text">
+            <div className="rounded-lg border border-line px-3.5 py-3 text-[calc(14px_*_var(--font-scale,1))] font-medium text-text">
               Cantidad total: {selectedPack.total_units} unidades
             </div>
           )}
@@ -722,7 +722,7 @@ export function WholesalePurchasePanel({
                 return (
                   <span
                     key={t.min_packs}
-                    className={`rounded-pill border px-2.5 py-1 text-[12px] font-medium ${
+                    className={`rounded-pill border px-2.5 py-1 text-[calc(12px_*_var(--font-scale,1))] font-medium ${
                       isActive ? 'border-accent text-text' : 'border-line text-subtle'
                     }`}
                   >
@@ -735,7 +735,7 @@ export function WholesalePurchasePanel({
 
           {/* Selector de cantidad de packs */}
           <div className="flex items-center justify-between border-t border-line pt-3">
-            <span className="text-[14px] font-medium text-muted">Cantidad de packs</span>
+            <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-muted">Cantidad de packs</span>
             <div className="inline-flex items-center overflow-hidden rounded-md border border-line">
               <button
                 type="button"
@@ -746,7 +746,7 @@ export function WholesalePurchasePanel({
               >
                 <Minus size={14} />
               </button>
-              <span className="min-w-[40px] text-center text-[15px] font-medium text-text">{packCount}</span>
+              <span className="min-w-[40px] text-center text-[calc(15px_*_var(--font-scale,1))] font-medium text-text">{packCount}</span>
               <button
                 type="button"
                 aria-label="Sumar pack"
@@ -760,18 +760,18 @@ export function WholesalePurchasePanel({
 
           {/* Resumen pack: precio por unidad + total */}
           <div className="flex items-center justify-between border-t border-line pt-3">
-            <span className="text-[14px] font-medium text-muted">
+            <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-muted">
               {packCountLabel(selectedPack, packCount)} · {packTotalUnits} un.
             </span>
             <div className="text-right">
-              <p className="text-[13px] font-medium leading-none text-subtle">Total</p>
-              <p className="mt-1 text-[26px] font-bold leading-none text-text">{formatPrice(packTotalUnits * d(packUnitPrice))}</p>
+              <p className="text-[calc(13px_*_var(--font-scale,1))] font-medium leading-none text-subtle">Total</p>
+              <p className="mt-1 text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none text-text">{formatPrice(packTotalUnits * d(packUnitPrice))}</p>
               <p className="mt-1.5 flex items-baseline justify-end gap-1">
                 {promo && d(packUnitPrice) < packUnitPrice && (
-                  <span className="text-[12px] font-medium text-subtle line-through">{formatPrice(packUnitPrice)}</span>
+                  <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle line-through">{formatPrice(packUnitPrice)}</span>
                 )}
-                <span className={`text-[15px] font-semibold ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(packUnitPrice))}</span>
-                <span className="text-[12px] font-medium text-subtle">c/u</span>
+                <span className={`text-[calc(15px_*_var(--font-scale,1))] font-semibold ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(packUnitPrice))}</span>
+                <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle">c/u</span>
               </p>
             </div>
           </div>
@@ -785,7 +785,7 @@ export function WholesalePurchasePanel({
           type="button"
           onClick={() => submit('cart')}
           disabled={!canSubmit || added}
-          className="w-full rounded-button bg-primary px-6 py-[14px] text-center text-[14px] font-semibold text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full rounded-button bg-primary px-6 py-[14px] text-center text-[calc(14px_*_var(--font-scale,1))] font-semibold text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {added ? 'Agregado al carrito' : 'Agregar al carrito'}
         </button>
@@ -793,7 +793,7 @@ export function WholesalePurchasePanel({
           type="button"
           onClick={() => submit('buy')}
           disabled={!canSubmit}
-          className="w-full rounded-button border border-line bg-transparent px-6 py-[14px] text-center text-[14px] font-medium text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full rounded-button border border-line bg-transparent px-6 py-[14px] text-center text-[calc(14px_*_var(--font-scale,1))] font-medium text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
         >
           Comprar ahora
         </button>

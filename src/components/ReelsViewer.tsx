@@ -308,7 +308,7 @@ export function ReelsViewer({ reels, startIndex, onClose }: Props) {
                 {(reel.caption || product) && (
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-3 pb-4 pt-12">
                     {reel.caption && (
-                      <p className="mb-2.5 text-[14px] leading-snug text-white">{reel.caption}</p>
+                      <p className="mb-2.5 text-[calc(14px_*_var(--font-scale,1))] leading-snug text-white">{reel.caption}</p>
                     )}
                     {product && <ReelProductCard product={product} onNavigate={onClose} onAdded={onClose} />}
                   </div>

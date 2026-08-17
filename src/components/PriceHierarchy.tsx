@@ -49,12 +49,12 @@ export function PriceHierarchy({
   const primary = hasCash ? (cash as number) : card;
 
   const primaryCls = detail
-    ? 'text-[30px] md:text-[34px] font-extrabold leading-none tracking-[-0.02em] text-accent'
+    ? 'text-[calc(30px_*_var(--font-scale,1))] md:text-[calc(34px_*_var(--font-scale,1))] font-extrabold leading-none tracking-[-0.02em] text-accent'
     : compact
-      ? 'text-[14px] font-bold leading-none text-accent'
-      : 'text-[16px] md:text-[20px] font-extrabold leading-none text-accent';
-  const labelCls = detail ? 'text-[13px]' : compact ? 'text-[11px]' : 'text-[11px] md:text-[12px]';
-  const strikeCls = detail ? 'text-[16px]' : compact ? 'text-[11px]' : 'text-[13px] md:text-[15px]';
+      ? 'text-[calc(14px_*_var(--font-scale,1))] font-bold leading-none text-accent'
+      : 'text-[calc(16px_*_var(--font-scale,1))] md:text-[calc(20px_*_var(--font-scale,1))] font-extrabold leading-none text-accent';
+  const labelCls = detail ? 'text-[calc(13px_*_var(--font-scale,1))]' : compact ? 'text-[calc(11px_*_var(--font-scale,1))]' : 'text-[calc(11px_*_var(--font-scale,1))] md:text-[calc(12px_*_var(--font-scale,1))]';
+  const strikeCls = detail ? 'text-[calc(16px_*_var(--font-scale,1))]' : compact ? 'text-[calc(11px_*_var(--font-scale,1))]' : 'text-[calc(13px_*_var(--font-scale,1))] md:text-[calc(15px_*_var(--font-scale,1))]';
 
   return (
     <div>
@@ -62,7 +62,7 @@ export function PriceHierarchy({
         <span className={primaryCls}>{formatPrice(primary)}</span>
         {hasCash && cashLabel && <span className={`font-medium text-muted ${labelCls}`}>{cashLabel}</span>}
         {hasCash && detail && discountPct > 0 && (
-          <span className="shrink-0 rounded bg-accent px-2 py-0.5 text-[10px] font-bold leading-none text-on-accent shadow-sm">
+          <span className="shrink-0 rounded bg-accent px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold leading-none text-on-accent shadow-sm">
             -{discountPct}%
           </span>
         )}
@@ -72,7 +72,7 @@ export function PriceHierarchy({
       </div>
 
       {savings > 0 && (
-        <p className={`mt-1 font-semibold text-accent ${detail ? 'text-[13px]' : 'text-[11px] md:text-[12px]'}`}>
+        <p className={`mt-1 font-semibold text-accent ${detail ? 'text-[calc(13px_*_var(--font-scale,1))]' : 'text-[calc(11px_*_var(--font-scale,1))] md:text-[calc(12px_*_var(--font-scale,1))]'}`}>
           Ahorrás {formatPrice(savings)}
         </p>
       )}
@@ -84,7 +84,7 @@ export function PriceHierarchy({
       )}
 
       {installments && (
-        <p className={`mt-1 font-medium text-muted ${detail ? 'text-[14px]' : 'text-[12px] md:text-[13px]'}`}>
+        <p className={`mt-1 font-medium text-muted ${detail ? 'text-[calc(14px_*_var(--font-scale,1))]' : 'text-[calc(12px_*_var(--font-scale,1))] md:text-[calc(13px_*_var(--font-scale,1))]'}`}>
           {installments}
         </p>
       )}

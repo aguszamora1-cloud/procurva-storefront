@@ -63,8 +63,8 @@ export function CustomFaqSection({
         {heading &&
           (inColumn ? (
             <div className="mb-3">
-              <h2 className="text-[15px] font-semibold text-text">{heading}</h2>
-              {subheading && <p className="mt-1 text-[13px] text-muted">{subheading}</p>}
+              <h2 className="text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">{heading}</h2>
+              {subheading && <p className="mt-1 text-[calc(13px_*_var(--font-scale,1))] text-muted">{subheading}</p>}
             </div>
           ) : (
             <SectionHeader title={heading} subtitle={subheading || undefined} />
@@ -93,7 +93,7 @@ export function CustomFaqSection({
                 >
                   <span
                     className={`font-semibold transition-colors duration-200 ${
-                      inColumn ? 'text-[13.5px]' : 'text-[14px] md:text-[15px]'
+                      inColumn ? 'text-[13.5px]' : 'text-[calc(14px_*_var(--font-scale,1))] md:text-[calc(15px_*_var(--font-scale,1))]'
                     } ${open ? 'text-text' : 'text-muted'}`}
                   >
                     {item.q}
@@ -124,7 +124,7 @@ export function CustomFaqSection({
                   >
                     <div
                       className={`leading-relaxed text-muted [&_a]:underline [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 ${
-                        inColumn ? 'px-4 pb-3 pt-0.5 text-[13px]' : 'px-5 pb-4 pt-1 text-[14px] md:px-6'
+                        inColumn ? 'px-4 pb-3 pt-0.5 text-[calc(13px_*_var(--font-scale,1))]' : 'px-5 pb-4 pt-1 text-[calc(14px_*_var(--font-scale,1))] md:px-6'
                       }`}
                       dangerouslySetInnerHTML={{ __html: answer }}
                     />
@@ -146,10 +146,10 @@ export function CustomFaqSection({
                 <MessageCircle size={16} />
               </span>
             )}
-            <p className={`font-semibold text-text ${inColumn ? 'text-[13.5px]' : 'text-[14px]'}`}>
+            <p className={`font-semibold text-text ${inColumn ? 'text-[13.5px]' : 'text-[calc(14px_*_var(--font-scale,1))]'}`}>
               {(c.contact_title || '').trim() || '¿Te quedó alguna duda?'}
             </p>
-            <p className={`mt-1 text-muted ${inColumn ? 'text-[12.5px]' : 'text-[13px]'}`}>
+            <p className={`mt-1 text-muted ${inColumn ? 'text-[12.5px]' : 'text-[calc(13px_*_var(--font-scale,1))]'}`}>
               {(c.contact_description || '').trim() || 'Escribinos y te respondemos a la brevedad.'}
             </p>
             <a
@@ -157,7 +157,7 @@ export function CustomFaqSection({
               target="_blank"
               rel="noopener noreferrer"
               className={`mt-4 inline-flex items-center gap-2 rounded-md bg-accent font-semibold text-on-accent transition-opacity hover:opacity-90 ${
-                inColumn ? 'px-4 py-2 text-[12.5px]' : 'px-5 py-2.5 text-[13px]'
+                inColumn ? 'px-4 py-2 text-[12.5px]' : 'px-5 py-2.5 text-[calc(13px_*_var(--font-scale,1))]'
               }`}
             >
               <MessageCircle size={15} />

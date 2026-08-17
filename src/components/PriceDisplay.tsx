@@ -29,7 +29,7 @@ export function PriceDisplay({ product, variant = 'card', color }: Props) {
   const { mainPrice, cardPrice, cashPrice, cashDiscountPct, comparePrice, hasCard } = getPriceInfo(product);
 
   if (mainPrice <= 0) {
-    return <p className="text-[16px] font-semibold text-subtle">Consultar precio</p>;
+    return <p className="text-[calc(16px_*_var(--font-scale,1))] font-semibold text-subtle">Consultar precio</p>;
   }
 
   const detail = variant === 'detail';
@@ -45,9 +45,9 @@ export function PriceDisplay({ product, variant = 'card', color }: Props) {
   const hasCashDiscount = Boolean(shownCash != null && shownCash > 0 && cashDiscountPct > 0);
 
   const mainCls = detail
-    ? `text-[30px] md:text-[34px] font-extrabold leading-none tracking-[-0.02em] ${onPromo ? 'text-accent' : 'text-accent'}`
-    : `text-[16px] md:text-[20px] font-extrabold leading-none ${onPromo ? 'text-accent' : 'text-text'}`;
-  const strikeCls = detail ? 'text-[16px]' : 'text-[13px] md:text-[15px]';
+    ? `text-[calc(30px_*_var(--font-scale,1))] md:text-[calc(34px_*_var(--font-scale,1))] font-extrabold leading-none tracking-[-0.02em] ${onPromo ? 'text-accent' : 'text-accent'}`
+    : `text-[calc(16px_*_var(--font-scale,1))] md:text-[calc(20px_*_var(--font-scale,1))] font-extrabold leading-none ${onPromo ? 'text-accent' : 'text-text'}`;
+  const strikeCls = detail ? 'text-[calc(16px_*_var(--font-scale,1))]' : 'text-[calc(13px_*_var(--font-scale,1))] md:text-[calc(15px_*_var(--font-scale,1))]';
 
   const installments =
     hasCard
@@ -68,17 +68,17 @@ export function PriceDisplay({ product, variant = 'card', color }: Props) {
 
       {/* Ahorro por promoción automática. */}
       {onPromo && promoMain.savings > 0 && (
-        <p className={`mt-1 font-semibold text-accent ${detail ? 'text-[13px]' : 'text-[11px] md:text-[12px]'}`}>
+        <p className={`mt-1 font-semibold text-accent ${detail ? 'text-[calc(13px_*_var(--font-scale,1))]' : 'text-[calc(11px_*_var(--font-scale,1))] md:text-[calc(12px_*_var(--font-scale,1))]'}`}>
           Ahorrás {formatPrice(promoMain.savings)}
         </p>
       )}
 
       {hasCashDiscount && (
-        <p className={`mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-subtle ${detail ? 'text-[13px]' : 'text-[11px] md:text-[12px]'}`}>
+        <p className={`mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-subtle ${detail ? 'text-[calc(13px_*_var(--font-scale,1))]' : 'text-[calc(11px_*_var(--font-scale,1))] md:text-[calc(12px_*_var(--font-scale,1))]'}`}>
           <span className="font-semibold text-text">{formatPrice(shownCash as number)}</span>
           <span className="font-medium">efectivo o transferencia</span>
           {detail && (
-            <span className="shrink-0 rounded bg-accent px-2 py-0.5 text-[10px] font-bold leading-none text-on-accent shadow-sm">
+            <span className="shrink-0 rounded bg-accent px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold leading-none text-on-accent shadow-sm">
               -{cashDiscountPct}%
             </span>
           )}
@@ -86,7 +86,7 @@ export function PriceDisplay({ product, variant = 'card', color }: Props) {
       )}
 
       {installments && (
-        <p className={`mt-1 font-medium text-muted ${detail ? 'text-[14px]' : 'text-[12px] md:text-[13px]'}`}>
+        <p className={`mt-1 font-medium text-muted ${detail ? 'text-[calc(14px_*_var(--font-scale,1))]' : 'text-[calc(12px_*_var(--font-scale,1))] md:text-[calc(13px_*_var(--font-scale,1))]'}`}>
           {installments}
         </p>
       )}

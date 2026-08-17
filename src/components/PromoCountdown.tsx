@@ -49,7 +49,7 @@ export function PromoCountdown({
   const accent = color || 'var(--color-accent)';
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-bold leading-none ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[calc(12px_*_var(--font-scale,1))] font-bold leading-none ${className}`}
       style={{ backgroundColor: `color-mix(in srgb, ${accent} 12%, transparent)`, color: accent }}
     >
       <Clock size={13} className="flex-none" />

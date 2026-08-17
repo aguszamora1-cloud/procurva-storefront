@@ -160,7 +160,7 @@ export function ProductGallery({ items, alt, activeIndex, onFirstImageReady }: P
               style={zoom ? { transform: 'scale(1.6)', transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-[12px] font-semibold uppercase tracking-[1px] text-subtle">
+            <div className="flex h-full w-full items-center justify-center text-[calc(12px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-subtle">
               Sin imagen
             </div>
           )}

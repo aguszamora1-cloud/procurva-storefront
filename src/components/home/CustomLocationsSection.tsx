@@ -171,7 +171,7 @@ function MapPlaceholder({ label }: { label: string }) {
           backgroundSize: '28px 28px',
         }}
       />
-      <span className="relative flex items-center gap-2 text-[14px] font-medium text-on-surface">
+      <span className="relative flex items-center gap-2 text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-surface">
         <MapPin className="h-4 w-4" />
         {label}
       </span>
@@ -372,14 +372,14 @@ function LocationCard({ location, solo = false }: { location: StorefrontLocation
         <div className="flex flex-wrap items-center gap-2">
           <h3
             className={`font-heading font-semibold text-text ${
-              solo ? 'text-[21px] md:text-[25px]' : 'text-[17px] md:text-[19px]'
+              solo ? 'text-[calc(21px_*_var(--font-scale,1))] md:text-[calc(25px_*_var(--font-scale,1))]' : 'text-[calc(17px_*_var(--font-scale,1))] md:text-[calc(19px_*_var(--font-scale,1))]'
             }`}
           >
             {location.name}
           </h3>
           {open !== null && (
             <span
-              className={`rounded-pill px-2 py-0.5 text-[11px] font-medium ${
+              className={`rounded-pill px-2 py-0.5 text-[calc(11px_*_var(--font-scale,1))] font-medium ${
                 open ? 'bg-[#e8f5e9] text-[#2e7d32]' : 'bg-secondary text-muted'
               }`}
             >
@@ -387,16 +387,16 @@ function LocationCard({ location, solo = false }: { location: StorefrontLocation
             </span>
           )}
           {type === 'showroom' && location.by_appointment && (
-            <span className="rounded-pill bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted">Con cita previa</span>
+            <span className="rounded-pill bg-secondary px-2 py-0.5 text-[calc(11px_*_var(--font-scale,1))] font-medium text-muted">Con cita previa</span>
           )}
         </div>
 
-        <p className={`flex items-start gap-2 text-on-surface ${solo ? 'text-[16px]' : 'text-[14px]'}`}>
+        <p className={`flex items-start gap-2 text-on-surface ${solo ? 'text-[calc(16px_*_var(--font-scale,1))]' : 'text-[calc(14px_*_var(--font-scale,1))]'}`}>
           <MapPin className={`mt-0.5 shrink-0 text-muted ${solo ? 'h-5 w-5' : 'h-4 w-4'}`} />
           <span>
             {location.address_line}
             {(location.city || location.province) && (
-              <span className={`block text-muted ${solo ? 'text-[14px]' : 'text-[13px]'}`}>
+              <span className={`block text-muted ${solo ? 'text-[calc(14px_*_var(--font-scale,1))]' : 'text-[calc(13px_*_var(--font-scale,1))]'}`}>
                 {[location.city, location.province].filter(Boolean).join(', ')}
               </span>
             )}
@@ -405,17 +405,17 @@ function LocationCard({ location, solo = false }: { location: StorefrontLocation
 
         {/* Sin horarios cargados esta línea no existe. Nada de "sin horarios". */}
         {showHours && (
-          <p className="flex items-start gap-2 text-[13px] text-muted">
+          <p className="flex items-start gap-2 text-[calc(13px_*_var(--font-scale,1))] text-muted">
             <Clock className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{hours}</span>
           </p>
         )}
 
         {type === 'pickup' && (
-          <p className="text-[13px] text-muted">Retirás con el número de pedido.</p>
+          <p className="text-[calc(13px_*_var(--font-scale,1))] text-muted">Retirás con el número de pedido.</p>
         )}
 
-        {location.notes && <p className="text-[13px] text-muted">{location.notes}</p>}
+        {location.notes && <p className="text-[calc(13px_*_var(--font-scale,1))] text-muted">{location.notes}</p>}
 
 
         {/* Con una sola ubicación los botones van apilados y a ancho completo:
@@ -426,7 +426,7 @@ function LocationCard({ location, solo = false }: { location: StorefrontLocation
             href={directionsUrl(location)}
             target="_blank"
             rel="noreferrer"
-            className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-[14px] font-medium text-on-primary transition-colors hover:bg-accent hover:text-on-accent ${
+            className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-primary transition-colors hover:bg-accent hover:text-on-accent ${
               solo ? 'w-full' : ''
             }`}
           >
@@ -437,7 +437,7 @@ function LocationCard({ location, solo = false }: { location: StorefrontLocation
               href={wa}
               target="_blank"
               rel="noreferrer"
-              className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-line px-5 text-[14px] font-medium text-on-surface transition-colors hover:border-accent hover:text-accent ${solo ? 'w-full' : ''}`}
+              className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-line px-5 text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-surface transition-colors hover:border-accent hover:text-accent ${solo ? 'w-full' : ''}`}
             >
               <MessageCircle className="h-4 w-4" />
               {type === 'showroom' ? 'Coordinar visita' : 'WhatsApp'}
@@ -446,7 +446,7 @@ function LocationCard({ location, solo = false }: { location: StorefrontLocation
           {location.phone && (
             <a
               href={`tel:${location.phone.replace(/\s/g, '')}`}
-              className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-line px-5 text-[14px] font-medium text-on-surface transition-colors hover:border-accent hover:text-accent ${solo ? 'w-full' : ''}`}
+              className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-line px-5 text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-surface transition-colors hover:border-accent hover:text-accent ${solo ? 'w-full' : ''}`}
             >
               <Phone className="h-4 w-4" />
               Llamar
@@ -462,13 +462,13 @@ function LocationCard({ location, solo = false }: { location: StorefrontLocation
 function LocationRow({ location }: { location: StorefrontLocation }) {
   return (
     <div className="border-b border-line-soft py-2.5 last:border-0">
-      <p className="text-[13px] font-medium text-on-surface">{location.name}</p>
-      <p className="truncate text-[12px] text-muted">{location.address_line}</p>
+      <p className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-on-surface">{location.name}</p>
+      <p className="truncate text-[calc(12px_*_var(--font-scale,1))] text-muted">{location.address_line}</p>
       <a
         href={directionsUrl(location)}
         target="_blank"
         rel="noreferrer"
-        className="mt-0.5 inline-block text-[12px] font-medium text-accent hover:underline"
+        className="mt-0.5 inline-block text-[calc(12px_*_var(--font-scale,1))] font-medium text-accent hover:underline"
       >
         {directionsLabel(location)}
       </a>
@@ -524,7 +524,7 @@ export function CustomLocationsSection({
   if (variant === 'column') {
     return (
       <div>
-        <p className="mb-1.5 text-[13px] font-semibold text-on-surface">{title}</p>
+        <p className="mb-1.5 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-on-surface">{title}</p>
         {shown.map((l) => (
           <LocationRow key={l.id} location={l} />
         ))}
@@ -564,7 +564,7 @@ export function CustomLocationsSection({
                 role="tab"
                 aria-selected={i === tab}
                 onClick={() => setTab(i)}
-                className={`rounded-pill border px-4 py-2 text-[14px] transition-colors ${
+                className={`rounded-pill border px-4 py-2 text-[calc(14px_*_var(--font-scale,1))] transition-colors ${
                   i === tab
                     ? 'border-accent bg-accent text-on-accent'
                     : 'border-line text-on-surface hover:border-accent hover:text-accent'

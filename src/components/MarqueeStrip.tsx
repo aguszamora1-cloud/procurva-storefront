@@ -20,7 +20,7 @@ interface Props {
   style?: CSSProperties;
 }
 
-const ITEM_CLS = 'whitespace-nowrap text-[12px] font-semibold uppercase tracking-[0.5px] md:text-[13px]';
+const ITEM_CLS = 'whitespace-nowrap text-[calc(12px_*_var(--font-scale,1))] font-semibold uppercase tracking-[0.5px] md:text-[calc(13px_*_var(--font-scale,1))]';
 
 export function MarqueeStrip({ messages, animated = true, durationSeconds, className, style }: Props) {
   if (messages.length === 0) return null;

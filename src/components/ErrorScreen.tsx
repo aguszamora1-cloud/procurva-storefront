@@ -34,13 +34,13 @@ export function ErrorScreen({ onRetry }: { onRetry?: () => void }) {
 export function InlineError({ message, onRetry }: { message?: string; onRetry?: () => void }) {
   return (
     <div className="flex flex-col items-center gap-4 py-20 text-center">
-      <p className="text-[15px] font-semibold text-text">No pudimos cargar el contenido</p>
-      {message && <p className="max-w-md text-[13px] text-subtle">{message}</p>}
+      <p className="text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">No pudimos cargar el contenido</p>
+      {message && <p className="max-w-md text-[calc(13px_*_var(--font-scale,1))] text-subtle">{message}</p>}
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="mt-1 rounded-button bg-primary px-7 py-3 text-[13px] font-bold text-on-primary transition-all hover:bg-accent hover:text-on-accent"
+          className="mt-1 rounded-button bg-primary px-7 py-3 text-[calc(13px_*_var(--font-scale,1))] font-bold text-on-primary transition-all hover:bg-accent hover:text-on-accent"
         >
           Reintentar
         </button>

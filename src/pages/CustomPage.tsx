@@ -36,12 +36,12 @@ export function CustomPage() {
         slug={config.slug}
         siteName={config.name}
       />
-      <h1 className="mb-8 font-heading text-[32px] font-semibold uppercase tracking-[1px] text-text md:text-[44px]">
+      <h1 className="mb-8 font-heading text-[calc(32px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(44px_*_var(--font-scale,1))]">
         {page.label}
       </h1>
       <div className="space-y-4">
         {paragraphs.map((p, i) => (
-          <p key={i} className="whitespace-pre-line text-[15px] leading-relaxed text-muted">
+          <p key={i} className="whitespace-pre-line text-[calc(15px_*_var(--font-scale,1))] leading-relaxed text-muted">
             {p}
           </p>
         ))}

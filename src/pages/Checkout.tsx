@@ -111,10 +111,10 @@ function shippingPriceLabel(cost: number | null): { text: string; free: boolean 
 function SectionHeading({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <div className="mb-4 flex items-center gap-2.5">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-[12px] font-medium text-on-accent">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-[calc(12px_*_var(--font-scale,1))] font-medium text-on-accent">
         {n}
       </span>
-      <h2 className="font-body text-[16px] font-medium text-text">{children}</h2>
+      <h2 className="font-body text-[calc(16px_*_var(--font-scale,1))] font-medium text-text">{children}</h2>
     </div>
   );
 }
@@ -583,8 +583,8 @@ export function Checkout() {
       <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-5 px-6 py-24 text-center">
         {seo}
         <ShoppingBag size={56} className="text-subtle" />
-        <h1 className="font-body text-[24px] font-medium text-text">Tu carrito está vacío</h1>
-        <Link to="/productos" className="rounded-button bg-primary px-8 py-3.5 text-[14px] font-medium text-on-primary transition-opacity hover:opacity-90">
+        <h1 className="font-body text-[calc(24px_*_var(--font-scale,1))] font-medium text-text">Tu carrito está vacío</h1>
+        <Link to="/productos" className="rounded-button bg-primary px-8 py-3.5 text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-primary transition-opacity hover:opacity-90">
           Ver productos
         </Link>
       </div>
@@ -848,11 +848,11 @@ export function Checkout() {
     }
   }
 
-  // text-[16px] evita el zoom automático de iOS al enfocar un input (<16px).
+  // text-[calc(16px_*_var(--font-scale,1))] evita el zoom automático de iOS al enfocar un input (<16px).
   // Borde 1px neutro, radio 8px, sin sombra: sólo el focus ring del input.
   const inputCls =
-    'w-full rounded-button border border-line bg-background px-3.5 py-2.5 text-[16px] font-normal text-text outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent-a25';
-  const labelCls = 'text-[13px] font-medium text-muted';
+    'w-full rounded-button border border-line bg-background px-3.5 py-2.5 text-[calc(16px_*_var(--font-scale,1))] font-normal text-text outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent-a25';
+  const labelCls = 'text-[calc(13px_*_var(--font-scale,1))] font-medium text-muted';
 
   // Link de WhatsApp para las salidas de contacto del panel (dudas / sin cobertura).
   const waHref = config.whatsapp
@@ -875,15 +875,15 @@ export function Checkout() {
         >
           <span className="flex items-start justify-between gap-3">
             <span className="min-w-0">
-              <span className="block text-[14px] font-medium text-text">{m.name}</span>
+              <span className="block text-[calc(14px_*_var(--font-scale,1))] font-medium text-text">{m.name}</span>
               {line && (
-                <span className="mt-0.5 flex items-start gap-1.5 text-[13px] text-muted">
+                <span className="mt-0.5 flex items-start gap-1.5 text-[calc(13px_*_var(--font-scale,1))] text-muted">
                   <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-subtle" />
                   <span className="min-w-0">{line}</span>
                 </span>
               )}
             </span>
-            <span className={`shrink-0 text-[14px] ${price.free ? 'font-medium text-[#27ae60]' : 'font-medium text-text'}`}>
+            <span className={`shrink-0 text-[calc(14px_*_var(--font-scale,1))] ${price.free ? 'font-medium text-[#27ae60]' : 'font-medium text-text'}`}>
               {price.text}
             </span>
           </span>
@@ -921,16 +921,16 @@ export function Checkout() {
       >
         <span className="flex items-start justify-between gap-3">
           <span className="min-w-0">
-            <span className="block text-[14px] font-medium text-text">{m.name}</span>
-            {m.eta && <span className="mt-0.5 block text-[13px] text-muted">Llega en {m.eta}</span>}
+            <span className="block text-[calc(14px_*_var(--font-scale,1))] font-medium text-text">{m.name}</span>
+            {m.eta && <span className="mt-0.5 block text-[calc(13px_*_var(--font-scale,1))] text-muted">Llega en {m.eta}</span>}
             {m.kind === 'branch' && (
-              <span className="mt-1 flex items-start gap-1.5 text-[12px] text-subtle">
+              <span className="mt-1 flex items-start gap-1.5 text-[calc(12px_*_var(--font-scale,1))] text-subtle">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span className="min-w-0">El correo te avisa cuando tu pedido llega a la sucursal que elijas.</span>
               </span>
             )}
           </span>
-          <span className={`shrink-0 text-[14px] font-medium ${price.free ? 'text-[#27ae60]' : 'text-text'}`}>
+          <span className={`shrink-0 text-[calc(14px_*_var(--font-scale,1))] font-medium ${price.free ? 'text-[#27ae60]' : 'text-text'}`}>
             {price.text}
           </span>
         </span>
@@ -955,54 +955,54 @@ export function Checkout() {
   const summaryRows = (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-[13px] text-muted">Subtotal</span>
-        <span className="text-[13px] font-medium text-text">{formatPrice(listSubtotalDisplay)}</span>
+        <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">Subtotal</span>
+        <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-text">{formatPrice(listSubtotalDisplay)}</span>
       </div>
       {qtyDiscountDisplay > 0 && (
         <div className="flex items-center justify-between">
-          <span className="text-[13px] text-muted">Descuento por cantidad</span>
-          <span className="text-[13px] font-medium text-[#27ae60]">-{formatPrice(qtyDiscountDisplay)}</span>
+          <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">Descuento por cantidad</span>
+          <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#27ae60]">-{formatPrice(qtyDiscountDisplay)}</span>
         </div>
       )}
       {paymentDiscountDisplay > 0 && (
         <div className="flex items-center justify-between">
-          <span className="text-[13px] text-muted">Descuento por pago{cashDiscountPct > 0 ? ` (${cashDiscountPct}%)` : ''}</span>
-          <span className="text-[13px] font-medium text-[#27ae60]">-{formatPrice(paymentDiscountDisplay)}</span>
+          <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">Descuento por pago{cashDiscountPct > 0 ? ` (${cashDiscountPct}%)` : ''}</span>
+          <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#27ae60]">-{formatPrice(paymentDiscountDisplay)}</span>
         </div>
       )}
       {discountAmount > 0 && (
         <div className="flex items-center justify-between">
-          <span className="text-[13px] text-muted">
+          <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">
             Cupón{appliedCoupon?.discount_type === 'percent' ? ` (${appliedCoupon.discount_value}%)` : ''}
           </span>
-          <span className="text-[13px] font-medium text-[#27ae60]">-{formatPrice(discountAmount)}</span>
+          <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#27ae60]">-{formatPrice(discountAmount)}</span>
         </div>
       )}
       <div className="flex items-center justify-between">
-        <span className="text-[13px] text-muted">Envío</span>
+        <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">Envío</span>
         {shippingKnown ? (
           shippingCost === 0 ? (
-            <span className="text-[13px] font-medium text-[#27ae60]">Gratis</span>
+            <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#27ae60]">Gratis</span>
           ) : (
-            <span className="text-[13px] font-medium text-text">{formatPrice(shippingCost)}</span>
+            <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-text">{formatPrice(shippingCost)}</span>
           )
         ) : (
-          <span className="text-[13px] font-normal text-subtle">Se coordina</span>
+          <span className="text-[calc(13px_*_var(--font-scale,1))] font-normal text-subtle">Se coordina</span>
         )}
       </div>
       {giftWrapOn && (
         <div className="flex items-center justify-between">
-          <span className="text-[13px] text-muted">{giftWrap?.label || "Packaging de regalo"}</span>
+          <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">{giftWrap?.label || "Packaging de regalo"}</span>
           {giftWrapCost === 0 ? (
-            <span className="text-[13px] font-medium text-[#27ae60]">Gratis</span>
+            <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#27ae60]">Gratis</span>
           ) : (
-            <span className="text-[13px] font-medium text-text">{formatPrice(giftWrapCost)}</span>
+            <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-text">{formatPrice(giftWrapCost)}</span>
           )}
         </div>
       )}
       <div className="mt-2 flex items-center justify-between border-t border-line pt-3">
-        <span className="text-[14px] font-medium text-text">Total</span>
-        <span className="text-[22px] font-medium text-text">{formatPrice(orderTotal)}</span>
+        <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-text">Total</span>
+        <span className="text-[calc(22px_*_var(--font-scale,1))] font-medium text-text">{formatPrice(orderTotal)}</span>
       </div>
     </div>
   );
@@ -1014,12 +1014,12 @@ export function Checkout() {
       {/* Volver al carrito */}
       <button
         onClick={() => navigate('/carrito')}
-        className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-subtle transition-colors hover:text-accent"
+        className="mb-4 inline-flex items-center gap-1.5 text-[calc(13px_*_var(--font-scale,1))] font-medium text-subtle transition-colors hover:text-accent"
       >
         <ArrowLeft size={16} /> Volver al carrito
       </button>
 
-      <h1 className="mb-7 font-body text-[24px] font-medium text-text sm:text-[30px] md:mb-9">Finalizar compra</h1>
+      <h1 className="mb-7 font-body text-[calc(24px_*_var(--font-scale,1))] font-medium text-text sm:text-[calc(30px_*_var(--font-scale,1))] md:mb-9">Finalizar compra</h1>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_380px] lg:items-start lg:gap-12">
         {/* ───────── Columna izquierda: datos + envío + notas ───────── */}
@@ -1059,7 +1059,7 @@ export function Checkout() {
             {localPickupMethods.length > 0 && hasDeliveryMethods && (
               <div className="my-5 flex items-center gap-3">
                 <span className="h-px flex-1 bg-line" />
-                <span className="text-[12px] text-subtle">o recibilo en tu domicilio</span>
+                <span className="text-[calc(12px_*_var(--font-scale,1))] text-subtle">o recibilo en tu domicilio</span>
                 <span className="h-px flex-1 bg-line" />
               </div>
             )}
@@ -1069,14 +1069,14 @@ export function Checkout() {
               <div className="space-y-3">
                 {/* CP confirmado: reemplaza al input por una línea con opción de cambiarlo */}
                 {appliedCp && (
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[calc(13px_*_var(--font-scale,1))]">
                     <MapPin className="h-4 w-4 shrink-0 text-subtle" />
                     <span className="font-medium text-text">
                       {[form.city, form.province].filter(Boolean).join(', ') || 'Tu zona'}
                     </span>
                     <span className="text-subtle">·</span>
                     <span className="text-muted">CP {appliedCp}</span>
-                    <button type="button" onClick={changeCp} className="ml-1 text-[13px] font-medium text-accent hover:underline">
+                    <button type="button" onClick={changeCp} className="ml-1 text-[calc(13px_*_var(--font-scale,1))] font-medium text-accent hover:underline">
                       Cambiar
                     </button>
                   </div>
@@ -1099,7 +1099,7 @@ export function Checkout() {
                         <button
                           type="button"
                           onClick={applyCp}
-                          className="shrink-0 rounded-button border border-line px-4 text-[14px] font-medium text-text transition-colors hover:border-accent hover:text-accent"
+                          className="shrink-0 rounded-button border border-line px-4 text-[calc(14px_*_var(--font-scale,1))] font-medium text-text transition-colors hover:border-accent hover:text-accent"
                         >
                           Ver opciones
                         </button>
@@ -1109,7 +1109,7 @@ export function Checkout() {
                       href="https://www.correoargentino.com.ar/formularios/cpa"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-2 inline-block text-[12px] text-subtle underline hover:text-accent"
+                      className="mt-2 inline-block text-[calc(12px_*_var(--font-scale,1))] text-subtle underline hover:text-accent"
                     >
                       ¿No sabés tu código postal?
                     </a>
@@ -1119,18 +1119,18 @@ export function Checkout() {
                 {/* Sin cobertura para la zona: en vez de una lista vacía, ofrecemos WhatsApp */}
                 {noDeliveryForZone && (
                   <div className="rounded-xl border border-line px-4 py-3">
-                    <p className="text-[13px] text-text">No hacemos envíos a tu zona todavía.</p>
+                    <p className="text-[calc(13px_*_var(--font-scale,1))] text-text">No hacemos envíos a tu zona todavía.</p>
                     {waHref ? (
                       <a
                         href={waHref}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-1 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:underline"
+                        className="mt-1 inline-flex items-center gap-1.5 text-[calc(13px_*_var(--font-scale,1))] font-medium text-accent hover:underline"
                       >
                         <MessageCircle className="h-4 w-4" /> Escribinos y lo coordinamos
                       </a>
                     ) : (
-                      <p className="mt-1 text-[13px] text-muted">Contactanos y lo coordinamos.</p>
+                      <p className="mt-1 text-[calc(13px_*_var(--font-scale,1))] text-muted">Contactanos y lo coordinamos.</p>
                     )}
                   </div>
                 )}
@@ -1203,7 +1203,7 @@ export function Checkout() {
                 <button
                   type="button"
                   onClick={() => setShowNotes(true)}
-                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent transition-colors hover:opacity-80"
+                  className="inline-flex items-center gap-1.5 text-[calc(13px_*_var(--font-scale,1))] font-medium text-accent transition-colors hover:opacity-80"
                 >
                   <Plus size={15} /> Agregar una nota
                 </button>
@@ -1226,15 +1226,15 @@ export function Checkout() {
                 />
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="text-[14px] font-medium text-text">{giftWrap.label}</span>
+                    <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-text">{giftWrap.label}</span>
                     {giftWrap.price > 0 ? (
-                      <span className="text-[13px] font-medium text-text">+{formatPrice(giftWrap.price)}</span>
+                      <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-text">+{formatPrice(giftWrap.price)}</span>
                     ) : (
-                      <span className="text-[13px] font-medium text-[#27ae60]">Gratis</span>
+                      <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#27ae60]">Gratis</span>
                     )}
                   </span>
                   {giftWrap.description && (
-                    <span className="mt-0.5 block text-[13px] text-muted">{giftWrap.description}</span>
+                    <span className="mt-0.5 block text-[calc(13px_*_var(--font-scale,1))] text-muted">{giftWrap.description}</span>
                   )}
                 </span>
               </label>
@@ -1284,11 +1284,11 @@ export function Checkout() {
                     >
                       <span className="flex items-start justify-between gap-2">
                         <span className="min-w-0">
-                          <span className="block text-[14px] font-medium text-text">{label}</span>
-                          <span className="mt-0.5 block text-[13px] leading-snug text-subtle">{sub}</span>
+                          <span className="block text-[calc(14px_*_var(--font-scale,1))] font-medium text-text">{label}</span>
+                          <span className="mt-0.5 block text-[calc(13px_*_var(--font-scale,1))] leading-snug text-subtle">{sub}</span>
                         </span>
                         {isCash && cashDiscountPct > 0 && (
-                          <span className="shrink-0 rounded-pill bg-[#27ae60] px-2.5 py-1 text-[11px] font-medium leading-none text-white">
+                          <span className="shrink-0 rounded-pill bg-[#27ae60] px-2.5 py-1 text-[calc(11px_*_var(--font-scale,1))] font-medium leading-none text-white">
                             {cashDiscountPct}% off
                           </span>
                         )}
@@ -1300,7 +1300,7 @@ export function Checkout() {
 
               {/* El efectivo quedó fuera por la forma de entrega elegida */}
               {cashHiddenByDelivery && (
-                <p className="mt-3 flex items-start gap-1.5 text-[12px] leading-snug text-muted">
+                <p className="mt-3 flex items-start gap-1.5 text-[calc(12px_*_var(--font-scale,1))] leading-snug text-muted">
                   <Info className="mt-px h-3.5 w-3.5 shrink-0" />
                   El pago en efectivo no está disponible para esta forma de entrega. Si querés abonar en
                   efectivo, elegí retirar el pedido.
@@ -1310,8 +1310,8 @@ export function Checkout() {
               {/* Transferencia directa: sólo anticipamos el monto; alias/CBU en la pantalla de éxito */}
               {transferManual && transferAccount && (
                 <div className="mt-4 rounded-xl border border-line p-4">
-                  <p className="text-[13px] font-medium text-text">Pago por transferencia</p>
-                  <p className="mt-1.5 text-[13px] leading-snug text-muted">
+                  <p className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-text">Pago por transferencia</p>
+                  <p className="mt-1.5 text-[calc(13px_*_var(--font-scale,1))] leading-snug text-muted">
                     Al confirmar el pedido te mostramos el alias y CBU para transferir{' '}
                     <span className="font-medium text-text">{formatPrice(transferTotal)}</span>. Queda como
                     pendiente de pago hasta que envíes el comprobante por WhatsApp.
@@ -1327,11 +1327,11 @@ export function Checkout() {
           <div className="rounded-xl border border-line bg-background p-5 sm:p-6">
             {/* Encabezado + Editar (vuelve al carrito) */}
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-body text-[16px] font-medium text-text">Tu pedido</h2>
+              <h2 className="font-body text-[calc(16px_*_var(--font-scale,1))] font-medium text-text">Tu pedido</h2>
               <button
                 type="button"
                 onClick={() => navigate('/carrito')}
-                className="inline-flex items-center gap-1 text-[13px] font-medium text-accent transition-opacity hover:opacity-80"
+                className="inline-flex items-center gap-1 text-[calc(13px_*_var(--font-scale,1))] font-medium text-accent transition-opacity hover:opacity-80"
               >
                 <Pencil className="h-3.5 w-3.5" /> Editar
               </button>
@@ -1346,7 +1346,7 @@ export function Checkout() {
                     : `${row.units} ${row.units === 1 ? 'unidad' : 'unidades'}`;
                 const subtitle = [row.detail, qtyLabel].filter(Boolean).join(' · ');
                 return (
-                  <div key={row.key} className="flex items-start justify-between gap-3 text-[13px]">
+                  <div key={row.key} className="flex items-start justify-between gap-3 text-[calc(13px_*_var(--font-scale,1))]">
                     <div className="flex min-w-0 items-start gap-3">
                       {row.image ? (
                         <img
@@ -1362,7 +1362,7 @@ export function Checkout() {
                       )}
                       <div className="min-w-0">
                         <p className="truncate font-medium text-text">{row.name}</p>
-                        {subtitle && <p className="mt-0.5 text-[12px] text-subtle">{subtitle}</p>}
+                        {subtitle && <p className="mt-0.5 text-[calc(12px_*_var(--font-scale,1))] text-subtle">{subtitle}</p>}
                       </div>
                     </div>
                     <span className="shrink-0 font-medium text-text">{formatPrice(row.lineTotal)}</span>
@@ -1372,7 +1372,7 @@ export function Checkout() {
             </div>
 
             {min.active && (
-              <div className={`pt-3 text-[12px] font-medium ${min.ok ? 'text-emerald-600' : 'text-amber-600'}`}>
+              <div className={`pt-3 text-[calc(12px_*_var(--font-scale,1))] font-medium ${min.ok ? 'text-emerald-600' : 'text-amber-600'}`}>
                 {min.ok ? (
                   <p>Mínimo de compra alcanzado</p>
                 ) : (
@@ -1391,7 +1391,7 @@ export function Checkout() {
             {/* Cupón: colapsado tras un link. Al aplicar, se ve como estado, no como paso. */}
             <div className="border-b border-line py-4">
               {hasNonStackablePromo ? (
-                <p className="text-[12px] leading-snug text-muted">
+                <p className="text-[calc(12px_*_var(--font-scale,1))] leading-snug text-muted">
                   Este producto ya tiene un descuento promocional aplicado. No se puede combinar con cupones.
                 </p>
               ) : appliedCoupon ? (
@@ -1403,20 +1403,20 @@ export function Checkout() {
                   <div className="min-w-0">
                     {discountAmount > 0 ? (
                       <>
-                        <p className="text-[12px] font-medium text-[#27ae60]">
+                        <p className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-[#27ae60]">
                           Cupón {appliedCoupon.code.toUpperCase()} aplicado
                         </p>
-                        <p className="text-[11px] text-[#27ae60]">
+                        <p className="text-[calc(11px_*_var(--font-scale,1))] text-[#27ae60]">
                           {appliedCoupon.discount_type === 'percent' ? `-${appliedCoupon.discount_value}% ` : ''}(-{formatPrice(discountAmount)})
                         </p>
                         {couponIsPartial && (
-                          <p className="mt-0.5 text-[11px] leading-snug text-[#27ae60]">
+                          <p className="mt-0.5 text-[calc(11px_*_var(--font-scale,1))] leading-snug text-[#27ae60]">
                             Aplica sólo a: {couponEligibleNames.join(', ')}. El resto de los productos se cobran a precio normal.
                           </p>
                         )}
                       </>
                     ) : (
-                      <p className="text-[12px] font-medium text-amber-700">
+                      <p className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-amber-700">
                         El cupón {appliedCoupon.code.toUpperCase()} no aplica a este monto.
                       </p>
                     )}
@@ -1455,18 +1455,18 @@ export function Checkout() {
                       type="button"
                       onClick={applyCoupon}
                       disabled={couponStatus === 'loading' || !couponInput.trim()}
-                      className="shrink-0 rounded-button border border-line px-4 text-[14px] font-medium text-text transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                      className="shrink-0 rounded-button border border-line px-4 text-[calc(14px_*_var(--font-scale,1))] font-medium text-text transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {couponStatus === 'loading' ? '…' : 'Aplicar'}
                     </button>
                   </div>
-                  {couponError && <p className="mt-2 text-[12px] font-medium text-red-600">{couponError}</p>}
+                  {couponError && <p className="mt-2 text-[calc(12px_*_var(--font-scale,1))] font-medium text-red-600">{couponError}</p>}
                 </>
               ) : (
                 <button
                   type="button"
                   onClick={() => setShowCoupon(true)}
-                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent transition-opacity hover:opacity-80"
+                  className="inline-flex items-center gap-1.5 text-[calc(13px_*_var(--font-scale,1))] font-medium text-accent transition-opacity hover:opacity-80"
                 >
                   <Tag className="h-4 w-4" /> ¿Tenés un cupón?
                 </button>
@@ -1479,26 +1479,26 @@ export function Checkout() {
             {/* Stock insuficiente / error — visibles también en mobile (fuera del bloque desktop) */}
             {stockIssues.length > 0 && (
               <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
-                <p className="flex items-center gap-1.5 text-[13px] font-medium text-red-700">
+                <p className="flex items-center gap-1.5 text-[calc(13px_*_var(--font-scale,1))] font-medium text-red-700">
                   <AlertTriangle className="h-4 w-4 shrink-0" />
                   {stockIssues.length === 1 ? 'Un producto se quedó sin stock' : 'Hay productos sin stock'}
                 </p>
                 <ul className="mt-1.5 space-y-1">
                   {stockIssues.map((s, idx) => (
-                    <li key={`${s.name}-${s.size ?? ''}-${s.color ?? ''}-${idx}`} className="text-[13px] leading-snug text-red-700">
+                    <li key={`${s.name}-${s.size ?? ''}-${s.color ?? ''}-${idx}`} className="text-[calc(13px_*_var(--font-scale,1))] leading-snug text-red-700">
                       <span className="font-medium">{shortfallLabel(s)}</span>
                       <span className="text-red-600"> · {shortfallDetail(s)}</span>
                     </li>
                   ))}
                 </ul>
-                <Link to="/carrito" className="mt-2 inline-block text-[13px] font-medium text-red-700 underline">
+                <Link to="/carrito" className="mt-2 inline-block text-[calc(13px_*_var(--font-scale,1))] font-medium text-red-700 underline">
                   Ajustar el carrito
                 </Link>
               </div>
             )}
 
             {error && (
-              <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[13px] font-medium text-red-700">{error}</p>
+              <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] font-medium text-red-700">{error}</p>
             )}
 
             {/* CTA + línea de confianza — sólo desktop (en mobile va la barra fija inferior) */}
@@ -1508,7 +1508,7 @@ export function Checkout() {
                   type="button"
                   onClick={handlePay}
                   disabled={ctaDisabled}
-                  className="flex w-full items-center justify-center gap-2 rounded-button bg-primary py-3.5 text-[15px] font-medium text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-button bg-primary py-3.5 text-[calc(15px_*_var(--font-scale,1))] font-medium text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading !== null ? (
                     <><Spinner size={16} /> {routing === 'wa' ? 'Procesando…' : 'Redirigiendo…'}</>
@@ -1517,14 +1517,14 @@ export function Checkout() {
                   )}
                 </button>
               ) : (
-                <p className="text-[13px] text-subtle">Esta tienda todavía no tiene medios de pago configurados.</p>
+                <p className="text-[calc(13px_*_var(--font-scale,1))] text-subtle">Esta tienda todavía no tiene medios de pago configurados.</p>
               )}
 
               {mustQuoteShipping && payMethods.length > 0 && (
-                <p className="mt-2 text-center text-[12px] text-muted">Calculá tu envío para continuar</p>
+                <p className="mt-2 text-center text-[calc(12px_*_var(--font-scale,1))] text-muted">Calculá tu envío para continuar</p>
               )}
 
-              <p className="mt-3 flex items-center justify-center gap-1.5 text-[12px] text-subtle">
+              <p className="mt-3 flex items-center justify-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] text-subtle">
                 <Lock className="h-3.5 w-3.5 shrink-0" /> Compra protegida · Tus datos no se comparten
               </p>
             </div>
@@ -1535,7 +1535,7 @@ export function Checkout() {
                 href={waHref}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-4 block text-center text-[12px] text-subtle transition-colors hover:text-accent"
+                className="mt-4 block text-center text-[calc(12px_*_var(--font-scale,1))] text-subtle transition-colors hover:text-accent"
               >
                 ¿Dudas? Escribinos
               </a>
@@ -1556,11 +1556,11 @@ export function Checkout() {
             aria-expanded={mobileSummaryOpen}
             className="flex flex-col text-left"
           >
-            <span className="flex items-center gap-1 text-[11px] text-muted">
+            <span className="flex items-center gap-1 text-[calc(11px_*_var(--font-scale,1))] text-muted">
               {mobileSummaryOpen ? 'Ocultar' : 'Ver'} detalle
               <ChevronUp className={`h-3 w-3 transition-transform ${mobileSummaryOpen ? '' : 'rotate-180'}`} />
             </span>
-            <span className="text-[18px] font-medium text-text">{formatPrice(orderTotal)}</span>
+            <span className="text-[calc(18px_*_var(--font-scale,1))] font-medium text-text">{formatPrice(orderTotal)}</span>
           </button>
           <div className="ml-auto min-w-0 max-w-[220px] flex-1">
             {payMethods.length > 0 ? (
@@ -1568,7 +1568,7 @@ export function Checkout() {
                 type="button"
                 onClick={handlePay}
                 disabled={ctaDisabled}
-                className="flex w-full items-center justify-center gap-2 rounded-button bg-primary py-3 text-[14px] font-medium text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-button bg-primary py-3 text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-primary transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading !== null ? (
                   <><Spinner size={16} /> {routing === 'wa' ? 'Procesando…' : 'Redirigiendo…'}</>
@@ -1577,12 +1577,12 @@ export function Checkout() {
                 )}
               </button>
             ) : (
-              <p className="text-right text-[12px] text-subtle">Sin medios de pago</p>
+              <p className="text-right text-[calc(12px_*_var(--font-scale,1))] text-subtle">Sin medios de pago</p>
             )}
           </div>
         </div>
         {mustQuoteShipping && payMethods.length > 0 && (
-          <p className="px-5 pb-2 text-[11px] text-muted">Calculá tu envío para continuar</p>
+          <p className="px-5 pb-2 text-[calc(11px_*_var(--font-scale,1))] text-muted">Calculá tu envío para continuar</p>
         )}
       </div>
     </div>

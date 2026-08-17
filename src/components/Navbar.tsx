@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import type { StoreMenuItem } from '@/lib/types';
 
 const drawerLink = ({ isActive }: { isActive: boolean }) =>
-  `block py-3 text-[15px] font-medium transition-colors ${
+  `block py-3 text-[calc(15px_*_var(--font-scale,1))] font-medium transition-colors ${
     isActive ? 'text-accent' : 'text-on-surface hover:text-accent'
   }`;
 
@@ -59,13 +59,13 @@ function TrackingForm({ item }: { item: Extract<StoreMenuItem, { kind: 'tracking
 
   return (
     <form onSubmit={submit} className="mb-2 ml-1.5 space-y-2 border-l border-line-soft pb-1 pl-3">
-      {item.help && <p className="text-[13px] text-muted">{item.help}</p>}
+      {item.help && <p className="text-[calc(13px_*_var(--font-scale,1))] text-muted">{item.help}</p>}
       {item.carriers.length > 1 && (
         <select
           value={carrierIndex}
           onChange={(e) => setCarrierIndex(Number(e.target.value))}
           aria-label="Correo"
-          className="w-full rounded-md border border-line bg-background px-2.5 py-2 text-[14px] text-on-surface focus:border-accent focus:outline-none"
+          className="w-full rounded-md border border-line bg-background px-2.5 py-2 text-[calc(14px_*_var(--font-scale,1))] text-on-surface focus:border-accent focus:outline-none"
         >
           {item.carriers.map((c, i) => (
             <option key={`${c.name}-${i}`} value={i}>
@@ -82,16 +82,16 @@ function TrackingForm({ item }: { item: Extract<StoreMenuItem, { kind: 'tracking
           setCopied(false);
         }}
         placeholder="Código de seguimiento"
-        className="w-full rounded-md border border-line bg-background px-2.5 py-2 text-[14px] text-on-surface placeholder:text-on-surface-muted focus:border-accent focus:outline-none"
+        className="w-full rounded-md border border-line bg-background px-2.5 py-2 text-[calc(14px_*_var(--font-scale,1))] text-on-surface placeholder:text-on-surface-muted focus:border-accent focus:outline-none"
       />
       <button
         type="submit"
-        className="w-full rounded-button bg-primary px-3 py-2 text-[14px] font-medium text-on-primary transition-colors hover:bg-accent hover:text-on-accent"
+        className="w-full rounded-button bg-primary px-3 py-2 text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-primary transition-colors hover:bg-accent hover:text-on-accent"
       >
         Ver mi envío
       </button>
       {copied && (
-        <p className="text-[12px] text-muted">
+        <p className="text-[calc(12px_*_var(--font-scale,1))] text-muted">
           Copiamos el código: pegalo en el buscador del correo.
         </p>
       )}
@@ -318,7 +318,7 @@ export function Navbar() {
               loading="eager"
             />
           ) : (
-            <span className="truncate font-heading text-[18px] font-extrabold uppercase tracking-[1px] text-on-surface md:text-[22px]">
+            <span className="truncate font-heading text-[calc(18px_*_var(--font-scale,1))] font-extrabold uppercase tracking-[1px] text-on-surface md:text-[calc(22px_*_var(--font-scale,1))]">
               {config.name}
             </span>
           )}
@@ -330,7 +330,7 @@ export function Navbar() {
             type="button"
             onClick={open}
             aria-label="Abrir carrito"
-            className="relative inline-flex items-center gap-2 text-[14px] font-medium text-on-surface transition-colors hover:text-accent"
+            className="relative inline-flex items-center gap-2 text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-surface transition-colors hover:text-accent"
           >
             <svg className="sm:hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
@@ -339,7 +339,7 @@ export function Navbar() {
             </svg>
             <span className="hidden sm:inline">Carrito</span>
             {itemCount > 0 && (
-              <span className="shape-circle absolute -right-3 -top-2 inline-flex h-[18px] min-w-[18px] items-center justify-center bg-accent px-1.5 py-0.5 text-[10px] font-bold leading-none text-on-accent sm:static sm:translate-y-0">
+              <span className="shape-circle absolute -right-3 -top-2 inline-flex h-[18px] min-w-[18px] items-center justify-center bg-accent px-1.5 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold leading-none text-on-accent sm:static sm:translate-y-0">
                 {itemCount}
               </span>
             )}
@@ -361,7 +361,7 @@ export function Navbar() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar productos..."
-            className="min-w-0 flex-1 bg-transparent text-[15px] text-on-surface placeholder:text-on-surface-muted focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-[calc(15px_*_var(--font-scale,1))] text-on-surface placeholder:text-on-surface-muted focus:outline-none"
           />
           {searchQuery && (
             <button
@@ -378,7 +378,7 @@ export function Navbar() {
           )}
           <button
             type="submit"
-            className="shrink-0 rounded-md bg-primary px-4 py-2 text-[14px] font-medium text-on-primary transition-transform hover:scale-[1.02]"
+            className="shrink-0 rounded-md bg-primary px-4 py-2 text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-primary transition-transform hover:scale-[1.02]"
           >
             Buscar
           </button>
@@ -404,7 +404,7 @@ export function Navbar() {
         }`}
       >
         <div className="flex items-center justify-between border-b border-line px-6 py-5">
-          <span className="font-heading text-[18px] font-extrabold uppercase tracking-[1px] text-on-surface">Menú</span>
+          <span className="font-heading text-[calc(18px_*_var(--font-scale,1))] font-extrabold uppercase tracking-[1px] text-on-surface">Menú</span>
           <button
             type="button"
             onClick={() => setMenuOpen(false)}
@@ -449,7 +449,7 @@ export function Navbar() {
                     key={c}
                     to={`/categoria/${encodeURIComponent(c)}`}
                     onClick={() => setMenuOpen(false)}
-                    className="block py-2 text-[14px] text-on-surface-muted transition-colors hover:text-accent"
+                    className="block py-2 text-[calc(14px_*_var(--font-scale,1))] text-on-surface-muted transition-colors hover:text-accent"
                   >
                     {c}
                   </Link>
@@ -463,7 +463,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={goToOutfits}
-              className="block w-full py-3 text-left text-[15px] font-medium text-on-surface transition-colors hover:text-accent"
+              className="block w-full py-3 text-left text-[calc(15px_*_var(--font-scale,1))] font-medium text-on-surface transition-colors hover:text-accent"
             >
               Outfits
             </button>
@@ -480,7 +480,7 @@ export function Navbar() {
                     type="button"
                     onClick={() => setTrackingOpen(open ? null : item.id)}
                     aria-expanded={open}
-                    className="flex w-full items-center justify-between gap-2 py-3 text-left text-[15px] font-medium text-on-surface transition-colors hover:text-accent"
+                    className="flex w-full items-center justify-between gap-2 py-3 text-left text-[calc(15px_*_var(--font-scale,1))] font-medium text-on-surface transition-colors hover:text-accent"
                   >
                     <span className="min-w-0 truncate">{item.label}</span>
                     <ChevronDown
@@ -516,7 +516,7 @@ export function Navbar() {
                 target={item.newTab ? '_blank' : undefined}
                 rel={item.newTab ? 'noopener noreferrer' : undefined}
                 onClick={() => setMenuOpen(false)}
-                className="block py-3 text-[15px] font-medium text-on-surface transition-colors hover:text-accent"
+                className="block py-3 text-[calc(15px_*_var(--font-scale,1))] font-medium text-on-surface transition-colors hover:text-accent"
               >
                 {item.label}
               </a>

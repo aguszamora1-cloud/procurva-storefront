@@ -48,7 +48,7 @@ function Accordion({
         aria-expanded={open}
         className="flex w-full items-center justify-between py-4 text-left"
       >
-        <span className="text-[13px] font-semibold uppercase tracking-[1px] text-on-surface">
+        <span className="text-[calc(13px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-on-surface">
           {title}
           {count ? <span className="ml-2 text-on-surface-subtle">({count})</span> : null}
         </span>
@@ -70,7 +70,7 @@ function CheckboxRow({
   children: ReactNode;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-on-surface">
+    <label className="flex cursor-pointer items-center gap-2.5 text-[calc(13px_*_var(--font-scale,1))] text-on-surface">
       <input
         type="checkbox"
         checked={checked}
@@ -197,7 +197,7 @@ export function ProductFilters(props: ProductFiltersProps) {
             onChange={(e) => onPriceMin(e.target.value)}
             placeholder={String(priceBounds.min)}
             aria-label="Precio mínimo"
-            className="w-full border border-line bg-background px-3 py-2 text-[13px] text-on-surface outline-none focus:border-accent"
+            className="w-full border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] text-on-surface outline-none focus:border-accent"
           />
           <span className="text-on-surface-subtle">—</span>
           <input
@@ -208,11 +208,11 @@ export function ProductFilters(props: ProductFiltersProps) {
             onChange={(e) => onPriceMax(e.target.value)}
             placeholder={String(priceBounds.max)}
             aria-label="Precio máximo"
-            className="w-full border border-line bg-background px-3 py-2 text-[13px] text-on-surface outline-none focus:border-accent"
+            className="w-full border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] text-on-surface outline-none focus:border-accent"
           />
         </div>
         {priceBounds.max > 0 && (
-          <p className="mt-2 text-[11px] text-on-surface-subtle">
+          <p className="mt-2 text-[calc(11px_*_var(--font-scale,1))] text-on-surface-subtle">
             Rango: {formatPrice(priceBounds.min)} – {formatPrice(priceBounds.max)}
           </p>
         )}

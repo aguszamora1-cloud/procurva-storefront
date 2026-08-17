@@ -20,7 +20,7 @@ export function PurchaseFlow() {
   if (!purchaseFlowEnabled || purchaseFlowSteps.length === 0) return null;
   return (
     <div className="border-t border-line pt-6">
-      <p className="mb-4 text-[13px] font-semibold text-accent">Así funciona tu compra</p>
+      <p className="mb-4 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-accent">Así funciona tu compra</p>
       <div>
         {purchaseFlowSteps.map((step, index) => {
           const last = index === purchaseFlowSteps.length - 1;
@@ -36,8 +36,8 @@ export function PurchaseFlow() {
                 )}
               </div>
               <div className={`ml-3 ${last ? '' : 'pb-6'}`}>
-                <p className="text-[14px] font-semibold text-text">{step.name}</p>
-                {step.detail && <p className="mt-0.5 text-[13px] text-muted">{step.detail}</p>}
+                <p className="text-[calc(14px_*_var(--font-scale,1))] font-semibold text-text">{step.name}</p>
+                {step.detail && <p className="mt-0.5 text-[calc(13px_*_var(--font-scale,1))] text-muted">{step.detail}</p>}
               </div>
             </div>
           );

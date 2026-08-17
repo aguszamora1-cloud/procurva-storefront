@@ -59,7 +59,7 @@ export function SizeSelector({ sizes, selected, isDisabled, onSelect, hideHeadin
   return (
     <div>
       {!hideHeading && (
-        <p className="mb-2 flex items-baseline text-[13px] font-semibold text-muted">
+        <p className="mb-2 flex items-baseline text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted">
           <span className="shrink-0">Talle</span>
           {selected && (
             <span className="min-w-0 truncate text-text" title={selected}>
@@ -76,7 +76,7 @@ export function SizeSelector({ sizes, selected, isDisabled, onSelect, hideHeadin
             <label
               key={s}
               title={s}
-              className={`inline-flex h-11 min-w-[40px] max-w-[140px] cursor-pointer items-center justify-center rounded-pill border-[1.5px] px-2.5 text-[14px] tracking-wide transition-all duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent has-[:focus-visible]:ring-offset-1 pointer-fine:h-9 pointer-fine:min-w-[34px] pointer-fine:px-2 ${
+              className={`inline-flex h-11 min-w-[40px] max-w-[140px] cursor-pointer items-center justify-center rounded-pill border-[1.5px] px-2.5 text-[calc(14px_*_var(--font-scale,1))] tracking-wide transition-all duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent has-[:focus-visible]:ring-offset-1 pointer-fine:h-9 pointer-fine:min-w-[34px] pointer-fine:px-2 ${
                 active
                   ? SELECTED_CHIP
                   : disabled

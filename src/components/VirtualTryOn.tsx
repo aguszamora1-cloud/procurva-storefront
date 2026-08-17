@@ -190,7 +190,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-button border-[1.5px] border-accent px-6 py-[14px] text-[14px] font-semibold text-accent transition-colors hover:bg-accent hover:text-on-accent"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-button border-[1.5px] border-accent px-6 py-[14px] text-[calc(14px_*_var(--font-scale,1))] font-semibold text-accent transition-colors hover:bg-accent hover:text-on-accent"
       >
         <Sparkles size={17} className="flex-none" />
         Probá cómo te queda
@@ -212,7 +212,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
-              <h2 className="flex items-center gap-2 font-heading text-[16px] font-bold tracking-tight text-text">
+              <h2 className="flex items-center gap-2 font-heading text-[calc(16px_*_var(--font-scale,1))] font-bold tracking-tight text-text">
                 <Sparkles size={18} className="text-accent" /> Probador virtual
               </h2>
               <button
@@ -230,7 +230,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
               <div className="grid grid-cols-2 gap-3">
                 {/* Foto del usuario */}
                 <div>
-                  <p className="mb-1.5 text-[12px] font-semibold text-muted">Tu foto</p>
+                  <p className="mb-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-muted">Tu foto</p>
                   {userImage ? (
                     <div className="relative aspect-[3/4] overflow-hidden rounded-md border border-line">
                       <img src={userImage} alt="Tu foto" className="h-full w-full object-cover" />
@@ -259,7 +259,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
                       ) : (
                         <Camera size={26} className="text-subtle" />
                       )}
-                      <span className="text-[12px] font-medium text-muted">
+                      <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-muted">
                         {status === 'uploading' ? 'Procesando…' : 'Subí tu foto'}
                       </span>
                     </button>
@@ -275,7 +275,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
 
                 {/* Prenda */}
                 <div>
-                  <p className="mb-1.5 text-[12px] font-semibold text-muted">La prenda</p>
+                  <p className="mb-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-muted">La prenda</p>
                   <div className="relative aspect-[3/4] overflow-hidden rounded-md border border-line bg-secondary">
                     {garmentImageUrl ? (
                       <img src={garmentImageUrl} alt={garmentName} className="h-full w-full object-cover" />
@@ -288,14 +288,14 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
 
               {/* Tips cuando no hay foto */}
               {!userImage && status !== 'error' && (
-                <p className="mt-3 text-center text-[12px] leading-relaxed text-subtle">
+                <p className="mt-3 text-center text-[calc(12px_*_var(--font-scale,1))] leading-relaxed text-subtle">
                   Foto de cuerpo completo, fondo simple y buena iluminación para mejores resultados.
                 </p>
               )}
 
               {/* Error */}
               {status === 'error' && (
-                <div className="mt-3 flex items-start gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2.5 text-[12px] text-red-700">
+                <div className="mt-3 flex items-start gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2.5 text-[calc(12px_*_var(--font-scale,1))] text-red-700">
                   <AlertCircle size={16} className="mt-0.5 flex-none" />
                   <span>{errorMsg}</span>
                 </div>
@@ -304,7 +304,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
               {/* Resultado */}
               {status === 'completed' && resultUrl && (
                 <div className="mt-4">
-                  <p className="mb-1.5 text-[12px] font-semibold text-muted">Resultado</p>
+                  <p className="mb-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-muted">Resultado</p>
                   <div className="overflow-hidden rounded-md border border-line">
                     <img src={resultUrl} alt={`Probador — ${garmentName}`} className="w-full" />
                   </div>
@@ -315,8 +315,8 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
               {status === 'processing' && (
                 <div className="mt-4 flex flex-col items-center gap-2 rounded-md bg-secondary px-4 py-6 text-center">
                   <Loader2 size={28} className="animate-spin text-accent" />
-                  <p className="text-[13px] font-medium text-text">Generando tu imagen…</p>
-                  <p className="text-[12px] text-subtle">Esto puede tardar entre 5 y 15 segundos.</p>
+                  <p className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-text">Generando tu imagen…</p>
+                  <p className="text-[calc(12px_*_var(--font-scale,1))] text-subtle">Esto puede tardar entre 5 y 15 segundos.</p>
                 </div>
               )}
             </div>
@@ -328,14 +328,14 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
                   <button
                     type="button"
                     onClick={reset}
-                    className="inline-flex items-center justify-center gap-2 rounded-button border-[1.5px] border-line px-4 py-3 text-[13px] font-semibold text-text transition-colors hover:bg-secondary"
+                    className="inline-flex items-center justify-center gap-2 rounded-button border-[1.5px] border-line px-4 py-3 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-text transition-colors hover:bg-secondary"
                   >
                     <RefreshCw size={16} /> Probar otra vez
                   </button>
                   <button
                     type="button"
                     onClick={download}
-                    className="inline-flex items-center justify-center gap-2 rounded-button bg-primary px-4 py-3 text-[13px] font-bold text-on-primary transition-colors hover:bg-accent hover:text-on-accent"
+                    className="inline-flex items-center justify-center gap-2 rounded-button bg-primary px-4 py-3 text-[calc(13px_*_var(--font-scale,1))] font-bold text-on-primary transition-colors hover:bg-accent hover:text-on-accent"
                   >
                     <Download size={16} /> Descargar
                   </button>
@@ -345,14 +345,14 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
                   type="button"
                   onClick={generate}
                   disabled={!userImage || status === 'processing' || status === 'uploading'}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-button bg-primary px-6 py-[15px] text-[15px] font-bold text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary disabled:hover:text-on-primary"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-button bg-primary px-6 py-[15px] text-[calc(15px_*_var(--font-scale,1))] font-bold text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-primary disabled:hover:text-on-primary"
                 >
                   {status === 'processing' ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
                   {status === 'processing' ? 'Generando…' : '¡Generar!'}
                 </button>
               )}
 
-              <p className="mt-3 text-center text-[11px] leading-relaxed text-subtle">
+              <p className="mt-3 text-center text-[calc(11px_*_var(--font-scale,1))] leading-relaxed text-subtle">
                 Tu foto se usa únicamente para generar la imagen y no se almacena. Tecnología de IA — los resultados son aproximados.
               </p>
             </div>

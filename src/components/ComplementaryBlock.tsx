@@ -114,7 +114,7 @@ export function ComplementaryBlock({ contexto, product, preferredSize, className
   return (
     <section className={`rounded-2xl border border-line p-4 ${className ?? ''}`}>
       {/* Título vaciado desde el editor → el bloque va sin encabezado. */}
-      {block.titulo && <h3 className="mb-3 text-[15px] font-semibold text-text">{block.titulo}</h3>}
+      {block.titulo && <h3 className="mb-3 text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">{block.titulo}</h3>}
       <ul className="space-y-2">
         {shown.map((card) => (
           <ComplementRow
@@ -249,7 +249,7 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
             type="button"
             disabled
             aria-label="Sin stock"
-            className="flex-shrink-0 cursor-not-allowed rounded-pill border border-line px-2.5 py-1 text-[11px] font-medium text-subtle opacity-70"
+            className="flex-shrink-0 cursor-not-allowed rounded-pill border border-line px-2.5 py-1 text-[calc(11px_*_var(--font-scale,1))] font-medium text-subtle opacity-70"
           >
             Sin stock
           </button>
@@ -302,7 +302,7 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
                             setPickSize(null);
                           }
                     }
-                    className={`rounded-pill border px-2 py-0.5 text-[11px] ${
+                    className={`rounded-pill border px-2 py-0.5 text-[calc(11px_*_var(--font-scale,1))] ${
                       effColor === c ? 'border-primary bg-primary text-on-primary' : 'border-line text-muted'
                     } ${colorOut ? 'cursor-not-allowed opacity-40 line-through' : ''}`}
                   >
@@ -322,7 +322,7 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
                     type="button"
                     disabled={!inStock}
                     onClick={() => setPickSize(s)}
-                    className={`rounded-md border px-2 py-0.5 text-[11px] ${
+                    className={`rounded-md border px-2 py-0.5 text-[calc(11px_*_var(--font-scale,1))] ${
                       effSize === s ? 'border-primary bg-primary text-on-primary' : 'border-line text-muted'
                     } ${!inStock ? 'cursor-not-allowed opacity-40 line-through' : ''}`}
                   >

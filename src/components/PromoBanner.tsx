@@ -5,15 +5,15 @@ import { useStore } from '@/context/StoreProvider';
 function TimeUnit({ value, label }: { value: number; label: string }) {
   return (
     <div className="flex flex-col items-center">
-      <span className="min-w-[2.1rem] rounded bg-white/20 px-1.5 py-0.5 text-center text-[15px] font-bold tabular-nums leading-tight md:text-[17px]">
+      <span className="min-w-[2.1rem] rounded bg-white/20 px-1.5 py-0.5 text-center text-[calc(15px_*_var(--font-scale,1))] font-bold tabular-nums leading-tight md:text-[calc(17px_*_var(--font-scale,1))]">
         {String(Math.max(0, value)).padStart(2, '0')}
       </span>
-      <span className="mt-0.5 text-[8px] uppercase tracking-wide opacity-80 md:text-[9px]">{label}</span>
+      <span className="mt-0.5 text-[calc(8px_*_var(--font-scale,1))] uppercase tracking-wide opacity-80 md:text-[calc(9px_*_var(--font-scale,1))]">{label}</span>
     </div>
   );
 }
 
-const Sep = () => <span className="self-start pt-1 text-[15px] font-bold opacity-60 md:text-[17px]">:</span>;
+const Sep = () => <span className="self-start pt-1 text-[calc(15px_*_var(--font-scale,1))] font-bold opacity-60 md:text-[calc(17px_*_var(--font-scale,1))]">:</span>;
 
 /** Clases del texto principal según el tamaño elegido en el admin. */
 const TEXT_SIZE_CLASSES: Record<'sm' | 'md' | 'lg', string> = {

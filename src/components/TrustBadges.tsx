@@ -82,7 +82,7 @@ export function TrustBadges({ attached = false, background }: Props = {}) {
           className="flex flex-col items-center border-line px-3 text-center odd:border-r md:border-r md:last:border-r-0"
         >
           <span className="mb-2">{icon}</span>
-          <span className="text-[12px] font-medium leading-[1.35] opacity-80 md:text-[12px]">
+          <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium leading-[1.35] opacity-80 md:text-[calc(12px_*_var(--font-scale,1))]">
             {labels[i] ?? ''}
           </span>
         </div>

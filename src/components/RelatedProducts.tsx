@@ -21,7 +21,7 @@ export function RelatedProducts({ product, variant = 'section' }: { product: Pro
   if (column) {
     return (
       <section>
-        <p className="mb-3 text-[13px] font-semibold text-muted">También te puede gustar</p>
+        <p className="mb-3 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted">También te puede gustar</p>
         <div className="grid grid-cols-2 gap-2">
           {related.map((p) => (
             <ProductCard key={p.id} product={p} />

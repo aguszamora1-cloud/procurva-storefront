@@ -88,13 +88,13 @@ html {
      con .shape-circle (swatches de color, badge del carrito). */
   h1 {
     font-weight: 800;
-    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-size: calc(clamp(2rem, 5vw, 3.5rem) * var(--font-scale, 1));
     letter-spacing: -0.03em;
     line-height: 1.05;
   }
   h2 {
     font-weight: 700;
-    font-size: clamp(1.4rem, 3vw, 2.1rem);
+    font-size: calc(clamp(1.4rem, 3vw, 2.1rem) * var(--font-scale, 1));
     letter-spacing: -0.02em;
     line-height: 1.1;
   }
@@ -119,13 +119,13 @@ html {
 @layer components {
   .subtitle-label {
     font-weight: 600;
-    font-size: 0.72rem;
+    font-size: calc(0.72rem * var(--font-scale, 1));
     letter-spacing: 0.14em;
     text-transform: uppercase;
   }
   .nav-link {
     font-weight: 500;
-    font-size: 0.78rem;
+    font-size: calc(0.78rem * var(--font-scale, 1));
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }

@@ -322,6 +322,13 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
 
     fontHeading: firstStr(s.font_heading) || DEFAULTS.fontHeading,
     fontBody: firstStr(s.font_body) || DEFAULTS.fontBody,
+    // Escala del texto. Se acota a [0.85, 1.3]: más abajo la tienda se vuelve
+    // ilegible y más arriba se rompen los renglones de precio de las cards. Un
+    // valor inválido (o ausente) cae en 1, que es el tamaño histórico.
+    fontScale: (() => {
+      const n = Number(s.font_scale);
+      return Number.isFinite(n) && n > 0 ? Math.min(1.3, Math.max(0.85, n)) : 1;
+    })(),
 
     // Alineación de títulos de secciones: key nueva (section_title_align) con
     // fallback a la vieja (category_title_align) para no romper configs viejas.

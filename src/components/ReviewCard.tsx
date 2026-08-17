@@ -68,25 +68,25 @@ export function ReviewCard({ review, compact }: { review: ReviewCardData; compac
         ) : (
           <span
             className={`${avatar} flex shrink-0 items-center justify-center rounded-xl bg-secondary font-semibold text-on-surface ${
-              compact ? 'text-[12px]' : 'text-[14px]'
+              compact ? 'text-[calc(12px_*_var(--font-scale,1))]' : 'text-[calc(14px_*_var(--font-scale,1))]'
             }`}
           >
             {initials(review.customer_name)}
           </span>
         )}
-        <p className={`font-semibold leading-tight text-on-surface ${compact ? 'text-[14px]' : 'text-[16px] md:text-[17px]'}`}>
+        <p className={`font-semibold leading-tight text-on-surface ${compact ? 'text-[calc(14px_*_var(--font-scale,1))]' : 'text-[calc(16px_*_var(--font-scale,1))] md:text-[calc(17px_*_var(--font-scale,1))]'}`}>
           {review.customer_name}
         </p>
       </div>
 
       <div className={`flex items-center gap-2 ${compact ? 'my-3' : 'my-4'}`}>
-        <span className={`font-bold text-on-surface ${compact ? 'text-[13px]' : 'text-[15px]'}`}>
+        <span className={`font-bold text-on-surface ${compact ? 'text-[calc(13px_*_var(--font-scale,1))]' : 'text-[calc(15px_*_var(--font-scale,1))]'}`}>
           {rating.toFixed(1)}
         </span>
         <Stars value={rating} size={compact ? 14 : 16} />
       </div>
 
-      <p className={`flex-1 leading-relaxed text-on-surface-muted ${compact ? 'text-[13px]' : 'text-[14px] md:text-[15px]'}`}>
+      <p className={`flex-1 leading-relaxed text-on-surface-muted ${compact ? 'text-[calc(13px_*_var(--font-scale,1))]' : 'text-[calc(14px_*_var(--font-scale,1))] md:text-[calc(15px_*_var(--font-scale,1))]'}`}>
         &ldquo;{review.text}&rdquo;
       </p>
     </article>

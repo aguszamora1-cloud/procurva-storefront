@@ -203,11 +203,11 @@ export function NewsletterPopup() {
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
                 </button>
-                <p className="mt-1.5 text-[11px] opacity-50">{copied ? '¡Copiado!' : '(click para copiar)'}</p>
+                <p className="mt-1.5 text-[calc(11px_*_var(--font-scale,1))] opacity-50">{copied ? '¡Copiado!' : '(click para copiar)'}</p>
                 <p className="mt-3 text-sm opacity-70">Usalo en el checkout de tu próxima compra.</p>
-                <p className="mt-1 text-[11px] opacity-50">Ya te lo guardamos — lo vas a ver aplicable cuando compres.</p>
+                <p className="mt-1 text-[calc(11px_*_var(--font-scale,1))] opacity-50">Ya te lo guardamos — lo vas a ver aplicable cuando compres.</p>
                 {generatedCoupon && (
-                  <p className="mt-1 text-[11px] opacity-50">También te lo enviamos por email.</p>
+                  <p className="mt-1 text-[calc(11px_*_var(--font-scale,1))] opacity-50">También te lo enviamos por email.</p>
                 )}
               </>
             ) : (
@@ -253,7 +253,7 @@ export function NewsletterPopup() {
             </form>
 
             {status === 'error' && <p className="mt-2 text-center text-xs text-red-500">Hubo un error. Probá de nuevo.</p>}
-            {popup.footerText && <p className="mt-3 text-center text-[11px] opacity-50">{popup.footerText}</p>}
+            {popup.footerText && <p className="mt-3 text-center text-[calc(11px_*_var(--font-scale,1))] opacity-50">{popup.footerText}</p>}
           </>
         )}
       </div>

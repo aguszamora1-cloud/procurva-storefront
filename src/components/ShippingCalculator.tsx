@@ -56,7 +56,7 @@ export function ShippingCalculator() {
 
   return (
     <div className="border-t border-line pt-6">
-      <p className="mb-2 text-[13px] font-semibold text-subtle">Calculá tu envío</p>
+      <p className="mb-2 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-subtle">Calculá tu envío</p>
 
       <div className="flex gap-2">
         <input
@@ -66,13 +66,13 @@ export function ShippingCalculator() {
           inputMode="numeric"
           maxLength={4}
           placeholder="Tu código postal"
-          className="w-full rounded-button border border-line bg-background px-3.5 py-2.5 text-[16px] text-text outline-none transition-colors focus:border-accent"
+          className="w-full rounded-button border border-line bg-background px-3.5 py-2.5 text-[calc(16px_*_var(--font-scale,1))] text-text outline-none transition-colors focus:border-accent"
         />
         <button
           type="button"
           onClick={calcular}
           disabled={status === 'loading' || cp.length === 0}
-          className="flex shrink-0 items-center justify-center rounded-button bg-[#111] px-5 text-[13px] font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex shrink-0 items-center justify-center rounded-button bg-[#111] px-5 text-[calc(13px_*_var(--font-scale,1))] font-bold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
         >
           {status === 'loading' ? <Spinner size={14} /> : 'Calcular'}
         </button>
@@ -82,13 +82,13 @@ export function ShippingCalculator() {
         href="https://www.correoargentino.com.ar/formularios/cpa"
         target="_blank"
         rel="noreferrer"
-        className="mt-1.5 inline-block text-[12px] text-subtle underline hover:text-accent"
+        className="mt-1.5 inline-block text-[calc(12px_*_var(--font-scale,1))] text-subtle underline hover:text-accent"
       >
         No sé mi código postal
       </a>
 
       {status === 'loading' && (
-        <div className="mt-4 flex items-center gap-2 text-[13px] text-muted">
+        <div className="mt-4 flex items-center gap-2 text-[calc(13px_*_var(--font-scale,1))] text-muted">
           <Spinner size={14} /> Calculando…
         </div>
       )}
@@ -106,13 +106,13 @@ export function ShippingCalculator() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 text-[14px] font-bold text-text">
+                    <p className="flex items-center gap-1.5 text-[calc(14px_*_var(--font-scale,1))] font-bold text-text">
                       <Icon className="h-4 w-4 shrink-0 text-muted" />{o.name}
                     </p>
-                    {o.description && <p className="mt-0.5 text-[12px] text-muted">{o.description}</p>}
+                    {o.description && <p className="mt-0.5 text-[calc(12px_*_var(--font-scale,1))] text-muted">{o.description}</p>}
                     {o.eta && badge && (
                       <span
-                        className="mt-1.5 inline-block rounded px-2 py-0.5 text-[11px] font-semibold"
+                        className="mt-1.5 inline-block rounded px-2 py-0.5 text-[calc(11px_*_var(--font-scale,1))] font-semibold"
                         style={{ background: badge.bg, color: badge.color }}
                       >
                         {o.eta}
@@ -120,7 +120,7 @@ export function ShippingCalculator() {
                     )}
                   </div>
                   <span
-                    className="shrink-0 text-[14px] font-bold text-text"
+                    className="shrink-0 text-[calc(14px_*_var(--font-scale,1))] font-bold text-text"
                     style={o.cost === 0 ? { color: '#2e7d32' } : undefined}
                   >
                     {o.cost === 0 ? 'GRATIS' : o.cost == null ? 'A coordinar' : formatPrice(o.cost)}
@@ -130,7 +130,7 @@ export function ShippingCalculator() {
             );
           })}
           {options.some((o) => o.cost == null) && (
-            <p className="pt-1 text-[12px] text-muted">
+            <p className="pt-1 text-[calc(12px_*_var(--font-scale,1))] text-muted">
               {waHref ? (
                 <a href={waHref} target="_blank" rel="noreferrer" className="font-semibold text-accent underline">Consultá el costo exacto a tu zona por WhatsApp</a>
               ) : (
@@ -142,7 +142,7 @@ export function ShippingCalculator() {
       )}
 
       {status === 'empty' && (
-        <p className="mt-4 text-[13px] text-muted">
+        <p className="mt-4 text-[calc(13px_*_var(--font-scale,1))] text-muted">
           No hay envíos disponibles para tu zona.{' '}
           {waHref ? (
             <a href={waHref} target="_blank" rel="noreferrer" className="font-semibold text-accent underline">Contactanos por WhatsApp.</a>
@@ -153,7 +153,7 @@ export function ShippingCalculator() {
       )}
 
       {status === 'error' && (
-        <p className="mt-4 text-[13px] text-red-600">No pudimos calcular el envío. Intentá de nuevo.</p>
+        <p className="mt-4 text-[calc(13px_*_var(--font-scale,1))] text-red-600">No pudimos calcular el envío. Intentá de nuevo.</p>
       )}
     </div>
   );

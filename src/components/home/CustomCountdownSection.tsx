@@ -38,10 +38,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
 function Unit({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <span className="min-w-[58px] rounded-lg border border-current/20 px-3 py-2 text-center font-heading text-[26px] font-bold leading-none tabular-nums md:min-w-[74px] md:text-[38px]">
+      <span className="min-w-[58px] rounded-lg border border-current/20 px-3 py-2 text-center font-heading text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none tabular-nums md:min-w-[74px] md:text-[calc(38px_*_var(--font-scale,1))]">
         {value}
       </span>
-      <span className="text-[10px] font-semibold uppercase tracking-[1.5px] opacity-70 md:text-[11px]">{label}</span>
+      <span className="text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1.5px] opacity-70 md:text-[calc(11px_*_var(--font-scale,1))]">{label}</span>
     </div>
   );
 }
@@ -72,11 +72,11 @@ export function CustomCountdownSection({ section }: { section: CustomSection }) 
     >
       <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 px-6 py-10 text-center md:py-14">
         {heading && (
-          <h2 className="font-heading text-[24px] font-semibold uppercase leading-[1.1] tracking-[1px] md:text-[34px]">
+          <h2 className="font-heading text-[calc(24px_*_var(--font-scale,1))] font-semibold uppercase leading-[1.1] tracking-[1px] md:text-[calc(34px_*_var(--font-scale,1))]">
             {heading}
           </h2>
         )}
-        {subheading && <p className="max-w-xl text-[14px] leading-relaxed opacity-80 md:text-[15px]">{subheading}</p>}
+        {subheading && <p className="max-w-xl text-[calc(14px_*_var(--font-scale,1))] leading-relaxed opacity-80 md:text-[calc(15px_*_var(--font-scale,1))]">{subheading}</p>}
 
         <div className="flex items-start gap-3 md:gap-4">
           {parts.d > 0 && <Unit value={pad(parts.d)} label="Días" />}
@@ -88,7 +88,7 @@ export function CustomCountdownSection({ section }: { section: CustomSection }) 
         {c.button_text && c.button_link && (
           <SectionLink
             to={c.button_link}
-            className="mt-1 inline-flex items-center border border-current px-8 py-3.5 text-[14px] font-medium transition-opacity hover:opacity-75"
+            className="mt-1 inline-flex items-center border border-current px-8 py-3.5 text-[calc(14px_*_var(--font-scale,1))] font-medium transition-opacity hover:opacity-75"
           >
             {c.button_text}
           </SectionLink>
