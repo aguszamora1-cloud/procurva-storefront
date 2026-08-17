@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ReviewCard, Stars } from '@/components/ReviewCard';
 import { useTestimonials } from '@/hooks/useTestimonials';
 
@@ -96,6 +97,55 @@ export function ProductReviews({
     };
   }, [animate]);
 
+  // Flechas de desktop. Se muestran según el overflow REAL del scroller, no
+  // contando reseñas: cuántas entran depende del ancho (3 a ancho completo, una
+  // en la columna) y del largo de cada texto, así que un `length > 3` acertaría
+  // en el home y fallaría en la columna, que es justo donde se notó que faltaban.
+  const [canScroll, setCanScroll] = useState(false);
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el || stacked) {
+      setCanScroll(false);
+      return;
+    }
+    const measure = () => setCanScroll(el.scrollWidth > el.clientWidth + 8);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [stacked, column, reviews.length]);
+
+  // Un paso = una tarjeta en la columna (con snap, saltar de a media tarjeta
+  // deja todo torcido) y ~80% del ancho visible a ancho completo.
+  const scrollByDir = (dir: number) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const card = el.firstElementChild as HTMLElement | null;
+    const step = column && card ? card.offsetWidth + 8 : el.clientWidth * 0.8;
+    el.scrollBy({ left: dir * step, behavior: 'smooth' });
+  };
+
+  // No hace falta resincronizar `posRef` acá: para clickear la flecha el puntero
+  // ya está encima del carrusel, y con `pausedRef` en true el tick lee la
+  // posición del DOM en cada frame. Si la forzáramos al destino, la cinta
+  // pelearía contra el scroll suave.
+  const arrows = (size: 'sm' | 'md') => {
+    if (!canScroll) return null;
+    const box = size === 'sm' ? 'h-8 w-8' : 'h-10 w-10';
+    const icon = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
+    const cls = `absolute top-1/2 z-10 hidden ${box} -translate-y-1/2 items-center justify-center rounded-full border border-line bg-background text-on-surface shadow-card-hover transition-colors hover:text-accent md:flex`;
+    return (
+      <>
+        <button type="button" aria-label="Anterior" onClick={() => scrollByDir(-1)} className={`${cls} left-1`}>
+          <ChevronLeft className={icon} />
+        </button>
+        <button type="button" aria-label="Siguiente" onClick={() => scrollByDir(1)} className={`${cls} right-1`}>
+          <ChevronRight className={icon} />
+        </button>
+      </>
+    );
+  };
+
   if (reviews.length === 0) return null;
 
   const rounded = Math.round(average);
@@ -142,12 +192,15 @@ export function ProductReviews({
     return (
       <section>
         {heading}
-        <div className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1">
-          {reviews.map((r) => (
-            <div key={r.id} className="w-[86%] shrink-0 snap-start">
-              <ReviewCard review={r} compact />
-            </div>
-          ))}
+        <div className="relative">
+          <div ref={scrollerRef} className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1">
+            {reviews.map((r) => (
+              <div key={r.id} className="w-[86%] shrink-0 snap-start">
+                <ReviewCard review={r} compact />
+              </div>
+            ))}
+          </div>
+          {arrows('sm')}
         </div>
       </section>
     );
@@ -159,6 +212,7 @@ export function ProductReviews({
 
       {/* Carrusel horizontal: deslizamiento continuo (cinta). 80vw en mobile, 2 en tablet, 3 en desktop. */}
       <div
+        className="relative"
         onMouseEnter={() => { pausedRef.current = true; }}
         onMouseLeave={() => { pausedRef.current = false; }}
         onTouchStart={() => { pausedRef.current = true; }}
@@ -184,6 +238,7 @@ export function ProductReviews({
             </div>
           ))}
         </div>
+        {arrows('md')}
       </div>
     </section>
   );
