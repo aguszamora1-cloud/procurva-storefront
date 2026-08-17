@@ -57,8 +57,23 @@ function ReviewCard({ r, compact }: { r: Testimonial; compact?: boolean }) {
  * Carrusel horizontal con deslizamiento continuo (tipo cinta), igual que el
  * social proof del home: avanza solo, en loop sin corte, y se pausa al interactuar.
  */
-export function ProductReviews({ title, variant = 'section' }: { title?: string; variant?: 'section' | 'column' }) {
+export function ProductReviews({
+  title,
+  variant = 'section',
+  display,
+}: {
+  title?: string;
+  variant?: 'section' | 'column';
+  /**
+   * Cómo se muestran. `undefined` = lo que le queda mejor a cada zona: carrusel
+   * a ancho completo, apiladas en la columna. El comercio puede forzar una u
+   * otra desde el editor.
+   */
+  display?: 'carousel' | 'stack';
+}) {
   const { testimonials: reviews } = useTestimonials();
+  const column = variant === 'column';
+  const stacked = (display ?? (column ? 'stack' : 'carousel')) === 'stack';
   const scrollerRef = useRef<HTMLDivElement>(null);
   // Pausa el auto-scroll mientras el cliente interactúa (hover, swipe, foco).
   const pausedRef = useRef(false);
@@ -76,11 +91,14 @@ export function ProductReviews({ title, variant = 'section' }: { title?: string;
     return sum / reviews.length;
   }, [reviews]);
 
-  // Decidimos si animar: más de una reseña y sin "reducir movimiento".
+  // Decidimos si animar: más de una reseña, sin "reducir movimiento", y sólo en
+  // el carrusel a ancho completo. En la columna el deslizamiento automático
+  // pelea con el scroll de la página justo al lado del botón de comprar; ahí el
+  // carrusel se pasa con el dedo y listo. Apiladas no hay nada que animar.
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setAnimate(reviews.length > 1 && !reduce);
-  }, [reviews.length]);
+    setAnimate(reviews.length > 1 && !reduce && !stacked && !column);
+  }, [reviews.length, stacked, column]);
 
   // Deslizamiento continuo con requestAnimationFrame: avanza unos píxeles por
   // frame y al llegar al final del primer set salta exactamente un loop hacia
@@ -129,23 +147,52 @@ export function ProductReviews({ title, variant = 'section' }: { title?: string;
   const rounded = Math.round(average);
   const avgLabel = average.toFixed(average % 1 === 0 ? 0 : 1);
 
-  // EN LA COLUMNA: una abajo de la otra, sin carrusel. La cinta que se desliza
-  // sola funciona a ancho completo, pero en ~400px una tarjeta tapa a la
-  // siguiente y el movimiento pelea con el scroll de la página. Acá el
-  // deslizamiento no aporta nada: se leen apiladas.
-  if (variant === 'column') {
+  const heading = (
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${column ? 'mb-3' : 'mb-4'}`}>
+      <p
+        className={
+          column
+            ? 'text-[13px] font-semibold text-muted'
+            : 'text-[12px] font-semibold uppercase tracking-[0.06em] text-muted'
+        }
+      >
+        {title?.trim() || 'Opiniones de clientes'}
+      </p>
+      <div className={`flex items-center ${column ? 'gap-1.5' : 'gap-2'}`}>
+        <Stars value={rounded} size={column ? 13 : 15} />
+        <span className="text-[13px] font-semibold text-text">{avgLabel}</span>
+      </div>
+    </div>
+  );
+
+  // APILADAS: una abajo de la otra. A ancho completo se limita el ancho de la
+  // lista — una tarjeta de testimonio estirada a 1200px se vuelve ilegible
+  // (renglones larguísimos), que es lo contrario de lo que busca apilarlas.
+  if (stacked) {
+    return (
+      <section className={column ? '' : 'border-t border-line pt-6'}>
+        {heading}
+        <div className={`space-y-2 ${column ? '' : 'mx-auto max-w-[720px] sm:space-y-3'}`}>
+          {reviews.map((r) => (
+            <ReviewCard key={r.id} r={r} compact={column} />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  // CARRUSEL EN LA COLUMNA: se pasa con el dedo, sin deslizamiento automático
+  // (ver el useEffect de `animate`). Una tarjeta por vista con la siguiente
+  // asomando, para que se note que hay más.
+  if (column) {
     return (
       <section>
-        <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <p className="text-[13px] font-semibold text-muted">{title?.trim() || 'Opiniones de clientes'}</p>
-          <div className="flex items-center gap-1.5">
-            <Stars value={rounded} size={13} />
-            <span className="text-[13px] font-semibold text-text">{avgLabel}</span>
-          </div>
-        </div>
-        <div className="space-y-2">
+        {heading}
+        <div className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1">
           {reviews.map((r) => (
-            <ReviewCard key={r.id} r={r} compact />
+            <div key={r.id} className="w-[86%] shrink-0 snap-start">
+              <ReviewCard r={r} compact />
+            </div>
           ))}
         </div>
       </section>
@@ -154,13 +201,7 @@ export function ProductReviews({ title, variant = 'section' }: { title?: string;
 
   return (
     <section className="border-t border-line pt-6">
-      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted">{title?.trim() || 'Opiniones de clientes'}</p>
-        <div className="flex items-center gap-2">
-          <Stars value={rounded} />
-          <span className="text-[13px] font-semibold text-text">{avgLabel}</span>
-        </div>
-      </div>
+      {heading}
 
       {/* Carrusel horizontal: deslizamiento continuo (cinta). 80vw en mobile, 2 en tablet, 3 en desktop. */}
       <div

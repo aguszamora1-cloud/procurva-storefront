@@ -238,6 +238,10 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       description: str(s.gift_wrap_description),
       price: Math.max(0, Number(s.gift_wrap_price) || 0),
     },
+    reviewsDisplayMode:
+      s.product_reviews_display_mode === 'carousel' || s.product_reviews_display_mode === 'stack'
+        ? s.product_reviews_display_mode
+        : null,
     policyShipping: str(s.envio_politica),
     policyReturns: str(s.cambios_politica),
     policyPayments: str(s.pagos_politica),

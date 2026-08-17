@@ -622,6 +622,8 @@ export interface RawCatalogSettings {
   gift_wrap_label?: string;
   gift_wrap_description?: string;
   gift_wrap_price?: number;
+  /** Cómo se muestran las reseñas de la ficha. Ausente = según la zona. */
+  product_reviews_display_mode?: 'carousel' | 'stack';
   // Políticas de la tienda (acordeones en el detalle).
   envio_politica?: string;
   cambios_politica?: string;
@@ -899,6 +901,13 @@ export interface StoreConfig {
    * `procurva_store_config_vN` en StoreProvider).
    */
   giftWrap: { enabled: boolean; label: string; description: string; price: number };
+  /**
+   * Reseñas de la ficha: carrusel o una abajo de la otra. `null` = automático
+   * según la zona (carrusel a ancho completo, apiladas en la columna). Los tres
+   * estados son necesarios: sin el null, elegir "automático" tendría que
+   * guardar un valor concreto y la zona dejaría de decidir.
+   */
+  reviewsDisplayMode: 'carousel' | 'stack' | null;
   // Políticas de la tienda (acordeones del detalle). '' = no mostrar.
   policyShipping: string;
   policyReturns: string;
