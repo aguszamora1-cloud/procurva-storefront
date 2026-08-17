@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Volume2, VolumeX } from 'lucide-react';
+import { X, Volume2, VolumeX, ChevronUp, ChevronDown } from 'lucide-react';
 import { ReelProductCard, reelProductId, useReelProducts } from './ReelProductCard';
 import type { Reel } from '@/lib/types';
 
@@ -63,14 +63,62 @@ export function ReelsViewer({ reels, startIndex, onClose }: Props) {
     };
   }, []);
 
-  // Cerrar con Escape (desktop).
+  /**
+   * Navegación explícita entre videos (flechas, teclado, rueda del mouse).
+   *
+   * En mobile alcanza con el swipe, pero en desktop el visor no daba ninguna
+   * pista de que hubiera más videos: la rueda scrolleaba de a píxeles contra el
+   * snap y no había nada para clickear.
+   *
+   * `navLock` existe porque un gesto de trackpad dispara decenas de eventos
+   * wheel: sin el candado, un solo gesto se saltaba media docena de videos.
+   */
+  const navLock = useRef(false);
+  const goTo = useCallback(
+    (i: number) => {
+      const idx = Math.max(0, Math.min(i, reels.length - 1));
+      const el = slideRefs.current[idx];
+      if (!el || navLock.current) return;
+      navLock.current = true;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.setTimeout(() => {
+        navLock.current = false;
+      }, 450);
+    },
+    [reels.length],
+  );
+
+  // Escape cierra; flechas y AvPág/RePág navegan.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') return onClose();
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        goTo(active + 1);
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goTo(active - 1);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, goTo, active]);
+
+  // Rueda del mouse / trackpad: un gesto = un video. Se toma el control del
+  // scroll (passive:false + preventDefault) en vez de dejar el snap nativo, que
+  // con una rueda de clicks discretos frenaba a mitad de camino entre dos
+  // videos y volvía al que ya estabas viendo.
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) < 8) return;
+      e.preventDefault();
+      goTo(active + (e.deltaY > 0 ? 1 : -1));
+    };
+    root.addEventListener('wheel', onWheel, { passive: false });
+    return () => root.removeEventListener('wheel', onWheel);
+  }, [active, goTo]);
 
   // Qué slide está en viewport -> ese es el activo.
   useEffect(() => {
@@ -170,6 +218,49 @@ export function ReelsViewer({ reels, startIndex, onClose }: Props) {
       >
         {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
       </button>
+
+      {/* Flechas de navegación. Sólo desde `md`: en mobile el swipe ya es el
+          gesto natural y dos botones encima del video tapan la card del
+          producto. Se ocultan en los extremos en vez de quedar deshabilitadas —
+          un botón apagado en un visor a pantalla completa se lee como un bug. */}
+      {reels.length > 1 && (
+        <div className="pointer-events-none absolute right-4 top-1/2 z-20 hidden -translate-y-1/2 flex-col gap-3 md:flex">
+          {active > 0 && (
+            <button
+              type="button"
+              onClick={() => goTo(active - 1)}
+              aria-label="Video anterior"
+              className="pointer-events-auto rounded-full bg-white/15 p-3 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+            >
+              <ChevronUp className="h-6 w-6" />
+            </button>
+          )}
+          {active < reels.length - 1 && (
+            <button
+              type="button"
+              onClick={() => goTo(active + 1)}
+              aria-label="Video siguiente"
+              className="pointer-events-auto rounded-full bg-white/15 p-3 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+            >
+              <ChevronDown className="h-6 w-6" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Posición en la tanda: sin esto no hay forma de saber cuántos videos
+          quedan. Vertical, pegada al borde izquierdo, para no competir con la
+          card del producto. */}
+      {reels.length > 1 && (
+        <div className="pointer-events-none absolute left-4 top-1/2 z-20 hidden -translate-y-1/2 flex-col gap-1.5 md:flex">
+          {reels.map((r, i) => (
+            <span
+              key={r.id}
+              className={`h-5 w-1 rounded-full transition-colors ${i === active ? 'bg-white' : 'bg-white/30'}`}
+            />
+          ))}
+        </div>
+      )}
 
       <div
         ref={containerRef}
