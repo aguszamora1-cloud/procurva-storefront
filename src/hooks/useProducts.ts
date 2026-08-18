@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
 import { hasStock } from '@/lib/utils';
+import { applyStoreStatusList } from '@/lib/productStatus';
 import type { Product } from '@/lib/types';
 
 interface ProductsState {
@@ -22,7 +23,7 @@ interface ProductsState {
 // migraciones todavía no se aplicó, la query falla y caemos a COLS_BASE (sin
 // romper el grid; el modo "card por color" simplemente no se activa hasta migrar).
 const COLS_BASE = `
-  id, company_id, name,
+  id, company_id, name, status,
   retail_price, retail_price_transfer, retail_price_card, compare_at_price, wholesale_price,
   image_url, images, categories,
   catalog_visible, catalog_badge_text, catalog_badge_color, catalog_badge_visible,
@@ -45,10 +46,11 @@ let preferBaseColumns = false;
 // Cache stale-while-revalidate de productos (mismo patrón que la config del
 // tenant): servimos el catálogo cacheado para el primer paint instantáneo y
 // SIEMPRE revalidamos contra Supabase en segundo plano. v1: payload recortado.
-// v2: + brand y segment (filtros de Marca/Segmento). Hay que subir la versión
-// cuando cambian las columnas: si no, el visitante que vuelve pinta desde un
-// cache viejo y los filtros nuevos aparecen vacíos hasta que revalide.
-const CACHE_VERSION = 'v2';
+// v2: + brand y segment (filtros de Marca/Segmento). v3: + status (los Inactivo
+// se descartan y los Agotado vienen con stock 0). Hay que subir la versión cuando
+// cambian las columnas: si no, el visitante que vuelve pinta desde un cache viejo
+// y los filtros nuevos aparecen vacíos hasta que revalide.
+const CACHE_VERSION = 'v3';
 const cacheKey = (companyId: string, storeType: string) =>
   `procurva_products_${CACHE_VERSION}:${companyId}:${storeType}`;
 
@@ -72,9 +74,10 @@ function writeProductsCache(key: string, products: Product[]): void {
 }
 
 /**
- * Productos visibles del tenant con sus variantes. Filtra por company_id y
- * catalog_visible. Los productos sin stock NO se descartan: se muestran con
- * cartel "Sin stock" (no comprables) y se ordenan al final de la lista.
+ * Productos visibles del tenant con sus variantes. Filtra por company_id,
+ * catalog_visible y products.status (ver lib/productStatus). Los productos sin
+ * stock NO se descartan: se muestran con cartel "Sin stock" (no comprables) y se
+ * ordenan al final de la lista.
  */
 export function useProducts(): ProductsState {
   const { companyId, storeType } = useStoreStatus();
@@ -139,10 +142,11 @@ export function useProducts(): ProductsState {
         setIsLoading(false);
         return;
       }
+      // applyStoreStatusList aplica products.status: saca los Inactivo y pone en
+      // stock 0 los marcados Agotado (así caen al final y quedan no comprables).
       // No descartamos los sin stock: los ordenamos al final (sort estable, así
       // dentro de cada grupo se respeta el orden por created_at de la query).
-      const next = ((data ?? []) as unknown as Product[])
-        .slice()
+      const next = applyStoreStatusList((data ?? []) as unknown as Product[])
         .sort((a, b) => Number(hasStock(b)) - Number(hasStock(a)));
       setProducts(next);
       setError(null);

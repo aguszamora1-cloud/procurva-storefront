@@ -4,6 +4,7 @@ import { ChevronDown, Search, X } from 'lucide-react';
 import { useStore, useStoreStatus } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
+import { isUnpublished } from '@/lib/productStatus';
 import type { StoreMenuItem } from '@/lib/types';
 
 const drawerLink = ({ isActive }: { isActive: boolean }) =>
@@ -148,16 +149,19 @@ export function Navbar() {
           .order('sort_order', { ascending: true }),
         supabase
           .from('products')
-          .select('categories')
+          .select('categories, status')
           .eq('company_id', cid)
           .eq('catalog_visible', true)
           .gt(priceCol, 0),
       ]);
       if (cancelled) return;
 
-      // Conteo por categoría a partir de los productos visibles.
+      // Conteo por categoría a partir de los productos visibles. El status se
+      // filtra en JS y no con .neq(): en SQL, `status <> 'Inactivo'` es NULL para
+      // las filas sin estado y se llevaría puestos esos productos.
       const counts = new Map<string, number>();
-      for (const p of (prodRes.data as { categories: string[] | null }[] | null) ?? []) {
+      for (const p of (prodRes.data as { categories: string[] | null; status: string | null }[] | null) ?? []) {
+        if (isUnpublished(p)) continue;
         for (const c of Array.isArray(p.categories) ? p.categories : []) {
           counts.set(c, (counts.get(c) ?? 0) + 1);
         }

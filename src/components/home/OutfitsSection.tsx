@@ -8,6 +8,7 @@ import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
 import { formatPrice, getPriceInfo, mainImage, sortSizes } from '@/lib/utils';
 import { outfitImages, outfitPricing } from '@/lib/outfits';
+import { forceSoldOutIfMarked } from '@/lib/productStatus';
 import type { Product, Variant } from '@/lib/types';
 
 /**
@@ -212,8 +213,14 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
   }, [outfit.products, config.companyId]);
 
   // Productos con sus variantes resueltas (para resolver al agregar al carrito).
+  // forceSoldOutIfMarked va DESPUÉS de pegar las variantes: las traemos con una
+  // query aparte y, sin esto, un producto marcado Agotado en el ERP volvería a
+  // tener stock acá y se podría comprar desde el look.
   const enriched = useMemo<Product[]>(
-    () => outfit.products.map((p) => ({ ...p, product_variants: variantsByProduct[p.id] ?? [] })),
+    () =>
+      outfit.products.map((p) =>
+        forceSoldOutIfMarked({ ...p, product_variants: variantsByProduct[p.id] ?? [] }),
+      ),
     [outfit.products, variantsByProduct],
   );
 

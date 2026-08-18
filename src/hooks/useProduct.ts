@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
+import { applyStoreStatus } from '@/lib/productStatus';
 import type { Product } from '@/lib/types';
 
 interface ProductState {
@@ -11,7 +12,7 @@ interface ProductState {
 }
 
 const PRODUCT_COLUMNS_BASE = `
-  id, company_id, name, description,
+  id, company_id, name, description, status,
   retail_price, retail_price_transfer, retail_price_card, compare_at_price, wholesale_price,
   image_url, images, categories,
   catalog_visible, catalog_badge_text, catalog_badge_color, catalog_badge_visible,
@@ -66,7 +67,10 @@ export function useProduct(productId: string | undefined): ProductState {
         setIsLoading(false);
         return;
       }
-      setProduct((data as unknown as Product) ?? null);
+      // Oculto (catalog_visible=false) o Inactivo: para la tienda no existe, ni
+      // por link directo -> "Producto no encontrado". Si está marcado Agotado
+      // llega con stock 0 y el detalle lo pinta como no comprable.
+      setProduct(data ? applyStoreStatus(data as unknown as Product) : null);
       setError(null);
       setIsLoading(false);
     })();

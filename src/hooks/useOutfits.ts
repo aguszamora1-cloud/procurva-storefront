@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
+import { applyStoreStatusList } from '@/lib/productStatus';
 import type { Outfit, Product } from '@/lib/types';
 
 /** Outfit con sus productos ya resueltos y ordenados. */
@@ -9,10 +10,11 @@ export interface OutfitWithProducts extends Outfit {
 }
 
 // Columnas mínimas para la sección (imagen, precio y link). No traemos variantes
-// ni filtramos por catalog_visible/stock: un look se muestra completo aunque algún
-// producto esté agotado u oculto del listado general.
+// ni filtramos por stock: un look se muestra completo aunque algún producto esté
+// agotado. Sí traemos status y catalog_visible: un producto oculto o Inactivo no
+// puede colarse por acá (su ficha ahora es "no encontrado", ver useProduct).
 const OUTFIT_PRODUCT_COLUMNS =
-  'id, company_id, name, image_url, images, retail_price, retail_price_card, retail_price_transfer, compare_at_price';
+  'id, company_id, name, status, catalog_visible, image_url, images, retail_price, retail_price_card, retail_price_transfer, compare_at_price';
 
 /** Outfits activos del tenant con sus productos resueltos, ordenados por `order`. */
 export function useOutfits(): { outfits: OutfitWithProducts[]; isLoading: boolean } {
@@ -71,7 +73,11 @@ export function useOutfits(): { outfits: OutfitWithProducts[]; isLoading: boolea
           .in('id', productIds);
         if (cancelled) return;
         if (prodErr) console.error('[useOutfits] error cargando productos:', prodErr);
-        productMap = new Map(((prodRows ?? []) as unknown as Product[]).map((p) => [p.id, p]));
+        // Los ocultos / Inactivo quedan fuera del map: el look se arma con el
+        // resto y, si no queda ninguno, la sección ya descarta los outfits vacíos.
+        productMap = new Map(
+          applyStoreStatusList((prodRows ?? []) as unknown as Product[]).map((p) => [p.id, p]),
+        );
       }
 
       // 4) Ensamblar: cada outfit con sus productos en orden.

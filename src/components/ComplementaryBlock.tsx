@@ -9,6 +9,7 @@ import { useWholesalePricing } from '@/context/WholesalePricingContext';
 import { useComplementarios } from '@/hooks/useComplementarios';
 import { useProductVariants } from '@/hooks/useProductVariants';
 import { formatPrice } from '@/lib/utils';
+import { forceSoldOutIfMarked } from '@/lib/productStatus';
 import { PriceStack } from './PriceStack';
 import {
   colorsOf,
@@ -150,8 +151,14 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
   const [pickSize, setPickSize] = useState<string | null>(null);
 
   // Producto "completo" para operar (precios/flags del base + variantes con id/price).
+  // forceSoldOutIfMarked va al final: las variantes vienen de otra query y, sin
+  // esto, un producto marcado Agotado en el ERP volvería a tener stock acá.
   const full: Product = useMemo(
-    () => ({ ...base, product_variants: variants.length ? variants : (card.product_variants ?? []) }),
+    () =>
+      forceSoldOutIfMarked({
+        ...base,
+        product_variants: variants.length ? variants : (card.product_variants ?? []),
+      }),
     [base, variants, card],
   );
   const img = card.image_url ?? full.image_url ?? null;

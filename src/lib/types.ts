@@ -402,6 +402,10 @@ export interface Product {
   // y "Campera - Masculino" como dos categorías distintas.
   segment?: string | null;
   catalog_visible: boolean | null;
+  // Estado del producto en el ERP: 'Activo' | 'Inactivo' | 'Agotado' (texto
+  // libre en la DB). La tienda lo aplica en lib/productStatus: Inactivo no se
+  // publica y Agotado llega con stock 0. Opcional: hay SELECTs que no lo traen.
+  status?: string | null;
   catalog_badge_text: string | null;
   catalog_badge_color: string | null;
   catalog_badge_visible: boolean | null;
