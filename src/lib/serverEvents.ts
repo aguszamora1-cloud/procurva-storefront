@@ -10,6 +10,7 @@
  * solo en el Edge Function (service_role); acá no se toca ningún secreto.
  */
 import { supabase } from '@/lib/supabase';
+import { currencyCode } from './regional';
 
 export interface ServerEventInput {
   companyId: string;
@@ -31,7 +32,7 @@ export function sendServerEvent(ev: ServerEventInput): void {
     event_id: ev.eventId,
     event_name: ev.eventName,
     value: ev.value,
-    currency: ev.currency || 'ARS',
+    currency: ev.currency || currencyCode(),
     content_ids: ev.contentIds,
     source_url: ev.sourceUrl || (typeof window !== 'undefined' ? window.location.href : undefined),
     channel: ev.channel,

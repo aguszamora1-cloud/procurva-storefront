@@ -1,14 +1,9 @@
 import type { Product, ProductImage } from './types';
+import { formatMoney } from './regional';
 
-/** Formatea un precio en pesos argentinos. */
+/** Formatea un precio en la moneda de la tienda (ver lib/regional.ts). */
 export function formatPrice(value: number | null | undefined): string {
-  const n = Number(value ?? 0);
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(n);
+  return formatMoney(value);
 }
 
 /** Orden canónico de talles; lo no listado va alfabético al final. */

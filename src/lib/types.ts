@@ -900,6 +900,9 @@ export type StoreMenuItem =
 
 export interface StoreConfig {
   companyId: string;
+  /** Pais de la empresa: define la moneda de los precios. Ver lib/regional.ts.
+   *  Llega en settings.country (migracion 20260818_storefront_country). Default AR. */
+  country: string;
   name: string;
   plan: string;
   isPro: boolean;

@@ -9,6 +9,7 @@
 //    junction guarda el nombre de la categoría o el uuid del producto en item_id.
 
 import type { Product, StoreType } from './types';
+import { formatMoney } from './regional';
 
 export interface PromotionItem {
   // 'product_color' (migración 20260768) acota la promo a UN color del producto:
@@ -249,7 +250,7 @@ export function quantityPromoMessage(promo: Promotion, storeType: StoreType): st
   if (custom) return custom;
   const min = promo.min_quantity ?? 2;
   const v = promoDiscountValue(promo, storeType);
-  if (promo.discount_type === 'fixed') return `Llevá ${min} y ahorrá $${Math.round(v).toLocaleString('es-AR')} por unidad`;
+  if (promo.discount_type === 'fixed') return `Llevá ${min} y ahorrá ${formatMoney(Math.round(v))} por unidad`;
   return `Llevá ${min} y ahorrá un ${v}%`;
 }
 

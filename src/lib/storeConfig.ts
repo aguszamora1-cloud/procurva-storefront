@@ -272,6 +272,9 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
 
   return {
     companyId: resolved.company_id,
+    // Sin la migración 20260818 la clave no viene: cae a AR, que es como venía
+    // funcionando la tienda hasta ahora.
+    country: firstStr((s as Record<string, unknown>).country as string) || 'AR',
     name: companyName,
     plan,
     isPro,

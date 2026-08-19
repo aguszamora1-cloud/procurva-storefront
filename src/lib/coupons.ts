@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { CartItem, StoreType } from './types';
+import { formatMoney } from './regional';
 
 /** Alcance del cupón (mismo criterio que ecommerce_promotions: ids = nombres de
  * categoría o UUIDs de producto, según applies_to). */
@@ -177,7 +178,7 @@ export async function validateCoupon(
   if (coupon.min_subtotal && elig < coupon.min_subtotal) {
     return {
       ok: false,
-      error: `Compra mínima de $${Number(coupon.min_subtotal).toLocaleString('es-AR')} para usar este cupón.`,
+      error: `Compra mínima de ${formatMoney(Number(coupon.min_subtotal))} para usar este cupón.`,
     };
   }
 

@@ -10,6 +10,7 @@ import { resolveTenant } from '@/lib/tenant';
 import { normalizeStoreConfig } from '@/lib/storeConfig';
 import { applyDocumentMeta, applyTheme, loadFonts } from '@/lib/theme';
 import type { ResolvedStorefront, StoreConfig, StoreType } from '@/lib/types';
+import { setStoreCountry } from '@/lib/regional';
 
 type StoreStatus =
   | 'loading'
@@ -73,7 +74,10 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // v15: suma `fontScale`. applyTheme lo escribe en `--font-scale` y TODOS los
 // tamaños de la tienda cuelgan de esa variable: con una entrada v14 el primer
 // paint saldría en el tamaño viejo y se reacomodaría al resolver el fetch.
-const cacheKey = (slug: string) => `procurva_store_config_v15:${slug}`;
+// v16: suma `country` (moneda de la tienda). formatPrice() lo lee de un singleton
+// que fija applyConfig: con una entrada v15 el primer paint de una tienda paraguaya
+// saldria en pesos y se corregiria recien al resolver el fetch.
+const cacheKey = (slug: string) => `procurva_store_config_v16:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 
@@ -122,6 +126,11 @@ function markUnlocked(slug: string): void {
 
 /** Aplica tema, fuentes y meta de una config. */
 function applyConfig(config: StoreConfig): void {
+  // Antes que nada la moneda: formatPrice() la lee de un singleton de módulo, así
+  // que si se fija después ya se pintó el primer precio con el símbolo equivocado.
+  // Va acá y no en applyResolved porque este camino corre también con la config
+  // cacheada (primer paint sin red).
+  setStoreCountry(config.country);
   applyTheme(config);
   loadFonts(config);
   applyDocumentMeta(config);

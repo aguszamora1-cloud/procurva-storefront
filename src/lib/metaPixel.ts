@@ -13,6 +13,7 @@
  */
 
 import { sendServerEvent } from '@/lib/serverEvents';
+import { currencyCode } from './regional';
 
 export type MetaPixelEvent =
   | 'PageView'
@@ -51,8 +52,9 @@ declare global {
   }
 }
 
-/** Moneda fija del storefront (mercado argentino). */
-export const META_PIXEL_CURRENCY = 'ARS';
+/** Moneda de los eventos del pixel: la de la tienda (ver lib/regional.ts).
+ *  Es funcion y no constante porque el pais se resuelve despues de cargar el modulo. */
+export const metaPixelCurrency = (): string => currencyCode();
 
 /** Devuelve el `fbq` del tenant si el pixel está cargado, si no `null` (no-op). */
 function getFbq(): Fbq | null {
@@ -83,7 +85,7 @@ export function trackViewContent(p: { contentId: string; name: string; value: nu
     content_name: p.name,
     content_type: 'product',
     value: p.value,
-    currency: META_PIXEL_CURRENCY,
+    currency: metaPixelCurrency(),
   }, eventId);
 }
 
@@ -93,7 +95,7 @@ export function trackAddToCart(p: { contentId: string; name: string; value: numb
     content_ids: [p.contentId],
     content_name: p.name,
     value: p.value,
-    currency: META_PIXEL_CURRENCY,
+    currency: metaPixelCurrency(),
   }, eventId);
 }
 
@@ -102,7 +104,7 @@ export function trackInitiateCheckout(p: { contentIds: string[]; value: number; 
   trackMetaPixelEvent('InitiateCheckout', {
     content_ids: p.contentIds,
     value: p.value,
-    currency: META_PIXEL_CURRENCY,
+    currency: metaPixelCurrency(),
     num_items: p.numItems,
   }, eventId);
 }
@@ -219,7 +221,7 @@ export function flushPendingPurchase(): boolean {
       eventId: p.eventId,
       eventName: 'Purchase',
       value: p.value,
-      currency: META_PIXEL_CURRENCY,
+      currency: metaPixelCurrency(),
       contentIds: p.contentIds,
       orderId: p.orderId,
       userData: p.userData,
@@ -234,7 +236,7 @@ export function flushPendingPurchase(): boolean {
     content_ids: p.contentIds,
     content_type: 'product',
     value: p.value,
-    currency: META_PIXEL_CURRENCY,
+    currency: metaPixelCurrency(),
     num_items: p.numItems,
   }, p.eventId);
   markTracked(p.orderId);
