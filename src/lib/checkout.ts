@@ -117,6 +117,10 @@ export function buildWhatsappOrderWithCustomer(
     customer.address
       ? `Dirección: ${[customer.address, customer.city, customer.province, customer.zip].filter(Boolean).join(', ')}`
       : 'Retiro en local',
+    // El horario es lo primero que necesita el comercio para coordinar la entrega
+    // (o el retiro) y hasta ahora sólo quedaba guardado en la orden: el mensaje de
+    // WhatsApp —que es por donde entran los pedidos en efectivo— no lo mostraba.
+    customer.deliveryTime?.trim() ? `Horario: ${customer.deliveryTime.trim()}` : '',
   ].filter(Boolean);
 
   const message = [
