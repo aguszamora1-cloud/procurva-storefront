@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Truck } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
 import { Spinner } from '@/components/Spinner';
 import { formatPrice, whatsappLink } from '@/lib/utils';
@@ -57,6 +58,15 @@ export function ShippingCalculator() {
   return (
     <div className="border-t border-line pt-6">
       <p className="mb-2 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-subtle">Calculá tu envío</p>
+
+      {/* La promo se anuncia acá, con el precio del producto a la vista: es
+          donde el cliente todavía puede decidir sumar algo más al carrito. */}
+      {config.freeShippingFrom > 0 && (
+        <p className="mb-3 flex items-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-[#1e8449]">
+          <Truck className="h-3.5 w-3.5 shrink-0" />
+          Envío gratis en compras desde {formatPrice(config.freeShippingFrom)}
+        </p>
+      )}
 
       <div className="flex gap-2">
         <input

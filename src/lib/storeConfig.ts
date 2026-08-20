@@ -291,6 +291,11 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     minOrderAmount: typeof s.min_order_amount === 'number' && s.min_order_amount > 0 ? s.min_order_amount : 0,
     minOrderMode:
       s.min_order_mode === 'amount' || s.min_order_mode === 'both' ? s.min_order_mode : 'units',
+    // Envío gratis por monto. Redondeamos y descartamos negativos/no-números: el
+    // umbral se compara contra plata y un NaN acá dejaría la promesa prendida
+    // pero imposible de alcanzar. 0 = apagado (es el default de toda tienda que
+    // nunca lo configuró, así que ninguna cambia de conducta).
+    freeShippingFrom: Math.max(0, Math.round(Number(s.free_shipping_from) || 0)),
     // Horario de entrega: default obligatorio (comportamiento histórico). El
     // comercio puede volverlo opcional desde Catálogo Online → Checkout.
     requireDeliveryTime: bool(s.require_delivery_time, true),

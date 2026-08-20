@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, X, ArrowLeft, Plus, MapPin, Info, AlertTriangle, Image as ImageIcon, Lock, Pencil, ChevronUp, MessageCircle, Tag } from 'lucide-react';
+import { ShoppingBag, X, ArrowLeft, Plus, MapPin, Info, AlertTriangle, Image as ImageIcon, Lock, Pencil, ChevronUp, MessageCircle, Tag, Truck } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
 import { useMetaPixel } from '@/hooks/useMetaPixel';
@@ -14,7 +14,7 @@ import { cartLineKey, groupCartItems, evalMinOrder } from '@/lib/cart';
 import { applyPromoToPrice } from '@/lib/promotions';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, checkCartStock, CouponError, StockError, type CouponErrorCode, type CustomerInfo, type StockShortfall, type PriceBreakdown } from '@/lib/orders';
-import { expandMethod, hasOwnZoneCoverage, methodAvailableForChannel, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption, type StoreChannel } from '@/lib/shipping';
+import { effectiveShippingCost, evalFreeShipping, expandMethod, hasOwnZoneCoverage, isFreeByPromo, methodAvailableForChannel, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption, type StoreChannel } from '@/lib/shipping';
 import { looksLikePhone } from '@/lib/phone';
 import { computeDiscount, eligibleSubtotal, eligibleItems } from '@/lib/coupons';
 import { track } from '@/lib/tracking';
@@ -95,7 +95,7 @@ function saveCustomer(companyId: string, data: SavedCustomer): void {
 // el envío es "a coordinar" y todo se arregla por WhatsApp; no le sacamos el
 // efectivo a nadie por no haber cargado los métodos.
 const FALLBACK_METHODS: ShippingOption[] = [
-  { id: 'envio', name: 'Envío a domicilio', kind: 'home', requiresAddress: true, cost: null, icon: 'truck', description: 'Envío a todo el país', coversAllPostalCodes: true, postalCodeRanges: [], allowsCash: true },
+  { id: 'envio', name: 'Envío a domicilio', kind: 'home', requiresAddress: true, cost: null, icon: 'truck', description: 'Envío a todo el país', coversAllPostalCodes: true, postalCodeRanges: [], allowsCash: true, excludeFromFreeShipping: false },
 ];
 
 /** Etiqueta de precio por opción de entrega: 0 = "Gratis", null = "A coordinar", resto = precio. */
@@ -492,9 +492,32 @@ export function Checkout() {
   const { savedCoupon, couponRecord, saveCoupon, setApplied, removeCoupon: clearSavedCoupon } = useCoupon();
   const appliedCoupon = savedCoupon?.applied ? couponRecord : null;
 
+  // ── Envío gratis a partir de $X ────────────────────────────────────────────
+  // Se evalúa contra el subtotal de MERCADERÍA del modo de pago elegido (sin
+  // envío, sin packaging y sin restar el cupón; ver evalFreeShipping). Como el
+  // contado es más barato que la tarjeta, el mismo carrito puede alcanzar el
+  // umbral con tarjeta y no con contado: por eso se resuelve POR MODO y no una
+  // sola vez, así el total de cada tarjeta de medio de pago dice la verdad.
+  const freeShippingFor = (mode: 'cash' | 'card') =>
+    evalFreeShipping(config.freeShippingFrom, mode === 'cash' ? cashSubtotal : cardSubtotal);
+  const freeShipping = freeShippingFor(priceMode);
+  // ¿Tiene sentido anunciarla? Sólo si hay algún envío que efectivamente se
+  // cobre y participe: en una tienda de puro retiro (o con todo "a coordinar")
+  // el cartel sería una promesa sobre algo que ya no se cobra.
+  const freeShippingApplies =
+    freeShipping.active &&
+    channelMethods.some((m) => m.requiresAddress && typeof m.cost === 'number' && m.cost > 0 && !m.excludeFromFreeShipping);
+
+  // Costo del envío YA bonificado. TODO lo que muestra o suma un envío pasa por
+  // esta función: si la bonificación se aplicara sólo en el total, el cliente
+  // vería "Gratis" en la opción y otro número abajo (o al revés).
+  const shippingCostFor = (m: ShippingOption | null, mode: 'cash' | 'card') =>
+    m ? effectiveShippingCost(m, freeShippingFor(mode)) : null;
+
   // Costo conocido (número) vs "a coordinar" (null/sin método).
-  const shippingKnown = typeof selectedMethod?.cost === 'number';
-  const shippingCost = shippingKnown ? (selectedMethod!.cost as number) : 0;
+  const selectedShippingCost = shippingCostFor(selectedMethod, priceMode);
+  const shippingKnown = typeof selectedShippingCost === 'number';
+  const shippingCost = shippingKnown ? (selectedShippingCost as number) : 0;
 
   // Packaging de regalo: lo tilda el cliente. Puede valer 0 (gratis) y en ese
   // caso NO suma plata pero el pedido igual tiene que salir con el mono, por eso
@@ -540,7 +563,10 @@ export function Checkout() {
         disc = Math.round(computeDiscount(appliedCoupon, elig));
       }
     }
-    return Math.max(0, sub - disc) + shippingCost + giftWrapCost;
+    // El envío se recalcula por modo: con el umbral prendido, pagar con tarjeta
+    // puede alcanzarlo y pagar en contado no.
+    const ship = shippingCostFor(selectedMethod, mode) ?? 0;
+    return Math.max(0, sub - disc) + ship + giftWrapCost;
   };
 
   // Monto exacto a transferir: SIEMPRE el total de contado del método Transferencia
@@ -910,7 +936,10 @@ export function Checkout() {
   // Envío a domicilio / retiro en sucursal como radio: nombre, plazo y precio a la derecha.
   const renderDeliveryOption = (m: ShippingOption) => {
     const selected = m.id === selectedMethodId;
-    const price = shippingPriceLabel(m.cost);
+    // Precio ya bonificado. Si la promo lo puso en cero, el precio de lista
+    // queda tachado al lado: que se vea el descuento que el carrito se ganó.
+    const bonified = isFreeByPromo(m, freeShipping);
+    const price = shippingPriceLabel(shippingCostFor(m, priceMode));
     return (
       <RadioCard
         key={m.id}
@@ -930,8 +959,13 @@ export function Checkout() {
               </span>
             )}
           </span>
-          <span className={`shrink-0 text-[calc(14px_*_var(--font-scale,1))] font-medium ${price.free ? 'text-[#27ae60]' : 'text-text'}`}>
-            {price.text}
+          <span className="flex shrink-0 items-baseline gap-1.5">
+            {bonified && (
+              <span className="text-[calc(13px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(m.cost as number)}</span>
+            )}
+            <span className={`text-[calc(14px_*_var(--font-scale,1))] font-medium ${price.free ? 'text-[#27ae60]' : 'text-text'}`}>
+              {price.text}
+            </span>
           </span>
         </span>
       </RadioCard>
@@ -982,7 +1016,12 @@ export function Checkout() {
         <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">Envío</span>
         {shippingKnown ? (
           shippingCost === 0 ? (
-            <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#27ae60]">Gratis</span>
+            <span className="flex items-baseline gap-1.5">
+              {selectedMethod && isFreeByPromo(selectedMethod, freeShipping) && (
+                <span className="text-[calc(12px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(selectedMethod.cost as number)}</span>
+              )}
+              <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#27ae60]">Gratis</span>
+            </span>
           ) : (
             <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-text">{formatPrice(shippingCost)}</span>
           )
@@ -1048,6 +1087,26 @@ export function Checkout() {
           {/* 2. Entrega — retiro en el local + envío a domicilio (gateado por CP) */}
           <div className="mt-9">
             <SectionHeading n={2}>Entrega</SectionHeading>
+
+            {/* Envío gratis por monto: si ya llegó lo confirmamos, y si no le
+                decimos cuánto le falta — es la única forma de que la promo
+                empuje el ticket en vez de ser una sorpresa al final. */}
+            {freeShippingApplies && (
+              <div
+                className={`mb-4 flex items-start gap-2 rounded-xl px-4 py-3 text-[calc(13px_*_var(--font-scale,1))] ${
+                  freeShipping.reached ? 'bg-[#27ae60]/10 text-[#1e8449]' : 'border border-line text-muted'
+                }`}
+              >
+                <Truck className={`mt-0.5 h-4 w-4 shrink-0 ${freeShipping.reached ? 'text-[#27ae60]' : 'text-subtle'}`} />
+                <span className="min-w-0">
+                  {freeShipping.reached ? (
+                    <>Tu pedido tiene <span className="font-medium">envío gratis</span>.</>
+                  ) : (
+                    <>Te faltan <span className="font-medium text-text">{formatPrice(freeShipping.missing)}</span> para tener envío gratis.</>
+                  )}
+                </span>
+              </div>
+            )}
 
             {/* Retiro en el local (radio): dirección + días en una línea; el horario
                 de retiro se anida dentro de la opción cuando queda elegida. */}

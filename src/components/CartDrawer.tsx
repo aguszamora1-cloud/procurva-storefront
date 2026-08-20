@@ -5,6 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
 import { StoreImage } from './StoreImage';
 import { ComplementaryBlock } from './ComplementaryBlock';
+import { FreeShippingProgress } from './FreeShippingProgress';
 import { formatPrice } from '@/lib/utils';
 import { groupCartItems } from '@/lib/cart';
 
@@ -170,6 +171,9 @@ export function CartDrawer() {
             {quantitySavings > 0 && (
               <p className="-mt-3 mb-4 text-right text-[calc(12px_*_var(--font-scale,1))] font-semibold text-accent">Ahorrás {formatPrice(quantitySavings)}</p>
             )}
+            {/* Cuánto falta para el envío gratis: acá es donde el cliente decide
+                si suma una prenda más o si cierra el pedido. */}
+            <FreeShippingProgress subtotal={hasCashSubtotal ? cashSubtotal : adjustedSubtotal} className="mb-4" />
             <Link
               to="/carrito"
               onClick={close}

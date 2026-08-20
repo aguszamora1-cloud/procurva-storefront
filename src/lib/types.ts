@@ -620,6 +620,11 @@ export interface RawCatalogSettings {
   min_order_quantity?: number;
   min_order_amount?: number;
   min_order_mode?: 'units' | 'amount' | 'both';
+  // Envío gratis a partir de este monto de mercadería (sin envío ni packaging).
+  // 0 / ausente = la promoción está apagada y el envío se cobra siempre. Vive en
+  // el `settings` de CADA tienda, así que la minorista y la mayorista pueden
+  // tener umbrales distintos (o una sola tenerla prendida).
+  free_shipping_from?: number;
   // Si el checkout exige el horario para recibir/retirar el pedido.
   // Ausente/true → obligatorio (comportamiento histórico); false → opcional.
   require_delivery_time?: boolean;
@@ -917,6 +922,10 @@ export interface StoreConfig {
   minOrderQuantity: number;
   minOrderAmount: number;
   minOrderMode: 'units' | 'amount' | 'both';
+  // Monto de mercadería a partir del cual el envío pasa a costar 0. 0 = apagado.
+  // Qué subtotal se compara contra este número está definido en un solo lugar
+  // (`evalFreeShipping`, lib/shipping.ts) y lo usan el carrito y el checkout.
+  freeShippingFrom: number;
   // El checkout exige el horario de entrega/retiro. Default true (obligatorio).
   requireDeliveryTime: boolean;
   /**

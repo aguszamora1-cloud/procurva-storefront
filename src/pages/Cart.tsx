@@ -5,6 +5,7 @@ import { useCartPromos } from '@/hooks/useCartPromos';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { StoreImage } from '@/components/StoreImage';
 import { CouponChip } from '@/components/CouponChip';
+import { FreeShippingProgress } from '@/components/FreeShippingProgress';
 import { Seo } from '@/components/Seo';
 import { formatPrice } from '@/lib/utils';
 import { groupCartItems, evalMinOrder } from '@/lib/cart';
@@ -152,6 +153,10 @@ export function Cart() {
           {quantitySavings > 0 && (
             <p className="pt-3 text-right text-[calc(12px_*_var(--font-scale,1))] font-semibold text-accent">Ahorrás {formatPrice(quantitySavings)} por cantidad</p>
           )}
+          {/* Cuánto falta para el envío gratis. Va contra el mismo subtotal que
+              se muestra arriba (el de contado si existe, que es el más chico):
+              lo que promete el carrito es lo que después cumple el checkout. */}
+          <FreeShippingProgress subtotal={hasCashSubtotal ? cashSubtotal : adjustedSubtotal} className="pt-4" />
           {/* Cupón guardado: chip tri-estado. Sin monto exacto (showAmount=false):
               depende de promos por cantidad y del modo de pago, que se resuelven en
               el checkout; acá solo indicamos que está aplicado. */}

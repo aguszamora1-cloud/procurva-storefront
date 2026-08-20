@@ -67,6 +67,15 @@ export interface ShippingOption {
    * por método (`allowsCash`); ver `parseAllowsCash` para el default.
    */
   allowsCash: boolean;
+  /**
+   * ¿Queda AFUERA de la promo "envío gratis a partir de $X"? Lo decide el panel
+   * por método (Configuración → Envíos): un cadete de zona se regala sin drama,
+   * pero un despacho nacional de $18.000 se come la ganancia del pedido entero.
+   * Ausente (todos los métodos cargados antes de la feature) = participa: como
+   * el umbral arranca apagado, prenderlo tiene que alcanzar a los envíos que el
+   * comercio ya tenía cargados sin obligarlo a reeditarlos uno por uno.
+   */
+  excludeFromFreeShipping: boolean;
 }
 
 /**
@@ -81,6 +90,64 @@ export function parseAllowsCash(m: any, isPickup: boolean): boolean {
   if (typeof m.allowsCash === 'boolean') return m.allowsCash;
   if (isPickup) return true;
   return !(m.type === 'empresa' || m.coversAllPostalCodes === true);
+}
+
+/**
+ * Estado de la promo "envío gratis a partir de $X" para un carrito dado.
+ * Se calcula una sola vez y lo consumen el carrito, el checkout y la ficha de
+ * producto: el número que promete la tienda y el que termina cobrando el
+ * checkout salen del mismo lugar.
+ */
+export interface FreeShippingStatus {
+  /** El comercio configuró un umbral (> 0). En false, el resto no aplica. */
+  active: boolean;
+  /** Monto a partir del cual el envío es gratis (0 = apagado). */
+  threshold: number;
+  /** El subtotal de mercadería ya llegó al umbral. */
+  reached: boolean;
+  /** Cuánto falta para llegar. 0 si ya llegó o si está apagada. */
+  missing: number;
+}
+
+/**
+ * Evalúa la promo contra el SUBTOTAL DE MERCADERÍA: el mismo número que la
+ * tienda muestra como "Subtotal" (con promos por cantidad ya aplicadas, sin
+ * envío, sin packaging y SIN restarle el cupón).
+ *
+ * Que el cupón no cuente es deliberado: el carrito no calcula el descuento (se
+ * resuelve recién en el checkout y depende del medio de pago), así que medir el
+ * umbral post-cupón haría que el carrito prometa envío gratis y el checkout se
+ * lo cobre. La promesa se hace sobre el número que el cliente tiene a la vista.
+ */
+export function evalFreeShipping(threshold: number, goodsSubtotal: number): FreeShippingStatus {
+  const min = Math.max(0, Math.round(threshold || 0));
+  if (min <= 0) return { active: false, threshold: 0, reached: false, missing: 0 };
+  const reached = goodsSubtotal >= min;
+  return { active: true, threshold: min, reached, missing: reached ? 0 : min - goodsSubtotal };
+}
+
+/**
+ * Costo final del método para este cliente: el que configuró el comercio, o 0
+ * si la promo ya está alcanzada y el método participa.
+ *
+ * Bonificamos SÓLO envíos con precio conocido y mayor a cero: el retiro en el
+ * local ya es gratis, y "a coordinar" (null) tiene que seguir siendo null —
+ * poner 0 ahí sería prometer gratis un envío cuyo costo todavía no conoce ni el
+ * comercio. Todo lo que muestra o cobra un envío pasa por acá.
+ */
+export function effectiveShippingCost(o: ShippingOption, promo: FreeShippingStatus): number | null {
+  if (!promo.active || !promo.reached) return o.cost;
+  if (o.excludeFromFreeShipping) return o.cost;
+  // La promo es sobre el ENVÍO. Un punto de retiro con costo (raro, pero
+  // existe) no es un envío y no se bonifica.
+  if (!o.requiresAddress) return o.cost;
+  if (typeof o.cost !== 'number' || o.cost <= 0) return o.cost;
+  return 0;
+}
+
+/** ¿El método está bonificado por la promo (para tachar el precio de lista)? */
+export function isFreeByPromo(o: ShippingOption, promo: FreeShippingStatus): boolean {
+  return effectiveShippingCost(o, promo) === 0 && typeof o.cost === 'number' && o.cost > 0;
 }
 
 /**
@@ -249,6 +316,7 @@ export function toShippingOption(m: any, channel?: StoreChannel): ShippingOption
     coversAllPostalCodes: m.coversAllPostalCodes === true,
     postalCodeRanges: parsePostalCodeRanges(m.postalCodes),
     allowsCash: parseAllowsCash(m, isPickup),
+    excludeFromFreeShipping: m.excludeFromFreeShipping === true,
   };
 }
 
@@ -270,6 +338,9 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
     // Las dos modalidades (domicilio / sucursal) heredan el mismo criterio de
     // efectivo: es el mismo despacho, sólo cambia dónde termina el paquete.
     const allowsCash = parseAllowsCash(m, false);
+    // Domicilio y sucursal son el mismo despacho: si el comercio dejó a la
+    // transportadora afuera del envío gratis, las dos modalidades quedan afuera.
+    const excludeFromFreeShipping = m.excludeFromFreeShipping === true;
     return [
       {
         id: `${baseId}:domicilio`,
@@ -284,6 +355,7 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
         coversAllPostalCodes,
         postalCodeRanges,
         allowsCash,
+        excludeFromFreeShipping,
       },
       {
         id: `${baseId}:sucursal`,
@@ -298,6 +370,7 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
         coversAllPostalCodes,
         postalCodeRanges,
         allowsCash,
+        excludeFromFreeShipping,
       },
     ];
   }
