@@ -77,7 +77,10 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // v16: suma `country` (moneda de la tienda). formatPrice() lo lee de un singleton
 // que fija applyConfig: con una entrada v15 el primer paint de una tienda paraguaya
 // saldria en pesos y se corregiria recien al resolver el fetch.
-const cacheKey = (slug: string) => `procurva_store_config_v16:${slug}`;
+// v17: suma `giftWrap.name` (el nombre del packaging, distinto del texto de la
+// casilla). Con una entrada v16 el pedido guardaria `gift_wrap_label: null` en
+// las tiendas que SI personalizaron el nombre, hasta que se refresque la config.
+const cacheKey = (slug: string) => `procurva_store_config_v17:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 

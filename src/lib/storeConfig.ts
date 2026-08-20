@@ -297,9 +297,15 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     // Packaging de regalo: opcional, lo tilda el cliente en el checkout. El
     // label es texto FUNCIONAL (es la etiqueta de un control), así que no usa
     // `optionalText` — vaciarlo no debe dejar un checkbox sin nombre.
+    // `label` invita a tildar la casilla; `name` NOMBRA el servicio ya elegido
+    // (resumen de precios, pedido, mensaje de WhatsApp). Antes se reusaba el
+    // label para ambas cosas y la tienda que no lo personalizaba mandaba
+    // "Con packaging de regalo: Sumar packaging de regalo" — leído desde el
+    // WhatsApp parecía un cartel del sistema y no algo que el cliente pidió.
     giftWrap: {
       enabled: bool(s.gift_wrap_enabled, false),
       label: str(s.gift_wrap_label) || 'Sumar packaging de regalo',
+      name: str(s.gift_wrap_label) || 'Packaging de regalo',
       description: str(s.gift_wrap_description),
       price: Math.max(0, Number(s.gift_wrap_price) || 0),
     },

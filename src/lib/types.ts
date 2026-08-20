@@ -926,7 +926,7 @@ export interface StoreConfig {
    * (la config cacheada de una build vieja no tiene la clave — ver el bump de
    * `procurva_store_config_vN` en StoreProvider).
    */
-  giftWrap: { enabled: boolean; label: string; description: string; price: number };
+  giftWrap: { enabled: boolean; label: string; name: string; description: string; price: number };
   /**
    * Reseñas de la ficha: carrusel o una abajo de la otra. `null` = automático
    * según la zona (carrusel a ancho completo, apiladas en la columna). Los tres

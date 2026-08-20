@@ -710,7 +710,7 @@ export function Checkout() {
         surcharge: 0,
         gift_wrap: giftWrapCost,
         gift_wrap_selected: giftWrapOn,
-        gift_wrap_label: giftWrapOn ? giftWrap?.label || null : null,
+        gift_wrap_label: giftWrapOn ? giftWrap?.name || null : null,
         total: Math.round(orderTotal),
         items: pricedItems.map((i) => {
           const priceFinal =
@@ -809,7 +809,7 @@ export function Checkout() {
           : orderId
             ? String(orderId).toUpperCase()
             : undefined;
-      const href = buildWhatsappOrderWithCustomer(config, pricedItems, orderTotal, customer, payLabel, orderRef, giftWrapOn ? giftWrap?.label || 'Packaging de regalo' : null);
+      const href = buildWhatsappOrderWithCustomer(config, pricedItems, orderTotal, customer, payLabel, orderRef, giftWrapOn ? giftWrap?.name || 'Packaging de regalo' : null);
       // NO abrimos WhatsApp acá con window.open: en mobile tapa la página (el
       // cliente no ve la confirmación y cree que falló → reintenta y duplica) y el
       // navegador suele bloquear el pop-up. En su lugar, llevamos al cliente a la
@@ -992,7 +992,7 @@ export function Checkout() {
       </div>
       {giftWrapOn && (
         <div className="flex items-center justify-between">
-          <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">{giftWrap?.label || "Packaging de regalo"}</span>
+          <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">{giftWrap?.name || "Packaging de regalo"}</span>
           {giftWrapCost === 0 ? (
             <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#27ae60]">Gratis</span>
           ) : (
