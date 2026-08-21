@@ -80,7 +80,13 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // v17: suma `giftWrap.name` (el nombre del packaging, distinto del texto de la
 // casilla). Con una entrada v16 el pedido guardaria `gift_wrap_label: null` en
 // las tiendas que SI personalizaron el nombre, hasta que se refresque la config.
-const cacheKey = (slug: string) => `procurva_store_config_v17:${slug}`;
+// v18: suma `priceDisplay` y `cashLabel` (qué precios ve el cliente). Los
+// lectores tienen guarda —una entrada v17 se comporta como 'all', que es el
+// default—, así que el bump NO es por un crash: es por el PARPADEO. Una tienda
+// que eligió "Solo contado" pintaría el primer frame con el precio de tarjeta y
+// las cuotas, y recién los sacaría al resolver el fetch. Justamente lo que el
+// comercio pidió esconder, mostrado por medio segundo en cada visita.
+const cacheKey = (slug: string) => `procurva_store_config_v18:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 
