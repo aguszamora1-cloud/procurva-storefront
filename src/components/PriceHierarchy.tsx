@@ -1,4 +1,5 @@
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, resolvePricePair } from '@/lib/utils';
+import type { StoreConfig } from '@/lib/types';
 
 export type PriceVariant = 'card' | 'detail' | 'compact';
 
@@ -7,6 +8,8 @@ interface Props {
   cash: number | null;
   /** Precio de tarjeta (o precio único cuando `cash` es null). */
   card: number;
+  /** Qué precios mostrar. Lo pasa el caller desde la config de la tienda. */
+  priceDisplay?: StoreConfig['priceDisplay'];
   /** Precio anterior tachado (lista o pre-promo). */
   strike?: number | null;
   /** % de descuento de contado (badge, sólo variant 'detail'). */
@@ -28,25 +31,32 @@ interface Props {
  * el de **tarjeta** queda secundario (chico, gris). Cuando no hay diferencia
  * contado/tarjeta (`cash` null o >= `card`), muestra un solo precio.
  *
- * Presentacional puro: recibe montos ya calculados. `PriceStack` lo usa para el
- * precio de producto; las superficies de totales (escalones, carrito, drawer,
- * checkout, sticky) lo usan con sus montos tarjeta/contado por línea.
+ * `priceDisplay` decide qué renglones entran (ver `resolvePricePair`): en modo
+ * 'contado' desaparecen la línea de tarjeta, el badge de % y las cuotas — el
+ * badge porque un "-15%" sin el precio contra el que compara no dice nada.
+ *
+ * Presentacional puro: recibe montos ya calculados, y el modo por prop (no lee
+ * la config). El precio de producto entra por `PriceStack`; el carrito, el
+ * drawer y los combos arman su markup y llaman a `resolvePricePair` directo.
  */
 export function PriceHierarchy({
   cash,
   card,
+  priceDisplay = 'all',
   strike,
   discountPct = 0,
   savings = 0,
   installments = '',
   variant = 'card',
-  cashLabel = 'efectivo o transferencia',
+  cashLabel: cashLabelProp,
   cardLabel = 'con tarjeta',
 }: Props) {
   const detail = variant === 'detail';
   const compact = variant === 'compact';
-  const hasCash = cash != null && cash > 0 && cash < card;
-  const primary = hasCash ? (cash as number) : card;
+  const pair = resolvePricePair({ priceDisplay, cashLabel: cashLabelProp ?? 'efectivo o transferencia' }, cash, card);
+  const { primary, cardLine } = pair;
+  const hasCash = pair.isCash;
+  const cashLabel = pair.cashLabel;
 
   const primaryCls = detail
     ? 'text-[calc(30px_*_var(--font-scale,1))] md:text-[calc(34px_*_var(--font-scale,1))] font-extrabold leading-none tracking-[-0.02em] text-accent'
@@ -61,7 +71,7 @@ export function PriceHierarchy({
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <span className={primaryCls}>{formatPrice(primary)}</span>
         {hasCash && cashLabel && <span className={`font-medium text-muted ${labelCls}`}>{cashLabel}</span>}
-        {hasCash && detail && discountPct > 0 && (
+        {cardLine != null && detail && discountPct > 0 && (
           <span className="shrink-0 rounded bg-accent px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold leading-none text-on-accent shadow-sm">
             -{discountPct}%
           </span>
@@ -77,13 +87,13 @@ export function PriceHierarchy({
         </p>
       )}
 
-      {hasCash && (
+      {cardLine != null && (
         <p className={`mt-1 text-subtle ${labelCls}`}>
-          <span className="font-semibold">{formatPrice(card)}</span> <span className="font-medium">{cardLabel}</span>
+          <span className="font-semibold">{formatPrice(cardLine)}</span> <span className="font-medium">{cardLabel}</span>
         </p>
       )}
 
-      {installments && (
+      {priceDisplay !== 'contado' && installments && (
         <p className={`mt-1 font-medium text-muted ${detail ? 'text-[calc(14px_*_var(--font-scale,1))]' : 'text-[calc(12px_*_var(--font-scale,1))] md:text-[calc(13px_*_var(--font-scale,1))]'}`}>
           {installments}
         </p>

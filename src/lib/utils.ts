@@ -1,9 +1,69 @@
-import type { Product, ProductImage } from './types';
+import type { Product, ProductImage, StoreConfig } from './types';
 import { formatMoney } from './regional';
 
 /** Formatea un precio en la moneda de la tienda (ver lib/regional.ts). */
 export function formatPrice(value: number | null | undefined): string {
   return formatMoney(value);
+}
+
+/**
+ * ÚNICO lugar que decide el renglón de cuotas del precio de tarjeta.
+ *
+ *  - `installmentsCount === 0` → el comercio eligió NO anunciar cuotas: no se
+ *    muestra nada, ni siquiera el texto libre. Es la forma de sacar el renglón.
+ *  - Con cuotas > 1, el "Texto informativo Tarjeta" (`cardPaymentText`) pisa el
+ *    armado automático; si está vacío, se arma `N cuotas sin interés de $X`.
+ *
+ * `cardPrice` es el precio CON TARJETA (nunca el de contado): las cuotas se
+ * calculan siempre sobre el que efectivamente se financia.
+ */
+export function installmentsLabel(
+  config: Pick<StoreConfig, 'installmentsCount' | 'cardPaymentText'>,
+  cardPrice: number,
+): string {
+  if (config.installmentsCount <= 0) return '';
+  if (config.cardPaymentText) return config.cardPaymentText;
+  if (config.installmentsCount < 2 || !(cardPrice > 0)) return '';
+  return `${config.installmentsCount} cuotas sin interés de ${formatPrice(Math.round(cardPrice / config.installmentsCount))}`;
+}
+
+export interface PricePair {
+  /** Precio protagonista (el grande). */
+  primary: number;
+  /** Precio de tarjeta como renglón secundario ("$X con tarjeta"). null = no va. */
+  cardLine: number | null;
+  /** Etiqueta del contado. '' cuando el protagonista NO es el precio de contado. */
+  cashLabel: string;
+  /** El protagonista es el precio de contado (hay diferencia real y se muestra). */
+  isCash: boolean;
+}
+
+/**
+ * ÚNICO lugar que decide la dupla contado/tarjeta: qué precio es el protagonista
+ * y si el de tarjeta aparece debajo. Lo usan la grilla, la ficha, el carrito, el
+ * drawer y los combos — antes cada uno tenía la condición escrita a mano, que es
+ * por qué "ocultar tarjeta" no podía existir sin tocar siete archivos.
+ *
+ * NO lo usa el checkout: ahí el total muestra el medio que el cliente eligió.
+ *
+ * `cash` puede venir null/igual/mayor a `card` (producto sin descuento de
+ * contado): en ese caso hay un solo precio y es `card`.
+ */
+export function resolvePricePair(
+  config: Pick<StoreConfig, 'priceDisplay' | 'cashLabel'>,
+  cash: number | null | undefined,
+  card: number,
+): PricePair {
+  const hasCash = cash != null && cash > 0 && cash < card;
+  if (!hasCash || config.priceDisplay === 'card') {
+    return { primary: card, cardLine: null, cashLabel: '', isCash: false };
+  }
+  return {
+    primary: cash as number,
+    cardLine: config.priceDisplay === 'contado' ? null : card,
+    cashLabel: config.cashLabel,
+    isCash: true,
+  };
 }
 
 /** Orden canónico de talles; lo no listado va alfabético al final. */

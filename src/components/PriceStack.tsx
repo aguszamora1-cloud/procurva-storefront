@@ -1,6 +1,6 @@
 import { useStore } from '@/context/StoreProvider';
 import { usePromotions } from '@/context/PromotionsContext';
-import { formatPrice, getPriceInfo } from '@/lib/utils';
+import { getPriceInfo, installmentsLabel } from '@/lib/utils';
 import type { Product } from '@/lib/types';
 import { PriceHierarchy, type PriceVariant } from './PriceHierarchy';
 
@@ -41,18 +41,15 @@ export function PriceStack({ product, variant = 'card', color }: Props) {
   const shownCash = cashPrice != null ? (onPromo ? priceFor(cashPrice, product, color).finalPrice : cashPrice) : null;
   const hasCashDiscount = shownCash != null && shownCash > 0 && shownCash < shownCard && cashDiscountPct > 0;
 
-  const installments =
-    variant !== 'compact' && hasCard && config.installmentsCount > 0
-      ? config.cardPaymentText ||
-        (config.installmentsCount > 1
-          ? `${config.installmentsCount} cuotas sin interés de ${formatPrice(Math.round(cardPrice / config.installmentsCount))}`
-          : '')
-      : '';
+  // 'compact' (filas chicas) nunca muestra cuotas, no entran.
+  const installments = variant !== 'compact' && hasCard ? installmentsLabel(config, cardPrice) : '';
 
   return (
     <PriceHierarchy
       cash={hasCashDiscount ? (shownCash as number) : null}
       card={shownCard}
+      priceDisplay={config.priceDisplay}
+      cashLabel={config.cashLabel}
       strike={onPromo ? mainPrice : comparePrice}
       discountPct={cashDiscountPct}
       savings={onPromo ? promoMain.savings : 0}

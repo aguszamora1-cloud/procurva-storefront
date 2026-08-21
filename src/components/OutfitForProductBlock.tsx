@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
 import { useOutfits } from '@/hooks/useOutfits';
 import { StoreImage } from './StoreImage';
-import { formatPrice, mainImage } from '@/lib/utils';
+import { formatPrice, mainImage, resolvePricePair } from '@/lib/utils';
 import { outfitImages, outfitPricing, outfitsContaining } from '@/lib/outfits';
 import type { Product } from '@/lib/types';
 import type { OutfitWithProducts } from '@/hooks/useOutfits';
@@ -40,7 +40,7 @@ export function OutfitForProductBlock({ product, className }: Props) {
 
   const pricing = outfitPricing(outfit);
   const hero = outfitImages(outfit)[0] ?? null;
-  const hasDual = pricing.comboCash > 0 && pricing.comboCash < pricing.comboCard;
+  const combo = resolvePricePair(config, pricing.comboCash, pricing.comboCard);
 
   // Precio (contado protagonista, tarjeta secundaria) + ahorro del combo.
   const priceEl = (
@@ -48,10 +48,10 @@ export function OutfitForProductBlock({ product, className }: Props) {
       {pricing.hasCombo && pricing.cashSaving > 0 && (
         <span className="text-xs text-subtle line-through">{formatPrice(pricing.cashSum)}</span>
       )}
-      <span className="text-base font-bold text-accent">{formatPrice(pricing.comboCash)}</span>
-      {hasDual && (
+      <span className="text-base font-bold text-accent">{formatPrice(combo.primary)}</span>
+      {combo.cardLine != null && (
         <span className="text-[calc(11px_*_var(--font-scale,1))] text-subtle">
-          <span className="font-semibold">{formatPrice(pricing.comboCard)}</span> con tarjeta
+          <span className="font-semibold">{formatPrice(combo.cardLine)}</span> con tarjeta
         </span>
       )}
     </div>

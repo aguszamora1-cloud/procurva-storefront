@@ -6,7 +6,8 @@ import { useCartPromos } from '@/hooks/useCartPromos';
 import { StoreImage } from './StoreImage';
 import { ComplementaryBlock } from './ComplementaryBlock';
 import { FreeShippingProgress } from './FreeShippingProgress';
-import { formatPrice } from '@/lib/utils';
+import { useStore } from '@/context/StoreProvider';
+import { formatPrice, resolvePricePair } from '@/lib/utils';
 import { groupCartItems } from '@/lib/cart';
 
 export function CartDrawer() {
@@ -19,6 +20,9 @@ export function CartDrawer() {
   // checkout (esa es la inconsistencia previa a mirar aparte).
   const cashSubtotal = items.reduce((s, i) => s + (typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price) * i.qty, 0);
   const hasCashSubtotal = cashSubtotal > 0 && cashSubtotal < adjustedSubtotal;
+  const config = useStore();
+  // Subtotal según lo que la tienda muestra (contado, tarjeta o los dos).
+  const subtotalPair = resolvePricePair(config, hasCashSubtotal ? cashSubtotal : null, adjustedSubtotal);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -100,17 +104,16 @@ export function CartDrawer() {
                       // Volume tiers: contado protagonista, tarjeta secundaria; tachado = lista.
                       if (row.source === 'tier') {
                         const showStrike = row.originalTotal != null && row.originalTotal > row.lineTotal;
-                        const hasCash = row.cashTotal != null && row.cashTotal < row.lineTotal;
-                        const primary = hasCash ? (row.cashTotal as number) : row.lineTotal;
+                        const { primary, cardLine } = resolvePricePair(config, row.cashTotal, row.lineTotal);
                         return (
                           <div className="text-right">
                             <span className="flex items-baseline justify-end gap-1.5">
                               {showStrike && <span className="text-[calc(12px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(row.originalTotal as number)}</span>}
                               <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(primary)}</span>
                             </span>
-                            {hasCash && (
+                            {cardLine != null && (
                               <span className="mt-0.5 block text-[calc(11px_*_var(--font-scale,1))] text-subtle">
-                                <span className="font-semibold">{formatPrice(row.lineTotal)}</span> con tarjeta
+                                <span className="font-semibold">{formatPrice(cardLine)}</span> con tarjeta
                               </span>
                             )}
                           </div>
@@ -125,18 +128,22 @@ export function CartDrawer() {
                           </span>
                         );
                       }
-                      // Línea normal: contado protagonista + tarjeta secundaria (si hay descuento).
-                      if (row.cashTotal != null && row.cashTotal < row.lineTotal) {
+                      // Línea normal: contado protagonista + tarjeta secundaria (si hay descuento
+                      // y si la tienda muestra las dos).
+                      const line = resolvePricePair(config, row.cashTotal, row.lineTotal);
+                      if (line.isCash) {
                         return (
                           <div className="text-right">
-                            <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(row.cashTotal)}</span>
-                            <span className="mt-0.5 block text-[calc(11px_*_var(--font-scale,1))] text-subtle">
-                              <span className="font-semibold">{formatPrice(row.lineTotal)}</span> con tarjeta
-                            </span>
+                            <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(line.primary)}</span>
+                            {line.cardLine != null && (
+                              <span className="mt-0.5 block text-[calc(11px_*_var(--font-scale,1))] text-subtle">
+                                <span className="font-semibold">{formatPrice(line.cardLine)}</span> con tarjeta
+                              </span>
+                            )}
                           </div>
                         );
                       }
-                      return <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-text">{formatPrice(row.lineTotal)}</span>;
+                      return <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-text">{formatPrice(line.primary)}</span>;
                     })()}
                   </div>
                 </div>
@@ -160,10 +167,10 @@ export function CartDrawer() {
             <div className="mb-4 flex items-start justify-between">
               <span className="mt-1 text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1.5px] text-muted">Subtotal</span>
               <div className="text-right">
-                <span className="text-[calc(20px_*_var(--font-scale,1))] font-extrabold text-accent">{formatPrice(hasCashSubtotal ? cashSubtotal : adjustedSubtotal)}</span>
-                {hasCashSubtotal && (
+                <span className="text-[calc(20px_*_var(--font-scale,1))] font-extrabold text-accent">{formatPrice(subtotalPair.primary)}</span>
+                {subtotalPair.cardLine != null && (
                   <p className="mt-0.5 text-[calc(11px_*_var(--font-scale,1))] text-subtle">
-                    <span className="font-semibold">{formatPrice(adjustedSubtotal)}</span> con tarjeta
+                    <span className="font-semibold">{formatPrice(subtotalPair.cardLine)}</span> con tarjeta
                   </p>
                 )}
               </div>
@@ -173,7 +180,7 @@ export function CartDrawer() {
             )}
             {/* Cuánto falta para el envío gratis: acá es donde el cliente decide
                 si suma una prenda más o si cierra el pedido. */}
-            <FreeShippingProgress subtotal={hasCashSubtotal ? cashSubtotal : adjustedSubtotal} className="mb-4" />
+            <FreeShippingProgress subtotal={subtotalPair.primary} className="mb-4" />
             <Link
               to="/carrito"
               onClick={close}

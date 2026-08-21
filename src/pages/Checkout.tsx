@@ -1320,8 +1320,11 @@ export function Checkout() {
                             : 'Efectivo';
                   const sub =
                     m === 'tarjeta'
-                      ? config.cardPaymentText ||
-                        (config.installmentsCount > 1 ? `Hasta ${config.installmentsCount} cuotas` : 'Pago con tarjeta')
+                      ? // 0 cuotas = el comercio eligió no anunciar financiación: acá tampoco.
+                        config.installmentsCount <= 0
+                        ? 'Pago con tarjeta'
+                        : config.cardPaymentText ||
+                          (config.installmentsCount > 1 ? `Hasta ${config.installmentsCount} cuotas` : 'Pago con tarjeta')
                       : m === 'mp_cuenta'
                         ? 'Pagás con tu saldo de Mercado Pago'
                         : m === 'gocuotas'

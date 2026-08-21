@@ -7,7 +7,7 @@ import { StoreImage } from '@/components/StoreImage';
 import { CouponChip } from '@/components/CouponChip';
 import { FreeShippingProgress } from '@/components/FreeShippingProgress';
 import { Seo } from '@/components/Seo';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, resolvePricePair } from '@/lib/utils';
 import { groupCartItems, evalMinOrder } from '@/lib/cart';
 
 export function Cart() {
@@ -28,6 +28,8 @@ export function Cart() {
   // real se define por método en el checkout (inconsistencia previa a revisar aparte).
   const cashSubtotal = items.reduce((s, i) => s + (typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price) * i.qty, 0);
   const hasCashSubtotal = cashSubtotal > 0 && cashSubtotal < adjustedSubtotal;
+  // Subtotal según lo que la tienda muestra (contado, tarjeta o los dos).
+  const subtotalPair = resolvePricePair(config, hasCashSubtotal ? cashSubtotal : null, adjustedSubtotal);
   const seo = <Seo title={`Carrito · ${config.name}`} slug={config.slug} noindex />;
 
   if (items.length === 0) {
@@ -85,17 +87,16 @@ export function Cart() {
                     // Volume tiers: contado protagonista, tarjeta secundaria; tachado = lista.
                     if (row.source === 'tier') {
                       const showStrike = row.originalTotal != null && row.originalTotal > row.lineTotal;
-                      const hasCash = row.cashTotal != null && row.cashTotal < row.lineTotal;
-                      const primary = hasCash ? (row.cashTotal as number) : row.lineTotal;
+                      const { primary, cardLine } = resolvePricePair(config, row.cashTotal, row.lineTotal);
                       return (
                         <div className="text-right">
                           <span className="flex items-baseline justify-end gap-2">
                             {showStrike && <span className="text-[calc(13px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(row.originalTotal as number)}</span>}
                             <span className="text-[calc(16px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(primary)}</span>
                           </span>
-                          {hasCash && (
+                          {cardLine != null && (
                             <span className="mt-0.5 block text-[calc(12px_*_var(--font-scale,1))] text-subtle">
-                              <span className="font-semibold">{formatPrice(row.lineTotal)}</span> con tarjeta
+                              <span className="font-semibold">{formatPrice(cardLine)}</span> con tarjeta
                             </span>
                           )}
                         </div>
@@ -110,18 +111,22 @@ export function Cart() {
                         </span>
                       );
                     }
-                    // Línea normal: contado protagonista + tarjeta secundaria (si hay descuento).
-                    if (row.cashTotal != null && row.cashTotal < row.lineTotal) {
+                    // Línea normal: contado protagonista + tarjeta secundaria (si hay descuento
+                    // y si la tienda muestra las dos).
+                    const line = resolvePricePair(config, row.cashTotal, row.lineTotal);
+                    if (line.isCash) {
                       return (
                         <div className="text-right">
-                          <span className="block text-[calc(16px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(row.cashTotal)}</span>
-                          <span className="mt-0.5 block text-[calc(12px_*_var(--font-scale,1))] text-subtle">
-                            <span className="font-semibold">{formatPrice(row.lineTotal)}</span> con tarjeta
-                          </span>
+                          <span className="block text-[calc(16px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(line.primary)}</span>
+                          {line.cardLine != null && (
+                            <span className="mt-0.5 block text-[calc(12px_*_var(--font-scale,1))] text-subtle">
+                              <span className="font-semibold">{formatPrice(line.cardLine)}</span> con tarjeta
+                            </span>
+                          )}
                         </div>
                       );
                     }
-                    return <span className="text-[calc(16px_*_var(--font-scale,1))] font-bold text-text">{formatPrice(row.lineTotal)}</span>;
+                    return <span className="text-[calc(16px_*_var(--font-scale,1))] font-bold text-text">{formatPrice(line.primary)}</span>;
                   })()}
                 </div>
               </div>
@@ -142,10 +147,10 @@ export function Cart() {
           <div className="flex items-center justify-between border-b border-line pb-4">
             <span className="text-[calc(14px_*_var(--font-scale,1))] text-muted">Subtotal</span>
             <span className="text-right">
-              <span className="block text-[calc(20px_*_var(--font-scale,1))] font-extrabold text-accent">{formatPrice(hasCashSubtotal ? cashSubtotal : adjustedSubtotal)}</span>
-              {hasCashSubtotal && (
+              <span className="block text-[calc(20px_*_var(--font-scale,1))] font-extrabold text-accent">{formatPrice(subtotalPair.primary)}</span>
+              {subtotalPair.cardLine != null && (
                 <span className="mt-0.5 block text-[calc(12px_*_var(--font-scale,1))] text-subtle">
-                  <span className="font-semibold">{formatPrice(adjustedSubtotal)}</span> con tarjeta
+                  <span className="font-semibold">{formatPrice(subtotalPair.cardLine)}</span> con tarjeta
                 </span>
               )}
             </span>
@@ -156,7 +161,7 @@ export function Cart() {
           {/* Cuánto falta para el envío gratis. Va contra el mismo subtotal que
               se muestra arriba (el de contado si existe, que es el más chico):
               lo que promete el carrito es lo que después cumple el checkout. */}
-          <FreeShippingProgress subtotal={hasCashSubtotal ? cashSubtotal : adjustedSubtotal} className="pt-4" />
+          <FreeShippingProgress subtotal={subtotalPair.primary} className="pt-4" />
           {/* Cupón guardado: chip tri-estado. Sin monto exacto (showAmount=false):
               depende de promos por cantidad y del modo de pago, que se resuelven en
               el checkout; acá solo indicamos que está aplicado. */}

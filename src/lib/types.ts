@@ -646,6 +646,10 @@ export interface RawCatalogSettings {
   // Pagos / cuotas
   card_payment_text?: string;
   card_installments?: number;
+  /** Qué precios muestra la tienda. Ver StoreConfig.priceDisplay. */
+  price_display?: 'all' | 'contado' | 'card';
+  /** Cómo se llama el precio de contado: 'both' (default) | 'cash' | 'transfer'. */
+  cash_label?: 'both' | 'cash' | 'transfer';
   banner_url?: string;
   banner_url_mobile?: string;
   banner_text?: string;
@@ -1003,6 +1007,17 @@ export interface StoreConfig {
   // Pagos / cuotas
   cardPaymentText: string;
   installmentsCount: number;
+  /**
+   * Qué precios muestra la tienda en productos, carrito y combos:
+   *  'all'     → contado protagonista + "$X con tarjeta" + cuotas (default, lo de siempre)
+   *  'contado' → SOLO el precio de contado. Sin renglón de tarjeta, sin cuotas, sin badge %
+   *  'card'    → SOLO el precio de tarjeta + cuotas
+   * NO afecta al checkout: ahí el total tiene que reflejar el medio que eligió
+   * el cliente, se muestre lo que se muestre en la vidriera.
+   */
+  priceDisplay: 'all' | 'contado' | 'card';
+  /** Ya resuelto a texto: "efectivo o transferencia" | "efectivo" | "transferencia". */
+  cashLabel: string;
   // Hero
   heroEnabled: boolean;
   heroImageUrl: string;

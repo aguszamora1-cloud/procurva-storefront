@@ -395,7 +395,27 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     announcement: firstStr(s.storefront_announcement, s.top_bar_text),
 
     cardPaymentText: str(s.card_payment_text),
-    installmentsCount: typeof s.card_installments === 'number' && s.card_installments > 0 ? s.card_installments : 3,
+    // Cuántas cuotas sin interés anuncia la tienda. Cada comercio pone las suyas
+    // (3, 6, 12...). `0` es una elección válida: significa NO anunciar cuotas, y
+    // apaga la línea entera (ver `installmentsLabel`). Antes el guard era `> 0`,
+    // así que un 0 guardado caía al default de 3 y el renglón volvía solo — no
+    // había forma de sacarlo desde el panel.
+    installmentsCount:
+      typeof s.card_installments === 'number' && Number.isFinite(s.card_installments) && s.card_installments >= 0
+        ? Math.floor(s.card_installments)
+        : 3,
+
+    // Qué precios se muestran. Clave NUEVA (`price_display`) a propósito: la vieja
+    // `price_mode` la escribía el editor desde hace rato pero no la leía NADIE en
+    // esta tienda (sólo el catálogo viejo), así que hay comercios con un valor
+    // guardado de haber clickeado sin efecto. Si le diéramos significado ahora,
+    // esas tiendas cambiarían solas de un deploy al otro. Acá el ausente = 'all',
+    // que es exactamente lo que se venía viendo.
+    priceDisplay: s.price_display === 'contado' || s.price_display === 'card' ? s.price_display : 'all',
+    // Efectivo y transferencia comparten precio (`retail_price_transfer`): esto es
+    // sólo cómo se llama ese precio, no un precio distinto.
+    cashLabel:
+      s.cash_label === 'cash' ? 'efectivo' : s.cash_label === 'transfer' ? 'transferencia' : 'efectivo o transferencia',
 
     // Hero: la IMAGEN puede reusar banner_url (es sólo una imagen), pero el
     // TEXTO sale SÓLO de las claves del storefront (hero_title/hero_subtitle).
