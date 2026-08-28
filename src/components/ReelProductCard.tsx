@@ -8,7 +8,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useProductVariants } from '@/hooks/useProductVariants';
 import { PriceStack } from './PriceStack';
 import { formatPrice } from '@/lib/utils';
-import { forceSoldOutIfMarked } from '@/lib/productStatus';
+import { applyStockOverrides } from '@/lib/productStatus';
 import {
   colorsOf,
   sizesOf,
@@ -63,9 +63,9 @@ export function useReelProducts(reels: Reel[]): Record<string, Product> {
       const base = byId.get(id);
       if (!base) continue;
       const full = variantsByProduct[id];
-      // forceSoldOutIfMarked al final: las variantes completas vienen de otra
+      // applyStockOverrides al final: las variantes completas vienen de otra
       // query y pisarían el stock 0 que useProducts ya aplicó a los Agotado.
-      out[id] = forceSoldOutIfMarked(full?.length ? { ...base, product_variants: full } : base);
+      out[id] = applyStockOverrides(full?.length ? { ...base, product_variants: full } : base);
     }
     return out;
   }, [ids, products, variantsByProduct]);

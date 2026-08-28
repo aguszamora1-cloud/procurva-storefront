@@ -13,8 +13,12 @@ export interface OutfitWithProducts extends Outfit {
 // ni filtramos por stock: un look se muestra completo aunque algún producto esté
 // agotado. Sí traemos status y catalog_visible: un producto oculto o Inactivo no
 // puede colarse por acá (su ficha ahora es "no encontrado", ver useProduct).
-const OUTFIT_PRODUCT_COLUMNS =
+const OUTFIT_PRODUCT_COLUMNS_BASE =
   'id, company_id, name, status, catalog_visible, image_url, images, retail_price, retail_price_card, retail_price_transfer, compare_at_price';
+// track_stock (stock infinito) nace con la migración 20260819. Va aparte con
+// reintento, igual que las opcionales de useProducts: pedirla sin la migración
+// tira 42703 y dejaría la sección de outfits vacía.
+const OUTFIT_PRODUCT_COLUMNS = `${OUTFIT_PRODUCT_COLUMNS_BASE}, track_stock`;
 
 /** Outfits activos del tenant con sus productos resueltos, ordenados por `order`. */
 export function useOutfits(): { outfits: OutfitWithProducts[]; isLoading: boolean } {
@@ -67,10 +71,30 @@ export function useOutfits(): { outfits: OutfitWithProducts[]; isLoading: boolea
       const productIds = Array.from(new Set(items.map((it) => it.product_id)));
       let productMap = new Map<string, Product>();
       if (productIds.length > 0) {
-        const { data: prodRows, error: prodErr } = await supabase
-          .from('products')
-          .select(OUTFIT_PRODUCT_COLUMNS)
-          .in('id', productIds);
+        // `any` a propósito: los dos SELECT devuelven shapes distintos (uno con
+        // track_stock y otro sin) y el cliente tipado de supabase los infiere
+        // como incompatibles. Abajo se castea a Product, igual que antes.
+        let prodRows: any[] | null = null;
+        let prodErr: unknown = null;
+        {
+          const first = await supabase
+            .from('products')
+            .select(OUTFIT_PRODUCT_COLUMNS)
+            .in('id', productIds);
+          prodRows = first.data as any[] | null;
+          prodErr = first.error;
+          if (first.error) {
+            // 42703 = falta track_stock (migración sin aplicar). Reintento sin
+            // la columna: el look se arma igual, sólo que un producto de stock
+            // infinito se muestra con su stock real hasta que se migre.
+            const retry = await supabase
+              .from('products')
+              .select(OUTFIT_PRODUCT_COLUMNS_BASE)
+              .in('id', productIds);
+            prodRows = retry.data as any[] | null;
+            prodErr = retry.error;
+          }
+        }
         if (cancelled) return;
         if (prodErr) console.error('[useOutfits] error cargando productos:', prodErr);
         // Los ocultos / Inactivo quedan fuera del map: el look se arma con el

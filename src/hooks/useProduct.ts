@@ -22,7 +22,9 @@ const PRODUCT_COLUMNS_BASE = `
 // curva_surtida_enabled y product_media van aparte: si esas migraciones todavía
 // no se aplicaron la query falla y caemos a BASE (sin romper el detalle; la
 // curva surtida no se ofrece y no se muestran videos).
-const PRODUCT_COLUMNS = `${PRODUCT_COLUMNS_BASE}, curva_surtida_enabled, free_shipping, product_media ( id, type, url, thumbnail_url, sort_order, object_position )`;
+// track_stock (stock infinito, migración 20260819) va con las opcionales por la
+// misma razón: sin la migración, pedirla explícitamente rompe el detalle.
+const PRODUCT_COLUMNS = `${PRODUCT_COLUMNS_BASE}, curva_surtida_enabled, free_shipping, track_stock, product_media ( id, type, url, thumbnail_url, sort_order, object_position )`;
 
 /** Un producto por id, scoped al tenant actual. */
 export function useProduct(productId: string | undefined): ProductState {

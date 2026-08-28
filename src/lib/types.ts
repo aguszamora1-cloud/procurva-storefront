@@ -406,6 +406,11 @@ export interface Product {
   // libre en la DB). La tienda lo aplica en lib/productStatus: Inactivo no se
   // publica y Agotado llega con stock 0. Opcional: hay SELECTs que no lo traen.
   status?: string | null;
+  // products.track_stock. false = el producto NO controla inventario (stock
+  // infinito): la tienda lo muestra siempre disponible y el servidor no valida
+  // ni descuenta stock al comprarlo. Opcional igual que status: hay SELECTs que
+  // no lo traen, y sin el dato el producto controla stock como siempre.
+  track_stock?: boolean | null;
   catalog_badge_text: string | null;
   catalog_badge_color: string | null;
   catalog_badge_visible: boolean | null;

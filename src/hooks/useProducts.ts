@@ -34,9 +34,13 @@ const COLS_BASE = `
 // en el grupo OPCIONAL a propósito: segment nace con la migración 20260761 y,
 // si todavía no se aplicó, un SELECT explícito tira 42703 y se lleva puesto el
 // catálogo entero (ver el fallback de abajo).
-const PRODUCT_COLUMNS = `${COLS_BASE}, is_featured, is_new_arrival, display_variants_separately, curva_surtida_enabled, free_shipping, brand, segment`;
+// track_stock (stock infinito) también va en el grupo OPCIONAL: nace con la
+// migración 20260819 y, si no está aplicada, un SELECT explícito tira 42703 y
+// se lleva puesto el catálogo entero. Sin la columna, todos los productos
+// controlan stock como siempre.
+const PRODUCT_COLUMNS = `${COLS_BASE}, is_featured, is_new_arrival, display_variants_separately, curva_surtida_enabled, free_shipping, brand, segment, track_stock`;
 
-const OPTIONAL_COLS_RE = /is_featured|is_new_arrival|display_variants_separately|curva_surtida_enabled|free_shipping|brand|segment/i;
+const OPTIONAL_COLS_RE = /is_featured|is_new_arrival|display_variants_separately|curva_surtida_enabled|free_shipping|brand|segment|track_stock/i;
 
 // Una vez que detectamos en esta sesión que las columnas opcionales NO existen
 // (migración sin aplicar), recordamos ir directo a COLS_BASE para no pagar el

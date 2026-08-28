@@ -14,8 +14,10 @@
 //
 //   - 'Inactivo' (y 'Borrador') -> el producto no existe para la tienda.
 //   - 'Agotado'                 -> se muestra, con stock 0 en TODAS sus variantes.
+//   - track_stock = false       -> stock INFINITO en todas sus variantes (el
+//                                  producto no lleva control de inventario).
 //
-// El stock a 0 es deliberado y es el único punto donde se traduce el estado:
+// El stock forzado es deliberado y es el único punto donde se traduce el estado:
 // toda la tienda deriva "agotado" del stock de las variantes (el badge "Sin
 // stock" de la card, el botón deshabilitado del detalle, los talles tachados, el
 // orden que manda los agotados al final de la grilla, los packs y curvas del
@@ -28,8 +30,23 @@
 interface StatusRow {
   status?: string | null;
   catalog_visible?: boolean | null;
+  /**
+   * products.track_stock. `false` = el producto no controla inventario (stock
+   * infinito: servicios, hechos a pedido, mercadería que nunca falta). Llega
+   * `undefined` en las queries que no piden la columna y en las bases sin la
+   * migración 20260819; ese caso controla stock como siempre.
+   */
+  track_stock?: boolean | null;
   product_variants?: { stock?: number | null }[] | null;
 }
+
+/**
+ * Stock que se le asigna a las variantes de un producto sin control de
+ * inventario. Espejo del INFINITE_STOCK del ERP (procurva2/lib/stock.ts): alto
+ * para que ninguna comparación real lo alcance, pero chico al lado de
+ * MAX_SAFE_INTEGER porque se suma entre variantes.
+ */
+export const INFINITE_STOCK = 9_999_999;
 
 const norm = (s: string | null | undefined): string =>
   (s ?? '')
@@ -67,6 +84,11 @@ export function isHiddenFromStore(row: StatusRow): boolean {
   return row.catalog_visible === false || isUnpublished(row);
 }
 
+/** El producto no controla inventario: se puede comprar siempre. */
+export function isUntracked(row: StatusRow): boolean {
+  return row.track_stock === false;
+}
+
 /** Pone en 0 el stock de todas las variantes si el producto está marcado Agotado. */
 export function forceSoldOutIfMarked<T extends StatusRow>(row: T): T {
   if (!isMarkedSoldOut(row)) return row;
@@ -77,13 +99,38 @@ export function forceSoldOutIfMarked<T extends StatusRow>(row: T): T {
   } as T;
 }
 
+/** Pone stock infinito en todas las variantes si el producto no lleva control. */
+export function forceInfiniteIfUntracked<T extends StatusRow>(row: T): T {
+  if (!isUntracked(row)) return row;
+  return {
+    ...row,
+    product_variants: (row.product_variants ?? []).map((v) => ({ ...v, stock: INFINITE_STOCK })),
+  } as T;
+}
+
+/**
+ * Los DOS overrides de stock, en el orden que importa.
+ *
+ * PRECEDENCIA: 'Agotado' le gana al stock infinito. Es el interruptor manual
+ * del comercio ("esto hoy no lo vendo") y tiene que poder frenar cualquier
+ * producto, incluso uno sin control de inventario. Al revés no: un producto de
+ * stock infinito marcado Agotado que igual se pudiera comprar dejaría al
+ * comercio sin forma de sacarlo de la venta.
+ *
+ * Este es el punto único: usalo en vez de llamar a los dos por separado.
+ */
+export function applyStockOverrides<T extends StatusRow>(row: T): T {
+  if (isMarkedSoldOut(row)) return forceSoldOutIfMarked(row);
+  return forceInfiniteIfUntracked(row);
+}
+
 /**
  * Producto tal como debe verlo el visitante, o `null` si no va a la tienda.
  * Punto único: ver el comentario de arriba.
  */
 export function applyStoreStatus<T extends StatusRow>(row: T): T | null {
   if (isHiddenFromStore(row)) return null;
-  return forceSoldOutIfMarked(row);
+  return applyStockOverrides(row);
 }
 
 /** Igual que applyStoreStatus, sobre una lista (descarta los que no van). */
