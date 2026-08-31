@@ -46,14 +46,15 @@ export function ProductReviews({
     return sum / reviews.length;
   }, [reviews]);
 
-  // Decidimos si animar: más de una reseña, sin "reducir movimiento", y sólo en
-  // el carrusel a ancho completo. En la columna el deslizamiento automático
-  // pelea con el scroll de la página justo al lado del botón de comprar; ahí el
-  // carrusel se pasa con el dedo y listo. Apiladas no hay nada que animar.
+  // Decidimos si animar: más de una reseña, sin "reducir movimiento" y en
+  // cualquiera de los dos carruseles (ancho completo y columna). Apiladas no hay
+  // nada que animar. El deslizamiento sólo toca el eje horizontal del scroller,
+  // así que no le pelea al scroll vertical de la página, y se pausa apenas el
+  // cliente lo toca.
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setAnimate(reviews.length > 1 && !reduce && !stacked && !column);
-  }, [reviews.length, stacked, column]);
+    setAnimate(reviews.length > 1 && !reduce && !stacked);
+  }, [reviews.length, stacked]);
 
   // Deslizamiento continuo con requestAnimationFrame: avanza unos píxeles por
   // frame y al llegar al final del primer set salta exactamente un loop hacia
@@ -185,17 +186,32 @@ export function ProductReviews({
     );
   }
 
-  // CARRUSEL EN LA COLUMNA: se pasa con el dedo, sin deslizamiento automático
-  // (ver el useEffect de `animate`). Una tarjeta por vista con la siguiente
-  // asomando, para que se note que hay más.
+  // CARRUSEL EN LA COLUMNA: misma cinta que a ancho completo, con una tarjeta
+  // por vista y la siguiente asomando para que se note que hay más. Se desliza
+  // sola y se pausa al tocarla / pasarle el mouse.
   if (column) {
     return (
       <section>
         {heading}
-        <div className="relative">
-          <div ref={scrollerRef} className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1">
-            {reviews.map((r) => (
-              <div key={r.id} className="w-[86%] shrink-0 snap-start">
+        <div
+          className="relative"
+          onMouseEnter={() => { pausedRef.current = true; }}
+          onMouseLeave={() => { pausedRef.current = false; }}
+          onTouchStart={() => { pausedRef.current = true; }}
+          onTouchEnd={() => { pausedRef.current = false; }}
+          onFocusCapture={() => { pausedRef.current = true; }}
+          onBlurCapture={() => { pausedRef.current = false; }}
+        >
+          {/* Mientras se desliza sola NO va el snap: le devolvería el scroll a la
+              tarjeta más cercana en cada frame y la cinta quedaría trabada. */}
+          <div
+            ref={scrollerRef}
+            style={{ touchAction: 'pan-x pan-y' }}
+            className={`no-scrollbar flex gap-2 overflow-x-auto pb-1 ${animate ? '' : 'snap-x snap-mandatory'}`}
+          >
+            {/* Cuando animamos duplicamos el set para el loop sin corte (la 2ª copia es decorativa). */}
+            {(animate ? [...reviews, ...reviews] : reviews).map((r, i) => (
+              <div key={`${r.id}-${i}`} aria-hidden={i >= reviews.length} className="w-[86%] shrink-0 snap-start">
                 <ReviewCard review={r} compact />
               </div>
             ))}
