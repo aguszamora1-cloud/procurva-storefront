@@ -20,11 +20,11 @@
 // variante, identifier_exists=no (marca propia, sin GTIN), availability por stock consolidado.
 // Volumen: paginado por Range + streaming con res.write (catálogos grandes / curva surtida).
 
+import { resolveTenantFromHost } from '../_tenant';
+
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
-const BASE_DOMAIN = 'procurva.app';
-const RESERVED = new Set(['www', 'app']);
 const PAGE_SIZE = 500; // productos por página (las variantes vienen embebidas en la RPC)
 const MAX_ADDITIONAL_IMAGES = 10; // límite de Meta para additional_image_link
 
@@ -51,15 +51,6 @@ interface FeedProduct {
   variants: Variant[] | null;
   included: boolean;
   exclude_reason: string | null;
-}
-
-/** Extrae el slug del tenant desde el host. null si es host genérico. */
-function slugFromHost(host: string): string | null {
-  const h = host.toLowerCase().split(':')[0].trim();
-  if (!h.endsWith(`.${BASE_DOMAIN}`)) return null;
-  const sub = h.slice(0, h.length - BASE_DOMAIN.length - 1).split('.')[0];
-  if (!sub || RESERVED.has(sub)) return null;
-  return sub;
 }
 
 /** GET a PostgREST con anon key. rangeFrom/rangeTo → paginado por Range. */
@@ -180,12 +171,22 @@ function csvRow(p: FeedProduct, v: Variant, ctx: Ctx): string {
 
 export default async function handler(req: any, res: any) {
   const host = (req.headers['x-forwarded-host'] || req.headers.host || '').toString();
-  const slug = slugFromHost(host);
+  // El origin es SIEMPRE el host del request: los links de los productos tienen
+  // que apuntar al dominio por el que entró el crawler (propio o subdominio).
   const origin = `https://${host}`;
 
   const fmtRaw = (req.query?.format || '').toString().toLowerCase();
   const format: Format = fmtRaw === 'tiktok' ? 'tiktok' : fmtRaw === 'google' ? 'google' : 'meta';
   const isCsv = format === 'tiktok';
+
+  // Resolvemos el tenant ANTES de escribir nada: el título del feed sale del
+  // nombre del comercio y, por dominio propio, el tenant no se deduce del Host.
+  let tenant: Awaited<ReturnType<typeof resolveTenantFromHost>> = null;
+  try {
+    tenant = await resolveTenantFromHost(host, SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (e) {
+    console.error('[feed] tenant', e);
+  }
 
   res.statusCode = 200; // fijar ANTES del primer write (al streamear la cabecera se va con el 1er chunk).
   res.setHeader('Content-Type', isCsv ? 'text/csv; charset=utf-8' : 'application/xml; charset=utf-8');
@@ -197,41 +198,34 @@ export default async function handler(req: any, res: any) {
     res.write('<?xml version="1.0" encoding="UTF-8"?>\n');
     res.write('<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n');
     res.write('  <channel>\n');
-    res.write(`    <title>${xmlEscape(slug || 'ProCurva')}</title>\n`);
+    res.write(`    <title>${xmlEscape(tenant?.brand || 'ProCurva')}</title>\n`);
     res.write(`    <link>${xmlEscape(origin)}</link>\n`);
     res.write('    <description>Catálogo de productos</description>\n');
   }
 
   try {
-    if (slug && SUPABASE_URL && SUPABASE_ANON_KEY) {
-      const { rows: companies } = await rest(
-        `companies?catalog_slug=eq.${encodeURIComponent(slug)}&catalog_enabled=eq.true&select=id,name&limit=1`,
-      );
-      const company = companies[0];
-      if (company?.id) {
-        const brand = (company.name || slug || 'ProCurva').toString().trim();
-        const ctx: Ctx = { origin, brand };
+    if (tenant) {
+      const ctx: Ctx = { origin, brand: tenant.brand };
 
-        // Fuente de verdad: RPC marketing_feed_products (GET, STABLE). Paginado por Range.
-        let from = 0;
-        for (;;) {
-          const to = from + PAGE_SIZE - 1;
-          const { rows, error } = await rest(
-            `rpc/marketing_feed_products?p_company_id=${encodeURIComponent(company.id)}`,
-            from,
-            to,
-          );
-          if (error) break;
-          for (const p of rows as FeedProduct[]) {
-            if (!p.included) continue; // la RPC ya decidió; acá solo renderizamos
-            for (const v of p.variants || []) {
-              const chunk = isCsv ? csvRow(p, v, ctx) : xmlItem(p, v, ctx);
-              if (chunk) res.write(chunk);
-            }
+      // Fuente de verdad: RPC marketing_feed_products (GET, STABLE). Paginado por Range.
+      let from = 0;
+      for (;;) {
+        const to = from + PAGE_SIZE - 1;
+        const { rows, error } = await rest(
+          `rpc/marketing_feed_products?p_company_id=${encodeURIComponent(tenant.companyId)}`,
+          from,
+          to,
+        );
+        if (error) break;
+        for (const p of rows as FeedProduct[]) {
+          if (!p.included) continue; // la RPC ya decidió; acá solo renderizamos
+          for (const v of p.variants || []) {
+            const chunk = isCsv ? csvRow(p, v, ctx) : xmlItem(p, v, ctx);
+            if (chunk) res.write(chunk);
           }
-          if (rows.length < PAGE_SIZE) break;
-          from += PAGE_SIZE;
         }
+        if (rows.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
       }
     }
   } catch (e) {

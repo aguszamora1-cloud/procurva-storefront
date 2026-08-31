@@ -4,6 +4,8 @@
 // set, así navegar de una página a otra (o de un 404 noindex a Home) resetea
 // los valores correctamente (last-write-wins).
 
+import { resolveTenant } from './tenant';
+
 export interface SeoInput {
   title: string;
   description?: string;
@@ -20,9 +22,19 @@ export interface SeoInput {
 
 const PROD_BASE = 'procurva.app';
 
-/** Construye la URL canónica https://{slug}.procurva.app{path}. */
+/**
+ * Construye la URL canónica https://{slug}.procurva.app{path}.
+ *
+ * EXCEPCIÓN — dominio propio: si el visitante entró por el dominio del negocio,
+ * el canonical es ESE dominio. Armarlo con el slug haría que cada página del
+ * dominio propio le declare a Google que la buena es la URL vieja y toda la
+ * indexación (y el link juice) se vaya al subdominio de procurva.app.
+ */
 function canonicalUrl(slug: string | undefined, path: string): string {
   const clean = path.startsWith('/') ? path : `/${path}`;
+  if (typeof window !== 'undefined' && resolveTenant().kind === 'custom') {
+    return `${window.location.origin}${clean === '/' ? '' : clean}`;
+  }
   if (slug) return `https://${slug}.${PROD_BASE}${clean === '/' ? '' : clean}`;
   // Sin slug (dev / host genérico): usar el origin actual.
   if (typeof window !== 'undefined') return `${window.location.origin}${clean}`;
