@@ -1,11 +1,15 @@
 // Resolución de tenant a partir del hostname.
 //
 // Producción: cada tienda vive en {slug}.procurva.app
-// Desarrollo:  localhost → VITE_DEV_SLUG
-// Host genérico (apex / dominio de Vercel sin subdominio) → null → 404 branded.
+// Dominio propio: un Host que NO es procurva.app ni un host genérico se trata
+//   como dominio propio (plan Profesional) → se resuelve por la RPC
+//   get_storefront_by_custom_domain.
+// Desarrollo:  localhost → VITE_DEV_SLUG (o VITE_DEV_DOMAIN para probar dominio propio)
+// Host genérico (apex de procurva.app / preview de Vercel) → 404 branded.
 
 export type TenantResolution =
   | { kind: 'slug'; slug: string }
+  | { kind: 'custom'; domain: string } // dominio propio → resolver por Host
   | { kind: 'generic' }; // mostrar "Tienda no encontrada" genérica
 
 // Hosts que NO representan una tienda (apex / preview de Vercel).
@@ -21,8 +25,11 @@ const BASE_DOMAINS = ['procurva.app'];
 export function resolveTenant(hostname: string = window.location.hostname): TenantResolution {
   const host = hostname.toLowerCase().trim();
 
-  // Desarrollo local.
+  // Desarrollo local. VITE_DEV_DOMAIN permite probar el camino de dominio propio;
+  // si no, VITE_DEV_SLUG resuelve por slug como en producción.
   if (host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local')) {
+    const devDomain = (import.meta.env.VITE_DEV_DOMAIN || '').trim().toLowerCase();
+    if (devDomain) return { kind: 'custom', domain: devDomain };
     const devSlug = (import.meta.env.VITE_DEV_SLUG || '').trim();
     if (devSlug) return { kind: 'slug', slug: devSlug };
     return { kind: 'generic' };
@@ -43,6 +50,9 @@ export function resolveTenant(hostname: string = window.location.hostname): Tena
     }
   }
 
-  // Dominio custom de Vercel (preview con hash) u otro: genérico.
-  return { kind: 'generic' };
+  // Cualquier otro Host es un candidato a dominio propio: se resuelve por la RPC
+  // get_storefront_by_custom_domain (que sólo devuelve algo si el dominio está
+  // verificado y la empresa sigue en plan Profesional). Los previews de Vercel
+  // sin tienda caen acá y la RPC devuelve null → 404 branded, igual que antes.
+  return { kind: 'custom', domain: host };
 }

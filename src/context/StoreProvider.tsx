@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -152,16 +153,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [requiresPassword, setRequiresPassword] = useState(false);
   const [slug, setSlug] = useState<string | null>(null);
   const [pendingStore, setPendingStore] = useState<PendingStore | null>(null);
+  // Id estable de cache/unlock para el tenant actual: el slug para tiendas
+  // {slug}.procurva.app, o `d:${dominio}` para dominios propios (no conocemos el
+  // slug real hasta que resuelve la RPC get_storefront_by_custom_domain).
+  const cacheIdRef = useRef<string | null>(null);
 
   /** Normaliza un payload resuelto y lo aplica como config activa. */
-  function applyResolved(currentSlug: string, resolved: ResolvedStorefront): void {
+  function applyResolved(resolved: ResolvedStorefront): void {
+    const cacheId = cacheIdRef.current ?? (resolved.slug || '').toLowerCase();
     const normalized = normalizeStoreConfig(resolved);
     applyConfig(normalized);
-    writeCache(currentSlug, {
+    writeCache(cacheId, {
       config: normalized,
       storeType: resolved.store_type,
       requiresPassword: resolved.requires_password,
     });
+    setSlug(resolved.slug || null);
     setConfig(normalized);
     setStoreType(resolved.store_type);
     setRequiresPassword(resolved.requires_password);
@@ -170,10 +177,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // El gate llama esto tras un código correcto (payload de verify_storefront_password).
   function unlock(resolved: ResolvedStorefront): void {
-    const currentSlug = (resolved.slug || slug || '').toLowerCase();
-    if (currentSlug) markUnlocked(currentSlug);
+    const cacheId = cacheIdRef.current ?? (resolved.slug || '').toLowerCase();
+    if (cacheId) markUnlocked(cacheId);
     setPendingStore(null);
-    applyResolved(currentSlug, resolved);
+    applyResolved(resolved);
   }
 
   useEffect(() => {
@@ -184,11 +191,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setStatus('not-found');
       return;
     }
-    const currentSlug = tenant.slug.toLowerCase();
-    setSlug(currentSlug);
+
+    // Id estable de cache/unlock antes de conocer el slug real de la tienda.
+    const cacheId =
+      tenant.kind === 'slug'
+        ? tenant.slug.toLowerCase()
+        : `d:${tenant.domain.toLowerCase()}`;
+    cacheIdRef.current = cacheId;
+    // Para tiendas por slug ya lo sabemos; en dominio propio lo aprendemos del payload.
+    if (tenant.kind === 'slug') setSlug(tenant.slug.toLowerCase());
+
+    // Resolvemos acá (con `tenant` ya estrechado) qué RPC usar; el narrowing del
+    // discriminated union no sobrevive dentro del closure `load`.
+    const rpcCall =
+      tenant.kind === 'slug'
+        ? { fn: 'get_storefront_by_slug', params: { p_slug: tenant.slug.toLowerCase() } }
+        : { fn: 'get_storefront_by_custom_domain', params: { p_domain: tenant.domain.toLowerCase() } };
 
     // 1) Servir desde cache para el primer paint (stale-while-revalidate).
-    const cached = readCache(currentSlug);
+    const cached = readCache(cacheId);
     if (cached) {
       applyConfig(cached.config);
       setConfig(cached.config);
@@ -197,12 +218,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setStatus('ready');
     }
 
-    // 2) Revalidación contra Supabase vía RPC. SIEMPRE corre.
+    // 2) Revalidación contra Supabase vía RPC. SIEMPRE corre. Por slug
+    // (procurva.app) o por dominio propio (Host) según el tenant resuelto.
     async function load() {
       try {
-        const { data, error } = await supabase.rpc('get_storefront_by_slug', {
-          p_slug: currentSlug,
-        });
+        const { data, error } = await supabase.rpc(rpcCall.fn, rpcCall.params);
 
         if (cancelled) return;
 
@@ -219,6 +239,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        // Slug real de la tienda (necesario para el gate de password mayorista).
+        setSlug(resolved.slug || null);
         setStoreType(resolved.store_type);
         setRequiresPassword(resolved.requires_password);
 
@@ -228,7 +250,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // visitante recurrente no vea el catálogo viejo por un instante.
         if (resolved.active === false) {
           try {
-            sessionStorage.removeItem(cacheKey(currentSlug));
+            sessionStorage.removeItem(cacheKey(cacheId));
           } catch {
             /* ignorar */
           }
@@ -245,7 +267,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Tienda mayorista protegida: requiere código.
         if (resolved.requires_password) {
           // Ya desbloqueada en esta sesión y con config buena (cache): mantenerla.
-          if (isUnlocked(currentSlug) && (cached || config)) {
+          if (isUnlocked(cacheId) && (cached || config)) {
             setStatus('ready');
             return;
           }
@@ -260,7 +282,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
 
         // Tienda pública (minorista o mayorista pública): aplicar config completa.
-        applyResolved(currentSlug, resolved);
+        applyResolved(resolved);
       } catch (e) {
         if (cancelled) return;
         console.error('[StoreProvider] unexpected', e);
