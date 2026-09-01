@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
+import { applyProductFilter, productFilterKey } from '@/lib/productFilter';
 import { applyStoreStatusList } from '@/lib/productStatus';
 import type { Outfit, Product } from '@/lib/types';
 
@@ -22,7 +23,8 @@ const OUTFIT_PRODUCT_COLUMNS = `${OUTFIT_PRODUCT_COLUMNS_BASE}, track_stock`;
 
 /** Outfits activos del tenant con sus productos resueltos, ordenados por `order`. */
 export function useOutfits(): { outfits: OutfitWithProducts[]; isLoading: boolean } {
-  const { companyId } = useStoreStatus();
+  const { companyId, productFilter } = useStoreStatus();
+  const productFilterKeyStr = productFilterKey(productFilter);
   const [outfits, setOutfits] = useState<OutfitWithProducts[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -77,20 +79,20 @@ export function useOutfits(): { outfits: OutfitWithProducts[]; isLoading: boolea
         let prodRows: any[] | null = null;
         let prodErr: unknown = null;
         {
-          const first = await supabase
-            .from('products')
-            .select(OUTFIT_PRODUCT_COLUMNS)
-            .in('id', productIds);
+          const first = await applyProductFilter(
+            supabase.from('products').select(OUTFIT_PRODUCT_COLUMNS).in('id', productIds),
+            productFilter,
+          );
           prodRows = first.data as any[] | null;
           prodErr = first.error;
           if (first.error) {
             // 42703 = falta track_stock (migración sin aplicar). Reintento sin
             // la columna: el look se arma igual, sólo que un producto de stock
             // infinito se muestra con su stock real hasta que se migre.
-            const retry = await supabase
-              .from('products')
-              .select(OUTFIT_PRODUCT_COLUMNS_BASE)
-              .in('id', productIds);
+            const retry = await applyProductFilter(
+              supabase.from('products').select(OUTFIT_PRODUCT_COLUMNS_BASE).in('id', productIds),
+              productFilter,
+            );
             prodRows = retry.data as any[] | null;
             prodErr = retry.error;
           }
@@ -134,7 +136,7 @@ export function useOutfits(): { outfits: OutfitWithProducts[]; isLoading: boolea
     return () => {
       cancelled = true;
     };
-  }, [companyId]);
+  }, [companyId, productFilterKeyStr]);
 
   return { outfits, isLoading };
 }

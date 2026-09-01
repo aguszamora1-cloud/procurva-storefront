@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
 import { hasStock } from '@/lib/utils';
 import { applyStoreStatusList } from '@/lib/productStatus';
+import { applyProductFilter, productFilterKey } from '@/lib/productFilter';
 import type { Product } from '@/lib/types';
 
 interface ProductsState {
@@ -54,9 +55,12 @@ let preferBaseColumns = false;
 // se descartan y los Agotado vienen con stock 0). Hay que subir la versión cuando
 // cambian las columnas: si no, el visitante que vuelve pinta desde un cache viejo
 // y los filtros nuevos aparecen vacíos hasta que revalide.
-const CACHE_VERSION = 'v3';
-const cacheKey = (companyId: string, storeType: string) =>
-  `procurva_products_${CACHE_VERSION}:${companyId}:${storeType}`;
+// v4: la clave incluye el filtro de catálogo de la tienda. DOS tiendas de la
+// misma empresa con el mismo modo (dos marcas minoristas) compartían clave: el
+// visitante que saltaba de una marca a la otra veía el catálogo de la anterior.
+const CACHE_VERSION = 'v4';
+const cacheKey = (companyId: string, storeType: string, filterKey: string) =>
+  `procurva_products_${CACHE_VERSION}:${companyId}:${storeType}:${filterKey}`;
 
 function readProductsCache(key: string): Product[] | null {
   try {
@@ -84,7 +88,10 @@ function writeProductsCache(key: string, products: Product[]): void {
  * ordenan al final de la lista.
  */
 export function useProducts(): ProductsState {
-  const { companyId, storeType } = useStoreStatus();
+  const { companyId, storeType, productFilter } = useStoreStatus();
+  // Serializado para poder usarlo como dependencia del efecto sin re-disparar
+  // por identidad de objeto en cada render.
+  const filterKey = productFilterKey(productFilter);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +102,7 @@ export function useProducts(): ProductsState {
   useEffect(() => {
     if (!companyId || !storeType) return;
     let cancelled = false;
-    const key = cacheKey(companyId, storeType);
+    const key = cacheKey(companyId, storeType, filterKey);
 
     // 1) Servir desde cache para el primer paint (stale-while-revalidate).
     const cached = readProductsCache(key);
@@ -113,13 +120,15 @@ export function useProducts(): ProductsState {
       // retail_price 0/null); en minorista, por retail_price>0 como siempre.
       const priceCol = storeType === 'wholesale' ? 'wholesale_price' : 'retail_price';
       const runQuery = (columns: string) =>
-        supabase
-          .from('products')
-          .select(columns)
-          .eq('company_id', companyId)
-          .eq('catalog_visible', true)
-          .gt(priceCol, 0)
-          .order('created_at', { ascending: false });
+        applyProductFilter(
+          supabase
+            .from('products')
+            .select(columns)
+            .eq('company_id', companyId)
+            .eq('catalog_visible', true)
+            .gt(priceCol, 0),
+          productFilter,
+        ).order('created_at', { ascending: false });
 
       let data: unknown;
       let error: { message: string } | null;
@@ -161,7 +170,7 @@ export function useProducts(): ProductsState {
     return () => {
       cancelled = true;
     };
-  }, [companyId, storeType, reloadKey]);
+  }, [companyId, storeType, filterKey, reloadKey]);
 
   return { products, isLoading, error, reload };
 }

@@ -5,7 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
 import { useMetaPixel } from '@/hooks/useMetaPixel';
 import { stashPendingPurchase } from '@/lib/metaPixel';
-import { useStore, useStoreType } from '@/context/StoreProvider';
+import { useStore, useStoreType, useStoreStatus } from '@/context/StoreProvider';
 import { supabase } from '@/lib/supabase';
 import { Seo } from '@/components/Seo';
 import { Spinner } from '@/components/Spinner';
@@ -171,6 +171,7 @@ export function Checkout() {
   const { trackInitiateCheckout } = useMetaPixel();
   const config = useStore();
   const storeType = useStoreType();
+  const { storeKey } = useStoreStatus();
   const isWholesale = storeType === 'wholesale';
   const effStoreType = storeType ?? 'retail';
 
@@ -756,9 +757,10 @@ export function Checkout() {
         }),
       };
 
-      // storeType puede ser null mientras resuelve el tenant; por defecto minorista.
+      // storeKey puede ser null mientras resuelve el tenant; por defecto la
+      // minorista histórica, que es lo que la tienda única siempre fue.
       const orderId = await createCatalogOrder(
-        config, pricedItems, orderTotal, customer, payLabel, storeType ?? 'retail',
+        config, pricedItems, orderTotal, customer, payLabel, storeKey ?? storeType ?? 'retail',
         {
           priceMode, viaMercadoPago: routing !== 'wa', discount, manualTransfer: transferManual,
           shippingCost, shippingCarrier: selectedMethod?.name ?? null, priceBreakdown,

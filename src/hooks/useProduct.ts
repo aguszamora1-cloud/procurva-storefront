@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
 import { applyStoreStatus } from '@/lib/productStatus';
+import { matchesProductFilter } from '@/lib/productFilter';
 import type { Product } from '@/lib/types';
 
 interface ProductState {
@@ -28,7 +29,7 @@ const PRODUCT_COLUMNS = `${PRODUCT_COLUMNS_BASE}, curva_surtida_enabled, free_sh
 
 /** Un producto por id, scoped al tenant actual. */
 export function useProduct(productId: string | undefined): ProductState {
-  const { companyId } = useStoreStatus();
+  const { companyId, productFilter } = useStoreStatus();
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +73,12 @@ export function useProduct(productId: string | undefined): ProductState {
       // Oculto (catalog_visible=false) o Inactivo: para la tienda no existe, ni
       // por link directo -> "Producto no encontrado". Si está marcado Agotado
       // llega con stock 0 y el detalle lo pinta como no comprable.
-      setProduct(data ? applyStoreStatus(data as unknown as Product) : null);
+      //
+      // Lo mismo para un producto que NO es de esta tienda: la ficha se pide por
+      // id, así que sin este chequeo un link directo mostraría un producto de la
+      // otra marca aunque no aparezca en ningún listado.
+      const visible = data && matchesProductFilter(data as any, productFilter);
+      setProduct(visible ? applyStoreStatus(data as unknown as Product) : null);
       setError(null);
       setIsLoading(false);
     })();

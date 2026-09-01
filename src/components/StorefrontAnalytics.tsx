@@ -18,7 +18,7 @@ import { setTrackingTenant, track } from '@/lib/tracking';
  * Debe renderizarse DENTRO del <BrowserRouter> (usa useLocation).
  */
 export function StorefrontAnalytics() {
-  const { status, companyId, storeType, slug } = useStoreStatus();
+  const { status, companyId, storeType, storeKey, slug } = useStoreStatus();
   const { pathname } = useLocation();
   const lastTrackedPath = useRef<string | null>(null);
 
@@ -29,13 +29,22 @@ export function StorefrontAnalytics() {
     if (ready) {
       setTrackingTenant({
         companyId: companyId as string,
-        channel: storeType === 'wholesale' ? 'mayorista' : 'minorista',
+        // Las dos tiendas históricas conservan su etiqueta de siempre (cambiarla
+        // partiría en dos el histórico de todos los dashboards); una tienda nueva
+        // manda SU clave, si no dos marcas minoristas mezclan su embudo. El canal
+        // definitivo igual lo decide la Edge Function desde el slug resuelto.
+        channel:
+          storeKey === 'wholesale' || (!storeKey && storeType === 'wholesale')
+            ? 'mayorista'
+            : !storeKey || storeKey === 'retail'
+              ? 'minorista'
+              : storeKey,
         slug: slug as string,
       });
     } else {
       setTrackingTenant(null);
     }
-  }, [ready, companyId, storeType, slug]);
+  }, [ready, companyId, storeType, storeKey, slug]);
 
   // (2) page_view por ruta (una vez que el tenant está listo; incluye el landing).
   useEffect(() => {

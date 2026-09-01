@@ -878,6 +878,20 @@ export interface ResolvedStorefront {
   shipping_message: string | null;
   logo_url?: string | null;
   settings: RawCatalogSettings | null;
+  /**
+   * QUÉ tienda es, dentro de companies.storefront_config. `store_type` sigue
+   * siendo el MODO (retail/wholesale) para no romper el contrato viejo, pero con
+   * multi-tienda dos tiendas de la misma empresa pueden compartir modo — la
+   * identidad es ésta. Optativo: un payload viejo o cacheado no lo trae.
+   */
+  store_key?: string | null;
+  /** Igual a `store_type`; nombre nuevo, más explícito. */
+  mode?: StoreType | null;
+  /**
+   * Qué productos muestra esta tienda (ver lib/productFilter). Es lo que permite
+   * que dos marcas compartan depósito y stock pero no catálogo.
+   */
+  product_filter?: { mode?: string; values?: string[] } | null;
 }
 
 /** Presentación del outfit dentro del bloque de complementarios. */

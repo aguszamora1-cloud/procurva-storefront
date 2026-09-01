@@ -17,7 +17,10 @@ const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 // resuelto → track() hace no-op.
 interface TrackingTenant {
   companyId: string;
-  channel: 'minorista' | 'mayorista';
+  // 'minorista' | 'mayorista' para las dos tiendas historicas; la CLAVE de la
+  // tienda para cualquier otra (multi-tienda por marca). Es solo un fallback: el
+  // canal autoritativo lo deriva storefront-track del slug resuelto.
+  channel: string;
   slug: string;
 }
 let tenant: TrackingTenant | null = null;

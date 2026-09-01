@@ -12,6 +12,7 @@ import { normalizeStoreConfig } from '@/lib/storeConfig';
 import { applyDocumentMeta, applyTheme, loadFonts } from '@/lib/theme';
 import type { ResolvedStorefront, StoreConfig, StoreType } from '@/lib/types';
 import { setStoreCountry } from '@/lib/regional';
+import { ALL_PRODUCTS, normalizeProductFilter, type ProductFilter } from '@/lib/productFilter';
 
 type StoreStatus =
   | 'loading'
@@ -37,6 +38,10 @@ interface StoreContextValue {
   companyId: string | null;
   status: StoreStatus;
   storeType: StoreType | null;
+  /** Clave de ESTA tienda. Dos tiendas de la empresa pueden compartir storeType. */
+  storeKey: string | null;
+  /** Qué productos muestra esta tienda (ver lib/productFilter). */
+  productFilter: ProductFilter;
   requiresPassword: boolean;
   slug: string | null;
   // Datos para el gate (nombre + logo) cuando status === 'needs-password'.
@@ -87,7 +92,7 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // que eligió "Solo contado" pintaría el primer frame con el precio de tarjeta y
 // las cuotas, y recién los sacaría al resolver el fetch. Justamente lo que el
 // comercio pidió esconder, mostrado por medio segundo en cada visita.
-const cacheKey = (slug: string) => `procurva_store_config_v18:${slug}`;
+const cacheKey = (slug: string) => `procurva_store_config_v19:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 
@@ -96,6 +101,10 @@ interface CacheEntry {
   config: StoreConfig;
   storeType: StoreType;
   requiresPassword: boolean;
+  /** Identidad y catálogo de ESTA tienda (multi-tienda). Optativos: una entrada
+   *  cacheada de antes no los trae y se recalculan al revalidar. */
+  storeKey?: string | null;
+  productFilter?: ProductFilter;
 }
 
 function readCache(slug: string): CacheEntry | null {
@@ -150,6 +159,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<StoreConfig | null>(null);
   const [status, setStatus] = useState<StoreStatus>('loading');
   const [storeType, setStoreType] = useState<StoreType | null>(null);
+  // Qué tienda es y qué productos muestra. Con multi-tienda, dos tiendas de la
+  // misma empresa pueden tener el mismo storeType: la identidad es storeKey.
+  const [storeKey, setStoreKey] = useState<string | null>(null);
+  const [productFilter, setProductFilter] = useState<ProductFilter>(ALL_PRODUCTS);
   const [requiresPassword, setRequiresPassword] = useState(false);
   const [slug, setSlug] = useState<string | null>(null);
   const [pendingStore, setPendingStore] = useState<PendingStore | null>(null);
@@ -162,15 +175,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   function applyResolved(resolved: ResolvedStorefront): void {
     const cacheId = cacheIdRef.current ?? (resolved.slug || '').toLowerCase();
     const normalized = normalizeStoreConfig(resolved);
+    const filter = normalizeProductFilter(resolved.product_filter);
+    const key = resolved.store_key ?? resolved.store_type;
     applyConfig(normalized);
     writeCache(cacheId, {
       config: normalized,
       storeType: resolved.store_type,
       requiresPassword: resolved.requires_password,
+      storeKey: key,
+      productFilter: filter,
     });
     setSlug(resolved.slug || null);
     setConfig(normalized);
     setStoreType(resolved.store_type);
+    setStoreKey(key);
+    setProductFilter(filter);
     setRequiresPassword(resolved.requires_password);
     setStatus('ready');
   }
@@ -214,6 +233,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       applyConfig(cached.config);
       setConfig(cached.config);
       setStoreType(cached.storeType);
+      setStoreKey(cached.storeKey ?? cached.storeType);
+      setProductFilter(normalizeProductFilter(cached.productFilter));
       setRequiresPassword(cached.requiresPassword);
       setStatus('ready');
     }
@@ -242,6 +263,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Slug real de la tienda (necesario para el gate de password mayorista).
         setSlug(resolved.slug || null);
         setStoreType(resolved.store_type);
+        setStoreKey(resolved.store_key ?? resolved.store_type);
+        setProductFilter(normalizeProductFilter(resolved.product_filter));
         setRequiresPassword(resolved.requires_password);
 
         // Página en construcción: el comercio desactivó esta tienda (toggle del
@@ -304,6 +327,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         companyId: config?.companyId ?? null,
         status,
         storeType,
+        storeKey,
+        productFilter,
         requiresPassword,
         slug,
         pendingStore,
@@ -328,6 +353,8 @@ export function useStoreStatus(): {
   status: StoreStatus;
   companyId: string | null;
   storeType: StoreType | null;
+  storeKey: string | null;
+  productFilter: ProductFilter;
   requiresPassword: boolean;
   slug: string | null;
   pendingStore: PendingStore | null;
@@ -339,6 +366,8 @@ export function useStoreStatus(): {
     status: ctx.status,
     companyId: ctx.companyId,
     storeType: ctx.storeType,
+    storeKey: ctx.storeKey,
+    productFilter: ctx.productFilter,
     requiresPassword: ctx.requiresPassword,
     slug: ctx.slug,
     pendingStore: ctx.pendingStore,
@@ -351,4 +380,14 @@ export function useStoreType(): StoreType | null {
   const ctx = useContext(StoreContext);
   if (!ctx) throw new Error('useStoreType must be used within StoreProvider');
   return ctx.storeType;
+}
+
+/**
+ * Filtro de catálogo de la tienda activa. Lo usa TODA lectura de productos: si
+ * alguna se lo saltea, esa pantalla muestra los productos de la otra marca.
+ */
+export function useProductFilter(): ProductFilter {
+  const ctx = useContext(StoreContext);
+  if (!ctx) throw new Error('useProductFilter must be used within StoreProvider');
+  return ctx.productFilter;
 }

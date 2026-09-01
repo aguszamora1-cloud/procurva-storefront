@@ -206,6 +206,23 @@ export default async function handler(req: any, res: any) {
     if (tenant) {
       const ctx: Ctx = { origin, brand: tenant.brand };
 
+      // Qué productos son de ESTA tienda. marketing_feed_products resuelve por
+      // empresa y no conoce el filtro de catálogo (ni devuelve brand/segment como
+      // para filtrar sus filas), así que se piden los ids aparte y se intersecan.
+      // Sin esto, la marca B le declara a Meta los productos de la marca A.
+      let allowedIds: Set<string> | null = null;
+      const filterQs = productFilterQuery(tenant.productFilter);
+      if (filterQs) {
+        const { rows: idRows, error: idErr } = await rest(
+          `products?company_id=eq.${encodeURIComponent(tenant.companyId)}&select=id` + filterQs,
+        );
+        // Si la consulta falla NO servimos el catálogo entero: un feed con los
+        // productos de la otra marca es peor que un feed vacío, porque Meta lo
+        // publica igual. Set vacío = ningún producto entra.
+        allowedIds = new Set((idRows ?? []).map((r: any) => String(r.id)));
+        if (idErr) console.error('[feed] no se pudo resolver el filtro de la tienda');
+      }
+
       // Fuente de verdad: RPC marketing_feed_products (GET, STABLE). Paginado por Range.
       let from = 0;
       for (;;) {
@@ -218,6 +235,7 @@ export default async function handler(req: any, res: any) {
         if (error) break;
         for (const p of rows as FeedProduct[]) {
           if (!p.included) continue; // la RPC ya decidió; acá solo renderizamos
+          if (allowedIds && !allowedIds.has(String(p.product_id))) continue; // otra marca
           for (const v of p.variants || []) {
             const chunk = isCsv ? csvRow(p, v, ctx) : xmlItem(p, v, ctx);
             if (chunk) res.write(chunk);
@@ -245,12 +263,42 @@ export default async function handler(req: any, res: any) {
 const BASE_DOMAIN = 'procurva.app';
 const RESERVED = new Set(['www', 'app']);
 
+// Filtro de catálogo de la tienda. Espeja src/lib/productFilter.ts; duplicado en
+// sitemap.ts por la misma razón que resolveTenantFromHost.
+interface ProductFilter {
+  mode: 'all' | 'brand' | 'category' | 'segment';
+  values: string[];
+}
+const ALL_PRODUCTS: ProductFilter = { mode: 'all', values: [] };
+
+function filterFromPayload(payload: any): ProductFilter {
+  const raw = payload?.product_filter;
+  if (!raw || typeof raw !== 'object') return ALL_PRODUCTS;
+  const mode = raw.mode;
+  if (mode !== 'brand' && mode !== 'category' && mode !== 'segment') return ALL_PRODUCTS;
+  const values = Array.isArray(raw.values)
+    ? raw.values.filter((v: unknown): v is string => typeof v === 'string' && v.trim() !== '')
+    : [];
+  return { mode, values };
+}
+
+/** Fragmento de query-string de PostgREST. '' si el filtro no recorta nada. */
+function productFilterQuery(filter: ProductFilter): string {
+  if (filter.mode === 'all' || filter.values.length === 0) return '';
+  const list = filter.values.map((v) => `"${v.replace(/"/g, '\\"')}"`).join(',');
+  const column = filter.mode === 'category' ? 'categories' : filter.mode;
+  const op = filter.mode === 'category' ? `ov.{${list}}` : `in.(${list})`;
+  return `&${column}=${encodeURIComponent(op)}`;
+}
+
 interface TenantInfo {
   companyId: string;
   /** Slug real de la tienda que se sirve (puede venir del payload de la RPC). */
   slug: string;
   /** Nombre del comercio, para el título del feed. */
   brand: string;
+  /** Qué productos muestra ESTA tienda (multi-tienda por marca). */
+  productFilter: ProductFilter;
 }
 
 /** Host sin puerto, en minúsculas. */
@@ -307,6 +355,7 @@ function fromPayload(payload: any, fallbackSlug: string | null): TenantInfo | nu
     companyId: payload.company_id as string,
     slug,
     brand: (payload.name || slug || 'ProCurva').toString().trim(),
+    productFilter: filterFromPayload(payload),
   };
 }
 
@@ -331,7 +380,12 @@ async function resolveTenantFromHost(
       `companies?catalog_slug=eq.${encodeURIComponent(slug)}&catalog_enabled=eq.true&select=id,name&limit=1`,
     );
     if (rows[0]?.id) {
-      return { companyId: rows[0].id, slug, brand: (rows[0].name || slug).toString().trim() };
+      return {
+        companyId: rows[0].id,
+        slug,
+        brand: (rows[0].name || slug).toString().trim(),
+        productFilter: ALL_PRODUCTS,
+      };
     }
     // Una tienda puede vivir SÓLO en storefront_config (sin catalog_slug): ahí el
     // que sabe es el resolver público.

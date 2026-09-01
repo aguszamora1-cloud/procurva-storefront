@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { CartItem, StoreConfig, StoreType } from './types';
+import type { CartItem, StoreConfig } from './types';
 
 /** Códigos de error de cupón que ahora emite la RPC create_catalog_order_dedup
  * (validación/redención server-side). El checkout los mapea a un texto en español. */
@@ -205,9 +205,11 @@ export async function createCatalogOrder(
   total: number,
   customer: CustomerInfo,
   paymentMethod: PaymentMethodLabel,
-  // Tienda de origen: define el canal de venta (Catálogo Minorista / Mayorista)
-  // que las Edge Functions asignan al crear la orden real en el ERP.
-  storeType: StoreType,
+  // Tienda de origen: define el canal de venta que las Edge Functions asignan al
+  // crear la orden real en el ERP (store_channel_label en la base). Es la CLAVE
+  // de la tienda, no el modo: con dos marcas sobre un mismo stock, las dos
+  // minoristas comparten modo y el comerciante no sabría cuál vendió.
+  storeKey: string,
   opts: {
     // 'cash' (efectivo/transferencia, con descuento de contado) o 'card' (tarjeta).
     priceMode: 'cash' | 'card';
@@ -280,7 +282,7 @@ export async function createCatalogOrder(
     shipping_address: shippingAddress,
     is_pickup: !hasAddress,
     payment_method: paymentMethod,
-    store_type: storeType,
+    store_type: storeKey,
     // Descuento por cupón (si hay). create_catalog_order_dedup mapea estas
     // claves a las columnas homónimas de catalog_orders vía jsonb_populate_record.
     ...(opts.discount
