@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Play } from 'lucide-react';
 import { StoreImage } from './StoreImage';
+import { ImageLightbox } from './ImageLightbox';
 
 /** Ítem de la galería: imagen o video (con poster). */
 export interface GalleryItem {
@@ -26,16 +27,27 @@ interface Props {
 }
 
 /**
- * Galería mixta (imágenes + videos). Imágenes: hover-zoom en desktop (igual que
- * antes). Videos: <video preload="none" poster controls playsInline>, sólo se
- * cargan al interactuar. Thumbnails: columna vertical 80px a la izquierda en
- * desktop, fila horizontal con scroll debajo en mobile.
+ * Galería mixta (imágenes + videos). Videos: <video preload="none" poster
+ * controls playsInline>, sólo se cargan al interactuar. Thumbnails: columna
+ * vertical 80px a la izquierda en desktop, fila horizontal con scroll debajo en
+ * mobile.
+ *
+ * Zoom de las imágenes:
+ *  - Desktop (mouse de verdad): hover-zoom siguiendo el puntero, como siempre.
+ *  - Mobile: NADA al pasar el dedo. El hover-zoom escuchaba `mousemove`, que el
+ *    navegador también emite de forma sintética al tocar la pantalla, así que un
+ *    toque dejaba la foto ampliada y sin salida: no hay `mouseleave` en táctil
+ *    que la devuelva. Ahora el gesto se filtra por `pointerType` y el toque abre
+ *    el visor a pantalla completa (ImageLightbox), donde se amplía con los dedos.
  */
 export function ProductGallery({ items, alt, activeIndex, onFirstImageReady }: Props) {
   const [idx, setIdx] = useState(0);
   const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
+  const [lightbox, setLightbox] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const touchRef = useRef<{ x: number; y: number } | null>(null);
+  /** Momento del último swipe: el click que viene atrás no tiene que abrir el visor. */
+  const lastSwipe = useRef(0);
 
   useEffect(() => {
     if (typeof activeIndex === 'number') setIdx(activeIndex);
@@ -61,13 +73,32 @@ export function ProductGallery({ items, alt, activeIndex, onFirstImageReady }: P
 
   const goTo = (i: number) => setIdx(Math.max(0, Math.min(i, items.length - 1)));
 
-  const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (activeIsVideo) return; // sin zoom en videos
+  // Al cambiar de foto no queda ampliada la anterior.
+  useEffect(() => setZoom(null), [safeIdx]);
+
+  // Sólo las imágenes van al visor: el índice de la galería incluye los videos,
+  // así que hay que traducirlo a la posición dentro de la lista de fotos.
+  const imageSrcs = useMemo(
+    () => items.filter((it) => it.kind === 'image').map((it) => it.src),
+    [items],
+  );
+  const lightboxIndex = active && !activeIsVideo ? Math.max(0, imageSrcs.indexOf(active.src)) : 0;
+
+  const handleMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Sólo con un mouse de verdad: en táctil el hover-zoom queda trabado.
+    if (e.pointerType !== 'mouse' || activeIsVideo) return;
     const rect = e.currentTarget.getBoundingClientRect();
     setZoom({
       x: ((e.clientX - rect.left) / rect.width) * 100,
       y: ((e.clientY - rect.top) / rect.height) * 100,
     });
+  };
+
+  const openLightbox = () => {
+    if (activeIsVideo || imageSrcs.length === 0) return;
+    if (Date.now() - lastSwipe.current < 600) return; // veníamos de pasar de foto
+    setZoom(null);
+    setLightbox(true);
   };
 
   // Swipe táctil (mobile) para pasar entre fotos y videos. En un video se ignora
@@ -90,6 +121,7 @@ export function ProductGallery({ items, alt, activeIndex, onFirstImageReady }: P
     const dx = t.clientX - start.x;
     const dy = t.clientY - start.y;
     if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
+    lastSwipe.current = Date.now();
     goTo(dx < 0 ? safeIdx + 1 : safeIdx - 1);
   };
 
@@ -133,10 +165,14 @@ export function ProductGallery({ items, alt, activeIndex, onFirstImageReady }: P
           className={`relative aspect-[3/4] overflow-hidden rounded-xl bg-secondary md:max-h-[80vh] ${
             activeIsVideo ? '' : 'cursor-zoom-in'
           }`}
-          onMouseMove={handleMove}
-          onMouseLeave={() => setZoom(null)}
+          onPointerMove={handleMove}
+          onPointerLeave={() => setZoom(null)}
+          onPointerCancel={() => setZoom(null)}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
+          onClick={openLightbox}
+          role={activeIsVideo ? undefined : 'button'}
+          aria-label={activeIsVideo ? undefined : 'Ver la foto en grande'}
         >
           {active && activeIsVideo ? (
             <video
@@ -171,6 +207,20 @@ export function ProductGallery({ items, alt, activeIndex, onFirstImageReady }: P
         <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto md:hidden">
           {items.map((item, i) => thumb(item, i, 'w-20 h-24'))}
         </div>
+      )}
+
+      {lightbox && (
+        <ImageLightbox
+          images={imageSrcs}
+          alt={alt}
+          startIndex={lightboxIndex}
+          onIndexChange={(i) => {
+            // Al cerrar, la galería queda en la misma foto que se estaba viendo.
+            const pos = items.findIndex((it) => it.kind === 'image' && it.src === imageSrcs[i]);
+            if (pos >= 0) setIdx(pos);
+          }}
+          onClose={() => setLightbox(false)}
+        />
       )}
     </>
   );
