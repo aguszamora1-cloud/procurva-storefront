@@ -96,6 +96,8 @@ export type CornerStyle = 'square' | 'rounded' | 'soft';
  */
 export type ButtonCornerStyle = 'square' | 'rounded' | 'pill';
 
+/** Encuadre del hero en escritorio: llenar la pantalla o mostrar la imagen entera. */
+export type HeroFit = 'cover' | 'contain';
 /** Aspecto del botón (CTA) del hero, elegido por el comercio en el editor. */
 export type HeroCtaShape = 'rounded' | 'square' | 'pill';
 export type HeroCtaSize = 'sm' | 'md' | 'lg';
@@ -677,6 +679,12 @@ export interface RawCatalogSettings {
    * decide por si hay textos cargados (ver resolveHeroMode).
    */
   hero_mode?: string;
+  /**
+   * Encuadre del hero en ESCRITORIO: 'cover' (alto de pantalla, la imagen se
+   * recorta para llenarlo) o 'contain' (el alto sigue la proporción real de la
+   * imagen, sin recorte). Ausente = 'cover', el comportamiento histórico.
+   */
+  hero_fit?: string;
   // Secciones
   section_categories?: boolean;
   section_featured?: boolean;
@@ -1053,6 +1061,12 @@ export interface StoreConfig {
    * 'auto' = tiendas que nunca tocaron el selector: se muestra lo que haya cargado.
    */
   heroMode: 'image_only' | 'image_with_text' | 'auto';
+  /**
+   * Encuadre del hero en escritorio (en mobile siempre manda la imagen mobile).
+   *  - 'cover'   → alto de pantalla, la imagen se recorta para llenarlo.
+   *  - 'contain' → el alto sale de la proporción real de la imagen: entera.
+   */
+  heroFit: HeroFit;
   // Secciones
   sections: {
     categories: boolean;

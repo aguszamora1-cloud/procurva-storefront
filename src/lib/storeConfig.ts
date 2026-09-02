@@ -1,5 +1,6 @@
 import type {
   HeroCtaStyle,
+  HeroFit,
   PurchaseFlowStep,
   RawCatalogSettings,
   ResolvedStorefront,
@@ -165,6 +166,16 @@ function resolveHeroCta(raw: { shape?: string; size?: string; variant?: string }
  */
 function resolveHeroMode(raw: unknown): 'image_only' | 'image_with_text' | 'auto' {
   return raw === 'image_only' || raw === 'image_with_text' ? raw : 'auto';
+}
+
+/**
+ * Encuadre del hero en escritorio. A diferencia de resolveHeroMode acá NO hay
+ * tercer estado: la clave ausente cae a 'cover', que es exactamente lo que la
+ * tienda venía pintando (`md:h-screen` + object-cover) desde antes de que el
+ * selector existiera. Sólo cambia de aspecto la tienda que elige 'contain'.
+ */
+function resolveHeroFit(raw: unknown): HeroFit {
+  return raw === 'contain' ? 'contain' : 'cover';
 }
 
 /**
@@ -431,6 +442,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     heroCtaLink: firstStr(s.hero_cta_link) || DEFAULTS.heroCtaLink,
     heroCta: resolveHeroCta(s.hero_cta_style),
     heroMode: resolveHeroMode(s.hero_mode),
+    heroFit: resolveHeroFit(s.hero_fit),
 
     sections: {
       categories: bool(s.section_categories, true),

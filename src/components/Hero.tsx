@@ -67,6 +67,11 @@ export function Hero() {
   const [transformFailed, setTransformFailed] = useState(false);
   // La primera imagen del hero ya se descargó (o no hay ninguna que esperar).
   const [firstImageReady, setFirstImageReady] = useState(false);
+  // Proporción REAL de la primera imagen, medida al cargarla. Sólo la usa el
+  // encuadre 'contain': es lo que le da el alto al banner para que la imagen
+  // entre entera. Se remide sola cuando el <picture> cambia de fuente al
+  // cruzar los 767px, así que mobile y escritorio quedan cada uno con la suya.
+  const [ratio, setRatio] = useState<number | null>(null);
 
   // Sólo banners con URL válida; descartamos image_url vacío/roto.
   const validBanners = banners.filter((b) => isRenderable(b.image_url));
@@ -126,8 +131,36 @@ export function Hero() {
         )
     : null;
 
+  // Encuadre en escritorio (Catálogo Online → Banner principal → Encuadre):
+  //  - 'cover'   → alto de pantalla y la imagen se recorta para llenarlo. Es el
+  //                default y lo que la tienda venía haciendo siempre.
+  //  - 'contain' → el alto sale de la proporción REAL de la imagen, así que se
+  //                ve entera. Es la salida para el comercio que sube fotos que
+  //                no son apaisadas (el caso típico: la creatividad de mobile).
+  const fitContain = config.heroFit === 'contain';
+  // Caja del banner. En 'contain' el alto lo pone `aspect-ratio` en línea, con
+  // el mismo placeholder de 'cover' mientras no sepamos todavía la proporción.
+  // El `max-h-screen` de 'contain' es un tope de cordura, no un recorte de
+  // diseño: sin él, una imagen vertical cargada como la de escritorio genera un
+  // banner de tres pantallas de alto y la tienda no se ve. Al topearse, la
+  // imagen queda con bandas al costado — que es justamente el aviso visual de
+  // que esa imagen no va ahí.
+  const boxCls = fitContain
+    ? 'relative w-full max-h-screen overflow-hidden bg-primary'
+    : 'relative aspect-[4/5] max-h-[680px] w-full overflow-hidden bg-primary md:aspect-auto md:max-h-none md:h-screen';
+  const boxStyle = fitContain && ratio ? { aspectRatio: String(ratio) } : undefined;
+  const boxFallbackCls = fitContain && !ratio ? ' aspect-[4/5] md:aspect-[2/1]' : '';
+
   if (isLoading && slides.length === 0) {
-    return <section className="aspect-[4/5] max-h-[680px] w-full bg-secondary md:aspect-auto md:max-h-none md:h-[70vh]" />;
+    // Mismo alto que el hero real: si el esqueleto mide distinto, la página
+    // pega un salto justo cuando entra la imagen.
+    return (
+      <section
+        className={`w-full bg-secondary ${
+          fitContain ? 'aspect-[4/5] md:aspect-[2/1]' : 'aspect-[4/5] max-h-[680px] md:aspect-auto md:max-h-none md:h-screen'
+        }`}
+      />
+    );
   }
 
   // Sin imágenes: hero editorial sólo si hay texto configurado. Si no, no hay hero.
@@ -154,7 +187,7 @@ export function Hero() {
   const showText = hasText;
 
   const media = (
-    <div className="relative aspect-[4/5] max-h-[680px] w-full overflow-hidden bg-primary md:aspect-auto md:max-h-none md:h-screen">
+    <div className={boxCls + boxFallbackCls} style={boxStyle}>
       {slides.map((s, i) => (
         <div
           key={i}
@@ -172,8 +205,15 @@ export function Hero() {
               loading={i === 0 ? 'eager' : 'lazy'}
               decoding={i === 0 ? 'sync' : 'async'}
               fetchPriority={i === 0 ? 'high' : 'auto'}
-              onLoad={() => {
-                if (i === 0) setFirstImageReady(true);
+              onLoad={(e) => {
+                if (i !== 0) return;
+                setFirstImageReady(true);
+                // La proporción se toma de la fuente que el navegador eligió
+                // (mobile o escritorio), y se vuelve a tomar si cambia: el
+                // <img> dispara load otra vez cuando el <picture> cambia de
+                // source al pasar los 767px.
+                const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+                if (w && h) setRatio(w / h);
               }}
               onError={() => {
                 if (!transformFailed) {
@@ -185,7 +225,7 @@ export function Hero() {
                 // gate igual, no vamos a dejar la tienda tapada por una imagen rota.
                 if (i === 0) setFirstImageReady(true);
               }}
-              className="absolute inset-0 h-full w-full object-cover"
+              className={`absolute inset-0 h-full w-full ${fitContain ? 'object-contain' : 'object-cover'}`}
             />
           </picture>
         </div>
