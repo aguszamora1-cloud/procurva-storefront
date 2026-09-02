@@ -46,8 +46,8 @@ function ctaClass(cta: { shape: string; size: string; variant: string }): string
 }
 
 interface Slide {
+  /** Imagen ya resuelta para el dispositivo actual. */
   image: string;
-  imageMobile: string | null;
   link: string | null;
 }
 
@@ -58,9 +58,31 @@ function isRenderable(url: string | null | undefined): boolean {
   return u.startsWith('http://') || u.startsWith('https://') || u.startsWith('/');
 }
 
+/** El mismo corte de 767px que usaba el <picture>, pero legible desde JS. */
+const MOBILE_QUERY = '(max-width: 767px)';
+
+/**
+ * ¿Estamos en celular? Antes esto lo resolvía el `<source media>` del
+ * `<picture>`, pero la lista de slides ahora DEPENDE del dispositivo (un banner
+ * puede ir sólo en celular), y la rotación con su índice y sus puntitos es
+ * estado de React: el CSS solo no alcanza para sacar un slide de la vuelta.
+ */
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_QUERY);
+    const onChange = () => setIsMobile(mq.matches);
+    mq.addEventListener('change', onChange);
+    onChange();
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return isMobile;
+}
+
 export function Hero() {
   const config = useStore();
   const { banners, isLoading } = useBanners();
+  const isMobile = useIsMobile();
   const [idx, setIdx] = useState(0);
   // Si la transformación de Supabase (render/image) falla, caemos a la URL
   // original. Las imágenes nunca quedan rotas.
@@ -73,18 +95,29 @@ export function Hero() {
   // cruzar los 767px, así que mobile y escritorio quedan cada uno con la suya.
   const [ratio, setRatio] = useState<number | null>(null);
 
-  // Sólo banners con URL válida; descartamos image_url vacío/roto.
-  const validBanners = banners.filter((b) => isRenderable(b.image_url));
+  // Qué imagen le toca a este dispositivo. En celular manda la mobile y la de
+  // escritorio queda de respaldo; en escritorio SÓLO vale la de escritorio.
+  //
+  // De ahí sale lo importante: un banner al que le vaciaron la imagen de
+  // escritorio se muestra únicamente en celular y no entra en la rotación de
+  // PC. Es la salida para el comercio que tiene las creatividades verticales
+  // del teléfono y todavía no armó las apaisadas: en vez de mostrarlas
+  // recortadas a la mitad en una pantalla grande, no las muestra.
+  const pick = (desktop: string | null | undefined, mobile: string | null | undefined): string => {
+    if (isMobile && isRenderable(mobile)) return (mobile as string).trim();
+    return isRenderable(desktop) ? (desktop as string).trim() : '';
+  };
+
+  const fromBanners: Slide[] = banners
+    .map((b) => ({ image: pick(b.image_url, b.image_url_mobile), link: b.link_url }))
+    .filter((s) => s.image);
+  const single = pick(config.heroImageUrl, config.heroImageMobileUrl);
   const slides: Slide[] =
-    validBanners.length > 0
-      ? validBanners.map((b) => ({
-          image: b.image_url,
-          imageMobile: isRenderable(b.image_url_mobile) ? b.image_url_mobile : null,
-          link: b.link_url,
-        }))
-      : isRenderable(config.heroImageUrl)
-        ? [{ image: config.heroImageUrl, imageMobile: isRenderable(config.heroImageMobileUrl) ? config.heroImageMobileUrl : null, link: null }]
-        : [];
+    fromBanners.length > 0 ? fromBanners : single ? [{ image: single, link: null }] : [];
+
+  // Al cruzar los 767px la lista puede achicarse (los banners de sólo-celular
+  // desaparecen): sin esto el índice quedaría apuntando fuera del array.
+  const safeIdx = idx < slides.length ? idx : 0;
 
   const srcFor = (url: string, width: number) => (transformFailed ? url : transformedSrc(url, { width }));
 
@@ -100,7 +133,7 @@ export function Hero() {
   }, [slides.length]);
 
   // Debug: qué URL está usando el hero (transformada vs original).
-  const activeImage = slides[idx]?.image;
+  const activeImage = slides[safeIdx]?.image;
   useEffect(() => {
     if (activeImage) {
       console.log('[Hero] imagen usada:', transformFailed ? activeImage : transformedSrc(activeImage, { width: 1600 }), '| original:', activeImage);
@@ -183,7 +216,7 @@ export function Hero() {
     );
   }
 
-  const slide = slides[idx];
+  const slide = slides[safeIdx];
   const showText = hasText;
 
   const media = (
@@ -192,15 +225,16 @@ export function Hero() {
         <div
           key={i}
           className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-            i === idx ? 'z-10 opacity-100' : 'z-0 opacity-0'
+            i === safeIdx ? 'z-10 opacity-100' : 'z-0 opacity-0'
           }`}
         >
-          <picture>
-            {s.imageMobile && (
-              <source media="(max-width: 767px)" srcSet={srcFor(s.imageMobile, 768)} />
-            )}
-            <img
-              src={srcFor(s.image, 1600)}
+          {/* Sin <picture>: la imagen del dispositivo ya la eligió `pick`, que
+              es el mismo que decide qué banners entran en la rotación. Tener
+              las dos reglas (cuál se ve y cuáles rotan) en un solo lugar es lo
+              que evita que se contradigan. */}
+          <img
+              key={s.image}
+              src={srcFor(s.image, isMobile ? 768 : 1600)}
               alt={config.name}
               loading={i === 0 ? 'eager' : 'lazy'}
               decoding={i === 0 ? 'sync' : 'async'}
@@ -208,10 +242,9 @@ export function Hero() {
               onLoad={(e) => {
                 if (i !== 0) return;
                 setFirstImageReady(true);
-                // La proporción se toma de la fuente que el navegador eligió
-                // (mobile o escritorio), y se vuelve a tomar si cambia: el
-                // <img> dispara load otra vez cuando el <picture> cambia de
-                // source al pasar los 767px.
+                // La proporción se mide sobre la imagen que se está mostrando,
+                // así que al cruzar los 767px se vuelve a tomar sola con la del
+                // otro dispositivo.
                 const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
                 if (w && h) setRatio(w / h);
               }}
@@ -227,7 +260,6 @@ export function Hero() {
               }}
               className={`absolute inset-0 h-full w-full ${fitContain ? 'object-contain' : 'object-cover'}`}
             />
-          </picture>
         </div>
       ))}
 
@@ -281,7 +313,7 @@ export function Hero() {
               type="button"
               onClick={() => setIdx(i)}
               aria-label={`Ir al slide ${i + 1}`}
-              className={`h-1 rounded-full transition-all ${i === idx ? 'w-8 bg-white' : 'w-4 bg-white/40 hover:bg-white/70'}`}
+              className={`h-1 rounded-full transition-all ${i === safeIdx ? 'w-8 bg-white' : 'w-4 bg-white/40 hover:bg-white/70'}`}
             />
           ))}
         </div>
