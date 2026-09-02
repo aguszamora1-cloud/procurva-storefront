@@ -3,9 +3,9 @@ import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
 import type { Testimonial } from '@/lib/types';
 
-/** Testimonios activos del catálogo activo (retail/wholesale), ordenados por `order`. */
+/** Testimonios activos de la tienda activa, ordenados por `order`. */
 export function useTestimonials(): { testimonials: Testimonial[]; isLoading: boolean } {
-  const { companyId, storeType } = useStoreStatus();
+  const { companyId, storeType, storeKey } = useStoreStatus();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -17,7 +17,10 @@ export function useTestimonials(): { testimonials: Testimonial[]; isLoading: boo
         .from('catalog_testimonials')
         .select('id, company_id, catalog_type, customer_name, customer_photo_url, text, rating, order, active')
         .eq('company_id', companyId)
-        .eq('catalog_type', storeType)
+        // Las reseñas son de la tienda, no del negocio: con dos marcas, cada una
+        // muestra las suyas. storeKey identifica la tienda (storeType es sólo el
+        // modo y dos tiendas pueden compartirlo).
+        .eq('catalog_type', storeKey || storeType)
         .eq('active', true)
         .order('order', { ascending: true });
       if (cancelled) return;
@@ -27,7 +30,7 @@ export function useTestimonials(): { testimonials: Testimonial[]; isLoading: boo
     return () => {
       cancelled = true;
     };
-  }, [companyId, storeType]);
+  }, [companyId, storeType, storeKey]);
 
   return { testimonials, isLoading };
 }

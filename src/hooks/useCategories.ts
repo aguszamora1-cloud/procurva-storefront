@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
 import { productCategories } from '@/lib/utils';
+import { isMissingColumn, storeScopeValues } from '@/lib/storeScope';
 import type { Product } from '@/lib/types';
 
 export interface CategoryInfo {
@@ -27,7 +28,7 @@ export function useCategories(products: Product[]): {
   categories: CategoryInfo[];
   isLoading: boolean;
 } {
-  const { companyId } = useStoreStatus();
+  const { companyId, storeKey } = useStoreStatus();
   const [order, setOrder] = useState<OrderRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,11 +36,19 @@ export function useCategories(products: Product[]): {
     if (!companyId) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from('catalog_category_order')
-        .select('category_name, sort_order, visible, image_url')
-        .eq('company_id', companyId)
+      const base = () =>
+        supabase
+          .from('catalog_category_order')
+          .select('category_name, sort_order, visible, image_url')
+          .eq('company_id', companyId);
+      let { data, error } = await base()
+        .in('store_key', storeScopeValues(storeKey, ''))
         .order('sort_order', { ascending: true });
+      // 20260903 sin aplicar: sin el reintento, el home se quedaría sin el orden
+      // ni las imágenes de categoría hasta migrar.
+      if (isMissingColumn(error)) {
+        ({ data, error } = await base().order('sort_order', { ascending: true }));
+      }
       if (cancelled) return;
       setOrder((data as OrderRow[]) ?? []);
       setIsLoading(false);
@@ -47,7 +56,7 @@ export function useCategories(products: Product[]): {
     return () => {
       cancelled = true;
     };
-  }, [companyId]);
+  }, [companyId, storeKey]);
 
   const categories = useMemo<CategoryInfo[]>(() => {
     // Conteo por categoría a partir de los productos.

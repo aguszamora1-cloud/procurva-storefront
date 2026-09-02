@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
+import { storeScopeValues } from '@/lib/storeScope';
 import type { Reel } from '@/lib/types';
 
 const COLS_BASE = 'id, url, poster_url, caption, duration_ms, product_id, sort_order';
@@ -33,7 +34,7 @@ export function useReels(
   placement: 'home' | 'product',
   productId?: string,
 ): { reels: Reel[]; isLoading: boolean } {
-  const { companyId, storeType } = useStoreStatus();
+  const { companyId, storeType, storeKey } = useStoreStatus();
   const [reels, setReels] = useState<Reel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -54,9 +55,10 @@ export function useReels(
           .eq('placement', placement)
           .eq('is_visible', true);
         q = placement === 'product' ? q.eq('product_id', productId as string) : q.is('product_id', null);
-        // 'both' o el canal activo. storeType puede no estar resuelto todavía.
-        const channel = storeType === 'wholesale' ? 'wholesale' : 'retail';
-        q = q.in('catalog_type', ['both', channel]);
+        // Los de ESTA tienda, más los de alcance compartido ('both') si es una de
+        // las dos históricas. Una tienda nueva ve sólo los suyos: los videos son
+        // identidad de marca, no del depósito.
+        q = q.in('catalog_type', storeScopeValues(storeKey ?? storeType, 'both'));
         return q.order('sort_order', { ascending: true });
       };
 
@@ -82,7 +84,7 @@ export function useReels(
     return () => {
       cancelled = true;
     };
-  }, [companyId, storeType, placement, productId]);
+  }, [companyId, storeType, storeKey, placement, productId]);
 
   return { reels, isLoading };
 }

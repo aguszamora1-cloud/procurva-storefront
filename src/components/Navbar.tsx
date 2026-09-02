@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { useStore, useStoreStatus } from '@/context/StoreProvider';
 import { applyProductFilter, productFilterKey } from '@/lib/productFilter';
+import { storeScopeValues } from '@/lib/storeScope';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
 import { isUnpublished } from '@/lib/productStatus';
@@ -103,7 +104,7 @@ function TrackingForm({ item }: { item: Extract<StoreMenuItem, { kind: 'tracking
 
 export function Navbar() {
   const config = useStore();
-  const { storeType, productFilter } = useStoreStatus();
+  const { storeType, storeKey, productFilter } = useStoreStatus();
   const productFilterKeyStr = productFilterKey(productFilter);
   const { itemCount, open } = useCart();
   const location = useLocation();
@@ -144,10 +145,12 @@ export function Navbar() {
       // En mayorista los productos se filtran por wholesale_price>0 (igual que useProducts).
       const priceCol = storeType === 'wholesale' ? 'wholesale_price' : 'retail_price';
       const [orderRes, prodRes] = await Promise.all([
+        // El orden/visibilidad de categorías también es de ESTA tienda.
         supabase
           .from('catalog_category_order')
           .select('category_name, sort_order, visible, image_url')
           .eq('company_id', cid)
+          .in('store_key', storeScopeValues(storeKey, ''))
           .order('sort_order', { ascending: true }),
         // El menú lateral tiene su PROPIA query (no pasa por useProducts), así
         // que también le va el filtro de catálogo: si no, la segunda marca
@@ -193,7 +196,7 @@ export function Navbar() {
     return () => {
       cancelled = true;
     };
-  }, [config.companyId, storeType, productFilterKeyStr]);
+  }, [config.companyId, storeType, storeKey, productFilterKeyStr]);
 
   // ¿La tienda tiene outfits activos? Query liviana (solo count) gateada por los
   // mismos flags que el home usa para renderizar la sección.

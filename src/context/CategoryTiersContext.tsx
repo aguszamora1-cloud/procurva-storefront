@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useStoreStatus } from '@/context/StoreProvider';
+import { storeScopeValues } from '@/lib/storeScope';
 import {
   parseCategoryTierRow,
   resolveTierConfigForProduct,
@@ -28,7 +29,7 @@ const CategoryTiersContext = createContext<CategoryTiersValue>({
 });
 
 export function CategoryTiersProvider({ children }: { children: ReactNode }) {
-  const { companyId } = useStoreStatus();
+  const { companyId, storeKey } = useStoreStatus();
   const [configByCategory, setConfigByCategory] = useState<Map<string, CategoryTierConfig>>(new Map());
   const [sortOrderByCategory, setSortOrderByCategory] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(false);
@@ -50,10 +51,14 @@ export function CategoryTiersProvider({ children }: { children: ReactNode }) {
           .select('category_name, is_active, variant_per_unit, tiers')
           .eq('company_id', companyId)
           .eq('is_active', true),
+        // Sólo el orden de ESTA tienda (con reintento sin la columna, por si
+        // 20260903 no está aplicada: acá el orden es cosmético y no vale romper
+        // los escalones por eso).
         supabase
           .from('catalog_category_order')
           .select('category_name, sort_order')
-          .eq('company_id', companyId),
+          .eq('company_id', companyId)
+          .in('store_key', storeScopeValues(storeKey, '')),
       ]);
       if (cancelled) return;
 
@@ -77,7 +82,7 @@ export function CategoryTiersProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [companyId]);
+  }, [companyId, storeKey]);
 
   const tiersForProduct = useCallback(
     (product: Pick<Product, 'categories'>) => resolveTierConfigForProduct(product, configByCategory, sortOrderByCategory),
