@@ -95,23 +95,40 @@ export function Hero() {
   // cruzar los 767px, así que mobile y escritorio quedan cada uno con la suya.
   const [ratio, setRatio] = useState<number | null>(null);
 
-  // Qué imagen le toca a este dispositivo. En celular manda la mobile y la de
-  // escritorio queda de respaldo; en escritorio SÓLO vale la de escritorio.
-  //
-  // De ahí sale lo importante: un banner al que le vaciaron la imagen de
-  // escritorio se muestra únicamente en celular y no entra en la rotación de
-  // PC. Es la salida para el comercio que tiene las creatividades verticales
-  // del teléfono y todavía no armó las apaisadas: en vez de mostrarlas
-  // recortadas a la mitad en una pantalla grande, no las muestra.
-  const pick = (desktop: string | null | undefined, mobile: string | null | undefined): string => {
-    if (isMobile && isRenderable(mobile)) return (mobile as string).trim();
-    return isRenderable(desktop) ? (desktop as string).trim() : '';
+  /** La primera de la lista que sea renderizable (o '' si ninguna lo es). */
+  const first = (...urls: (string | null | undefined)[]): string => {
+    for (const u of urls) if (isRenderable(u)) return (u as string).trim();
+    return '';
   };
 
-  const fromBanners: Slide[] = banners
-    .map((b) => ({ image: pick(b.image_url, b.image_url_mobile), link: b.link_url }))
+  // En CELULAR el respaldo es POR BANNER: si ese banner no tiene su vertical, se
+  // usa la de escritorio. Es lo que la tienda viene haciendo desde siempre, y es
+  // lo que hace que un comercio con seis apaisadas y una sola vertical siga
+  // viendo los seis slides en el teléfono en vez de uno.
+  const mobileSlides: Slide[] = banners
+    .map((b) => ({ image: first(b.image_url_mobile, b.image_url), link: b.link_url }))
     .filter((s) => s.image);
-  const single = pick(config.heroImageUrl, config.heroImageMobileUrl);
+
+  // En ESCRITORIO el respaldo es de LISTA, no por banner: mientras haya al menos
+  // un banner con imagen de escritorio, los de sólo-celular quedan afuera (esa
+  // es toda la gracia de "usarla sólo en celular" — no mostrar en una pantalla
+  // grande una foto vertical cortada a la mitad).
+  //
+  // Pero si NO hay ninguno, mostramos igual los de celular en vez de dejar la
+  // portada vacía: recortados se ven mal, sin banner no se ve nada. Una tienda
+  // que cargó imágenes nunca se queda sin banner por haberlas puesto en el slot
+  // "equivocado".
+  const desktopOwn: Slide[] = banners
+    .map((b) => ({ image: first(b.image_url), link: b.link_url }))
+    .filter((s) => s.image);
+  const desktopSlides = desktopOwn.length > 0 ? desktopOwn : mobileSlides;
+
+  const fromBanners = isMobile ? mobileSlides : desktopSlides;
+  // Último respaldo: la portada única de los settings (tiendas sin banners en la
+  // tabla). Misma lógica — en celular su versión mobile, si la cargaron.
+  const single = isMobile
+    ? first(config.heroImageMobileUrl, config.heroImageUrl)
+    : first(config.heroImageUrl, config.heroImageMobileUrl);
   const slides: Slide[] =
     fromBanners.length > 0 ? fromBanners : single ? [{ image: single, link: null }] : [];
 
