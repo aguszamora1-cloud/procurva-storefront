@@ -411,12 +411,14 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
       onClick={onClose}
     >
       <div
-        className="relative flex max-h-[88vh] w-full flex-col overflow-hidden shadow-2xl"
-        // maxHeight en dvh: en Instagram/webview `vh` mide contra el viewport más
-        // alto (toolbar oculta) y el modal queda más alto que lo visible, dejando
-        // el header (y la cruz) por encima del borde superior. dvh usa el alto
-        // visible real; la clase `max-h-[88vh]` queda de fallback si no hay dvh.
-        style={{ background: '#fff', borderRadius: '14px', maxWidth: '440px', color: '#111', maxHeight: '88dvh' }}
+        className="relative flex max-h-[88dvh] w-full flex-col overflow-hidden shadow-2xl"
+        // El tope de alto sale de styles/modals.css (`--modal-max-h`), que además
+        // de usar dvh — en Instagram/webview `vh` mide contra el viewport más alto,
+        // con la toolbar oculta, y el modal queda más alto que lo visible dejando el
+        // header y la cruz por encima del borde — descuenta el notch y el indicador
+        // de home. La clase `max-h-[88dvh]` queda de fallback. Sin maxHeight inline:
+        // un inline le gana a la regla global y volvía a ignorar las áreas seguras.
+        style={{ background: '#fff', borderRadius: '14px', maxWidth: '440px', color: '#111' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header sticky: siempre visible, con la cruz para cerrar */}

@@ -1,0 +1,104 @@
+/* ============================================================
+   modals.css — Medidas de los modales (mismo criterio que el ERP)
+   ============================================================
+
+   El problema, igual que en procurva2: `vh` en el celular NO mide lo que se ve.
+   Mide el viewport GRANDE — la pantalla entera, con la barra de estado y con la
+   toolbar del navegador escondida. El overlay, en cambio, es `inset-0` del área
+   visible. Un panel con `max-h-[88vh]` termina midiendo el 88% de algo más
+   grande que el hueco donde vive, así que se pasa de largo y el header (con la
+   cruz de cerrar) queda por encima del borde. Se ve feo en Safari y peor en los
+   navegadores embebidos de Instagram y Facebook, que es de donde entra la mayor
+   parte del tráfico de la tienda.
+
+   Encima el index.html declara `viewport-fit=cover`, así que el overlay llega
+   por debajo del notch y del indicador de home: el `p-3`/`p-4` de 12-16px no
+   alcanza para esquivarlos.
+
+   Las reglas se cuelgan de la combinación de clases del overlay
+   (`.fixed.inset-0.flex.items-center.justify-center`) para cubrir todos los
+   modales de una. Especificidad (0,5,0) o más: le gana a cualquier utilidad de
+   Tailwind escrita en el className (`max-h-[88vh]`, `p-7`, …). Ojo: NO le gana
+   a un `style` inline, así que si un modal necesita otra medida, va inline.
+   ============================================================ */
+
+:root {
+  /* Alto del viewport visible. `vh` como fallback; `dvh` donde exista. */
+  --modal-vh: 100vh;
+  /* Aire mínimo entre el borde de la pantalla y el panel. */
+  --modal-gap: 0.75rem;
+  --modal-gap-x: 0.75rem;
+}
+
+@supports (height: 100dvh) {
+  :root { --modal-vh: 100dvh; }
+}
+
+@media (min-width: 768px) {
+  :root { --modal-gap: 2rem; --modal-gap-x: 1rem; }
+}
+
+:root {
+  /* El aire de arriba/abajo nunca puede ser menor que el notch ni que el
+     indicador de home, si no el modal queda por debajo de ellos. */
+  --modal-pad-top: max(var(--modal-gap), env(safe-area-inset-top, 0px));
+  --modal-pad-bottom: max(var(--modal-gap), env(safe-area-inset-bottom, 0px));
+  --modal-pad-left: max(var(--modal-gap-x), env(safe-area-inset-left, 0px));
+  --modal-pad-right: max(var(--modal-gap-x), env(safe-area-inset-right, 0px));
+  /* Tope de alto para el panel: lo que se ve, menos el aire. */
+  --modal-max-h: calc(var(--modal-vh) - var(--modal-pad-top) - var(--modal-pad-bottom));
+}
+
+/* ── 1. El overlay respeta las áreas seguras ────────────────── */
+.fixed.inset-0.flex.items-center.justify-center:is(.p-3, .p-4, .p-6, .p-8) {
+  padding: var(--modal-pad-top) var(--modal-pad-right) var(--modal-pad-bottom) var(--modal-pad-left);
+}
+
+/* ── 2. El panel nunca es más alto que lo que se ve ───────────
+   Sólo los que ya saben scrollear por dentro o ya traían tope propio. A un
+   panel sin salida NO se le puede poner tope: le escondería contenido. */
+.fixed.inset-0.flex.items-center.justify-center
+  > :is(.overflow-y-auto, .overflow-auto, [class*="max-h-["]),
+.fixed.inset-0.flex.items-center.justify-center
+  > .overflow-hidden.flex.flex-col {
+  max-height: var(--modal-max-h);
+}
+
+/* ── 3. Red de contención: llegar siempre al final ────────────
+   Si un panel igual queda más alto que la pantalla (contenido inesperado,
+   texto agrandado desde Ajustes de la tienda), el overlay scrollea y el panel
+   se centra con `margin-block: auto` — que colapsa a 0 cuando no entra, así
+   que arranca arriba de todo y se puede recorrer entero. Con `items-center`
+   solo, el sobrante de arriba queda cortado e inalcanzable.
+   El `:where()` deja la regla del hijo en especificidad 0: cualquier margen
+   propio del panel sigue mandando. */
+.fixed.inset-0.flex.items-center.justify-center {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+:where(.fixed.inset-0.flex.items-center.justify-center) > * {
+  margin-block: auto;
+}
+
+/* Varios overlays traen el fondo oscuro como un hijo `absolute inset-0`. Al
+   volverse scrolleable el overlay, ese fondo se iría con el scroll y dejaría
+   ver la tienda sin oscurecer. Fijándolo al viewport queda siempre cubierto
+   (y sigue cerrando el modal al tocarlo). */
+:where(.fixed.inset-0.flex.items-center.justify-center) > .absolute.inset-0 {
+  position: fixed;
+}
+
+/* ── 4. En mobile el modal es más compacto ──────────────────── */
+@media (max-width: 639px) {
+  .fixed.inset-0.flex.items-center.justify-center > :is(.p-6, .p-7, .p-8) {
+    padding: 1.25rem;
+  }
+  .fixed.inset-0.flex.items-center.justify-center > * > :is(.p-5, .p-6, .p-7, .p-8) {
+    padding: 1rem 1.25rem;
+  }
+  .fixed.inset-0.flex.items-center.justify-center > * > :is(.px-5, .px-6, .px-7, .px-8) {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}

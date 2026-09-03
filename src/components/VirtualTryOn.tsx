@@ -208,7 +208,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
 
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-lg bg-background shadow-2xl"
+            className="relative flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-lg bg-background shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-line px-5 py-4">

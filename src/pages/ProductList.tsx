@@ -353,7 +353,7 @@ export function ProductList() {
             contenedor se acota al viewport y la lista scrollea adentro, con el
             encabezado ("Filtros" + Limpiar) siempre visible arriba. */}
         <aside className="hidden w-64 shrink-0 lg:block">
-          <div className="sticky top-24 flex max-h-[calc(100vh-8rem)] flex-col">
+          <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] flex-col">
             <div className="mb-1 flex shrink-0 items-center justify-between border-b border-line pb-3">
               <h2 className="text-[calc(15px_*_var(--font-scale,1))] font-bold uppercase tracking-[1px] text-on-surface">Filtros</h2>
               {clearButton}
@@ -426,7 +426,7 @@ export function ProductList() {
         role="dialog"
         aria-modal="true"
         aria-label="Filtros"
-        className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col rounded-t-2xl bg-background transition-transform duration-300 lg:hidden ${
+        className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-2xl bg-background transition-transform duration-300 lg:hidden ${
           mobileOpen ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
@@ -449,7 +449,7 @@ export function ProductList() {
           <ProductFilters {...panelProps} />
         </div>
 
-        <div className="border-t border-line px-5 py-4">
+        <div className="border-t border-line px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={() => setMobileOpen(false)}

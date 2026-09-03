@@ -49,7 +49,7 @@ export function CartDrawer() {
       <aside
         role="dialog"
         aria-label="Carrito"
-        className={`fixed right-0 top-0 z-50 flex h-full w-full flex-col bg-background transition-transform duration-300 sm:w-[420px] ${
+        className={`fixed right-0 top-0 z-50 flex h-dvh w-full flex-col bg-background transition-transform duration-300 sm:w-[420px] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -157,7 +157,7 @@ export function CartDrawer() {
         </div>
 
         {items.length > 0 && (
-          <div className="border-t border-line px-6 py-5">
+          <div className="border-t border-line px-6 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             {/* Nudges: promos por cantidad a las que les falta poco para activarse. */}
             {nudges.map((n) => (
               <div key={n.key} className="mb-3 rounded-lg border border-dashed border-accent-a40 bg-accent-a05 px-3 py-2 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-accent">

@@ -414,7 +414,7 @@ export function Navbar() {
         role="dialog"
         aria-modal="true"
         aria-label="Menú de navegación"
-        className={`fixed left-0 top-0 z-50 flex h-full w-[300px] max-w-[82vw] flex-col bg-background transition-transform duration-300 ${
+        className={`fixed left-0 top-0 z-50 flex h-dvh w-[300px] max-w-[82vw] flex-col bg-background transition-transform duration-300 ${
           menuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -432,7 +432,7 @@ export function Navbar() {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-6 py-4">
+        <nav className="flex-1 overflow-y-auto px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setMenuOpen(false)} className={drawerLink}>
               {item.label}

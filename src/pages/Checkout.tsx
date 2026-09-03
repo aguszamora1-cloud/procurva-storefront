@@ -1611,7 +1611,7 @@ export function Checkout() {
       {/* ───────── Barra fija inferior (mobile): total + CTA, detalle expandible ───────── */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-background lg:hidden">
         {mobileSummaryOpen && (
-          <div className="max-h-[45vh] overflow-y-auto border-b border-line px-5 py-4">{summaryRows}</div>
+          <div className="max-h-[45dvh] overflow-y-auto border-b border-line px-5 py-4">{summaryRows}</div>
         )}
         <div className="flex items-center gap-3 px-5 py-3">
           <button

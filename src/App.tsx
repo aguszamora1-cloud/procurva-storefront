@@ -40,7 +40,7 @@ function PageFallback() {
   // sus bloques: sin esto el gate se abriría sobre una pantalla vacía y la
   // página aparecería después (justo lo que queremos evitar).
   useFirstPaintGate('route-chunk', true);
-  return <div className="min-h-[60vh]" aria-busy="true" />;
+  return <div className="min-h-[60dvh]" aria-busy="true" />;
 }
 
 function StoreRoutes() {
