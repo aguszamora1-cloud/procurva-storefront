@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { selectWithVariantStock } from '@/lib/variantStock';
 import { useStore } from '@/context/StoreProvider';
 import type { Variant } from '@/lib/types';
 
@@ -28,14 +29,15 @@ export function useProductVariants(productIds: string[]): {
     }
     setIsLoading(true);
     (async () => {
-      const { data, error } = await supabase
-        .from('product_variants')
-        .select('id, product_id, company_id, size, color, stock, price, sku, image_url')
-        .in('product_id', ids);
+      // stock:catalog_stock = lo que la tienda puede vender (ver lib/variantStock).
+      const { data, error } = await selectWithVariantStock((col) => {
+        const sel: string = `id, product_id, company_id, size, color, ${col}, price, sku, image_url`;
+        return supabase.from('product_variants').select(sel).in('product_id', ids);
+      });
       if (cancelled) return;
       const next: Record<string, Variant[]> = {};
       if (!error) {
-        for (const v of (data ?? []) as Variant[]) {
+        for (const v of (data ?? []) as unknown as Variant[]) {
           (next[v.product_id] ??= []).push(v);
         }
       }

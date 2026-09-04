@@ -6,6 +6,7 @@ import { useOutfits, type OutfitWithProducts } from '@/hooks/useOutfits';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
+import { selectWithVariantStock } from '@/lib/variantStock';
 import { formatPrice, getPriceInfo, mainImage, sortSizes } from '@/lib/utils';
 import { outfitImages, outfitPricing } from '@/lib/outfits';
 import { applyStockOverrides } from '@/lib/productStatus';
@@ -193,15 +194,19 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
       return;
     }
     (async () => {
-      const { data, error } = await supabase
-        .from('product_variants')
-        .select('id, product_id, company_id, size, color, stock, price, sku, image_url')
-        .eq('company_id', config.companyId)
-        .in('product_id', productIds);
+      // stock:catalog_stock = lo que la tienda puede vender (ver lib/variantStock).
+      const { data, error } = await selectWithVariantStock((col) => {
+        const sel: string = `id, product_id, company_id, size, color, ${col}, price, sku, image_url`;
+        return supabase
+          .from('product_variants')
+          .select(sel)
+          .eq('company_id', config.companyId)
+          .in('product_id', productIds);
+      });
       if (cancelled) return;
       if (error) console.error('[OutfitBuyModal] error cargando variantes:', error);
       const map: Record<string, Variant[]> = {};
-      for (const v of ((data ?? []) as Variant[])) {
+      for (const v of ((data ?? []) as unknown as Variant[])) {
         (map[v.product_id] ??= []).push(v);
       }
       setVariantsByProduct(map);

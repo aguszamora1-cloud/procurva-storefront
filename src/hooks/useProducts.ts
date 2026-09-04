@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { variantStockCol, isMissingCatalogStock } from '@/lib/variantStock';
 import { useStoreStatus } from '@/context/StoreProvider';
 import { hasStock } from '@/lib/utils';
 import { applyStoreStatusList } from '@/lib/productStatus';
@@ -23,13 +24,16 @@ interface ProductsState {
 // is_featured y display_variants_separately van aparte: si alguna de esas
 // migraciones todavía no se aplicó, la query falla y caemos a COLS_BASE (sin
 // romper el grid; el modo "card por color" simplemente no se activa hasta migrar).
-const COLS_BASE = `
+// El stock de las variantes se pide con alias: en la tienda, `stock` es el stock
+// VENDIBLE POR LA WEB (la sucursal que la empresa le asignó a la tienda), no el
+// total del ERP. Ver lib/variantStock.
+const colsBase = (stockCol: string) => `
   id, company_id, name, status,
   retail_price, retail_price_transfer, retail_price_card, compare_at_price, wholesale_price,
   image_url, images, categories,
   catalog_visible, catalog_badge_text, catalog_badge_color, catalog_badge_visible,
   pack_only_sale, created_at,
-  product_variants ( size, color, stock, image_url )
+  product_variants ( size, color, ${stockCol}, image_url )
 `;
 // brand y segment alimentan los filtros de Marca / Segmento del listado. Van
 // en el grupo OPCIONAL a propósito: segment nace con la migración 20260761 y,
@@ -39,7 +43,8 @@ const COLS_BASE = `
 // migración 20260819 y, si no está aplicada, un SELECT explícito tira 42703 y
 // se lleva puesto el catálogo entero. Sin la columna, todos los productos
 // controlan stock como siempre.
-const PRODUCT_COLUMNS = `${COLS_BASE}, is_featured, is_new_arrival, display_variants_separately, curva_surtida_enabled, free_shipping, brand, segment, track_stock`;
+const productColumns = (stockCol: string) =>
+  `${colsBase(stockCol)}, is_featured, is_new_arrival, display_variants_separately, curva_surtida_enabled, free_shipping, brand, segment, track_stock`;
 
 const OPTIONAL_COLS_RE = /is_featured|is_new_arrival|display_variants_separately|curva_surtida_enabled|free_shipping|brand|segment|track_stock/i;
 
@@ -132,16 +137,23 @@ export function useProducts(): ProductsState {
 
       let data: unknown;
       let error: { message: string } | null;
-      if (preferBaseColumns) {
-        ({ data, error } = await runQuery(COLS_BASE));
-      } else {
-        ({ data, error } = await runQuery(PRODUCT_COLUMNS));
-        // Si alguna columna opcional todavía no existe (migración sin aplicar),
-        // reintentamos con COLS_BASE y recordamos la preferencia para la sesión.
-        if (error && OPTIONAL_COLS_RE.test(error.message)) {
-          preferBaseColumns = true;
-          ({ data, error } = await runQuery(COLS_BASE));
-        }
+      let stockCol = variantStockCol();
+      const cols = () => (preferBaseColumns ? colsBase(stockCol) : productColumns(stockCol));
+
+      ({ data, error } = await runQuery(cols()));
+
+      // catalog_stock todavía no existe (migración sin aplicar): se reintenta con
+      // el stock total y se recuerda para el resto de la sesión.
+      if (error && isMissingCatalogStock(error)) {
+        stockCol = 'stock';
+        ({ data, error } = await runQuery(cols()));
+      }
+
+      // Si alguna columna opcional todavía no existe (migración sin aplicar),
+      // reintentamos con las básicas y recordamos la preferencia para la sesión.
+      if (error && !preferBaseColumns && OPTIONAL_COLS_RE.test(error.message)) {
+        preferBaseColumns = true;
+        ({ data, error } = await runQuery(cols()));
       }
 
       if (cancelled) return;
