@@ -1,12 +1,14 @@
 import { useStore } from '@/context/StoreProvider';
 import { usePromotions } from '@/context/PromotionsContext';
-import { getPriceInfo, installmentsLabel } from '@/lib/utils';
+import { getPriceInfo, installmentsLabel, listPriceInfo } from '@/lib/utils';
 import type { Product } from '@/lib/types';
 import { PriceHierarchy, type PriceVariant } from './PriceHierarchy';
 
 interface Props {
   product: Pick<Product, 'id' | 'categories' | 'retail_price' | 'retail_price_card' | 'retail_price_transfer' | 'compare_at_price'> & {
     variant_color?: string | null;
+    size_price_adjustments?: Product['size_price_adjustments'];
+    product_variants?: Array<{ size: string | null }>;
   };
   /** 'card' = grilla · 'detail' = ficha · 'compact' = filas chicas (complementarios). */
   variant?: PriceVariant;
@@ -17,6 +19,12 @@ interface Props {
    * carrito cobra el promocional.
    */
   color?: string | null;
+  /**
+   * Talle elegido, para el precio por talle (lib/sizePrice). Igual que `color`,
+   * lo pasa la FICHA. Sin talle elegido —la grilla, o la ficha antes de elegir—
+   * la card muestra el precio del talle más barato con "Desde".
+   */
+  size?: string | null;
 }
 
 /**
@@ -25,10 +33,16 @@ interface Props {
  * carrito/checkout/orden/cupones) y delega la JERARQUÍA en `PriceHierarchy`
  * (contado protagonista, tarjeta secundaria). 'compact' omite las cuotas.
  */
-export function PriceStack({ product, variant = 'card', color }: Props) {
+export function PriceStack({ product, variant = 'card', color, size }: Props) {
   const config = useStore();
   const { priceFor } = usePromotions();
-  const { mainPrice, cardPrice, cashPrice, cashDiscountPct, comparePrice, hasCard } = getPriceInfo(product);
+  // Con talle elegido, el precio es el de ESE talle. Sin talle, `listPriceInfo`
+  // baja todo al talle más barato y marca `fromPrice` para anteponer "Desde"
+  // (sólo cuando el producto tiene precio por talle; si no, no cambia nada).
+  const info = size
+    ? { ...getPriceInfo(product, size), fromPrice: false }
+    : listPriceInfo(product);
+  const { mainPrice, cardPrice, cashPrice, cashDiscountPct, comparePrice, hasCard, fromPrice } = info;
 
   if (mainPrice <= 0) {
     return <p className="text-[calc(16px_*_var(--font-scale,1))] font-semibold text-subtle">Consultar precio</p>;
@@ -55,6 +69,7 @@ export function PriceStack({ product, variant = 'card', color }: Props) {
       savings={onPromo ? promoMain.savings : 0}
       installments={installments}
       variant={variant}
+      pricePrefix={fromPrice ? 'Desde' : ''}
     />
   );
 }

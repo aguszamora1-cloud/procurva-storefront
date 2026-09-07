@@ -28,8 +28,10 @@ const productColumnsBase = (stockCol: string) => `
 // curva surtida no se ofrece y no se muestran videos).
 // track_stock (stock infinito, migración 20260819) va con las opcionales por la
 // misma razón: sin la migración, pedirla explícitamente rompe el detalle.
+// size_price_adjustments (precio por talle, 20260907) va con las opcionales por
+// la misma razón: sin la migración, pedirla explícitamente rompe el detalle.
 const productColumns = (stockCol: string) =>
-  `${productColumnsBase(stockCol)}, curva_surtida_enabled, free_shipping, track_stock, product_media ( id, type, url, thumbnail_url, sort_order, object_position )`;
+  `${productColumnsBase(stockCol)}, curva_surtida_enabled, free_shipping, track_stock, size_price_adjustments, product_media ( id, type, url, thumbnail_url, sort_order, object_position )`;
 
 /** Un producto por id, scoped al tenant actual. */
 export function useProduct(productId: string | undefined): ProductState {

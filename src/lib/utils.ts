@@ -1,5 +1,11 @@
 import type { Product, ProductImage, StoreConfig } from './types';
 import { formatMoney } from './regional';
+import {
+  priceForSize,
+  priceForSizeOrNull,
+  sizePriceRange,
+  type HasSizeAdjustments,
+} from './sizePrice';
 
 /** Formatea un precio en la moneda de la tienda (ver lib/regional.ts). */
 export function formatPrice(value: number | null | undefined): string {
@@ -132,7 +138,22 @@ export interface PriceInfo {
  *    hay tarjeta (retail_price_card > 0) y el de transferencia difiere (es más barato).
  */
 export function getPriceInfo(
-  product: Pick<Product, 'retail_price' | 'retail_price_card' | 'retail_price_transfer' | 'compare_at_price'>,
+  product: Pick<
+    Product,
+    'retail_price' | 'retail_price_card' | 'retail_price_transfer' | 'compare_at_price'
+  > &
+    HasSizeAdjustments,
+  /**
+   * Talle elegido. Si el producto tiene precio por talle
+   * (products.size_price_adjustments), el ajuste se aplica sobre TODOS los
+   * precios que salen de acá — el principal, el de tarjeta, el de contado y el
+   * tachado. El tachado también: si sólo subiera el precio y no el de lista, un
+   * talle con recargo mostraría un "% OFF" inflado que no existe.
+   *
+   * Sin talle (las cards del listado, donde todavía no se eligió) devuelve el
+   * precio de la ficha: para esos casos está sizePriceRange, que da el "Desde".
+   */
+  size?: string | null,
 ): PriceInfo {
   const base = Number(product.retail_price ?? 0);
   const cardRaw = Number(product.retail_price_card ?? 0);
@@ -141,18 +162,61 @@ export function getPriceInfo(
 
   const hasCard = cardRaw > 0;
   // Principal = tarjeta; si no hay tarjeta, transferencia; si no, base.
-  const mainPrice = hasCard ? cardRaw : transferRaw > 0 ? transferRaw : base;
-  const cardPrice = hasCard ? cardRaw : 0;
+  const mainPriceRaw = hasCard ? cardRaw : transferRaw > 0 ? transferRaw : base;
+  const cardPriceRaw = hasCard ? cardRaw : 0;
 
   // Línea efectivo/transferencia: sólo si hay tarjeta y el de transferencia es más barato.
-  const cashPrice = hasCard && transferRaw > 0 && transferRaw < cardRaw ? transferRaw : null;
-  const cashDiscountPct = cashPrice ? Math.round(((cardRaw - cashPrice) / cardRaw) * 100) : 0;
+  const cashPriceRaw = hasCard && transferRaw > 0 && transferRaw < cardRaw ? transferRaw : null;
 
   // Tachado: precio de lista anterior, sólo si es mayor al principal.
-  const comparePrice = compareRaw > 0 && compareRaw > mainPrice ? compareRaw : null;
-  const compareDiscountPct = comparePrice ? Math.round(((comparePrice - mainPrice) / comparePrice) * 100) : 0;
+  const comparePriceRaw = compareRaw > 0 && compareRaw > mainPriceRaw ? compareRaw : null;
+
+  // El ajuste por talle se aplica al FINAL, sobre los precios ya resueltos. Al
+  // ser el mismo ajuste para los cuatro, las comparaciones de arriba (¿hay
+  // tarjeta?, ¿la transferencia es más barata?, ¿el de lista es mayor?) dan
+  // igual antes que después, y así hay UN solo lugar donde se aplica —el mismo
+  // que espeja storefront_size_price en SQL.
+  const mainPrice = priceForSize(mainPriceRaw, product, size);
+  const cardPrice = priceForSize(cardPriceRaw, product, size);
+  const cashPrice = priceForSizeOrNull(cashPriceRaw, product, size);
+  const comparePrice = priceForSizeOrNull(comparePriceRaw, product, size);
+
+  const cashDiscountPct = cashPrice && cardPrice > 0 ? Math.round(((cardPrice - cashPrice) / cardPrice) * 100) : 0;
+  const compareDiscountPct = comparePrice
+    ? Math.round(((comparePrice - mainPrice) / comparePrice) * 100)
+    : 0;
 
   return { mainPrice, cardPrice, cashPrice, cashDiscountPct, comparePrice, compareDiscountPct, hasCard };
+}
+
+/**
+ * Precio a mostrar en una card del listado, donde no hay talle elegido. Con
+ * precio por talle el producto no tiene UN precio: se devuelve el más barato y
+ * `fromPrice` en true para que la card anteponga "Desde".
+ */
+export function listPriceInfo(
+  product: Pick<
+    Product,
+    'retail_price' | 'retail_price_card' | 'retail_price_transfer' | 'compare_at_price'
+  > &
+    HasSizeAdjustments & { product_variants?: Array<{ size: string | null }> },
+): PriceInfo & { fromPrice: boolean } {
+  const info = getPriceInfo(product);
+  const sizes = product.product_variants?.map((v) => v.size) ?? [];
+  const main = sizePriceRange(info.mainPrice, product, sizes);
+  if (!main.varies) return { ...info, fromPrice: false };
+  // Todo baja al talle más barato en bloque, para que el "% OFF" y la línea de
+  // efectivo sigan siendo coherentes con el precio grande que se muestra.
+  const cash = sizePriceRange(info.cashPrice ?? 0, product, sizes);
+  const compare = sizePriceRange(info.comparePrice ?? 0, product, sizes);
+  return {
+    ...info,
+    mainPrice: main.min,
+    cardPrice: sizePriceRange(info.cardPrice, product, sizes).min,
+    cashPrice: info.cashPrice == null ? null : cash.min,
+    comparePrice: info.comparePrice == null ? null : compare.min,
+    fromPrice: true,
+  };
 }
 
 /** Talles y colores disponibles (con stock) de un producto. */

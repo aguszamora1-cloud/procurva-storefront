@@ -387,7 +387,11 @@ export function ProductDetail() {
     );
   }
 
-  const { mainPrice, cashPrice } = getPriceInfo(product);
+  // El talle entra en el precio: con precio por talle
+  // (products.size_price_adjustments) el XXL puede valer distinto que el S. Sin
+  // talle elegido todavía, se muestra el de la ficha — el mismo criterio que la
+  // card del listado, que antepone "Desde".
+  const { mainPrice, cashPrice } = getPriceInfo(product, selectedSize);
   // Promoción automática vigente: descuenta el precio que se muestra y el que va al carrito.
   // Se pasa el color elegido porque una promo puede alcanzar SOLO algunos colores
   // (item_type='product_color'): sin esto, elegir "Rojo" mostraría el precio de
@@ -562,14 +566,27 @@ export function ProductDetail() {
     return true;
   })();
 
+  // Precios del escalón para UN talle. En un escalón "Lleva 3" el cliente puede
+  // elegir tres talles distintos, y con precio por talle cada uno vale lo suyo:
+  // por eso se resuelve por línea y no una sola vez para todas. El color sigue
+  // saliendo de `selectedColor` para las promos, igual que antes.
+  const tierPricesForSize = (size: string | null, discountPct: number) => {
+    const info = getPriceInfo(product, size);
+    const listPrice = priceFor(info.mainPrice, product, selectedColor).finalPrice;
+    const listCash = info.cashPrice != null ? priceFor(info.cashPrice, product, selectedColor).finalPrice : null;
+    return { ...tierUnitPrices(listPrice, listCash, discountPct), listPrice };
+  };
+
   const handleAddTier = () => {
     if (!tierValid) return;
-    const { card: unitPrice, cash: unitCash } = tierPrices(selectedTier.discountPct);
     const groupId = `tier-${product.id}-${selectedTier.units}-${Date.now()}`;
     const label = `Lleva ${selectedTier.units}${selectedTier.discountPct > 0 ? ` — ${selectedTier.discountPct}% OFF` : ''}`;
+    let trackedValue = 0;
     for (const sel of effectiveTierSelections) {
       const v = variantFor(sel.size, sel.color);
       if (!v) continue;
+      const { card: unitPrice, cash: unitCash, listPrice } = tierPricesForSize(v.size, selectedTier.discountPct);
+      trackedValue += unitPrice;
       addItem({
         product_id: product.id,
         variant_id: v.id,
@@ -580,7 +597,7 @@ export function ProductDetail() {
         // El descuento del escalón (de la DB) ya viene aplicado en unit_price (tarjeta).
         unit_price: unitPrice,
         // Precio de lista SIN el descuento del escalón, para el tachado del carrito.
-        unit_price_original: finalPrice,
+        unit_price_original: listPrice,
         // Precio de efectivo/transferencia ya con el descuento del escalón aplicado.
         ...(unitCash != null ? { unit_price_cash: unitCash } : {}),
         qty: 1,
@@ -590,7 +607,7 @@ export function ProductDetail() {
         tierLabel: label,
       });
     }
-    trackAddToCart({ contentId: product.id, name: product.name, value: unitPrice * selectedTier.units });
+    trackAddToCart({ contentId: product.id, name: product.name, value: trackedValue });
     // Reset al flujo normal (Lleva 1).
     setTierUnits(1);
     setTierSelections([]);
@@ -956,7 +973,7 @@ export function ProductDetail() {
               se ordenan ni se ocultan desde el editor. */}
           {!isWholesale && (
             <>
-              <PriceStack product={product} variant="detail" color={selectedColor} />
+              <PriceStack product={product} variant="detail" color={selectedColor} size={selectedSize} />
 
               {/* Chip informativo del cupón guardado: cuánto pagarías por este
                   producto con el cupón + copiar el código. No aplica nada (eso
@@ -965,6 +982,7 @@ export function ProductDetail() {
                 product={product}
                 hasNonStackablePromo={promo?.stackable_with_coupons === false}
                 color={selectedColor}
+                size={selectedSize}
                 className="mt-3"
               />
 

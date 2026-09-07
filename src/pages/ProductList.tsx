@@ -11,7 +11,12 @@ import { ProductGrid, ProductGridSkeleton } from '@/components/ProductGrid';
 import { ProductFilters } from '@/components/ProductFilters';
 import { InlineError } from '@/components/ErrorScreen';
 import { Seo } from '@/components/Seo';
-import { availableColors, availableSizes, getPriceInfo, productCategories, sortSizes } from '@/lib/utils';
+// listPriceInfo y no getPriceInfo: en el listado no hay talle elegido, así que
+// el precio de un producto con precio por talle es el del talle más barato — el
+// mismo que muestra la card con "Desde". Filtrar y ordenar por otro número que
+// el que se ve sería una trampa (buscás "hasta $20.000" y no aparece un producto
+// cuyo S sale $18.000).
+import { availableColors, availableSizes, listPriceInfo, productCategories, sortSizes } from '@/lib/utils';
 
 /** Helper para togglear un valor dentro de un Set en el estado. */
 const toggleInSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>) => (value: string) =>
@@ -141,7 +146,7 @@ export function ProductList() {
   }, [baseProducts]);
 
   const priceBounds = useMemo(() => {
-    const prices = baseProducts.map((p) => getPriceInfo(p).mainPrice).filter((n) => n > 0);
+    const prices = baseProducts.map((p) => listPriceInfo(p).mainPrice).filter((n) => n > 0);
     if (prices.length === 0) return { min: 0, max: 0 };
     return { min: Math.floor(Math.min(...prices)), max: Math.ceil(Math.max(...prices)) };
   }, [baseProducts]);
@@ -163,7 +168,7 @@ export function ProductList() {
         if (selectedBrands.size > 0 && !selectedBrands.has((p.brand ?? '').trim())) return false;
         if (selectedSizes.size > 0 && !availableSizes(p).some((s) => selectedSizes.has(s))) return false;
         if (selectedColors.size > 0 && !availableColors(p).some((c) => selectedColors.has(c))) return false;
-        const price = getPriceInfo(p).mainPrice;
+        const price = listPriceInfo(p).mainPrice;
         if (min != null && !Number.isNaN(min) && price < min) return false;
         if (max != null && !Number.isNaN(max) && price > max) return false;
         return true;
@@ -184,9 +189,9 @@ export function ProductList() {
       case 'seccion':
         return arr;
       case 'precio_asc':
-        return arr.sort((a, b) => getPriceInfo(a).mainPrice - getPriceInfo(b).mainPrice);
+        return arr.sort((a, b) => listPriceInfo(a).mainPrice - listPriceInfo(b).mainPrice);
       case 'precio_desc':
-        return arr.sort((a, b) => getPriceInfo(b).mainPrice - getPriceInfo(a).mainPrice);
+        return arr.sort((a, b) => listPriceInfo(b).mainPrice - listPriceInfo(a).mainPrice);
       case 'az':
         return arr.sort((a, b) => a.name.localeCompare(b.name, 'es'));
       case 'nuevos': {

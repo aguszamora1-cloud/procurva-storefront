@@ -43,7 +43,11 @@ export const sizeInStock = (p: Product, color: string | null, size: string): boo
 
 // ── Retail: una unidad suelta ────────────────────────────────────────────────
 export function retailUnitLine(p: Product, variant: Variant, fallbackImg: string | null): CartItem {
-  const info = getPriceInfo(p);
+  // El talle de la variante entra en el precio: acá se arma una línea de carrito
+  // de verdad, así que si el producto tiene precio por talle (lib/sizePrice) el
+  // complementario tiene que entrar al precio de SU talle. Sin esto la línea
+  // viajaba al precio de la ficha y el detector del checkout la marcaba.
+  const info = getPriceInfo(p, variant.size);
   const cash = info.cashPrice != null && info.cashPrice < info.mainPrice ? info.cashPrice : undefined;
   return {
     product_id: p.id,

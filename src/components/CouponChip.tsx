@@ -113,6 +113,8 @@ interface PdpProps {
   hasNonStackablePromo?: boolean;
   /** Color elegido en la ficha: el precio base debe ser el de ESE color. */
   color?: string | null;
+  /** Talle elegido: con precio por talle (lib/sizePrice) el precio base es el de ESE talle. */
+  size?: string | null;
   className?: string;
 }
 
@@ -131,7 +133,7 @@ interface PdpProps {
  * precio + nota "desde $min"; (d) promo no acumulable → oculto; (e) canal
  * equivocado → oculto.
  */
-export function CouponPdpChip({ product, hasNonStackablePromo = false, color = null, className = '' }: PdpProps) {
+export function CouponPdpChip({ product, hasNonStackablePromo = false, color = null, size = null, className = '' }: PdpProps) {
   const { savedCoupon, couponRecord } = useCoupon();
   const { priceFor } = usePromotions();
   const storeType = useStoreType() ?? 'retail';
@@ -139,7 +141,7 @@ export function CouponPdpChip({ product, hasNonStackablePromo = false, color = n
 
   if (!savedCoupon || !couponRecord) return null;
 
-  const { mainPrice } = getPriceInfo(product);
+  const { mainPrice } = getPriceInfo(product, size);
   if (mainPrice <= 0) return null;
   // Precio principal EXACTO de PriceDisplay (con promo automática si la hay).
   const basePrice = priceFor(mainPrice, product, color).finalPrice;

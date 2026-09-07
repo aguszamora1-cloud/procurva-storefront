@@ -43,10 +43,14 @@ const colsBase = (stockCol: string) => `
 // migración 20260819 y, si no está aplicada, un SELECT explícito tira 42703 y
 // se lleva puesto el catálogo entero. Sin la columna, todos los productos
 // controlan stock como siempre.
+// size_price_adjustments (precio por talle, migración 20260907) va también en el
+// grupo OPCIONAL: nace con esa migración y, sin aplicar, un SELECT explícito
+// tira 42703 y se lleva puesto el catálogo entero. Sin la columna, todos los
+// talles salen al precio de la ficha, como siempre.
 const productColumns = (stockCol: string) =>
-  `${colsBase(stockCol)}, is_featured, is_new_arrival, display_variants_separately, curva_surtida_enabled, free_shipping, brand, segment, track_stock`;
+  `${colsBase(stockCol)}, is_featured, is_new_arrival, display_variants_separately, curva_surtida_enabled, free_shipping, brand, segment, track_stock, size_price_adjustments`;
 
-const OPTIONAL_COLS_RE = /is_featured|is_new_arrival|display_variants_separately|curva_surtida_enabled|free_shipping|brand|segment|track_stock/i;
+const OPTIONAL_COLS_RE = /is_featured|is_new_arrival|display_variants_separately|curva_surtida_enabled|free_shipping|brand|segment|track_stock|size_price_adjustments/i;
 
 // Una vez que detectamos en esta sesión que las columnas opcionales NO existen
 // (migración sin aplicar), recordamos ir directo a COLS_BASE para no pagar el
@@ -63,7 +67,11 @@ let preferBaseColumns = false;
 // v4: la clave incluye el filtro de catálogo de la tienda. DOS tiendas de la
 // misma empresa con el mismo modo (dos marcas minoristas) compartían clave: el
 // visitante que saltaba de una marca a la otra veía el catálogo de la anterior.
-const CACHE_VERSION = 'v4';
+// v5: + size_price_adjustments (precio por talle). Es OBLIGATORIO subir la
+// versión acá: sin el campo, la card de un producto con talles con recargo
+// mostraría el precio de la ficha en vez del "Desde", y el visitante que vuelve
+// lo seguiría viendo mal hasta que se le venza el cache.
+const CACHE_VERSION = 'v5';
 const cacheKey = (companyId: string, storeType: string, filterKey: string) =>
   `procurva_products_${CACHE_VERSION}:${companyId}:${storeType}:${filterKey}`;
 

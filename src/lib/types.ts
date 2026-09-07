@@ -387,6 +387,12 @@ export interface Product {
   retail_price_transfer: number | null;
   retail_price_card: number | null;
   compare_at_price: number | null;
+  // Ajuste de precio por TALLE (products.size_price_adjustments, migración
+  // 20260907). NO es un precio: es { "XXL": { type: 'percent', value: 10 } }, y
+  // se aplica sobre el precio ya resuelto por medio de pago. Sólo minorista.
+  // Opcional: va en el grupo de columnas OPCIONALES de los SELECT, así que si la
+  // migración no está aplicada llega undefined = sin ajustes. Ver lib/sizePrice.
+  size_price_adjustments?: Record<string, { type: 'amount' | 'percent'; value: number }> | null;
   // Precio mayorista base ("por talle" / suelto). Solo se usa cuando storeType==='wholesale'.
   wholesale_price: number | null;
   image_url: string | null;

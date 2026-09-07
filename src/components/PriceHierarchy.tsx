@@ -23,6 +23,12 @@ interface Props {
   cashLabel?: string;
   /** Etiqueta del precio secundario (tarjeta). Default "con tarjeta". */
   cardLabel?: string;
+  /**
+   * Prefijo del precio protagonista, para cuando el producto no tiene UN precio
+   * sino un piso: "Desde $12.000" en las cards de un producto con precio por
+   * talle (lib/sizePrice). Vacío = sin prefijo.
+   */
+  pricePrefix?: string;
 }
 
 /**
@@ -50,6 +56,7 @@ export function PriceHierarchy({
   variant = 'card',
   cashLabel: cashLabelProp,
   cardLabel = 'con tarjeta',
+  pricePrefix = '',
 }: Props) {
   const detail = variant === 'detail';
   const compact = variant === 'compact';
@@ -69,6 +76,7 @@ export function PriceHierarchy({
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        {pricePrefix && <span className={`font-medium text-muted ${labelCls}`}>{pricePrefix}</span>}
         <span className={primaryCls}>{formatPrice(primary)}</span>
         {hasCash && cashLabel && <span className={`font-medium text-muted ${labelCls}`}>{cashLabel}</span>}
         {cardLine != null && detail && discountPct > 0 && (

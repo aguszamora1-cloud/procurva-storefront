@@ -3,7 +3,7 @@ import { Zap, Truck, Sparkles } from 'lucide-react';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { usePromotions } from '@/context/PromotionsContext';
 import { contrastColor } from '@/lib/theme';
-import { getPriceInfo, totalStock } from '@/lib/utils';
+import { listPriceInfo, totalStock } from '@/lib/utils';
 import type { Product } from '@/lib/types';
 
 export type BadgeStyle = 'solid' | 'glass' | 'outline';
@@ -84,7 +84,10 @@ export function useProductBadges(
   // alcanza algunos colores: el precio no baja, así que el badge lo dice en vez de
   // prometer un descuento que no aplica a todo el producto.
   const colorHint = promo ? null : colorPromoHintFor(product);
-  const { comparePrice, compareDiscountPct } = getPriceInfo(product);
+  // listPriceInfo: el badge de oferta compara contra el precio que la card
+  // MUESTRA. Con precio por talle ese precio es el del talle más barato, así que
+  // el "% OFF" tiene que salir del mismo par de números.
+  const { comparePrice, compareDiscountPct } = listPriceInfo(product);
   const onSale = Boolean(comparePrice && compareDiscountPct > 0);
 
   const lowStockThreshold = cfg?.lowStock?.threshold ?? 5;

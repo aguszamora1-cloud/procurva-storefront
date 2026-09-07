@@ -353,8 +353,10 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
   const handleAdd = () => {
     if (!canAdd) return;
 
-    // Precios sueltos por prenda (en el mismo orden que `enriched`).
-    const infos = enriched.map((p) => getPriceInfo(p));
+    // Precios sueltos por prenda (en el mismo orden que `enriched`). Con el talle
+    // ya elegido: si la prenda tiene precio por talle (lib/sizePrice), el combo se
+    // prorratea sobre el precio REAL de lo que se lleva, no sobre el de la ficha.
+    const infos = enriched.map((p) => getPriceInfo(p, selectedSizes[p.id] ?? null));
     const cardPrices = infos.map((i) => i.mainPrice);
     const cashPrices = infos.map((i) => i.cashPrice ?? i.mainPrice);
 
@@ -454,7 +456,9 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
             enriched.map((p) => {
               const sizes = sizesByProduct[p.id] ?? [];
               const colors = colorsByProduct[p.id] ?? [];
-              const info = getPriceInfo(p);
+              // Con el talle elegido, el precio de la prenda es el de ESE talle:
+              // el número que se muestra acá tiene que ser el que se va a cobrar.
+              const info = getPriceInfo(p, selectedSizes[p.id] ?? null);
               return (
                 <div key={p.id} style={{ borderBottom: '1px solid #eee', padding: '14px 0' }}>
                   {/* Fila superior: thumb + nombre + precio */}
