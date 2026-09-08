@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getAttribution } from './attribution';
 import type { CartItem, StoreConfig } from './types';
 
 /** Códigos de error de cupón que ahora emite la RPC create_catalog_order_dedup
@@ -249,6 +250,7 @@ export async function createCatalogOrder(
   },
 ): Promise<string> {
   const orderId = crypto.randomUUID();
+  const attribution = getAttribution();
 
   const hasAddress = Boolean(customer.address);
   const shippingAddress = hasAddress
@@ -297,6 +299,11 @@ export async function createCatalogOrder(
     // homónima de catalog_orders (jsonb_populate_record). Si falta la columna en
     // una base sin migrar, jsonb_populate_record simplemente lo descarta (no rompe).
     ...(opts.priceBreakdown ? { price_breakdown: opts.priceBreakdown } : {}),
+    // De qué anuncio / red vino el comprador (utm_*, fbclid, referrer). Lo guardó
+    // captureAttribution() al aterrizar; va a catalog_orders.attribution y los
+    // webhooks lo copian a orders.meta.attribution para el cruce por campaña en
+    // Marketing → Publicidad. Sin la columna (base sin migrar) se descarta sin romper.
+    ...(attribution ? { attribution } : {}),
   };
 
   // Insert vía RPC con dedup en DB: si ya entró un pedido idéntico (misma

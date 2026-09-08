@@ -11,6 +11,7 @@
  */
 import { supabase } from '@/lib/supabase';
 import { currencyCode } from './regional';
+import { getStoredClickId, getMetaCookies } from './attribution';
 
 export interface ServerEventInput {
   companyId: string;
@@ -38,8 +39,12 @@ export function sendServerEvent(ev: ServerEventInput): void {
     channel: ev.channel,
     order_id: ev.orderId,
     user_data: ev.userData,
-    fbclid: readParam('fbclid'),
-    ttclid: readParam('ttclid'),
+    // El click-id de la URL de aterrizaje ya no está cuando se dispara AddToCart ni el
+    // Purchase (que vuelve de la pasarela): caemos al que guardó captureAttribution().
+    fbclid: readParam('fbclid') || getStoredClickId('fbclid'),
+    ttclid: readParam('ttclid') || getStoredClickId('ttclid'),
+    // Cookies del pixel: Meta matchea el evento server-side con la misma sesión del browser.
+    ...getMetaCookies(),
   };
   // No await: el tracking no debe agregar latencia ni romper el flujo de compra.
   supabase.functions.invoke('track-event', { body }).catch(() => {
