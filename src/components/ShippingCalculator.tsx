@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Truck } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
+import { useCart } from '@/context/CartContext';
+import { useCorreoLiveRates } from '@/hooks/useCorreoLiveRates';
 import { Spinner } from '@/components/Spinner';
 import { formatPrice, whatsappLink } from '@/lib/utils';
 import { etaBadgeColors, fetchShippingOptions, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
@@ -11,12 +13,34 @@ type Status = 'idle' | 'loading' | 'done' | 'empty' | 'error';
 /**
  * Calculadora de envío del detalle de producto: el cliente ingresa su CP y ve
  * las opciones configuradas por el negocio (misma fuente que el checkout).
+ *
+ * `productId`: el producto de la ficha. Los métodos cotizados en vivo (MiCorreo)
+ * se cotizan para el carrito actual MÁS este producto (1 unidad si todavía no
+ * está en el carrito): es el envío que pagaría si lo suma y va a comprar.
  */
-export function ShippingCalculator() {
+export function ShippingCalculator({ productId }: { productId?: string } = {}) {
   const config = useStore();
+  const { items } = useCart();
   const [cp, setCp] = useState('');
+  // CP con el que se calcularon las opciones (el input puede seguir cambiando).
+  const [calculatedCp, setCalculatedCp] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [options, setOptions] = useState<ShippingOption[]>([]);
+
+  const correoItems = useMemo(() => {
+    const list = items.map((i) => ({ product_id: i.product_id, quantity: i.qty }));
+    if (productId && !items.some((i) => i.product_id === productId)) list.push({ product_id: productId, quantity: 1 });
+    return list;
+  }, [items, productId]);
+  // Mismo paso que el checkout: después del filtro por CP/canal, antes de mostrar
+  // el costo. Sin métodos en vivo devuelve las opciones tal cual.
+  const { options: quotedOptions, loading: quoting } = useCorreoLiveRates(
+    options,
+    config.companyId,
+    status === 'done' ? calculatedCp : null,
+    correoItems,
+    0,
+  );
 
   const waHref = config.whatsapp
     ? whatsappLink(
@@ -48,6 +72,7 @@ export function ShippingCalculator() {
         return;
       }
       setOptions(matched);
+      setCalculatedCp(cp);
       setStatus('done');
     } catch (e) {
       console.error('[ShippingCalculator] error calculando envío:', e);
@@ -105,9 +130,11 @@ export function ShippingCalculator() {
 
       {status === 'done' && (
         <div className="mt-4 space-y-2">
-          {options.map((o) => {
+          {quotedOptions.map((o) => {
             const badge = o.eta ? etaBadgeColors(o.eta) : null;
             const Icon = SHIPPING_ICONS[o.icon];
+            // Cotización en vivo pendiente: ni plazo ni precio provisorios.
+            const optQuoting = quoting && !!o.liveCarrier;
             return (
               <div
                 key={o.id}
@@ -120,26 +147,36 @@ export function ShippingCalculator() {
                       <Icon className="h-4 w-4 shrink-0 text-muted" />{o.name}
                     </p>
                     {o.description && <p className="mt-0.5 text-[calc(12px_*_var(--font-scale,1))] text-muted">{o.description}</p>}
-                    {o.eta && badge && (
-                      <span
-                        className="mt-1.5 inline-block rounded px-2 py-0.5 text-[calc(11px_*_var(--font-scale,1))] font-semibold"
-                        style={{ background: badge.bg, color: badge.color }}
-                      >
-                        {o.eta}
+                    {optQuoting ? (
+                      <span className="mt-1.5 flex items-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] text-muted">
+                        <Spinner size={12} /> Cotizando con Correo Argentino…
                       </span>
+                    ) : (
+                      o.eta && badge && (
+                        <span
+                          className="mt-1.5 inline-block rounded px-2 py-0.5 text-[calc(11px_*_var(--font-scale,1))] font-semibold"
+                          style={{ background: badge.bg, color: badge.color }}
+                        >
+                          {o.eta}
+                        </span>
+                      )
                     )}
                   </div>
-                  <span
-                    className="shrink-0 text-[calc(14px_*_var(--font-scale,1))] font-bold text-text"
-                    style={o.cost === 0 ? { color: '#2e7d32' } : undefined}
-                  >
-                    {o.cost === 0 ? 'GRATIS' : o.cost == null ? 'A coordinar' : formatPrice(o.cost)}
-                  </span>
+                  {optQuoting ? (
+                    <span className="shrink-0 text-[calc(14px_*_var(--font-scale,1))] font-bold text-subtle">…</span>
+                  ) : (
+                    <span
+                      className="shrink-0 text-[calc(14px_*_var(--font-scale,1))] font-bold text-text"
+                      style={o.cost === 0 ? { color: '#2e7d32' } : undefined}
+                    >
+                      {o.cost === 0 ? 'GRATIS' : o.cost == null ? 'A coordinar' : formatPrice(o.cost)}
+                    </span>
+                  )}
                 </div>
               </div>
             );
           })}
-          {options.some((o) => o.cost == null) && (
+          {quotedOptions.some((o) => o.cost == null && !(quoting && o.liveCarrier)) && (
             <p className="pt-1 text-[calc(12px_*_var(--font-scale,1))] text-muted">
               {waHref ? (
                 <a href={waHref} target="_blank" rel="noreferrer" className="font-semibold text-accent underline">Consultá el costo exacto a tu zona por WhatsApp</a>

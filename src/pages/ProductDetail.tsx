@@ -836,7 +836,7 @@ export function ProductDetail() {
         {/* Secciones custom de la columna: posición fija, antes de "Calculá tu
             envío". Es un slot, no un token de layout. */}
         <ProductDetailCustomSlot sections={pdSections} slot="right_column" variant="column" />
-        <ShippingCalculator />
+        <ShippingCalculator productId={product.id} />
         {config.sections.trustBadges && <TrustBadges />}
       </>
     ),
@@ -1018,7 +1018,7 @@ export function ProductDetail() {
                   slot, no un token de layout. */}
               <ProductDetailCustomSlot sections={pdSections} slot="right_column" variant="column" />
 
-              <ShippingCalculator />
+              <ShippingCalculator productId={product.id} />
 
               {config.sections.trustBadges && <TrustBadges />}
 

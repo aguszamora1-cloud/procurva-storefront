@@ -20,6 +20,10 @@ import { computeDiscount, eligibleSubtotal, eligibleItems } from '@/lib/coupons'
 import { track } from '@/lib/tracking';
 import { useCoupon } from '@/context/CouponContext';
 import { CouponChip } from '@/components/CouponChip';
+import { CorreoAgencyPicker } from '@/components/CorreoAgencyPicker';
+import { useCorreoLiveRates } from '@/hooks/useCorreoLiveRates';
+import { useCorreoAgencies } from '@/hooks/useCorreoAgencies';
+import { carrierWithAgency, type CorreoAgency } from '@/lib/micorreo';
 
 /** Mensaje en español para cada código de error de cupón que puede lanzar la RPC. */
 const COUPON_ERROR_MESSAGES: Record<CouponErrorCode, string> = {
@@ -385,7 +389,7 @@ export function Checkout() {
   // nacionales (Correo Argentino, Vía Cargo) aparecen recién cuando ingresa el CP, porque
   // son para envío a otras localidades. Con CP filtramos por zona: las de cobertura total
   // quedan para cualquier CP y la logística propia se oculta si el CP cae fuera de su zona.
-  const availableMethods = useMemo(() => {
+  const zoneMethods = useMemo(() => {
     // En la zona de reparto propio (cadete), se ocultan las transportadoras
     // nacionales (Correo Argentino / Vía Cargo): si llegamos con cadete, no las ofrecemos ahí.
     const ownZone = hasOwnZoneCoverage(channelMethods, cpNum);
@@ -395,6 +399,19 @@ export function Checkout() {
       return methodAvailableForPostalCode(m, cpNum, ownZone);
     });
   }, [channelMethods, cpNum]);
+
+  // Cotización en vivo con MiCorreo (métodos Correo Argentino con "Cotizar en
+  // vivo"): reemplaza costo y plazo por la tarifa real para este CP y carrito.
+  // Va ANTES de todo lo que calcula costo/promo/total, así lo que se muestra en
+  // la opción, en el resumen y lo que se guarda en el pedido es el mismo número.
+  // Si falla, las opciones quedan con el costo configurado por el comercio.
+  const correoItems = useMemo(() => items.map((i) => ({ product_id: i.product_id, quantity: i.qty })), [items]);
+  const { options: availableMethods, loading: correoQuoting } = useCorreoLiveRates(
+    zoneMethods,
+    config.companyId,
+    appliedCp || form.zip || '',
+    correoItems,
+  );
 
   // Grupos del selector: "Retirar en el local" (retiro presencial, sin dirección) vs
   // "Envío" (el paquete viaja: domicilio + retiro en sucursal del correo). El predicado
@@ -418,6 +435,34 @@ export function Checkout() {
     [availableMethods, selectedMethodId],
   );
   const requiresAddress = selectedMethod?.requiresAddress ?? false;
+
+  // ¿La opción elegida está esperando su cotización en vivo? Mientras tanto el
+  // costo es el configurado (provisorio): no dejamos confirmar con ese número.
+  const quotingSelected = correoQuoting && !!selectedMethod?.liveCarrier;
+
+  // Retiro en sucursal de Correo Argentino cotizado en vivo: el cliente elige la
+  // sucursal (obligatorio) y queda escrita en el transporte del pedido.
+  const needsCorreoAgency = !!selectedMethod && selectedMethod.kind === 'branch' && selectedMethod.liveCarrier === 'correo-argentino';
+  const [selectedAgency, setSelectedAgency] = useState<CorreoAgency | null>(null);
+  const correoAgencies = useCorreoAgencies(
+    config.companyId,
+    needsCorreoAgency,
+    form.province,
+    form.zip || appliedCp,
+  );
+  // Si cambia la lista (otra provincia/CP) y la sucursal elegida ya no está, se descarta.
+  useEffect(() => {
+    if (correoAgencies.status !== 'done') return;
+    setSelectedAgency((prev) => (prev && correoAgencies.agencies.some((a) => a.code === prev.code) ? prev : null));
+  }, [correoAgencies.status, correoAgencies.agencies]);
+  // Si las sucursales no cargaron por un error del SERVICIO (MiCorreo caído, cuenta
+  // desconectada), no trabamos la venta: el pedido entra sin sucursal y el comercio
+  // la coordina con el cliente. Una provincia/CP mal escrito sí sigue exigiéndola.
+  const agencyServiceDown =
+    correoAgencies.status === 'error' &&
+    correoAgencies.errorCode !== 'invalid_province' &&
+    correoAgencies.errorCode !== 'invalid_postal_code';
+  const agencyRequired = needsCorreoAgency && !agencyServiceDown;
 
   // ¿La entrega elegida admite pago en efectivo? El efectivo se cobra en mano, así
   // que depende de CÓMO recibe el pedido: se configura por método de envío en el
@@ -507,7 +552,9 @@ export function Checkout() {
   // el cartel sería una promesa sobre algo que ya no se cobra.
   const freeShippingApplies =
     freeShipping.active &&
-    channelMethods.some((m) => m.requiresAddress && typeof m.cost === 'number' && m.cost > 0 && !m.excludeFromFreeShipping);
+    channelMethods.some(
+      (m) => m.requiresAddress && (m.liveCarrier || (typeof m.cost === 'number' && m.cost > 0)) && !m.excludeFromFreeShipping,
+    );
 
   // Costo del envío YA bonificado. TODO lo que muestra o suma un envío pasa por
   // esta función: si la bonificación se aplicara sólo en el total, el cliente
@@ -664,6 +711,8 @@ export function Checkout() {
       if (!form.zip?.trim()) return 'Ingresá el código postal.';
       if (!form.province?.trim()) return 'Ingresá la provincia.';
     }
+    if (quotingSelected) return 'Esperá un momento: estamos cotizando el envío con Correo Argentino.';
+    if (agencyRequired && !selectedAgency) return 'Elegí la sucursal de Correo Argentino donde vas a retirar.';
     if (config.requireDeliveryTime && !form.deliveryTime?.trim()) {
       return isPickup
         ? 'Indicá un horario para retirar el pedido.'
@@ -738,6 +787,9 @@ export function Checkout() {
         gift_wrap: giftWrapCost,
         gift_wrap_selected: giftWrapOn,
         gift_wrap_label: giftWrapOn ? giftWrap?.name || null : null,
+        ...(needsCorreoAgency && selectedAgency
+          ? { micorreo_agency: { code: selectedAgency.code, name: selectedAgency.name } }
+          : {}),
         total: Math.round(orderTotal),
         items: pricedItems.map((i) => {
           const priceFinal =
@@ -763,7 +815,16 @@ export function Checkout() {
         config, pricedItems, orderTotal, customer, payLabel, storeKey ?? storeType ?? 'retail',
         {
           priceMode, viaMercadoPago: routing !== 'wa', discount, manualTransfer: transferManual,
-          shippingCost, shippingCarrier: selectedMethod?.name ?? null, priceBreakdown,
+          shippingCost,
+          // Retiro en sucursal de Correo: la sucursal elegida viaja en el texto del
+          // transporte ("… · Sucursal Monte Grande (B0107)"), que es lo que el ERP ya
+          // muestra; el código se extrae con /\(([A-Z]\d{4})\)/.
+          shippingCarrier: selectedMethod
+            ? needsCorreoAgency && selectedAgency
+              ? carrierWithAgency(selectedMethod.name, selectedAgency)
+              : selectedMethod.name
+            : null,
+          priceBreakdown,
         },
       );
 
@@ -940,7 +1001,10 @@ export function Checkout() {
     const selected = m.id === selectedMethodId;
     // Precio ya bonificado. Si la promo lo puso en cero, el precio de lista
     // queda tachado al lado: que se vea el descuento que el carrito se ganó.
-    const bonified = isFreeByPromo(m, freeShipping);
+    // Cotización en vivo pendiente: el costo todavía es el provisorio, así que
+    // no lo mostramos (ni tachado ni como precio) hasta tener la tarifa real.
+    const quoting = correoQuoting && !!m.liveCarrier;
+    const bonified = !quoting && isFreeByPromo(m, freeShipping);
     const price = shippingPriceLabel(shippingCostFor(m, priceMode));
     return (
       <RadioCard
@@ -953,7 +1017,13 @@ export function Checkout() {
         <span className="flex items-start justify-between gap-3">
           <span className="min-w-0">
             <span className="block text-[calc(14px_*_var(--font-scale,1))] font-medium text-text">{m.name}</span>
-            {m.eta && <span className="mt-0.5 block text-[calc(13px_*_var(--font-scale,1))] text-muted">Llega en {m.eta}</span>}
+            {quoting ? (
+              <span className="mt-0.5 flex items-center gap-1.5 text-[calc(13px_*_var(--font-scale,1))] text-muted">
+                <Spinner size={12} /> Cotizando con Correo Argentino…
+              </span>
+            ) : (
+              m.eta && <span className="mt-0.5 block text-[calc(13px_*_var(--font-scale,1))] text-muted">Llega en {m.eta}</span>
+            )}
             {m.kind === 'branch' && (
               <span className="mt-1 flex items-start gap-1.5 text-[calc(12px_*_var(--font-scale,1))] text-subtle">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -965,9 +1035,13 @@ export function Checkout() {
             {bonified && (
               <span className="text-[calc(13px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(m.cost as number)}</span>
             )}
-            <span className={`text-[calc(14px_*_var(--font-scale,1))] font-medium ${price.free ? 'text-[#27ae60]' : 'text-text'}`}>
-              {price.text}
-            </span>
+            {quoting ? (
+              <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-subtle">…</span>
+            ) : (
+              <span className={`text-[calc(14px_*_var(--font-scale,1))] font-medium ${price.free ? 'text-[#27ae60]' : 'text-text'}`}>
+                {price.text}
+              </span>
+            )}
           </span>
         </span>
       </RadioCard>
@@ -985,7 +1059,9 @@ export function Checkout() {
   // El CTA queda inactivo si todavía falta cotizar el envío (tienda con envío a
   // domicilio, sin método elegido y sin CP). El motivo se muestra bajo el botón.
   const mustQuoteShipping = !selectedMethod && hasDeliveryMethods && !appliedCp && !(form.zip || '').trim();
-  const ctaDisabled = loading !== null || stockIssues.length > 0 || mustQuoteShipping;
+  // También mientras la opción elegida se está cotizando en vivo: confirmar en ese
+  // momento guardaría el costo provisorio en vez de la tarifa real.
+  const ctaDisabled = loading !== null || stockIssues.length > 0 || mustQuoteShipping || quotingSelected;
 
   // Bloque de totales del resumen (reusado en el panel y en la barra fija mobile).
   const summaryRows = (
@@ -1016,7 +1092,11 @@ export function Checkout() {
       )}
       <div className="flex items-center justify-between">
         <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">Envío</span>
-        {shippingKnown ? (
+        {quotingSelected ? (
+          <span className="flex items-center gap-1.5 text-[calc(13px_*_var(--font-scale,1))] font-normal text-subtle">
+            <Spinner size={12} /> Cotizando…
+          </span>
+        ) : shippingKnown ? (
           shippingCost === 0 ? (
             <span className="flex items-baseline gap-1.5">
               {selectedMethod && isFreeByPromo(selectedMethod, freeShipping) && (
@@ -1230,6 +1310,19 @@ export function Checkout() {
                         placeholder="Ej: 2000"
                       />
                     </label>
+                    {/* Retiro en sucursal de Correo cotizado en vivo: elegir la sucursal
+                        (va después de provincia/CP porque la búsqueda sale de ahí). */}
+                    {needsCorreoAgency && (
+                      <CorreoAgencyPicker
+                        status={correoAgencies.status}
+                        agencies={correoAgencies.agencies}
+                        errorCode={correoAgencies.errorCode}
+                        value={selectedAgency}
+                        onChange={(a) => { setSelectedAgency(a); setError(''); }}
+                        labelCls={labelCls}
+                        inputCls={inputCls}
+                      />
+                    )}
                     {/* Horario para recibir — junto a la dirección de envío */}
                     <label className="flex flex-col gap-1.5 sm:col-span-2">
                       <span className={labelCls}>
@@ -1587,6 +1680,9 @@ export function Checkout() {
               {mustQuoteShipping && payMethods.length > 0 && (
                 <p className="mt-2 text-center text-[calc(12px_*_var(--font-scale,1))] text-muted">Calculá tu envío para continuar</p>
               )}
+              {quotingSelected && payMethods.length > 0 && (
+                <p className="mt-2 text-center text-[calc(12px_*_var(--font-scale,1))] text-muted">Cotizando el envío con Correo Argentino…</p>
+              )}
 
               <p className="mt-3 flex items-center justify-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] text-subtle">
                 <Lock className="h-3.5 w-3.5 shrink-0" /> Compra protegida · Tus datos no se comparten
@@ -1647,6 +1743,9 @@ export function Checkout() {
         </div>
         {mustQuoteShipping && payMethods.length > 0 && (
           <p className="px-5 pb-2 text-[calc(11px_*_var(--font-scale,1))] text-muted">Calculá tu envío para continuar</p>
+        )}
+        {quotingSelected && payMethods.length > 0 && (
+          <p className="px-5 pb-2 text-[calc(11px_*_var(--font-scale,1))] text-muted">Cotizando el envío con Correo Argentino…</p>
         )}
       </div>
     </div>

@@ -76,6 +76,25 @@ export interface ShippingOption {
    * comercio ya tenía cargados sin obligarlo a reeditarlos uno por uno.
    */
   excludeFromFreeShipping: boolean;
+  /**
+   * Transportadora que cotiza EN VIVO el costo de esta opción. Hoy sólo Correo
+   * Argentino vía MiCorreo: el comercio tilda "Cotizar en vivo con MiCorreo" en
+   * el método (`liveRates`) y la tienda reemplaza `cost`/`eta` por la tarifa real
+   * para el CP y el carrito del cliente (ver `lib/micorreo.ts`). Ausente = el
+   * costo es el que cargó el comercio, como siempre. Si la cotización falla, el
+   * `cost` configurado queda de respaldo.
+   */
+  liveCarrier?: LiveCarrier;
+}
+
+/** Transportadoras con cotización en vivo soportadas. */
+export type LiveCarrier = 'correo-argentino';
+
+/** ¿El método crudo pide cotizar en vivo? Sólo empresa Correo Argentino con el flag prendido. */
+function liveCarrierFor(m: any): LiveCarrier | undefined {
+  return m.type === 'empresa' && m.companyName === 'correo-argentino' && m.liveRates === true
+    ? 'correo-argentino'
+    : undefined;
 }
 
 /**
@@ -341,6 +360,11 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
     // Domicilio y sucursal son el mismo despacho: si el comercio dejó a la
     // transportadora afuera del envío gratis, las dos modalidades quedan afuera.
     const excludeFromFreeShipping = m.excludeFromFreeShipping === true;
+    // Cotización en vivo: aplica a las dos modalidades (MiCorreo cotiza domicilio
+    // y sucursal por separado). La clave sólo se agrega cuando corresponde, así
+    // las opciones de siempre quedan idénticas.
+    const liveCarrier = liveCarrierFor(m);
+    const live = liveCarrier ? { liveCarrier } : {};
     return [
       {
         id: `${baseId}:domicilio`,
@@ -356,6 +380,7 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
         postalCodeRanges,
         allowsCash,
         excludeFromFreeShipping,
+        ...live,
       },
       {
         id: `${baseId}:sucursal`,
@@ -371,6 +396,7 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
         postalCodeRanges,
         allowsCash,
         excludeFromFreeShipping,
+        ...live,
       },
     ];
   }

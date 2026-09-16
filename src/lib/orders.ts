@@ -130,6 +130,14 @@ export interface PriceBreakdown {
   gift_wrap: number;
   gift_wrap_selected: boolean;
   gift_wrap_label: string | null;
+  /**
+   * Sucursal de Correo Argentino elegida para el retiro (sólo retiro en sucursal
+   * cotizado en vivo con MiCorreo). `catalog_orders` no tiene columna meta y
+   * jsonb_populate_record descarta claves sueltas, pero price_breakdown se copia
+   * ENTERO a orders.meta.price_breakdown: así llega al ERP sin migración. El
+   * texto legible va además en shipping_carrier ("… · Sucursal X (B0107)").
+   */
+  micorreo_agency?: { code: string; name: string } | null;
   total: number;
   items: PriceBreakdownItem[];
 }
