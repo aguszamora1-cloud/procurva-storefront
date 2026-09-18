@@ -155,6 +155,26 @@ function cached<T>(
   return promise;
 }
 
+// Empresas que no pueden cotizar con MiCorreo (no conectaron su cuenta, se
+// conectó en otro ambiente, les falta el CP de origen): después del primer
+// intento dejamos de probar mientras dure la pestaña. Como todo método de Correo
+// cotiza en vivo por defecto, sin esto una tienda sin cuenta mostraría
+// "Cotizando…" en cada CP para terminar siempre en el precio fijo.
+const CODES_SIN_MICORREO = new Set(['not_connected', 'reconnect', 'not_configured', 'no_origin']);
+const empresasSinMiCorreo = new Set<string>();
+
+/** ¿Esta empresa ya demostró que no puede cotizar en vivo? */
+export function isCorreoLiveDisabled(companyId: string): boolean {
+  return empresasSinMiCorreo.has(companyId);
+}
+
+function recordarSinMiCorreo(companyId: string, err: unknown): never {
+  if (err instanceof MiCorreoError && err.code && CODES_SIN_MICORREO.has(err.code)) {
+    empresasSinMiCorreo.add(companyId);
+  }
+  throw err;
+}
+
 /** Cotiza el envío del carrito al CP dado. Lanza MiCorreoError si la función falla. */
 export function fetchCorreoRates(
   companyId: string,
@@ -171,7 +191,7 @@ export function fetchCorreoRates(
       company_id: companyId,
       postal_code: cp,
       items: norm,
-    });
+    }).catch((e) => recordarSinMiCorreo(companyId, e));
     return { ...res, rates: Array.isArray(res?.rates) ? res.rates : [] };
   });
 }
@@ -194,7 +214,7 @@ export function fetchCorreoAgencies(
       company_id: companyId,
       ...(province ? { province_code: province } : {}),
       ...(postal ? { postal_code: postal } : {}),
-    });
+    }).catch((e) => recordarSinMiCorreo(companyId, e));
     return {
       provinceCode: res?.provinceCode ?? null,
       agencies: Array.isArray(res?.agencies) ? res.agencies.filter((a) => a && a.code) : [],

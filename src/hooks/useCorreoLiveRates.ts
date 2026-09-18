@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { applyCorreoRates, correoPostalCode, correoRatesKey, fetchCorreoRates, type CorreoItem, type CorreoRate } from '@/lib/micorreo';
+import { applyCorreoRates, correoPostalCode, correoRatesKey, fetchCorreoRates, isCorreoLiveDisabled, type CorreoItem, type CorreoRate } from '@/lib/micorreo';
 import type { ShippingOption } from '@/lib/shipping';
 
 export interface CorreoLiveRatesValue {
@@ -29,7 +29,15 @@ export function useCorreoLiveRates(
   items: CorreoItem[],
   debounceMs = 400,
 ): CorreoLiveRatesValue {
-  const needsLive = options.some((o) => o.liveCarrier === 'correo-argentino');
+  // Tienda sin MiCorreo usable (lo supimos en un intento anterior): las opciones
+  // vuelven a ser las de siempre, con su precio fijo y sin pedir sucursal.
+  // Se relee en cada render: el primer intento fallido dispara un setResult.
+  const disabled = isCorreoLiveDisabled(companyId);
+  const baseOptions = useMemo(
+    () => (disabled ? options.map((o) => (o.liveCarrier ? { ...o, liveCarrier: undefined } : o)) : options),
+    [options, disabled],
+  );
+  const needsLive = baseOptions.some((o) => o.liveCarrier === 'correo-argentino');
   const key = needsLive ? correoRatesKey(companyId, postalCode ?? null, items) : null;
   const cp = correoPostalCode(postalCode ?? null);
 
@@ -63,8 +71,8 @@ export function useCorreoLiveRates(
 
   const current = key && result?.key === key ? result : null;
   const quoted = useMemo(
-    () => (current ? applyCorreoRates(options, current.rates) : options),
-    [options, current],
+    () => (current ? applyCorreoRates(baseOptions, current.rates) : baseOptions),
+    [baseOptions, current],
   );
 
   return { options: quoted, loading: Boolean(key) && !current };

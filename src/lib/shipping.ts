@@ -78,8 +78,8 @@ export interface ShippingOption {
   excludeFromFreeShipping: boolean;
   /**
    * Transportadora que cotiza EN VIVO el costo de esta opción. Hoy sólo Correo
-   * Argentino vía MiCorreo: el comercio tilda "Cotizar en vivo con MiCorreo" en
-   * el método (`liveRates`) y la tienda reemplaza `cost`/`eta` por la tarifa real
+   * Argentino vía MiCorreo, prendido por defecto (el comercio lo apaga con
+   * `liveRates: false`): la tienda reemplaza `cost`/`eta` por la tarifa real
    * para el CP y el carrito del cliente (ver `lib/micorreo.ts`). Ausente = el
    * costo es el que cargó el comercio, como siempre. Si la cotización falla, el
    * `cost` configurado queda de respaldo.
@@ -90,11 +90,26 @@ export interface ShippingOption {
 /** Transportadoras con cotización en vivo soportadas. */
 export type LiveCarrier = 'correo-argentino';
 
-/** ¿El método crudo pide cotizar en vivo? Sólo empresa Correo Argentino con el flag prendido. */
+/**
+ * ¿Es un método de Correo Argentino? Por la empresa elegida en el panel o, en los
+ * métodos cargados antes de que existiera ese campo (casi todos), por el nombre.
+ */
+export function isCorreoArgentinoMethod(m: any): boolean {
+  if (m?.companyName === 'correo-argentino') return true;
+  return /correo\s*argentino|micorreo/i.test(String(m?.name ?? ''));
+}
+
+/**
+ * ¿El método cotiza en vivo? Todo envío de Correo Argentino cotiza con la tarifa
+ * real POR DEFECTO: los precios fijos existían porque no había integración. El
+ * comercio lo apaga con `liveRates === false` (ej. para bonificar el envío).
+ * Si la tienda no tiene MiCorreo conectado, la cotización falla y queda el
+ * precio fijo de respaldo (ver `isCorreoLiveDisabled` en lib/micorreo.ts).
+ */
 function liveCarrierFor(m: any): LiveCarrier | undefined {
-  return m.type === 'empresa' && m.companyName === 'correo-argentino' && m.liveRates === true
-    ? 'correo-argentino'
-    : undefined;
+  const isPickup = m?.isPickup === true || m?.type === 'retiro';
+  if (isPickup) return undefined;
+  return isCorreoArgentinoMethod(m) && m.liveRates !== false ? 'correo-argentino' : undefined;
 }
 
 /**
@@ -336,6 +351,9 @@ export function toShippingOption(m: any, channel?: StoreChannel): ShippingOption
     postalCodeRanges: parsePostalCodeRanges(m.postalCodes),
     allowsCash: parseAllowsCash(m, isPickup),
     excludeFromFreeShipping: m.excludeFromFreeShipping === true,
+    // Un "Correo Argentino" cargado como método simple (no tipo empresa) también
+    // cotiza en vivo: a domicilio, que es la opción única que muestra.
+    ...(liveCarrierFor(m) ? { liveCarrier: 'correo-argentino' as const } : {}),
   };
 }
 
