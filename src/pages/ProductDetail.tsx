@@ -43,6 +43,7 @@ import {
   customTokenId,
   reinsertByReference,
   DEFAULT_PRODUCT_LAYOUT,
+  resolveProductLayoutOrNull,
   type ProductLayout,
 } from '@/lib/productLayout';
 import type { CustomSection, Product, ProductDetailSlot, StoreConfig, Variant } from '@/lib/types';
@@ -179,7 +180,7 @@ export function ProductDetail() {
   const { trackViewContent, trackAddToCart } = useMetaPixel();
   const { priceFor, promoForProduct, quantityPromoFor, quantityMessageFor } = usePromotions();
   const { tiersForProduct } = useCategoryTiers();
-  const { sections: pdSections } = useProductDetailCustomSections();
+  const { sections: pdSections } = useProductDetailCustomSections(id);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   // Badges de la ficha: misma fuente de verdad que la grilla (config.badges +
@@ -630,7 +631,11 @@ export function ProductDetail() {
   //
   // Sólo MINORISTA: en mayorista manda el WholesalePurchasePanel y el orden es
   // fijo (mismo criterio que el editor).
-  const rightLayout = config.productLayout?.right_column ?? DEFAULT_PRODUCT_LAYOUT.right_column;
+  // Diseño de la ficha: el PROPIO del producto (products.product_layout, lo arma
+  // Claude por MCP) le gana al de la tienda. Sin diseño propio, el de la tienda
+  // (y sin ninguno, el render legacy fijo).
+  const productLayout: ProductLayout | null = resolveProductLayoutOrNull(product.product_layout) ?? config.productLayout;
+  const rightLayout = productLayout?.right_column ?? DEFAULT_PRODUCT_LAYOUT.right_column;
 
   /** El bloque que le corresponde a cada elemento del layout. */
   const rightBlock = (token: string): ReactNode => {
@@ -661,7 +666,7 @@ export function ProductDetail() {
       // COLOR antes que TALLE en el default, un solo orden en toda la ficha
       // (también en las filas por unidad). El color es el eje que manda: los
       // talles con stock se calculan contra el color elegido y elegir color
-      // resetea el talle. Si el comercio lo da vuelta desde el editor se
+      // borra el talle solo si no existe con stock en ese color. Si el comercio lo da vuelta desde el editor se
       // respeta, pero el default no lo hace por algo.
       case 'colors':
         return showSingleSelectors && needColor ? (
@@ -671,7 +676,12 @@ export function ProductDetail() {
             isDisabled={colorDisabled}
             onSelect={(c) => {
               setSelectedColor(c);
-              setSelectedSize(null);
+              // El talle se conserva si existe con stock en el color nuevo. Antes
+              // se borraba siempre: con Talles arriba de Colores, el cliente
+              // elegía talle, cambiaba de color y perdía lo que había elegido.
+              setSelectedSize((prev) =>
+                prev && variants.some((v) => v.size === prev && v.color === c && (v.stock ?? 0) > 0) ? prev : null,
+              );
             }}
           />
         ) : null;
@@ -1026,7 +1036,7 @@ export function ProductDetail() {
                   Con layout, acá sólo si el token está en la columna — si está
                   en below_product lo pinta BelowProductBlocks, y si no está en
                   ninguna zona es porque el comercio lo ocultó. */}
-              {(!config.productLayout || config.productLayout.right_column.includes('purchase_flow')) && <PurchaseFlow />}
+              {(!productLayout || productLayout.right_column.includes('purchase_flow')) && <PurchaseFlow />}
             </>
           )}
 
@@ -1047,9 +1057,9 @@ export function ProductDetail() {
           guardado (bloques + custom sections de este slot); sin layout, render
           legacy fijo (idéntico a antes). Los slots above/below_description y
           below_gallery siguen por el mecanismo legacy en ambos casos (híbrido). */}
-      {config.productLayout ? (
+      {productLayout ? (
         <BelowProductBlocks
-          layout={config.productLayout}
+          layout={productLayout}
           product={product}
           config={config}
           sections={pdSections}

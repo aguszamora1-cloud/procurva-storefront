@@ -30,8 +30,9 @@ const productColumnsBase = (stockCol: string) => `
 // misma razón: sin la migración, pedirla explícitamente rompe el detalle.
 // size_price_adjustments (precio por talle, 20260907) va con las opcionales por
 // la misma razón: sin la migración, pedirla explícitamente rompe el detalle.
+// product_layout (diseño propio de la ficha, 20260919): opcional por lo mismo.
 const productColumns = (stockCol: string) =>
-  `${productColumnsBase(stockCol)}, curva_surtida_enabled, free_shipping, track_stock, size_price_adjustments, product_media ( id, type, url, thumbnail_url, sort_order, object_position )`;
+  `${productColumnsBase(stockCol)}, curva_surtida_enabled, free_shipping, track_stock, size_price_adjustments, product_layout, product_media ( id, type, url, thumbnail_url, sort_order, object_position )`;
 
 /** Un producto por id, scoped al tenant actual. */
 export function useProduct(productId: string | undefined): ProductState {
@@ -70,7 +71,7 @@ export function useProduct(productId: string | undefined): ProductState {
 
       // Fallback 2: algo opcional aún no existe (migración sin aplicar):
       // curva_surtida_enabled/free_shipping (columnas) o product_media (tabla).
-      if (error && /curva_surtida_enabled|free_shipping|product_media/i.test(error.message)) {
+      if (error && /curva_surtida_enabled|free_shipping|track_stock|size_price_adjustments|product_layout|product_media/i.test(error.message)) {
         ({ data, error } = await fetchWith(productColumnsBase(stockCol)));
       }
 

@@ -383,6 +383,10 @@ export interface Product {
   company_id: string;
   name: string;
   description: string | null;
+  // Diseño PROPIO de la ficha de este producto (products.product_layout,
+  // migración 20260919). null/ausente = usa el de la tienda. Lo arma Claude
+  // por MCP. Mismo formato que catalog_settings.product_layout.
+  product_layout?: { right_column?: string[]; below_product?: string[] } | null;
   retail_price: number | null;
   retail_price_transfer: number | null;
   retail_price_card: number | null;
