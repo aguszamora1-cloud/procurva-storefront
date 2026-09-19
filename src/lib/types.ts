@@ -42,7 +42,12 @@ export type CustomSectionType =
   | 'faq'
   | 'divider'
   | 'categories'
-  | 'locations';
+  | 'locations'
+  // Bloques ricos para la ficha (20260920): los arma Claude o el comercio.
+  | 'features'
+  | 'table'
+  | 'gallery'
+  | 'spotlight';
 export type CustomSectionPageContext = 'home' | 'product_detail';
 export type ProductDetailSlot =
   | 'above_description'
@@ -212,6 +217,47 @@ export interface CustomSectionSplitContent {
   slot?: ProductDetailSlot;
 }
 
+/** Beneficios con íconos: "No destiñe · Talle real · Envío en 24 h". */
+export interface CustomSectionFeaturesContent {
+  heading?: string;
+  subheading?: string;
+  /** icon = clave de FEATURE_ICONS (lib/featureIcons). Desconocida = sin ícono. */
+  items?: { icon?: string; title?: string; text?: string }[];
+  columns?: 2 | 3 | 4;
+  background_color?: string;
+  slot?: ProductDetailSlot;
+}
+
+/** Tabla simple (medidas por talle, comparativa). Todo texto plano. */
+export interface CustomSectionTableContent {
+  heading?: string;
+  subheading?: string;
+  columns?: string[];
+  rows?: string[][];
+  note?: string;
+  slot?: ProductDetailSlot;
+}
+
+/** Galería / lookbook: fotos con epígrafe. */
+export interface CustomSectionGalleryContent {
+  heading?: string;
+  images?: { image_url?: string; caption?: string }[];
+  columns?: 2 | 3 | 4;
+  slot?: ProductDetailSlot;
+}
+
+/** Foto grande con puntos destacados al costado. */
+export interface CustomSectionSpotlightContent {
+  heading?: string;
+  body?: string;
+  image_url?: string;
+  image_side?: 'left' | 'right';
+  points?: { title?: string; text?: string }[];
+  background_color?: string;
+  text_color?: string;
+  slot?: ProductDetailSlot;
+}
+
 /** Video de YouTube, Vimeo o un archivo propio (mp4/webm). */
 export interface CustomSectionVideoContent {
   url?: string;
@@ -346,7 +392,11 @@ export interface CustomSection {
     | CustomSectionFaqContent
     | CustomSectionDividerContent
     | CustomSectionCategoriesContent
-    | CustomSectionLocationsContent;
+    | CustomSectionLocationsContent
+    | CustomSectionFeaturesContent
+    | CustomSectionTableContent
+    | CustomSectionGalleryContent
+    | CustomSectionSpotlightContent;
   is_visible: boolean;
   page_context: CustomSectionPageContext;
   position: number;
@@ -1005,6 +1055,13 @@ export interface StoreConfig {
   colorAccent: string;
   colorBackground: string;
   colorText: string;
+  /**
+   * Fondo propio del encabezado (hex). null/ausente = el de la página, como
+   * siempre. Existe por los logos claros: una marca con logo blanco sobre fondo
+   * de página blanco no tenía forma de que el logo se viera. El color del texto
+   * y los íconos del encabezado NO se elige: sale del contraste con este fondo.
+   */
+  headerBackground?: string | null;
   // Tipografía
   fontHeading: string;
   fontBody: string;

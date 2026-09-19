@@ -3,6 +3,13 @@ import { CustomTextSection } from '@/components/home/CustomTextSection';
 import { CustomMarqueeSection } from '@/components/home/CustomMarqueeSection';
 import { CustomFaqSection } from '@/components/home/CustomFaqSection';
 import { CustomLocationsSection } from '@/components/home/CustomLocationsSection';
+import { CustomSplitSection } from '@/components/home/CustomSplitSection';
+import { CustomVideoSection } from '@/components/home/CustomVideoSection';
+import { CustomCtaSection } from '@/components/home/CustomCtaSection';
+import { CustomFeaturesSection } from '@/components/home/CustomFeaturesSection';
+import { CustomTableSection } from '@/components/home/CustomTableSection';
+import { CustomGallerySection } from '@/components/home/CustomGallerySection';
+import { CustomSpotlightSection } from '@/components/home/CustomSpotlightSection';
 import type { CustomSection, CustomSectionVariant, ProductDetailSlot } from '@/lib/types';
 
 /**
@@ -35,6 +42,23 @@ export function CustomSectionNode({
       return <CustomFaqSection section={section} variant={variant} />;
     case 'locations':
       return <CustomLocationsSection section={section} variant={variant} />;
+    // Bloques ricos de la ficha (20260920). Los cuatro nuevos saben dibujarse en
+    // la columna angosta; imagen+texto, video y botón vienen del home y en la
+    // columna se ven a su ancho (conviene ponerlos debajo del producto).
+    case 'features':
+      return <CustomFeaturesSection section={section} variant={variant} />;
+    case 'table':
+      return <CustomTableSection section={section} variant={variant} />;
+    case 'gallery':
+      return <CustomGallerySection section={section} variant={variant} />;
+    case 'spotlight':
+      return <CustomSpotlightSection section={section} variant={variant} />;
+    case 'split':
+      return <CustomSplitSection section={section} />;
+    case 'video':
+      return <CustomVideoSection section={section} />;
+    case 'cta':
+      return <CustomCtaSection section={section} />;
     default:
       return null;
   }

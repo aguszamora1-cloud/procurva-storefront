@@ -26,6 +26,10 @@ import { CustomFaqSection } from '@/components/home/CustomFaqSection';
 import { CustomDividerSection } from '@/components/home/CustomDividerSection';
 import { CustomCategoriesSection } from '@/components/home/CustomCategoriesSection';
 import { CustomLocationsSection } from '@/components/home/CustomLocationsSection';
+import { CustomFeaturesSection } from '@/components/home/CustomFeaturesSection';
+import { CustomTableSection } from '@/components/home/CustomTableSection';
+import { CustomGallerySection } from '@/components/home/CustomGallerySection';
+import { CustomSpotlightSection } from '@/components/home/CustomSpotlightSection';
 import { PromoBannerAuto } from '@/components/PromoBannerAuto';
 import { useCustomSections } from '@/hooks/useCustomSections';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
@@ -196,6 +200,18 @@ export function Home() {
         break;
       case 'locations':
         nodes[key] = <CustomLocationsSection section={cs} />;
+        break;
+      case 'features':
+        nodes[key] = <CustomFeaturesSection section={cs} />;
+        break;
+      case 'table':
+        nodes[key] = <CustomTableSection section={cs} />;
+        break;
+      case 'gallery':
+        nodes[key] = <CustomGallerySection section={cs} />;
+        break;
+      case 'spotlight':
+        nodes[key] = <CustomSpotlightSection section={cs} />;
         break;
       default:
         nodes[key] = null;
