@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useStore } from '@/context/StoreProvider';
+import { isPreviewMode } from '@/lib/previewMode';
 
 /**
  * Slots de analytics. Si el tenant cargó `ga_id` (Google Analytics 4) y/o
@@ -11,7 +12,9 @@ export function Analytics() {
 
   // Google Analytics 4 (gtag.js)
   useEffect(() => {
-    if (!gaId) return;
+    // En vista previa desde el ERP no instalamos nada: son visitas del propio
+    // comercio y ensuciarían GA y el pixel igual que el analytics propio.
+    if (!gaId || isPreviewMode()) return;
     if (document.getElementById('ga-gtag')) return;
 
     const s = document.createElement('script');
@@ -28,7 +31,7 @@ export function Analytics() {
 
   // Meta (Facebook) Pixel
   useEffect(() => {
-    if (!metaPixelId) return;
+    if (!metaPixelId || isPreviewMode()) return;
     if (document.getElementById('meta-pixel')) return;
 
     const inline = document.createElement('script');

@@ -99,6 +99,25 @@ export function rgba(hex: string, alpha: number): string {
 }
 
 /**
+ * Variables de superficie para un bloque con fondo PROPIO (hoy: el encabezado).
+ * Se ponen como `style` en el contenedor y pisan, sólo ahí adentro, los mismos
+ * tokens que ya usan los componentes (`bg-background`, `text-on-surface`,
+ * `border-line`): así el bloque cambia de color sin reescribir ninguna clase.
+ * El texto sale del contraste con el fondo, no se elige — un encabezado negro
+ * con texto negro no es una opción que valga la pena ofrecer.
+ */
+export function surfaceVars(bg: string): Record<string, string> {
+  const fg = contrastColor(bg);
+  return {
+    '--color-background': bg,
+    '--color-on-surface': fg,
+    '--color-on-surface-muted': rgba(fg, 0.62),
+    '--color-on-surface-subtle': rgba(fg, 0.42),
+    '--color-border': rgba(fg, 0.16),
+  };
+}
+
+/**
  * Inyecta las CSS variables del tenant en :root. Todos los componentes leen
  * de estas variables (nunca colores hardcodeados).
  */

@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { useStore, useStoreStatus } from '@/context/StoreProvider';
@@ -7,6 +7,7 @@ import { storeScopeValues } from '@/lib/storeScope';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
 import { isUnpublished } from '@/lib/productStatus';
+import { surfaceVars } from '@/lib/theme';
 import type { StoreMenuItem } from '@/lib/types';
 
 const drawerLink = ({ isActive }: { isActive: boolean }) =>
@@ -291,13 +292,24 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Fondo propio del encabezado (si el comercio lo eligió). undefined = hereda
+  // los tokens de la página, o sea, exactamente lo de siempre.
+  const headerVars = config.headerBackground
+    ? (surfaceVars(config.headerBackground) as CSSProperties)
+    : undefined;
+
   return (
     <header
       className={`border-b border-line bg-background transition-shadow duration-200 ${
         scrolled ? 'shadow-md' : ''
       }`}
     >
-      <div className="mx-auto grid max-w-none grid-cols-3 items-center gap-2 px-4 py-3 md:px-6">
+      {/* El fondo propio va en la barra y en la búsqueda, NO en el <header>: el
+          drawer del menú vive adentro y tiene que seguir con los colores de la página. */}
+      <div
+        style={headerVars}
+        className="mx-auto grid max-w-none grid-cols-3 items-center gap-2 bg-background px-4 py-3 md:px-6"
+      >
         {/* Izquierda: hamburguesa + búsqueda (desktop + mobile) */}
         <div className="flex items-center justify-start gap-1">
           <button
@@ -364,7 +376,8 @@ export function Navbar() {
 
       {/* Barra de búsqueda desplegable (debajo del top bar, ancho completo) */}
       <div
-        className={`overflow-hidden transition-[max-height,opacity] duration-300 ${
+        style={headerVars}
+        className={`overflow-hidden bg-background transition-[max-height,opacity] duration-300 ${
           searchOpen ? 'max-h-24 border-t border-line opacity-100' : 'max-h-0 opacity-0'
         }`}
       >

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Tag } from 'lucide-react';
 import type { Product } from '@/lib/types';
@@ -8,7 +9,22 @@ import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { SectionHeader } from '@/components/SectionHeader';
 import { CarouselRow } from '@/components/CarouselRow';
 
-export type CardStyle = 'overlay' | 'below' | 'full';
+export type CardStyle = 'overlay' | 'below' | 'full' | 'circle';
+
+/**
+ * Fila del estilo "circle": círculos chicos con el nombre abajo, como las
+ * historias de Instagram. No usa ni la grilla ni las columnas — un círculo a
+ * media pantalla de ancho no es un círculo, es una foto recortada. El `w-max
+ * mx-auto` adentro de un scroller centra la fila cuando entra y la deja
+ * deslizar (arrancando desde la izquierda) cuando no.
+ */
+export function CircleRow({ children }: { children: ReactNode }) {
+  return (
+    <div className="-mx-6 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="mx-auto flex w-max gap-5 md:gap-8">{children}</div>
+    </div>
+  );
+}
 
 function categoryImage(products: Product[], category: string): string | null {
   const p = products.find((prod) => productCategories(prod).includes(category));
@@ -82,6 +98,21 @@ export function CategoryCard({
   const to = `/categoria/${encodeURIComponent(cat.name)}`;
   const base = `group block overflow-hidden rounded-xl bg-secondary ${className}`;
 
+  // Círculo: foto redonda chica + nombre abajo. `rounded-full` es literal en el
+  // config de Tailwind, así que sigue redondo aunque la tienda use esquinas rectas.
+  if (style === 'circle') {
+    return (
+      <Link to={to} className="group flex w-[72px] shrink-0 flex-col items-center gap-2 md:w-24">
+        <div className="relative aspect-square w-full overflow-hidden rounded-full bg-secondary">
+          <CardImage img={img} name={cat.name} />
+        </div>
+        <span className="w-full truncate text-center font-heading text-[calc(12px_*_var(--font-scale,1))] font-medium uppercase tracking-[0.5px] text-on-surface md:text-[calc(14px_*_var(--font-scale,1))]">
+          {cat.name}
+        </span>
+      </Link>
+    );
+  }
+
   // Texto debajo: imagen arriba + franja con el nombre (fondo surface, borde sutil).
   if (style === 'below') {
     return (
@@ -143,7 +174,14 @@ export function CategoriesSection({ products }: { products: Product[] }) {
     <section className="mx-auto max-w-none px-6 py-8 md:py-16">
       <SectionHeader {...sectionHeadings.categories} linkTo="/categorias" linkText="Ver todas" />
 
-      {categoriesDisplayMode === 'carousel' ? (
+      {style === 'circle' ? (
+        // Círculos: fila propia, sin grilla ni columnas (ver CircleRow).
+        <CircleRow>
+          {shown.map((cat) => (
+            <CategoryCard key={cat.name} cat={cat} products={products} style={style} />
+          ))}
+        </CircleRow>
+      ) : categoriesDisplayMode === 'carousel' ? (
         // Fila horizontal: swipe + flechas, también en mobile.
         <CarouselRow>
           {shown.map((cat) => (

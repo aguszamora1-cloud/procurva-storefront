@@ -344,6 +344,9 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     colorAccent: firstStr(s.color_accent, s.accent_color) || DEFAULTS.colorAccent,
     colorBackground: firstStr(s.color_background) || DEFAULTS.colorBackground,
     colorText: firstStr(s.color_text) || DEFAULTS.colorText,
+    // Sólo hex válido: va directo a una CSS variable, y un valor roto dejaría el
+    // encabezado sin fondo NI texto legible.
+    headerBackground: /^#[0-9a-f]{6}$/i.test(firstStr(s.header_background)) ? firstStr(s.header_background) : null,
 
     fontHeading: firstStr(s.font_heading) || DEFAULTS.fontHeading,
     fontBody: firstStr(s.font_body) || DEFAULTS.fontBody,
@@ -375,9 +378,9 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
         const c = s.categories_section?.columns;
         return c === 2 || c === 3 || c === 4 ? c : 3;
       })(),
-      cardStyle: ((): 'overlay' | 'below' | 'full' => {
+      cardStyle: ((): 'overlay' | 'below' | 'full' | 'circle' => {
         const v = s.categories_section?.card_style;
-        return v === 'below' || v === 'full' ? v : 'overlay';
+        return v === 'below' || v === 'full' || v === 'circle' ? v : 'overlay';
       })(),
     },
 

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { SectionHeader } from '@/components/SectionHeader';
-import { CategoryCard, COLS_CLASS } from '@/components/home/CategoriesSection';
+import { CategoryCard, CircleRow, COLS_CLASS } from '@/components/home/CategoriesSection';
 import { useCategories } from '@/hooks/useCategories';
 import { useProducts } from '@/hooks/useProducts';
 import type { CustomSection, CustomSectionCategoriesContent } from '@/lib/types';
@@ -40,11 +40,19 @@ export function CustomCategoriesSection({ section }: { section: CustomSection })
   return (
     <section className="mx-auto max-w-none px-6 py-8 md:py-16">
       {(heading || c.label) && <SectionHeader label={c.label} title={heading || 'Categorías'} />}
-      <div className={`grid gap-3 ${COLS_CLASS[columns]}`}>
-        {shown.map((cat) => (
-          <CategoryCard key={cat.name} cat={cat} products={products} style={style} />
-        ))}
-      </div>
+      {style === 'circle' ? (
+        <CircleRow>
+          {shown.map((cat) => (
+            <CategoryCard key={cat.name} cat={cat} products={products} style={style} />
+          ))}
+        </CircleRow>
+      ) : (
+        <div className={`grid gap-3 ${COLS_CLASS[columns]}`}>
+          {shown.map((cat) => (
+            <CategoryCard key={cat.name} cat={cat} products={products} style={style} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

@@ -11,6 +11,7 @@
  */
 import { supabase } from '@/lib/supabase';
 import { currencyCode } from './regional';
+import { isPreviewMode } from './previewMode';
 import { getStoredClickId, getMetaCookies } from './attribution';
 
 export interface ServerEventInput {
@@ -28,6 +29,8 @@ export interface ServerEventInput {
 
 export function sendServerEvent(ev: ServerEventInput): void {
   if (!ev.companyId || !ev.eventId) return;
+  // Vista previa desde el ERP: no mandamos conversiones a Meta por mirar la ficha.
+  if (isPreviewMode()) return;
   const body = {
     company_id: ev.companyId,
     event_id: ev.eventId,

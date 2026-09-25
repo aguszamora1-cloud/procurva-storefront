@@ -10,6 +10,8 @@
 //     perder los primeros ms de eventos antes que registrarlos con el canal equivocado.
 //   * El `purchase` NO se dispara desde el front (lo hace el webhook, fuente de verdad).
 
+import { isPreviewMode } from '@/lib/previewMode';
+
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL || ''}/functions/v1/storefront-track`;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
@@ -70,6 +72,9 @@ interface TrackPayload {
  */
 export function track(eventType: TrackEventType, payload: TrackPayload = {}): void {
   if (!tenant) return; // R7: sin tenant resuelto no disparamos nada.
+  // Vista previa desde el ERP: es el comercio mirando su propia ficha, no una
+  // visita. Si la contáramos, el embudo de la tienda quedaría inflado.
+  if (isPreviewMode()) return;
   try {
     void fetch(FN_URL, {
       method: 'POST',

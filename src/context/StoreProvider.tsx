@@ -92,7 +92,11 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // que eligió "Solo contado" pintaría el primer frame con el precio de tarjeta y
 // las cuotas, y recién los sacaría al resolver el fetch. Justamente lo que el
 // comercio pidió esconder, mostrado por medio segundo en cada visita.
-const cacheKey = (slug: string) => `procurva_store_config_v19:${slug}`;
+// v20: suma `headerBackground` (fondo propio del encabezado). Tiene guarda —una
+// entrada v19 pinta el encabezado con el fondo de la página—, pero ése es justo
+// el caso que la opción vino a arreglar: logo blanco sobre blanco, invisible
+// hasta que resuelve el fetch.
+const cacheKey = (slug: string) => `procurva_store_config_v20:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 

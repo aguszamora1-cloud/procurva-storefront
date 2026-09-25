@@ -304,7 +304,7 @@ export interface CustomSectionCategoriesContent {
   /** Nombres de categoría, en orden. Vacío = todas las visibles. */
   items?: string[];
   columns?: 2 | 3 | 4;
-  card_style?: 'overlay' | 'below' | 'full';
+  card_style?: 'overlay' | 'below' | 'full' | 'circle';
   slot?: ProductDetailSlot;
 }
 
@@ -649,6 +649,8 @@ export interface RawCatalogSettings {
   color_accent?: string;
   color_background?: string;
   color_text?: string;
+  /** Fondo propio del encabezado (hex). Ausente = el de la página. */
+  header_background?: string;
   font_heading?: string;
   font_body?: string;
   /** Multiplicador global del tamaño de texto. Ausente = 1 (sin cambios). */
@@ -667,7 +669,7 @@ export interface RawCatalogSettings {
   // catalog_category_order.image_url (las lee useCategories como cat.imageUrl).
   categories_section?: {
     columns?: 2 | 3 | 4;
-    card_style?: 'overlay' | 'below' | 'full';
+    card_style?: 'overlay' | 'below' | 'full' | 'circle';
   };
   // Esquinas de toda la tienda. `corners` manda sobre cards, banners, inputs y
   // chips; `button_corners` es aparte para permitir el combo más pedido en
@@ -1084,7 +1086,7 @@ export interface StoreConfig {
   // estilo de card. Las imágenes por categoría viven en catalog_category_order.
   categoriesSection: {
     columns: 2 | 3 | 4;
-    cardStyle: 'overlay' | 'below' | 'full';
+    cardStyle: 'overlay' | 'below' | 'full' | 'circle';
   };
   // Esquinas globales (ver CornerStyle). Las consume applyTheme, que las traduce
   // a las CSS variables --radius-*; ningún componente las lee directo.
