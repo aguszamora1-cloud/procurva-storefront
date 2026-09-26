@@ -185,19 +185,42 @@ export function loadFonts(config: StoreConfig): void {
   link.href = href;
 }
 
+function setFavicon(href: string): void {
+  let icon = document.getElementById('favicon') as HTMLLinkElement | null;
+  if (!icon) {
+    icon = document.createElement('link');
+    icon.id = 'favicon';
+    icon.rel = 'icon';
+    document.head.appendChild(icon);
+  }
+  // El <link> de index.html declara type="image/svg+xml" (la "P" por
+  // defecto). Si queda ese type con un PNG/JPG del tenant, el navegador
+  // puede ignorarlo y seguir mostrando la "P".
+  icon.removeAttribute('type');
+  icon.href = href;
+}
+
+// Evita que un logo que termina de cargar tarde pise un favicon más nuevo
+// (la config se re-aplica en vista previa del editor).
+let faviconRequest = 0;
+
 /** Aplica favicon, título y meta description del tenant. */
 export function applyDocumentMeta(config: StoreConfig): void {
   if (config.metaTitle) document.title = config.metaTitle;
 
+  const request = ++faviconRequest;
   if (config.faviconUrl) {
-    let icon = document.getElementById('favicon') as HTMLLinkElement | null;
-    if (!icon) {
-      icon = document.createElement('link');
-      icon.id = 'favicon';
-      icon.rel = 'icon';
-      document.head.appendChild(icon);
-    }
-    icon.href = config.faviconUrl;
+    setFavicon(config.faviconUrl);
+  } else if (config.logoUrl) {
+    // Sin favicon cargado, usamos el logo solo si es más o menos cuadrado:
+    // un logo horizontal a 16px queda ilegible, y ahí es mejor la "P".
+    const img = new Image();
+    img.onload = () => {
+      if (request !== faviconRequest || !img.naturalWidth || !img.naturalHeight) return;
+      const ratio = img.naturalWidth / img.naturalHeight;
+      if (ratio >= 0.8 && ratio <= 1.25) setFavicon(config.logoUrl);
+    };
+    img.src = config.logoUrl;
   }
 
   if (config.metaDescription) {
