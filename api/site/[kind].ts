@@ -165,15 +165,15 @@ async function pickIcon(store: StoreMeta): Promise<string> {
 // --- HTML para bots -----------------------------------------------------------
 
 /**
- * El index.html real del deploy (con los assets hasheados, así Google puede
- * renderizar la SPA igual que siempre). /index.html es un archivo estático:
- * Vercel lo sirve del filesystem antes de mirar los rewrites, no hay loop.
+ * El HTML real del deploy, dist/app.html (ver scripts/spa-shell.mjs), con los
+ * assets hasheados: así Google renderiza la SPA igual que siempre. Es un archivo
+ * estático y Vercel lo sirve del filesystem antes de los rewrites, no hay loop.
  */
 async function fetchIndexHtml(host: string): Promise<string> {
   const origin = host ? `https://${host}` : '';
   if (!origin) return '';
   try {
-    const res = await fetch(`${origin}/index.html`, { headers: { 'User-Agent': 'procurva-site-meta' } });
+    const res = await fetch(`${origin}/app.html`, { headers: { 'User-Agent': 'procurva-site-meta' } });
     if (!res.ok) return '';
     return await res.text();
   } catch {
