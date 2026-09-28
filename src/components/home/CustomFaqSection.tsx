@@ -16,9 +16,11 @@ import type { CustomSection, CustomSectionFaqContent, CustomSectionVariant } fro
  * tarjeta con borde propio (antes era una lista con divisores): separadas se
  * leen como items clickeables y el que está abierto se distingue del resto.
  *
- * La apertura se anima con el truco de grid-rows 0fr → 1fr en vez de max-height:
- * la respuesta puede medir dos renglones o diez y la transición sale igual de
- * suave, sin framer-motion (no está en el storefront) y sin números mágicos.
+ * La apertura NO anima el alto. Antes usaba el truco de grid-rows 0fr → 1fr con
+ * transición, pero animar el alto obliga al navegador a recalcular y repintar
+ * toda la página de abajo (grillas de productos, fotos) en cada cuadro: en PCs
+ * comunes se sentía lenta y a los tirones. Ahora el panel se abre de una y sólo
+ * el texto entra con un fade corto (opacity/transform, que no toca el layout).
  */
 export function CustomFaqSection({
   section,
@@ -106,24 +108,15 @@ export function CustomFaqSection({
                   />
                 </button>
 
-                <div
-                  id={panelId}
-                  aria-hidden={!open}
-                  className={`grid transition-[grid-template-rows] duration-300 ease-out ${
-                    open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
-                  }`}
-                >
+                <div id={panelId} aria-hidden={!open} className={`grid ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                   {/* La respuesta queda montada (así la indexa Google), pero
                       oculta al cerrar para que sus links no reciban foco con
-                      Tab. El delay hace que se esconda recién cuando terminó de
-                      plegarse; al abrir aparece en el acto. */}
-                  <div
-                    className={`overflow-hidden transition-[visibility] duration-0 ${
-                      open ? 'visible delay-0' : 'invisible delay-300'
-                    }`}
-                  >
+                      Tab. */}
+                  <div className={`overflow-hidden ${open ? 'visible' : 'invisible'}`}>
                     <div
-                      className={`leading-relaxed text-muted [&_a]:underline [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 ${
+                      className={`leading-relaxed text-muted [&_a]:underline [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 motion-reduce:animate-none ${
+                        open ? 'animate-faq-answer-in' : ''
+                      } ${
                         inColumn ? 'px-4 pb-3 pt-0.5 text-[calc(13px_*_var(--font-scale,1))]' : 'px-5 pb-4 pt-1 text-[calc(14px_*_var(--font-scale,1))] md:px-6'
                       }`}
                       dangerouslySetInnerHTML={{ __html: answer }}
