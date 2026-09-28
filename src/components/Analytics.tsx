@@ -1,16 +1,20 @@
 import { useEffect } from 'react';
 import { useStore } from '@/context/StoreProvider';
 import { isPreviewMode } from '@/lib/previewMode';
+import { normalizeGoogleTagId } from '@/lib/googleTag';
 
 /**
- * Slots de analytics. Si el tenant cargó `ga_id` (Google Analytics 4) y/o
+ * Slots de analytics. Si el tenant cargó `ga_id` (etiqueta de Google: GA4 / Ads) y/o
  * `meta_pixel_id` (Meta Pixel) en su config, inyectamos los scripts oficiales.
  * Si no, no hace nada. No implementamos analytics propio.
  */
 export function Analytics() {
-  const { gaId, metaPixelId } = useStore();
+  const { gaId: rawGaId, metaPixelId } = useStore();
+  // El ID viaja interpolado dentro de un <script>: sólo aceptamos forma de ID de Google.
+  const gaId = normalizeGoogleTagId(rawGaId);
 
-  // Google Analytics 4 (gtag.js)
+  // Etiqueta de Google (gtag.js): GA4 (G-) y/o Google Ads (AW-). Los eventos de
+  // ecommerce salen de lib/googleTag.ts.
   useEffect(() => {
     // En vista previa desde el ERP no instalamos nada: son visitas del propio
     // comercio y ensuciarían GA y el pixel igual que el analytics propio.

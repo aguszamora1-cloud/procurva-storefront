@@ -14,6 +14,7 @@
 
 import { sendServerEvent } from '@/lib/serverEvents';
 import { currencyCode } from './regional';
+import { isGoogleTagLoaded, trackGoogleAddToCart, trackGoogleBeginCheckout, trackGooglePurchase, trackGoogleViewItem } from './googleTag';
 
 export type MetaPixelEvent =
   | 'PageView'
@@ -87,6 +88,7 @@ export function trackViewContent(p: { contentId: string; name: string; value: nu
     value: p.value,
     currency: metaPixelCurrency(),
   }, eventId);
+  trackGoogleViewItem(p);
 }
 
 /** AddToCart: al agregar un producto al carrito. */
@@ -97,6 +99,7 @@ export function trackAddToCart(p: { contentId: string; name: string; value: numb
     value: p.value,
     currency: metaPixelCurrency(),
   }, eventId);
+  trackGoogleAddToCart(p);
 }
 
 /** InitiateCheckout: al entrar al checkout con el carrito cargado. */
@@ -107,6 +110,7 @@ export function trackInitiateCheckout(p: { contentIds: string[]; value: number; 
     currency: metaPixelCurrency(),
     num_items: p.numItems,
   }, eventId);
+  trackGoogleBeginCheckout(p);
 }
 
 // ── Purchase: stash al iniciar el pago, flush en la pantalla de éxito ───────
@@ -228,17 +232,24 @@ export function flushPendingPurchase(): boolean {
     });
   }
 
-  // Pixel aún no cargado: dejamos el stash y pedimos reintento (el CAPI ya salió arriba;
-  // el edge fn deduplica por (company_id,event_id), así que un reintento no duplica).
-  if (!getFbq()) return false;
+  // Ni el pixel ni la etiqueta de Google cargados todavía: dejamos el stash y pedimos
+  // reintento (el CAPI ya salió arriba; el edge fn deduplica por (company_id,event_id), así
+  // que un reintento no duplica). Analytics instala los dos snippets en el mismo render,
+  // así que cuando aparece uno ya están los dos.
+  const fbq = getFbq();
+  if (!fbq && !isGoogleTagLoaded()) return false;
 
-  trackMetaPixelEvent('Purchase', {
-    content_ids: p.contentIds,
-    content_type: 'product',
-    value: p.value,
-    currency: metaPixelCurrency(),
-    num_items: p.numItems,
-  }, p.eventId);
+  if (fbq) {
+    trackMetaPixelEvent('Purchase', {
+      content_ids: p.contentIds,
+      content_type: 'product',
+      value: p.value,
+      currency: metaPixelCurrency(),
+      num_items: p.numItems,
+    }, p.eventId);
+  }
+  // Conversión de Google Ads / GA4; transaction_id evita contar dos veces el pedido.
+  trackGooglePurchase(p);
   markTracked(p.orderId);
   clearStash();
   return true;
