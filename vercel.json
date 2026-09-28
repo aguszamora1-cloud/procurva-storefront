@@ -26,6 +26,17 @@
       "destination": "/api/site/favicon"
     },
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|facebookexternalhit|Facebot|meta-externalagent|Twitterbot|TelegramBot|Slackbot|LinkedInBot|Discordbot|Googlebot|Google-InspectionTool|bingbot|Applebot|Pinterest|SkypeUriPreview|redditbot|Embedly).*"
+        }
+      ],
+      "destination": "/api/site/html"
+    },
+    {
       "source": "/:path((?!api/).*)",
       "has": [
         {
