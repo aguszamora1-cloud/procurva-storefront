@@ -1,11 +1,44 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/robots.txt", "destination": "/api/robots" },
-    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
-    { "source": "/feed/meta.xml", "destination": "/api/feed/meta" },
-    { "source": "/feed/google.xml", "destination": "/api/feed/google" },
-    { "source": "/feed/tiktok.csv", "destination": "/api/feed/tiktok" },
-    { "source": "/:path((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/robots.txt",
+      "destination": "/api/robots"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/feed/meta.xml",
+      "destination": "/api/feed/meta"
+    },
+    {
+      "source": "/feed/google.xml",
+      "destination": "/api/feed/google"
+    },
+    {
+      "source": "/feed/tiktok.csv",
+      "destination": "/api/feed/tiktok"
+    },
+    {
+      "source": "/favicon.ico",
+      "destination": "/api/site/favicon"
+    },
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|facebookexternalhit|Facebot|meta-externalagent|Twitterbot|TelegramBot|Slackbot|LinkedInBot|Discordbot|Googlebot|Google-InspectionTool|bingbot|Applebot|Pinterest|SkypeUriPreview|redditbot|Embedly).*"
+        }
+      ],
+      "destination": "/api/site/html"
+    },
+    {
+      "source": "/:path((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }
