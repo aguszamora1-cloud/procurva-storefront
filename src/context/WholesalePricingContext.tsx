@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
+import { fetchAllPages } from '@/lib/fetchAllPages';
 import { useStoreStatus } from '@/context/StoreProvider';
 import type { CurveDist, CurvePriceTier, ProductPack } from '@/lib/types';
 
@@ -51,21 +52,29 @@ export function WholesalePricingProvider({ children }: { children: ReactNode }) 
     let cancelled = false;
     setLoading(true);
     (async () => {
+      // Paginado: con más de 1000 filas de curvas o escalones, los productos que
+      // quedaban afuera se mostraban sin curva ni precio por curva.
       const [tiersRes, surtidaTiersRes, curvesRes, packsRes] = await Promise.all([
-        supabase
+        fetchAllPages((from, to) => supabase
           .from('product_curve_price_tiers')
           .select('product_id, curve_quantity, price_per_unit')
           .eq('company_id', companyId)
-          .order('curve_quantity', { ascending: true }),
-        supabase
+          .order('curve_quantity', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to)),
+        fetchAllPages((from, to) => supabase
           .from('product_curva_surtida_price_tiers')
           .select('product_id, curve_quantity, price_per_unit')
           .eq('company_id', companyId)
-          .order('curve_quantity', { ascending: true }),
-        supabase
+          .order('curve_quantity', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to)),
+        // Sin .order: el orden de los talles es el de carga (la tabla no tiene fecha).
+        fetchAllPages((from, to) => supabase
           .from('product_curves')
           .select('product_id, size, quantity')
-          .eq('company_id', companyId),
+          .eq('company_id', companyId)
+          .range(from, to)),
         supabase
           .from('product_packs')
           .select('id, product_id, pack_type, name, total_units, is_active')
