@@ -152,9 +152,14 @@ export interface FreeShippingStatus {
  * resuelve recién en el checkout y depende del medio de pago), así que medir el
  * umbral post-cupón haría que el carrito prometa envío gratis y el checkout se
  * lo cobre. La promesa se hace sobre el número que el cliente tiene a la vista.
+ *
+ * `allProductsFree`: todos los productos del pedido tienen "Envío gratis"
+ * marcado en la ficha (ver useFreeShippingProducts). Cuenta como promo ya
+ * alcanzada, así pasa por el mismo camino que bonifica el umbral.
  */
-export function evalFreeShipping(threshold: number, goodsSubtotal: number): FreeShippingStatus {
+export function evalFreeShipping(threshold: number, goodsSubtotal: number, allProductsFree = false): FreeShippingStatus {
   const min = Math.max(0, Math.round(threshold || 0));
+  if (allProductsFree) return { active: true, threshold: min, reached: true, missing: 0 };
   if (min <= 0) return { active: false, threshold: 0, reached: false, missing: 0 };
   const reached = goodsSubtotal >= min;
   return { active: true, threshold: min, reached, missing: reached ? 0 : min - goodsSubtotal };

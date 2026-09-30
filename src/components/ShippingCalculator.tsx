@@ -5,7 +5,8 @@ import { useCart } from '@/context/CartContext';
 import { useCorreoLiveRates } from '@/hooks/useCorreoLiveRates';
 import { Spinner } from '@/components/Spinner';
 import { formatPrice, whatsappLink } from '@/lib/utils';
-import { etaBadgeColors, fetchShippingOptions, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
+import { useFreeShippingProducts } from '@/hooks/useFreeShippingProducts';
+import { effectiveShippingCost, etaBadgeColors, evalFreeShipping, fetchShippingOptions, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 import { SHIPPING_ICONS } from '@/lib/shippingIcons';
 
 type Status = 'idle' | 'loading' | 'done' | 'empty' | 'error';
@@ -34,13 +35,23 @@ export function ShippingCalculator({ productId }: { productId?: string } = {}) {
   }, [items, productId]);
   // Mismo paso que el checkout: después del filtro por CP/canal, antes de mostrar
   // el costo. Sin métodos en vivo devuelve las opciones tal cual.
-  const { options: quotedOptions, loading: quoting } = useCorreoLiveRates(
+  const { options: liveOptions, loading: quoting } = useCorreoLiveRates(
     options,
     config.companyId,
     status === 'done' ? calculatedCp : null,
     correoItems,
     0,
   );
+  // "Envío gratis" marcado en la ficha: si este producto y todo lo que ya está
+  // en el carrito lo tienen, el envío sale gratis (misma regla que el checkout).
+  const allProductsFree = useFreeShippingProducts(
+    config.companyId,
+    useMemo(() => correoItems.map((i) => i.product_id), [correoItems]),
+  );
+  const quotedOptions = useMemo(() => {
+    const promo = evalFreeShipping(0, 0, allProductsFree);
+    return liveOptions.map((o) => ({ ...o, listCost: o.cost, cost: effectiveShippingCost(o, promo) }));
+  }, [liveOptions, allProductsFree]);
 
   const waHref = config.whatsapp
     ? whatsappLink(
@@ -86,7 +97,12 @@ export function ShippingCalculator({ productId }: { productId?: string } = {}) {
 
       {/* La promo se anuncia acá, con el precio del producto a la vista: es
           donde el cliente todavía puede decidir sumar algo más al carrito. */}
-      {config.freeShippingFrom > 0 && (
+      {allProductsFree ? (
+        <p className="mb-3 flex items-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-[#1e8449]">
+          <Truck className="h-3.5 w-3.5 shrink-0" />
+          Este producto tiene envío gratis
+        </p>
+      ) : config.freeShippingFrom > 0 && (
         <p className="mb-3 flex items-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-[#1e8449]">
           <Truck className="h-3.5 w-3.5 shrink-0" />
           Envío gratis en compras desde {formatPrice(config.freeShippingFrom)}
@@ -165,11 +181,16 @@ export function ShippingCalculator({ productId }: { productId?: string } = {}) {
                   {optQuoting ? (
                     <span className="shrink-0 text-[calc(14px_*_var(--font-scale,1))] font-bold text-subtle">…</span>
                   ) : (
-                    <span
-                      className="shrink-0 text-[calc(14px_*_var(--font-scale,1))] font-bold text-text"
-                      style={o.cost === 0 ? { color: '#2e7d32' } : undefined}
-                    >
-                      {o.cost === 0 ? 'GRATIS' : o.cost == null ? 'A coordinar' : formatPrice(o.cost)}
+                    <span className="flex shrink-0 items-baseline gap-1.5">
+                      {o.cost === 0 && typeof o.listCost === 'number' && o.listCost > 0 && (
+                        <span className="text-[calc(12px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(o.listCost)}</span>
+                      )}
+                      <span
+                        className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-text"
+                        style={o.cost === 0 ? { color: '#2e7d32' } : undefined}
+                      >
+                        {o.cost === 0 ? 'GRATIS' : o.cost == null ? 'A coordinar' : formatPrice(o.cost)}
+                      </span>
                     </span>
                   )}
                 </div>

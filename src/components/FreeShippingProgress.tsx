@@ -1,5 +1,8 @@
+import { useMemo } from 'react';
 import { Truck } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
+import { useCart } from '@/context/CartContext';
+import { useFreeShippingProducts } from '@/hooks/useFreeShippingProducts';
 import { evalFreeShipping } from '@/lib/shipping';
 import { formatPrice } from '@/lib/utils';
 
@@ -17,10 +20,16 @@ import { formatPrice } from '@/lib/utils';
  */
 export function FreeShippingProgress({ subtotal, className = '' }: { subtotal: number; className?: string }) {
   const config = useStore();
-  const promo = evalFreeShipping(config.freeShippingFrom, subtotal);
+  const { items } = useCart();
+  // Todos los productos con "Envío gratis" en la ficha: ya es gratis, sin umbral.
+  const allProductsFree = useFreeShippingProducts(
+    config.companyId,
+    useMemo(() => items.map((i) => i.product_id), [items]),
+  );
+  const promo = evalFreeShipping(config.freeShippingFrom, subtotal, allProductsFree);
   if (!promo.active) return null;
 
-  const pct = Math.min(100, Math.max(0, Math.round((subtotal / promo.threshold) * 100)));
+  const pct = promo.reached ? 100 : Math.min(100, Math.max(0, Math.round((subtotal / promo.threshold) * 100)));
 
   return (
     <div className={className}>

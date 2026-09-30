@@ -23,6 +23,7 @@ import { CouponChip } from '@/components/CouponChip';
 import { CorreoAgencyPicker } from '@/components/CorreoAgencyPicker';
 import { useCorreoLiveRates } from '@/hooks/useCorreoLiveRates';
 import { useCorreoAgencies } from '@/hooks/useCorreoAgencies';
+import { useFreeShippingProducts } from '@/hooks/useFreeShippingProducts';
 import { carrierWithAgency, correoPostalCode, type CorreoAgency } from '@/lib/micorreo';
 
 /** Mensaje en español para cada código de error de cupón que puede lanzar la RPC. */
@@ -552,8 +553,14 @@ export function Checkout() {
   // contado es más barato que la tarjeta, el mismo carrito puede alcanzar el
   // umbral con tarjeta y no con contado: por eso se resuelve POR MODO y no una
   // sola vez, así el total de cada tarjeta de medio de pago dice la verdad.
+  // Además, si TODOS los productos tienen "Envío gratis" en la ficha, el envío
+  // sale gratis sin importar el monto.
+  const allProductsFreeShipping = useFreeShippingProducts(
+    config.companyId,
+    useMemo(() => pricedItems.map((i) => i.product_id), [pricedItems]),
+  );
   const freeShippingFor = (mode: 'cash' | 'card') =>
-    evalFreeShipping(config.freeShippingFrom, mode === 'cash' ? cashSubtotal : cardSubtotal);
+    evalFreeShipping(config.freeShippingFrom, mode === 'cash' ? cashSubtotal : cardSubtotal, allProductsFreeShipping);
   const freeShipping = freeShippingFor(priceMode);
   // ¿Tiene sentido anunciarla? Sólo si hay algún envío que efectivamente se
   // cobre y participe: en una tienda de puro retiro (o con todo "a coordinar")
