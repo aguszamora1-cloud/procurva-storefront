@@ -414,6 +414,12 @@ async function triggerAutoConfirm(catalogOrderId: string): Promise<void> {
     } else {
       console.log('[orders] auto-confirm OK', data);
     }
+    // El N° de venta del ERP (#0057) es el que ve el comercio en su listado: la
+    // pantalla de éxito se lo muestra al comprador para que lo mande con el
+    // comprobante de transferencia y el comercio pueda matchear el pago.
+    if (data?.order_number != null) {
+      try { sessionStorage.setItem(`order_number_${catalogOrderId}`, String(data.order_number)); } catch { /* sin storage: queda el código corto */ }
+    }
   } catch (err) {
     console.error('[orders] auto-confirm falló (no bloqueante)', err);
   }

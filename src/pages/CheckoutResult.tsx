@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Clock, XCircle, MessageCircle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStore } from '@/context/StoreProvider';
 import { flushPendingPurchase } from '@/lib/metaPixel';
 import { Seo } from '@/components/Seo';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, whatsappLink } from '@/lib/utils';
 
 type Variant = 'success' | 'failure' | 'pending';
 
@@ -125,11 +125,36 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
   const isWhatsapp = variant === 'success' && params.get('method') === 'wa';
   const whatsappHref = isWhatsapp && orderId ? sessionStorage.getItem(`wa_order_${orderId}`) : null;
 
+  // N° de pedido: el mismo que ve el comercio en su listado de ventas (#0057).
+  // Lo guardó el checkout al confirmar; si no está (otra pestaña, confirmación
+  // fallida) caemos al código corto del id.
+  const orderLabel = useMemo(() => {
+    if (!orderId) return null;
+    let n: string | null = null;
+    try { n = sessionStorage.getItem(`order_number_${orderId}`); } catch { /* sin storage */ }
+    const num = n ? Number(n) : NaN;
+    return Number.isFinite(num) && num > 0 ? `#${String(Math.trunc(num)).padStart(4, '0')}` : orderId.slice(0, 8).toUpperCase();
+  }, [orderId]);
+
+  // Transferencia: el comprobante se manda por WhatsApp del negocio, con el N°
+  // de pedido y el monto ya escritos para que el comercio matchee el pago.
+  const receiptHref =
+    isTransfer && config.whatsapp
+      ? whatsappLink(
+          config.whatsapp,
+          `¡Hola ${config.name}! Te envío el comprobante de transferencia del pedido ${orderLabel ?? ''}` +
+            (transferAmount ? ` por ${formatPrice(transferAmount)}` : '') +
+            '. (Adjunto la captura)',
+        )
+      : null;
+
   const base = CONTENT[variant];
   const { icon: Icon, color } = base;
   const title = isTransfer || isWhatsapp ? '¡Pedido registrado!' : base.title;
   const text = isTransfer
-    ? 'Para confirmar tu pedido, transferí el monto a los siguientes datos y envianos el comprobante. En cuanto lo recibamos lo preparamos.'
+    ? receiptHref
+      ? 'Para confirmar tu pedido, transferí el monto a los siguientes datos y mandanos el comprobante por WhatsApp. En cuanto lo recibamos lo preparamos.'
+      : 'Para confirmar tu pedido, transferí el monto a los siguientes datos y envianos el comprobante indicando tu N° de pedido. En cuanto lo recibamos lo preparamos.'
     : isWhatsapp
       ? whatsappHref
         ? 'Tu pedido quedó guardado. Coordiná el pago y la entrega con nosotros por WhatsApp.'
@@ -165,10 +190,23 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
       <Icon size={64} className={isTransfer ? 'text-amber-500' : color} strokeWidth={1.5} />
       <h1 className="font-heading text-[calc(28px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(34px_*_var(--font-scale,1))]">{title}</h1>
       <p className="max-w-[440px] text-[calc(15px_*_var(--font-scale,1))] leading-relaxed text-muted">{text}</p>
-      {orderId && (
-        <p className="text-[calc(12px_*_var(--font-scale,1))] text-subtle">N° de pedido: {orderId.slice(0, 8).toUpperCase()}</p>
+      {orderLabel && (
+        <p className={isTransfer ? 'text-[calc(14px_*_var(--font-scale,1))] font-semibold text-text' : 'text-[calc(12px_*_var(--font-scale,1))] text-subtle'}>
+          N° de pedido: {orderLabel}
+        </p>
       )}
       {isTransfer && <TransferDetails amount={transferAmount} />}
+      {receiptHref && (
+        <a
+          href={receiptHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 inline-flex items-center justify-center gap-2.5 rounded-button bg-[#25D366] px-8 py-4 text-[calc(15px_*_var(--font-scale,1))] font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
+        >
+          <MessageCircle size={20} strokeWidth={2.2} />
+          Enviar comprobante por WhatsApp
+        </a>
+      )}
       {whatsappHref && (
         <a
           href={whatsappHref}
