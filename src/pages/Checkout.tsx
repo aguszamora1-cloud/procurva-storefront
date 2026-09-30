@@ -23,7 +23,7 @@ import { CouponChip } from '@/components/CouponChip';
 import { CorreoAgencyPicker } from '@/components/CorreoAgencyPicker';
 import { useCorreoLiveRates } from '@/hooks/useCorreoLiveRates';
 import { useCorreoAgencies } from '@/hooks/useCorreoAgencies';
-import { carrierWithAgency, type CorreoAgency } from '@/lib/micorreo';
+import { carrierWithAgency, correoPostalCode, type CorreoAgency } from '@/lib/micorreo';
 
 /** Mensaje en español para cada código de error de cupón que puede lanzar la RPC. */
 const COUPON_ERROR_MESSAGES: Record<CouponErrorCode, string> = {
@@ -242,8 +242,16 @@ export function Checkout() {
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false); // Detalle expandible de la barra fija mobile
   const [methods, setMethods] = useState<ShippingOption[]>([]);
   const [selectedMethodId, setSelectedMethodId] = useState('');
-  const [cpInput, setCpInput] = useState(''); // CP que el cliente está tipeando
-  const [appliedCp, setAppliedCp] = useState(''); // CP confirmado ('' = todavía no calculó)
+  // CP con el que se filtran y cotizan los envíos. Es SIEMPRE un CP completo (4 dígitos):
+  // se actualiza recién cuando lo que tipea el cliente (form.zip) llega a un CP válido y
+  // se mantiene mientras lo borra para corregirlo. Antes se filtraba con cada tecla:
+  // con "3" ningún envío cubría la zona, desaparecía el bloque de dirección con el
+  // campo que tenía el foco y la pantalla saltaba para arriba (iOS).
+  const [appliedCp, setAppliedCp] = useState(() => correoPostalCode(loadSavedCustomer(config.companyId)?.zip) ?? '');
+  // En mobile la barra fija inferior se esconde mientras hay un campo de texto con
+  // foco: con el teclado abierto iOS la deja flotando en el medio de la pantalla,
+  // tapando el formulario.
+  const [typing, setTyping] = useState(false);
   const [loading, setLoading] = useState<null | 'mp' | 'wa' | 'gc'>(null);
   const [error, setError] = useState('');
   // Candado sincrónico anti doble-submit. `disabled={loading !== null}` no alcanza:
@@ -372,13 +380,7 @@ export function Checkout() {
   // ¿Hay métodos de envío a domicilio? Si sólo hay retiro en local no pedimos CP.
   const hasDeliveryMethods = useMemo(() => channelMethods.some((m) => m.requiresAddress), [channelMethods]);
 
-  // CP efectivo: el del calculador (appliedCp) o, si no, el que el cliente tipea en el
-  // campo de dirección (form.zip). Así puede completar la dirección sin pasar por el
-  // calculador cuando el envío es de cobertura total.
-  const cpNum = useMemo(() => {
-    const src = appliedCp || form.zip || '';
-    return src.trim() ? normalizePostalCode(src) : null;
-  }, [appliedCp, form.zip]);
+  const cpNum = useMemo(() => (appliedCp ? normalizePostalCode(appliedCp) : null), [appliedCp]);
 
   // ¿El método cubre todo el país? (transportadoras nacionales tipo Correo Argentino,
   // Vía Cargo). Esas son para envío a otras localidades y se ofrecen recién con el CP.
@@ -409,7 +411,7 @@ export function Checkout() {
   const { options: availableMethods, loading: correoQuoting } = useCorreoLiveRates(
     zoneMethods,
     config.companyId,
-    appliedCp || form.zip || '',
+    appliedCp,
     correoItems,
   );
 
@@ -448,7 +450,7 @@ export function Checkout() {
     config.companyId,
     needsCorreoAgency,
     form.province,
-    form.zip || appliedCp,
+    appliedCp,
   );
   // Si cambia la lista (otra provincia/CP) y la sucursal elegida ya no está, se descarta.
   useEffect(() => {
@@ -483,31 +485,37 @@ export function Checkout() {
     setPayMethod((prev) => (availablePayMethods.includes(prev) ? prev : availablePayMethods[0] ?? 'transferencia'));
   }, [availablePayMethods]);
 
-  // Calculador de CP independiente: sólo cuando hay envíos a domicilio pero todavía no
-  // hay uno seleccionado (ej.: la tienda sólo tiene envíos con zona acotada y hace falta
-  // el CP para revelarlos). Si ya hay un método a domicilio elegido, el CP se completa en
-  // el campo de la dirección, así que no mostramos el calculador aparte.
-  const needsCpForDelivery = hasDeliveryMethods && !requiresAddress && !appliedCp && !(form.zip || '').trim();
+  // Todavía no hay un CP completo y la tienda tiene envíos a domicilio.
+  const needsCpForDelivery = hasDeliveryMethods && !appliedCp;
 
   // Sólo es retiro en local cuando hay un método de retiro efectivamente elegido.
   // Si todavía no se calculó el envío (o el método es a domicilio) el horario es para RECIBIR.
   const isPickup = !!selectedMethod && !selectedMethod.requiresAddress;
 
-  function applyCp() {
-    const cp = cpInput.trim();
-    if (!normalizePostalCode(cp)) {
-      setError('Ingresá un código postal válido.');
-      return;
-    }
-    setAppliedCp(cp);
-    setForm((f) => ({ ...f, zip: cp })); // reutilizamos el CP en la dirección — no lo pedimos dos veces
+  // Un solo campo de CP (arriba de las opciones de envío): lo tipeado queda en form.zip
+  // (va tal cual al pedido, aunque sea un CPA con letras) y el filtro se actualiza
+  // recién cuando hay un CP completo.
+  function onCpChange(value: string) {
+    setForm((f) => ({ ...f, zip: value }));
     setError('');
+    const cp = correoPostalCode(value);
+    if (cp) setAppliedCp(cp);
   }
 
-  function changeCp() {
-    setAppliedCp('');
-    setError('');
-  }
+  useEffect(() => {
+    const isTextField = (el: EventTarget | null) =>
+      el instanceof HTMLTextAreaElement ||
+      (el instanceof HTMLInputElement && !['radio', 'checkbox', 'button', 'submit'].includes(el.type));
+    const onIn = (e: FocusEvent) => { if (isTextField(e.target)) setTyping(true); };
+    // Pasar de un campo a otro no muestra la barra en el medio (parpadeo).
+    const onOut = (e: FocusEvent) => { if (isTextField(e.target) && !isTextField(e.relatedTarget)) setTyping(false); };
+    document.addEventListener('focusin', onIn);
+    document.addEventListener('focusout', onOut);
+    return () => {
+      document.removeEventListener('focusin', onIn);
+      document.removeEventListener('focusout', onOut);
+    };
+  }, []);
 
   // Subtotal de contado (efectivo/transferencia): usa unit_price_cash si existe.
   // `subtotal` (del carrito) es el de tarjeta/lista.
@@ -708,7 +716,7 @@ export function Checkout() {
     if (requiresAddress) {
       if (!form.address?.trim()) return 'Ingresá tu dirección de envío.';
       if (!form.city?.trim()) return 'Ingresá la ciudad.';
-      if (!form.zip?.trim()) return 'Ingresá el código postal.';
+      if (!appliedCp) return 'Ingresá un código postal válido (4 números, ej: 2000).';
       if (!form.province?.trim()) return 'Ingresá la provincia.';
     }
     if (quotingSelected) return 'Esperá un momento: estamos cotizando el envío con Correo Argentino.';
@@ -940,7 +948,7 @@ export function Checkout() {
   // text-[calc(16px_*_var(--font-scale,1))] evita el zoom automático de iOS al enfocar un input (<16px).
   // Borde 1px neutro, radio 8px, sin sombra: sólo el focus ring del input.
   const inputCls =
-    'w-full rounded-button border border-line bg-background px-3.5 py-2.5 text-[calc(16px_*_var(--font-scale,1))] font-normal text-text outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent-a25';
+    'w-full rounded-button border border-line bg-background px-3.5 py-2.5 text-[length:max(16px,calc(16px_*_var(--font-scale,1)))] font-normal text-text outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent-a25';
   const labelCls = 'text-[calc(13px_*_var(--font-scale,1))] font-medium text-muted';
 
   // Link de WhatsApp para las salidas de contacto del panel (dudas / sin cobertura).
@@ -1058,7 +1066,7 @@ export function Checkout() {
 
   // El CTA queda inactivo si todavía falta cotizar el envío (tienda con envío a
   // domicilio, sin método elegido y sin CP). El motivo se muestra bajo el botón.
-  const mustQuoteShipping = !selectedMethod && hasDeliveryMethods && !appliedCp && !(form.zip || '').trim();
+  const mustQuoteShipping = !selectedMethod && hasDeliveryMethods && !appliedCp;
   // También mientras la opción elegida se está cotizando en vivo: confirmar en ese
   // momento guardaría el costo provisorio en vez de la tarifa real.
   const ctaDisabled = loading !== null || stockIssues.length > 0 || mustQuoteShipping || quotingSelected;
@@ -1208,54 +1216,42 @@ export function Checkout() {
             {/* Envío a domicilio: confirmación de CP / calculador / opciones / sin cobertura */}
             {hasDeliveryMethods && (
               <div className="space-y-3">
-                {/* CP confirmado: reemplaza al input por una línea con opción de cambiarlo */}
-                {appliedCp && (
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[calc(13px_*_var(--font-scale,1))]">
-                    <MapPin className="h-4 w-4 shrink-0 text-subtle" />
-                    <span className="font-medium text-text">
-                      {[form.city, form.province].filter(Boolean).join(', ') || 'Tu zona'}
+                {/* Código postal: único campo, SIEMPRE arriba de las opciones de envío.
+                    Queda fijo en su lugar (no se reemplaza por otra cosa al completarlo),
+                    así lo que cambia al tipear está debajo y la pantalla no salta. */}
+                <div className="max-w-[440px]">
+                  <label className="flex flex-col gap-1.5">
+                    <span className={labelCls}>
+                      {appliedCp ? 'Código postal *' : 'Ingresá tu código postal para ver las opciones de envío'}
                     </span>
-                    <span className="text-subtle">·</span>
-                    <span className="text-muted">CP {appliedCp}</span>
-                    <button type="button" onClick={changeCp} className="ml-1 text-[calc(13px_*_var(--font-scale,1))] font-medium text-accent hover:underline">
-                      Cambiar
-                    </button>
-                  </div>
-                )}
-
-                {/* Calculador de CP: input + "Ver opciones" (mismo peso visual que los inputs) */}
-                {needsCpForDelivery && (
-                  <div className="max-w-[440px]">
-                    <label className="flex flex-col gap-1.5">
-                      <span className={labelCls}>Ingresá tu código postal para ver las opciones de envío</span>
-                      <div className="flex gap-2">
-                        <input
-                          className={inputCls}
-                          value={cpInput}
-                          onChange={(e) => { setCpInput(e.target.value); setError(''); }}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCp(); } }}
-                          inputMode="numeric"
-                          placeholder="Ej: 2000"
-                        />
-                        <button
-                          type="button"
-                          onClick={applyCp}
-                          className="shrink-0 rounded-button border border-line px-4 text-[calc(14px_*_var(--font-scale,1))] font-medium text-text transition-colors hover:border-accent hover:text-accent"
-                        >
-                          Ver opciones
-                        </button>
-                      </div>
-                    </label>
-                    <a
-                      href="https://www.correoargentino.com.ar/formularios/cpa"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-block text-[calc(12px_*_var(--font-scale,1))] text-subtle underline hover:text-accent"
-                    >
-                      ¿No sabés tu código postal?
-                    </a>
-                  </div>
-                )}
+                    <input
+                      className={inputCls}
+                      value={form.zip}
+                      onChange={(e) => onCpChange(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                      name="postal-code"
+                      autoComplete="postal-code"
+                      inputMode="numeric"
+                      placeholder="Ej: 2000"
+                    />
+                  </label>
+                  {appliedCp && correoPostalCode(form.zip) !== appliedCp ? (
+                    <p className="mt-2 text-[calc(12px_*_var(--font-scale,1))] text-muted">
+                      Mostrando opciones para el CP {appliedCp}
+                    </p>
+                  ) : (
+                    !appliedCp && (
+                      <a
+                        href="https://www.correoargentino.com.ar/formularios/cpa"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-block text-[calc(12px_*_var(--font-scale,1))] text-subtle underline hover:text-accent"
+                      >
+                        ¿No sabés tu código postal?
+                      </a>
+                    )
+                  )}
+                </div>
 
                 {/* Sin cobertura para la zona: en vez de una lista vacía, ofrecemos WhatsApp */}
                 {noDeliveryForZone && (
@@ -1286,29 +1282,19 @@ export function Checkout() {
                   <div className="grid gap-4 pt-1 sm:grid-cols-2">
                     <label className="flex flex-col gap-1.5 sm:col-span-2">
                       <span className={labelCls}>Dirección *</span>
-                      <input className={inputCls} value={form.address} onChange={set('address')} placeholder="Calle y número" />
+                      <input className={inputCls} value={form.address} onChange={set('address')} name="address-line1" autoComplete="address-line1" placeholder="Calle y número" />
                     </label>
                     <label className="flex flex-col gap-1.5">
                       <span className={labelCls}>Piso / depto</span>
-                      <input className={inputCls} value={floor} onChange={(e) => { setFloor(e.target.value); setError(''); }} placeholder="Opcional" />
+                      <input className={inputCls} value={floor} onChange={(e) => { setFloor(e.target.value); setError(''); }} name="address-line2" autoComplete="address-line2" placeholder="Opcional" />
                     </label>
                     <label className="flex flex-col gap-1.5">
                       <span className={labelCls}>Ciudad *</span>
-                      <input className={inputCls} value={form.city} onChange={set('city')} />
+                      <input className={inputCls} value={form.city} onChange={set('city')} name="address-level2" autoComplete="address-level2" />
                     </label>
                     <label className="flex flex-col gap-1.5">
                       <span className={labelCls}>Provincia *</span>
-                      <input className={inputCls} value={form.province} onChange={set('province')} />
-                    </label>
-                    <label className="flex flex-col gap-1.5">
-                      <span className={labelCls}>Código postal *</span>
-                      <input
-                        className={inputCls}
-                        value={form.zip}
-                        onChange={(e) => { setForm((f) => ({ ...f, zip: e.target.value })); setError(''); }}
-                        inputMode="numeric"
-                        placeholder="Ej: 2000"
-                      />
+                      <input className={inputCls} value={form.province} onChange={set('province')} name="address-level1" autoComplete="address-level1" />
                     </label>
                     {/* Retiro en sucursal de Correo cotizado en vivo: elegir la sucursal
                         (va después de provincia/CP porque la búsqueda sale de ahí). */}
@@ -1705,7 +1691,7 @@ export function Checkout() {
       </div>
 
       {/* ───────── Barra fija inferior (mobile): total + CTA, detalle expandible ───────── */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-background lg:hidden">
+      <div className={`fixed inset-x-0 bottom-0 z-40 border-t border-line bg-background lg:hidden ${typing ? 'hidden' : ''}`}>
         {mobileSummaryOpen && (
           <div className="max-h-[45dvh] overflow-y-auto border-b border-line px-5 py-4">{summaryRows}</div>
         )}
