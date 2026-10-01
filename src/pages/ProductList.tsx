@@ -30,6 +30,40 @@ const toggleInSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>) 
 /** Normaliza texto para buscar sin distinguir acentos ni mayúsculas. */
 const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
+/** Clave para agrupar valores cargados a mano: "JORDAN", "Jordan " y "jordán" son la misma marca. */
+const groupKey = (s: string) => norm(s).replace(/[​-‍﻿]/g, '').replace(/\s+/g, ' ').trim();
+
+/**
+ * Agrupa los valores de un campo libre (marca, segmento) por groupKey y elige
+ * una sola etiqueta por grupo: la grafía más usada y, a igualdad, la que no
+ * está toda en mayúsculas. Devuelve la lista de etiquetas para el filtro y el
+ * mapa clave → etiqueta para saber a qué opción pertenece cada producto.
+ */
+function groupFreeValues(values: Array<string | null | undefined>) {
+  const counts = new Map<string, Map<string, number>>();
+  values.forEach((raw) => {
+    const v = (raw ?? '').replace(/\s+/g, ' ').trim();
+    if (!v) return;
+    const key = groupKey(v);
+    const spellings = counts.get(key) ?? new Map<string, number>();
+    spellings.set(v, (spellings.get(v) ?? 0) + 1);
+    counts.set(key, spellings);
+  });
+  const labelByKey = new Map<string, string>();
+  counts.forEach((spellings, key) => {
+    const best = Array.from(spellings.entries()).sort(([a, ca], [b, cb]) => {
+      if (cb !== ca) return cb - ca;
+      const aUpper = a === a.toUpperCase();
+      const bUpper = b === b.toUpperCase();
+      if (aUpper !== bUpper) return aUpper ? 1 : -1;
+      return a.localeCompare(b, 'es');
+    })[0][0];
+    labelByKey.set(key, best);
+  });
+  const labels = Array.from(labelByKey.values()).sort((a, b) => a.localeCompare(b, 'es'));
+  return { labels, labelByKey };
+}
+
 /**
  * Encabezado del listado cuando se llega desde una sección del home (?seccion=).
  *
@@ -115,23 +149,12 @@ export function ProductList() {
   // Todas las opciones de filtro salen del conjunto base, no del catálogo
   // entero: dentro de Ofertas no tiene sentido ofrecer un talle que ninguna
   // oferta tiene. Sin ?seccion=, baseProducts ES el catálogo y no cambia nada.
-  const allSegments = useMemo(() => {
-    const set = new Set<string>();
-    baseProducts.forEach((p) => {
-      const s = (p.segment ?? '').trim();
-      if (s) set.add(s);
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
-  }, [baseProducts]);
-
-  const allBrands = useMemo(() => {
-    const set = new Set<string>();
-    baseProducts.forEach((p) => {
-      const b = (p.brand ?? '').trim();
-      if (b) set.add(b);
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
-  }, [baseProducts]);
+  // Se agrupan sin distinguir mayúsculas/tildes/espacios: el comercio carga
+  // "Masculino" y "masculino", o "Jordan" y "JORDAN", y antes salían repetidos.
+  const segmentGroups = useMemo(() => groupFreeValues(baseProducts.map((p) => p.segment)), [baseProducts]);
+  const brandGroups = useMemo(() => groupFreeValues(baseProducts.map((p) => p.brand)), [baseProducts]);
+  const allSegments = segmentGroups.labels;
+  const allBrands = brandGroups.labels;
 
   const allSizes = useMemo(() => {
     const set = new Set<string>();
@@ -164,8 +187,8 @@ export function ProductList() {
           if (!hay.includes(nq)) return false;
         }
         if (selectedCats.size > 0 && !productCategories(p).some((c) => selectedCats.has(c))) return false;
-        if (selectedSegments.size > 0 && !selectedSegments.has((p.segment ?? '').trim())) return false;
-        if (selectedBrands.size > 0 && !selectedBrands.has((p.brand ?? '').trim())) return false;
+        if (selectedSegments.size > 0 && !selectedSegments.has(segmentGroups.labelByKey.get(groupKey(p.segment ?? '')) ?? '')) return false;
+        if (selectedBrands.size > 0 && !selectedBrands.has(brandGroups.labelByKey.get(groupKey(p.brand ?? '')) ?? '')) return false;
         if (selectedSizes.size > 0 && !availableSizes(p).some((s) => selectedSizes.has(s))) return false;
         if (selectedColors.size > 0 && !availableColors(p).some((c) => selectedColors.has(c))) return false;
         const price = listPriceInfo(p).mainPrice;
@@ -173,7 +196,7 @@ export function ProductList() {
         if (max != null && !Number.isNaN(max) && price > max) return false;
         return true;
       }),
-    [baseProducts, query, selectedCats, selectedSegments, selectedBrands, selectedSizes, selectedColors, min, max],
+    [baseProducts, query, selectedCats, selectedSegments, selectedBrands, segmentGroups, brandGroups, selectedSizes, selectedColors, min, max],
   );
 
   // Orden final del listado. Los pins del comerciante (Destacados / Nuevos
