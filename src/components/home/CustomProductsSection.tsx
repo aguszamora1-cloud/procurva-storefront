@@ -70,5 +70,27 @@ export function CustomProductsSection({ section }: { section: CustomSection }) {
   // esté configurado para el resto del home.
   const display = c.display_mode === 'grid' || c.display_mode === 'carousel' ? c.display_mode : productsDisplayMode;
 
-  return <ProductsSection label={c.label} title={heading} products={selected} maxItems={maxItems} display={display} />;
+  // Sección por categoría: "Ver más remeras" lleva al listado con esa categoría
+  // preseleccionada. El listado filtra por nombre EXACTO y acá se compara sin
+  // mayúsculas, así que el link usa el nombre tal como viene en los productos.
+  // Marca y segmento todavía no tienen un ?param en el listado: sin botón.
+  const wanted = value.trim().toLowerCase();
+  const categoryName =
+    source === 'category' && wanted
+      ? selected.flatMap(productCategories).find((cat) => cat.toLowerCase() === wanted)
+      : undefined;
+  const linkTo = categoryName ? `/productos?categoria=${encodeURIComponent(categoryName)}` : undefined;
+  const linkLabel = categoryName ? `Ver más ${categoryName.toLowerCase()}` : undefined;
+
+  return (
+    <ProductsSection
+      label={c.label}
+      title={heading}
+      products={selected}
+      maxItems={maxItems}
+      display={display}
+      linkTo={linkTo}
+      linkLabel={linkLabel}
+    />
+  );
 }

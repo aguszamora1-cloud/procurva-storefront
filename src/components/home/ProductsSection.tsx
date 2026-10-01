@@ -16,6 +16,8 @@ interface Props {
   maxItems: number;
   /** Listado con el conjunto completo de esta sección (ver sectionListPath). */
   linkTo?: string;
+  /** Texto del botón de abajo ("Ver más remeras" en una sección por categoría). */
+  linkLabel?: string;
   /** Grilla (default) o fila horizontal scrolleable (config.productsDisplayMode). */
   display?: 'grid' | 'carousel';
 }
@@ -30,7 +32,7 @@ interface Props {
 const CAROUSEL_ITEM_CLASS = 'shrink-0 grow-0 snap-start basis-[46%] lg:basis-[calc((100%_-_60px)_/_4)]';
 
 /** Sección genérica de productos (Destacados, Nuevos, Ofertas, personalizadas). */
-export function ProductsSection({ label, title, subtitle, products, maxItems, linkTo, display = 'grid' }: Props) {
+export function ProductsSection({ label, title, subtitle, products, maxItems, linkTo, linkLabel = 'Ver más productos', display = 'grid' }: Props) {
   // Explota los productos con display_variants_separately en una card por color
   // (mismo criterio que el grid del catálogo) y RECIÉN AHÍ corta: el límite
   // cuenta cards, que es lo que ve el visitante. Cortar antes de expandir era el
@@ -63,7 +65,7 @@ export function ProductsSection({ label, title, subtitle, products, maxItems, li
             to={linkTo}
             className="inline-flex items-center border border-line px-8 py-3.5 text-[calc(14px_*_var(--font-scale,1))] font-medium text-on-surface transition-colors hover:border-accent hover:text-accent"
           >
-            Ver más productos
+            {linkLabel}
           </Link>
         </div>
       )}
