@@ -33,6 +33,7 @@ const CheckoutSuccess = lazy(() => import('@/pages/CheckoutResult').then((m) => 
 const CheckoutFailure = lazy(() => import('@/pages/CheckoutResult').then((m) => ({ default: m.CheckoutFailure })));
 const CheckoutPending = lazy(() => import('@/pages/CheckoutResult').then((m) => ({ default: m.CheckoutPending })));
 const CustomPage = lazy(() => import('@/pages/CustomPage').then((m) => ({ default: m.CustomPage })));
+const Resena = lazy(() => import('@/pages/Resena').then((m) => ({ default: m.Resena })));
 
 /** Fallback liviano mientras se descarga el chunk de la página. */
 function PageFallback() {
@@ -74,6 +75,8 @@ function StoreRoutes() {
               <Route path="/checkout/success" element={<CheckoutSuccess />} />
               <Route path="/checkout/failure" element={<CheckoutFailure />} />
               <Route path="/checkout/pending" element={<CheckoutPending />} />
+              {/* Link único de la venta para dejar una reseña verificada. */}
+              <Route path="/resena/:token" element={<Resena />} />
               <Route path="*" element={<RouteNotFound />} />
             </Routes>
           </Suspense>

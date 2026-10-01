@@ -99,3 +99,22 @@ export function applySeo(input: SeoInput): void {
   // Canonical.
   setLink('canonical', url);
 }
+
+/**
+ * Pone (o saca, con `null`) un bloque <script type="application/ld+json"> en el
+ * <head>, identificado por `id` para reemplazarlo al cambiar de página en vez
+ * de acumular uno por cada producto visitado.
+ */
+export function setJsonLd(id: string, data: Record<string, unknown> | null): void {
+  if (typeof document === 'undefined') return;
+  const existing = document.getElementById(id);
+  if (!data) {
+    existing?.remove();
+    return;
+  }
+  const el = existing ?? document.createElement('script');
+  el.id = id;
+  el.setAttribute('type', 'application/ld+json');
+  el.textContent = JSON.stringify(data);
+  if (!existing) document.head.appendChild(el);
+}

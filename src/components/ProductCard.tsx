@@ -9,6 +9,7 @@ import { PriceStack } from './PriceStack';
 import { WholesalePriceTable } from './WholesalePriceTable';
 import { StoreImage } from './StoreImage';
 import { CardBadge } from './CardBadge';
+import { RatingLine } from './RatingLine';
 import { colorToHex, mainImage } from '@/lib/utils';
 
 // Clases del contenedor de badges según la esquina elegida. En las esquinas
@@ -93,6 +94,10 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           <h3 className="mb-1.5 text-[calc(15px_*_var(--font-scale,1))] font-bold uppercase leading-[1.3] tracking-[0.02em] text-on-surface transition-colors group-hover:text-accent">
             {product.name}
           </h3>
+          {/* Reseñas verificadas (Extra PRO). Se autooculta sin reseñas. */}
+          <div className="mb-1.5 empty:hidden">
+            <RatingLine productId={product.id} />
+          </div>
           {isWholesale ? (
             <WholesalePriceTable
               wholesalePrice={product.wholesale_price ?? 0}

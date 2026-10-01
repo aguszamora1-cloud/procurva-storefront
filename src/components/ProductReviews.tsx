@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { ReviewCard, Stars } from '@/components/ReviewCard';
+import { ReviewCard, Stars, type ReviewCardData } from '@/components/ReviewCard';
 import { useTestimonials } from '@/hooks/useTestimonials';
+import { useProductReviews, useRatingSummary } from '@/hooks/useProductReviews';
 
 /**
- * Reseñas en la página de detalle del producto (Extra PRO). Para que sirvan de
- * social proof, son las MISMAS reseñas que el comercio carga para el home
- * (testimonios company-wide del catálogo activo), no reseñas por producto. Se
- * renderiza sólo si hay testimonios activos. El gating de plan/section lo hace el caller.
+ * Reseñas en la página de detalle del producto (Extra PRO).
+ *
+ * Primero las reseñas VERIFICADAS de ese producto (las deja quien lo compró,
+ * por el link único de la venta). Si el producto todavía no tiene ninguna, cae
+ * a las mismas reseñas que el comercio carga para el home (testimonios
+ * company-wide del catálogo activo), como antes. Se renderiza sólo si hay algo
+ * que mostrar. El gating de plan/section lo hace el caller.
  *
  * Carrusel horizontal con deslizamiento continuo (tipo cinta), igual que el
  * social proof del home: avanza solo, en loop sin corte, y se pausa al interactuar.
@@ -16,7 +20,10 @@ export function ProductReviews({
   title,
   variant = 'section',
   display,
+  productId,
 }: {
+  /** Producto de la ficha. Sin él, sólo testimonios del home. */
+  productId?: string;
   title?: string;
   variant?: 'section' | 'column';
   /**
@@ -26,7 +33,13 @@ export function ProductReviews({
    */
   display?: 'carousel' | 'stack';
 }) {
-  const { testimonials: reviews } = useTestimonials();
+  const { testimonials } = useTestimonials();
+  const { reviews: verifiedReviews, isLoading: verifiedLoading } = useProductReviews(productId);
+  // El total sale del resumen: la lista viene cortada en 30.
+  const summary = useRatingSummary(productId);
+  const showingVerified = verifiedReviews.length > 0;
+  const totalCount = Math.max(summary?.count ?? 0, verifiedReviews.length);
+  const reviews: Array<ReviewCardData & { id: string }> = showingVerified ? verifiedReviews : testimonials;
   const column = variant === 'column';
   const stacked = (display ?? (column ? 'stack' : 'carousel')) === 'stack';
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -41,10 +54,11 @@ export function ProductReviews({
   const posRef = useRef(0);
 
   const average = useMemo(() => {
+    if (showingVerified && summary) return summary.avg;
     if (reviews.length === 0) return 0;
     const sum = reviews.reduce((acc, r) => acc + (r.rating ?? 5), 0);
     return sum / reviews.length;
-  }, [reviews]);
+  }, [reviews, showingVerified, summary]);
 
   // Decidimos si animar: más de una reseña, sin "reducir movimiento" y en
   // cualquiera de los dos carruseles (ancho completo y columna). Apiladas no hay
@@ -147,6 +161,10 @@ export function ProductReviews({
     );
   };
 
+  // Mientras se averigua si el producto tiene reseñas propias no se pinta nada:
+  // si no, aparecerían los testimonios del home y medio segundo después se
+  // cambiarían por las del producto.
+  if (productId && verifiedLoading) return null;
   if (reviews.length === 0) return null;
 
   const rounded = Math.round(average);
@@ -166,6 +184,11 @@ export function ProductReviews({
       <div className={`flex items-center ${column ? 'gap-1.5' : 'gap-2'}`}>
         <Stars value={rounded} size={column ? 13 : 15} />
         <span className="text-[calc(13px_*_var(--font-scale,1))] font-semibold text-text">{avgLabel}</span>
+        {showingVerified && (
+          <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">
+            ({totalCount} {totalCount === 1 ? 'opinión' : 'opiniones'})
+          </span>
+        )}
       </div>
     </div>
   );

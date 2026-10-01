@@ -29,6 +29,8 @@ import { OtherColorsBlock } from '@/components/OtherColorsBlock';
 import { OutfitForProductBlock } from '@/components/OutfitForProductBlock';
 import { PolicyAccordions } from '@/components/PolicyAccordions';
 import { ProductReviews } from '@/components/ProductReviews';
+import { RatingLine } from '@/components/RatingLine';
+import { ProductJsonLd } from '@/components/ProductJsonLd';
 import { ProductReels } from '@/components/ProductReels';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
 import { UnitVariantRows, type UnitSelection } from '@/components/UnitVariantRows';
@@ -136,7 +138,7 @@ function BelowProductBlocks({
         if (config.isPro && config.sections.productReviews) {
           nodes.push(
             <div key="reviews" className="px-6 pb-4 md:px-10 lg:px-16">
-              <ProductReviews display={config.reviewsDisplayMode ?? undefined} />
+              <ProductReviews productId={product.id} display={config.reviewsDisplayMode ?? undefined} />
             </div>,
           );
         }
@@ -800,7 +802,7 @@ export function ProductDetail() {
 
       case 'reviews':
         return config.isPro && config.sections.productReviews ? (
-          <ProductReviews variant="column" display={config.reviewsDisplayMode ?? undefined} />
+          <ProductReviews productId={product.id} variant="column" display={config.reviewsDisplayMode ?? undefined} />
         ) : null;
 
       case 'related':
@@ -913,6 +915,7 @@ export function ProductDetail() {
         slug={config.slug}
         siteName={config.name}
       />
+      <ProductJsonLd product={product} images={images} />
 
       {/* Breadcrumbs */}
       <div className="mx-auto max-w-[1200px] px-6 pb-2 pt-6">
@@ -966,6 +969,11 @@ export function ProductDetail() {
           <h1 className="font-heading text-[calc(26px_*_var(--font-scale,1))] font-bold leading-[1.15] tracking-[-0.02em] text-text md:text-[calc(32px_*_var(--font-scale,1))]">
             {product.name}
           </h1>
+
+          {/* Reseñas verificadas (Extra PRO): promedio y cantidad. Se autooculta sin reseñas. */}
+          <div className="-mt-3 empty:hidden">
+            <RatingLine productId={product.id} variant="detail" />
+          </div>
 
           {/* Countdown de la promoción (si la promo lo activa). */}
           {promo?.show_countdown && (
@@ -1076,7 +1084,7 @@ export function ProductDetail() {
           {/* Reseñas (Extra PRO): las mismas reseñas del home (social proof). El componente se autooculta si no hay reseñas. */}
           {config.isPro && config.sections.productReviews && (
             <div className="px-6 pb-4 md:px-10 lg:px-16">
-              <ProductReviews display={config.reviewsDisplayMode ?? undefined} />
+              <ProductReviews productId={product.id} display={config.reviewsDisplayMode ?? undefined} />
             </div>
           )}
 
