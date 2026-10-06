@@ -85,6 +85,12 @@ export interface ShippingOption {
    * `cost` configurado queda de respaldo.
    */
   liveCarrier?: LiveCarrier;
+  /**
+   * El comercio la marcó como "Más elegido" en el panel (`featured`). En una
+   * transportadora se elige en cuál de las dos modalidades (`featuredModality`,
+   * ausente = domicilio).
+   */
+  featured: boolean;
 }
 
 /** Transportadoras con cotización en vivo soportadas. */
@@ -356,6 +362,7 @@ export function toShippingOption(m: any, channel?: StoreChannel): ShippingOption
     postalCodeRanges: parsePostalCodeRanges(m.postalCodes),
     allowsCash: parseAllowsCash(m, isPickup),
     excludeFromFreeShipping: m.excludeFromFreeShipping === true,
+    featured: m.featured === true,
     // Un "Correo Argentino" cargado como método simple (no tipo empresa) también
     // cotiza en vivo: a domicilio, que es la opción única que muestra.
     ...(liveCarrierFor(m) ? { liveCarrier: 'correo-argentino' as const } : {}),
@@ -388,6 +395,7 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
     // las opciones de siempre quedan idénticas.
     const liveCarrier = liveCarrierFor(m);
     const live = liveCarrier ? { liveCarrier } : {};
+    const featuredIn = m.featured === true ? (m.featuredModality ?? 'home') : null;
     return [
       {
         id: `${baseId}:domicilio`,
@@ -403,6 +411,7 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
         postalCodeRanges,
         allowsCash,
         excludeFromFreeShipping,
+        featured: featuredIn === 'home' || featuredIn === 'both',
         ...live,
       },
       {
@@ -419,6 +428,7 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
         postalCodeRanges,
         allowsCash,
         excludeFromFreeShipping,
+        featured: featuredIn === 'branch' || featuredIn === 'both',
         ...live,
       },
     ];

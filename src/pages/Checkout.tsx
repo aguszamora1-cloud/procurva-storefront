@@ -23,6 +23,7 @@ import { CouponChip } from '@/components/CouponChip';
 import { CorreoAgencyPicker } from '@/components/CorreoAgencyPicker';
 import { useCorreoLiveRates } from '@/hooks/useCorreoLiveRates';
 import { useCorreoAgencies } from '@/hooks/useCorreoAgencies';
+import { FeaturedShippingTag } from '@/components/FeaturedShippingTag';
 import { useFreeShippingProducts } from '@/hooks/useFreeShippingProducts';
 import { carrierWithAgency, correoPostalCode, type CorreoAgency } from '@/lib/micorreo';
 
@@ -100,7 +101,7 @@ function saveCustomer(companyId: string, data: SavedCustomer): void {
 // el envío es "a coordinar" y todo se arregla por WhatsApp; no le sacamos el
 // efectivo a nadie por no haber cargado los métodos.
 const FALLBACK_METHODS: ShippingOption[] = [
-  { id: 'envio', name: 'Envío a domicilio', kind: 'home', requiresAddress: true, cost: null, icon: 'truck', description: 'Envío a todo el país', coversAllPostalCodes: true, postalCodeRanges: [], allowsCash: true, excludeFromFreeShipping: false },
+  { id: 'envio', name: 'Envío a domicilio', kind: 'home', requiresAddress: true, cost: null, icon: 'truck', description: 'Envío a todo el país', coversAllPostalCodes: true, postalCodeRanges: [], allowsCash: true, excludeFromFreeShipping: false, featured: false },
 ];
 
 /** Etiqueta de precio por opción de entrega: 0 = "Gratis", null = "A coordinar", resto = precio. */
@@ -979,7 +980,10 @@ export function Checkout() {
         >
           <span className="flex items-start justify-between gap-3">
             <span className="min-w-0">
-              <span className="block text-[calc(14px_*_var(--font-scale,1))] font-medium text-text">{m.name}</span>
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[calc(14px_*_var(--font-scale,1))] font-medium text-text">
+                {m.name}
+                {m.featured && <FeaturedShippingTag />}
+              </span>
               {line && (
                 <span className="mt-0.5 flex items-start gap-1.5 text-[calc(13px_*_var(--font-scale,1))] text-muted">
                   <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-subtle" />
@@ -1031,7 +1035,10 @@ export function Checkout() {
       >
         <span className="flex items-start justify-between gap-3">
           <span className="min-w-0">
-            <span className="block text-[calc(14px_*_var(--font-scale,1))] font-medium text-text">{m.name}</span>
+            <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[calc(14px_*_var(--font-scale,1))] font-medium text-text">
+              {m.name}
+              {m.featured && <FeaturedShippingTag />}
+            </span>
             {quoting ? (
               <span className="mt-0.5 flex items-center gap-1.5 text-[calc(13px_*_var(--font-scale,1))] text-muted">
                 <Spinner size={12} /> Cotizando con Correo Argentino…

@@ -8,6 +8,7 @@ import { formatPrice, whatsappLink } from '@/lib/utils';
 import { useFreeShippingProducts } from '@/hooks/useFreeShippingProducts';
 import { effectiveShippingCost, etaBadgeColors, evalFreeShipping, fetchShippingOptions, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 import { SHIPPING_ICONS } from '@/lib/shippingIcons';
+import { FeaturedShippingTag } from '@/components/FeaturedShippingTag';
 
 type Status = 'idle' | 'loading' | 'done' | 'empty' | 'error';
 
@@ -159,8 +160,9 @@ export function ShippingCalculator({ productId }: { productId?: string } = {}) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 text-[calc(14px_*_var(--font-scale,1))] font-bold text-text">
+                    <p className="flex flex-wrap items-center gap-1.5 text-[calc(14px_*_var(--font-scale,1))] font-bold text-text">
                       <Icon className="h-4 w-4 shrink-0 text-muted" />{o.name}
+                      {o.featured && <FeaturedShippingTag />}
                     </p>
                     {o.description && <p className="mt-0.5 text-[calc(12px_*_var(--font-scale,1))] text-muted">{o.description}</p>}
                     {optQuoting ? (
