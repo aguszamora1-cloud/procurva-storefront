@@ -1420,7 +1420,7 @@ export function Checkout() {
 
           {/* Oferta antes de pagar (order bump). Se oculta sola si el producto ya
               está en el carrito o no tiene stock. */}
-          {config.orderBump && (
+          {config.orderBump && config.isPro && (
             <OrderBumpOffer
               productId={config.orderBump.productId}
               price={config.orderBump.price}
