@@ -520,6 +520,16 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       };
     })(),
 
+    // Oferta antes de pagar: sólo cuenta si está prendida, tiene producto y un
+    // precio mayor a cero. Cualquier dato a medias = apagada.
+    orderBump: (() => {
+      const b = s.order_bump;
+      const price = Math.round(Number(b?.price) || 0);
+      const productId = str(b?.product_id);
+      const quantity = Math.max(1, Math.round(Number(b?.quantity) || 1));
+      return b?.enabled === true && productId && price > 0 ? { productId, price, quantity } : null;
+    })(),
+
     // Escalones por cantidad ("Lleva N"): sólo la PRESENTACIÓN. Los escalones y
     // sus % salen de category_volume_tiers. Ausencia de clave = default, resuelto
     // por resolveQuantityTiersSettings (misma fuente que usa el admin).

@@ -24,6 +24,8 @@ import { CorreoAgencyPicker } from '@/components/CorreoAgencyPicker';
 import { useCorreoLiveRates } from '@/hooks/useCorreoLiveRates';
 import { useCorreoAgencies } from '@/hooks/useCorreoAgencies';
 import { FeaturedShippingTag } from '@/components/FeaturedShippingTag';
+import { OrderBumpOffer } from '@/components/OrderBumpOffer';
+import type { CartItem } from '@/lib/types';
 import { useFreeShippingProducts } from '@/hooks/useFreeShippingProducts';
 import { carrierWithAgency, correoPostalCode, type CorreoAgency } from '@/lib/micorreo';
 
@@ -180,13 +182,17 @@ export function Checkout() {
   const { storeKey } = useStoreStatus();
   const isWholesale = storeType === 'wholesale';
   const effStoreType = storeType ?? 'retail';
+  // "Oferta antes de pagar" tildada (o null). No vive en el carrito: se suma acá
+  // a los ítems del pedido, ya con su precio especial (ver OrderBumpOffer).
+  const [bumpLine, setBumpLine] = useState<CartItem | null>(null);
 
   // Items con la promo POR CANTIDAD ya aplicada al precio (lo que se cobra y se
   // serializa en la orden). Las líneas activas bajan unit_price/unit_price_cash y
   // guardan el tracking en los campos promo_* existentes (sin migración).
+  // La oferta antes de pagar va al final y SIN promo: ya tiene su precio.
   const pricedItems = useMemo(
-    () =>
-      items.map((it) => {
+    () => [
+      ...items.map((it) => {
         const r = byLine.get(cartLineKey(it));
         if (!r?.active || !r.promo) return it;
         const cardBase = it.unit_price_original ?? it.unit_price;
@@ -204,8 +210,16 @@ export function Checkout() {
           promo_stackable: r.promo.stackable_with_coupons !== false,
         };
       }),
-    [items, byLine, effStoreType],
+      ...(bumpLine ? [bumpLine] : []),
+    ],
+    [items, byLine, effStoreType, bumpLine],
   );
+  // Subtotal a precio de lista CON la oferta (a su precio de lista): el desglose
+  // la muestra como descuento igual que una promo. `subtotal` del carrito no la ve.
+  const listSubtotal =
+    subtotal + (bumpLine ? (bumpLine.unit_price_original ?? bumpLine.unit_price) * bumpLine.qty : 0);
+  // El cupón no se suma a la oferta: ya es un precio especial.
+  const couponItems = useMemo(() => pricedItems.filter((i) => !i.order_bump), [pricedItems]);
 
   // Subtotal de tarjeta/lista ya con las promos por cantidad aplicadas.
   const cardSubtotal = useMemo(() => pricedItems.reduce((s, i) => s + i.unit_price * i.qty, 0), [pricedItems]);
@@ -331,7 +345,7 @@ export function Checkout() {
       return;
     }
     (async () => {
-      const short = await checkCartStock(config.companyId, items, priceMode);
+      const short = await checkCartStock(config.companyId, bumpLine ? [...items, bumpLine] : items, priceMode);
       if (!cancelled) setStockIssues(short);
     })();
     return () => {
@@ -340,7 +354,7 @@ export function Checkout() {
     // priceMode queda afuera a propósito: no afecta el stock, solo el precio, y
     // revalidar en cada cambio de medio de pago sería una llamada al pedo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.companyId, items]);
+  }, [config.companyId, items, bumpLine]);
 
   // Carga dinámica de los métodos de envío configurados por el negocio.
   useEffect(() => {
@@ -600,18 +614,18 @@ export function Checkout() {
     // El mínimo se mide sobre el subtotal ELEGIBLE (igual que la RPC server-side),
     // no sobre el total del carrito: así nunca mostramos un descuento que el
     // servidor va a rechazar.
-    const elig = eligibleSubtotal(appliedCoupon, pricedItems, priceMode);
+    const elig = eligibleSubtotal(appliedCoupon, couponItems, priceMode);
     if (appliedCoupon.min_subtotal && elig < appliedCoupon.min_subtotal) return 0;
     return Math.round(computeDiscount(appliedCoupon, elig));
-  }, [appliedCoupon, pricedItems, priceMode]);
+  }, [appliedCoupon, couponItems, priceMode]);
 
   // Productos del carrito alcanzados por el cupón (para el desglose cuando aplica
   // parcialmente). Vacío si el alcance es 'all'.
   const couponEligibleNames = useMemo(() => {
     if (!appliedCoupon || (appliedCoupon.applies_to ?? 'all') === 'all') return [];
-    return Array.from(new Set(eligibleItems(appliedCoupon, pricedItems).map((it) => it.name)));
-  }, [appliedCoupon, pricedItems]);
-  const couponIsPartial = couponEligibleNames.length > 0 && couponEligibleNames.length < pricedItems.length;
+    return Array.from(new Set(eligibleItems(appliedCoupon, couponItems).map((it) => it.name)));
+  }, [appliedCoupon, couponItems]);
+  const couponIsPartial = couponEligibleNames.length > 0 && couponEligibleNames.length < couponItems.length;
 
   const orderTotal = Math.max(0, itemsSubtotal - discountAmount) + shippingCost + giftWrapCost;
 
@@ -622,7 +636,7 @@ export function Checkout() {
     const sub = mode === 'cash' ? cashSubtotal : cardSubtotal;
     let disc = 0;
     if (appliedCoupon) {
-      const elig = eligibleSubtotal(appliedCoupon, pricedItems, mode);
+      const elig = eligibleSubtotal(appliedCoupon, couponItems, mode);
       if (!(appliedCoupon.min_subtotal && elig < appliedCoupon.min_subtotal)) {
         disc = Math.round(computeDiscount(appliedCoupon, elig));
       }
@@ -790,8 +804,8 @@ export function Checkout() {
       );
       const priceBreakdown: PriceBreakdown = {
         source: 'storefront',
-        list_subtotal: Math.round(subtotal),
-        promo_discount: Math.max(0, Math.round(subtotal - cardSubtotal)),
+        list_subtotal: Math.round(listSubtotal),
+        promo_discount: Math.max(0, Math.round(listSubtotal - cardSubtotal)),
         promo_name: promoNames[0] ?? null,
         payment_discount: priceMode === 'cash' ? Math.max(0, Math.round(cardSubtotal - cashSubtotal)) : 0,
         payment_discount_pct: priceMode === 'cash' ? cashDiscountPct : 0,
@@ -1074,8 +1088,11 @@ export function Checkout() {
   // Reexpresamos el subtotal a precio de lista/tarjeta y mostramos cada descuento
   // como línea propia (cantidad, pago contado, cupón). La suma da exactamente
   // `orderTotal`: listSubtotal − qtyDiscount − paymentDiscount − cupón + envío.
-  const listSubtotalDisplay = subtotal;
-  const qtyDiscountDisplay = Math.max(0, subtotal - cardSubtotal);
+  const listSubtotalDisplay = listSubtotal;
+  const bumpDiscountDisplay = bumpLine
+    ? Math.max(0, ((bumpLine.unit_price_original ?? bumpLine.unit_price) - bumpLine.unit_price) * bumpLine.qty)
+    : 0;
+  const qtyDiscountDisplay = Math.max(0, listSubtotal - cardSubtotal - bumpDiscountDisplay);
   const paymentDiscountDisplay = priceMode === 'cash' ? Math.max(0, cardSubtotal - cashSubtotal) : 0;
 
   // El CTA queda inactivo si todavía falta cotizar el envío (tienda con envío a
@@ -1096,6 +1113,12 @@ export function Checkout() {
         <div className="flex items-center justify-between">
           <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">Descuento por cantidad</span>
           <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#27ae60]">-{formatPrice(qtyDiscountDisplay)}</span>
+        </div>
+      )}
+      {bumpDiscountDisplay > 0 && (
+        <div className="flex items-center justify-between">
+          <span className="text-[calc(13px_*_var(--font-scale,1))] text-muted">Oferta antes de pagar</span>
+          <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#27ae60]">-{formatPrice(bumpDiscountDisplay)}</span>
         </div>
       )}
       {paymentDiscountDisplay > 0 && (
@@ -1393,6 +1416,19 @@ export function Checkout() {
                 </span>
               </label>
             </div>
+          )}
+
+          {/* Oferta antes de pagar (order bump). Se oculta sola si el producto ya
+              está en el carrito o no tiene stock. */}
+          {config.orderBump && (
+            <OrderBumpOffer
+              productId={config.orderBump.productId}
+              price={config.orderBump.price}
+              quantity={config.orderBump.quantity}
+              isWholesale={isWholesale}
+              cartProductIds={items.map((i) => i.product_id)}
+              onChange={setBumpLine}
+            />
           )}
 
           {/* 3. Método de pago — movido desde el panel derecho */}

@@ -796,6 +796,17 @@ export interface RawCatalogSettings {
     outfit_presentacion?: 'card_destacada' | 'en_lista';
     outfit_desempate?: 'orden_manual' | 'mas_vendido';
   } | null;
+  // "Oferta antes de pagar" (order bump): UN producto fijo que el checkout ofrece
+  // con un tilde, a un precio especial que sólo existe ahí. Por canal, como todo
+  // `settings`.
+  order_bump?: {
+    enabled?: boolean;
+    product_id?: string | null;
+    // Precio especial POR UNIDAD.
+    price?: number | null;
+    // Unidades fijas que suma el tilde (pack de medias en la mayorista). Ausente = 1.
+    quantity?: number | null;
+  } | null;
   // Presentación del bloque "Escalones por cantidad" ("Lleva N") de la ficha.
   // Los escalones en sí salen de category_volume_tiers (por categoría); esto es
   // sólo cómo se muestran. Por canal, como todo `settings`. Ausencia = default
@@ -1183,6 +1194,8 @@ export interface StoreConfig {
   // Bloque "Complementarios" (cross-selling) de la ficha, resuelto con defaults.
   // La visibilidad on/off es sections.upsell (no vive acá).
   complementaryBlock: ComplementaryBlockConfig;
+  // "Oferta antes de pagar" del checkout, resuelta. null = apagada o incompleta.
+  orderBump: { productId: string; price: number; quantity: number } | null;
   // Presentación del bloque de escalones por cantidad ("Lleva N") de la ficha.
   // Defaults en QUANTITY_TIERS_DEFAULTS (components/QuantityTierSelector.tsx).
   quantityTiersLayout: 'cards' | 'list';
@@ -1347,4 +1360,9 @@ export interface CartItem {
   // combo prorrateado por prenda (Σ = combo_price), y `unit_price_original` trae
   // el precio suelto para el tachado.
   outfit_id?: string;
+  // ── Oferta antes de pagar (order bump) ──────────────────────────────────────
+  // La línea la agrega el checkout (nunca vive en el carrito guardado) con el
+  // precio especial ya en unit_price/unit_price_cash y el de lista en
+  // unit_price_original. Queda afuera de cupones y promos por cantidad.
+  order_bump?: boolean;
 }

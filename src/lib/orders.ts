@@ -199,6 +199,9 @@ function mapItems(items: CartItem[], priceMode: 'cash' | 'card') {
     ...(i.promo_id
       ? { promotion_id: i.promo_id, promotion_name: i.promo_name, price_original: i.unit_price_original }
       : {}),
+    // Oferta antes de pagar: `price` es el especial y `price_original` el de
+    // lista. Sin promotion_id a propósito: no es una fila de la tabla promotions.
+    ...(i.order_bump ? { order_bump: true, price_original: i.unit_price_original } : {}),
   }));
 }
 
