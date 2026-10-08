@@ -161,8 +161,11 @@ export function ProductGallery({ items, alt, activeIndex, onFirstImageReady }: P
           </div>
         )}
 
+        {/* Tope de alto en escritorio vía el ANCHO (60dvh = 80dvh × 3/4): con
+            max-h sólo, en pantallas bajas el recuadro dejaba de ser 3:4 y cortaba
+            arriba y abajo hasta las fotos que venían en 3:4 exacto. */}
         <div
-          className={`relative aspect-[3/4] overflow-hidden rounded-xl bg-secondary md:max-h-[80dvh] ${
+          className={`relative mx-auto aspect-[3/4] w-full overflow-hidden rounded-xl bg-secondary md:max-w-[60dvh] ${
             activeIsVideo ? '' : 'cursor-zoom-in'
           }`}
           onPointerMove={handleMove}
