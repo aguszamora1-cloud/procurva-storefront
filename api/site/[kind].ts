@@ -138,28 +138,53 @@ async function resolveStore(host: string): Promise<StoreMeta | null> {
 // --- Ícono --------------------------------------------------------------------
 
 /**
- * Favicon cargado; si no hay, el logo cuando es un PNG más o menos cuadrado
- * (mismo criterio que applyDocumentMeta en el cliente: un logo horizontal a
- * 16px no se lee). Del PNG alcanza con el encabezado IHDR para saber el tamaño.
+ * Favicon cargado; si no hay, el logo cuando es un PNG o JPG más o menos
+ * cuadrado (mismo criterio que applyDocumentMeta en el cliente: un logo
+ * horizontal a 16px no se lee). Alcanza con el encabezado para saber el tamaño.
  */
 async function pickIcon(store: StoreMeta): Promise<string> {
   if (store.favicon) return store.favicon;
   if (!store.logo) return '';
   try {
-    const res = await fetch(store.logo, { headers: { Range: 'bytes=0-31' } });
+    // En un JPG el tamaño viene después del EXIF/tablas: 64 KB cubre de sobra.
+    const res = await fetch(store.logo, { headers: { Range: 'bytes=0-65535' } });
     if (!res.ok) return '';
-    const buf = new Uint8Array(await res.arrayBuffer());
-    const isPng = buf.length >= 24 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
-    if (!isPng) return '';
-    const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
-    const w = view.getUint32(16);
-    const h = view.getUint32(20);
-    if (!w || !h) return '';
-    const ratio = w / h;
+    const size = imageSize(new Uint8Array(await res.arrayBuffer()));
+    if (!size) return '';
+    const ratio = size.w / size.h;
     return ratio >= 0.8 && ratio <= 1.25 ? store.logo : '';
   } catch {
     return '';
   }
+}
+
+/** Ancho y alto de un PNG (IHDR) o JPG (marcador SOF); null si no se reconoce. */
+function imageSize(buf: Uint8Array): { w: number; h: number } | null {
+  const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+
+  if (buf.length >= 24 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+    const w = view.getUint32(16);
+    const h = view.getUint32(20);
+    return w && h ? { w, h } : null;
+  }
+
+  if (buf.length >= 4 && buf[0] === 0xff && buf[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < buf.length) {
+      if (buf[i] !== 0xff) return null;
+      const marker = buf[i + 1];
+      if (marker === 0xff) { i++; continue; } // relleno
+      // SOF0..SOF15 salvo DHT (C4), JPG (C8) y DAC (CC): ahí está el tamaño.
+      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+        const h = view.getUint16(i + 5);
+        const w = view.getUint16(i + 7);
+        return w && h ? { w, h } : null;
+      }
+      i += 2 + view.getUint16(i + 2);
+    }
+  }
+
+  return null;
 }
 
 // --- HTML para bots -----------------------------------------------------------
