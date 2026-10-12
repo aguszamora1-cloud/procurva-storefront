@@ -9,9 +9,9 @@ import type { StoreConfig } from './types';
  * de config, así que no puede filtrarse a otra pestaña ni a otro visitante.
  *
  * El modo vista previa se lee de la URL (`pc_preview=1`) y NO con
- * isPreviewMode(): esa función guarda la marca en sessionStorage, y llamarla
- * acá (antes del primer render) hacía aparecer de entrada el banner "Producto de
- * ejemplo" del onboarding, que lee la misma marca (PreviewBanner).
+ * isPreviewMode(): esa función tiene efectos (guarda su marca en
+ * sessionStorage) y además acepta `?preview=1` del onboarding, que no tiene
+ * por qué poder cambiar la tipografía.
  */
 const preview: TypographyPreview = (() => {
   if (typeof window === 'undefined') return { version: null, titleCase: null };
