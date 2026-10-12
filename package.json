@@ -8,6 +8,7 @@
     "check:mirrors": "node scripts/check-tier-selector-mirror.mjs && node scripts/check-color-helper-mirror.mjs && node scripts/check-product-layout-mirror.mjs",
     "check:opacity": "node scripts/check-dead-opacity.mjs",
     "check:radius": "node scripts/check-hardcoded-radius.mjs",
+    "test:typography": "node scripts/check-typography.mjs",
     "check": "npm run check:mirrors && npm run check:opacity && npm run check:radius",
     "prebuild": "npm run check",
     "build": "tsc -b && vite build && node scripts/spa-shell.mjs",

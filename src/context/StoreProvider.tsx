@@ -96,7 +96,10 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // entrada v19 pinta el encabezado con el fondo de la página—, pero ése es justo
 // el caso que la opción vino a arreglar: logo blanco sobre blanco, invisible
 // hasta que resuelve el fetch.
-const cacheKey = (slug: string) => `procurva_store_config_v20:${slug}`;
+// v21: suma `typographyVersion` y `titleCase` (lib/typography). Sin el bump, una
+// tienda que active v2 pintaría el primer frame en v1 y saltaría al resolver el
+// fetch. Para las tiendas v1 la entrada nueva pinta igual que la vieja.
+const cacheKey = (slug: string) => `procurva_store_config_v21:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 

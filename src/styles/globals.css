@@ -425,3 +425,124 @@ input[type='checkbox'],
 input[type='radio'] {
   accent-color: var(--color-accent);
 }
+
+/* ----------------------------------------------------------------
+   Tipografía v2 (lib/typography.ts).
+
+   Roles de la escala nueva. TODOS cuelgan de :root[data-typography="v2"], que
+   sólo pone applyTheme en una tienda con typography_version = 'v2' (o en la
+   vista previa del ERP). En una tienda v1 ningún selector de acá matchea: el
+   aspecto de siempre no se mueve.
+
+   Van FUERA de @layer a propósito: las clases se arman en runtime
+   (`ty-${rol}` en lib/typography), así que Tailwind no las ve en el código y
+   dentro de una capa las purgaría.
+
+   Los roles fijan sólo tipografía (familia, tamaño, peso, interlineado,
+   tracking, mayúsculas). Color, márgenes y layout siguen en las utilidades del
+   componente. Todos los tamaños respetan --font-scale; los chicos tienen piso
+   (12px el texto, para que una escala 0.85 no lo vuelva ilegible).
+
+   La capitalización de los títulos la elige el comercio: data-title-case
+   "upper" (default, el look de siempre) u "original".
+   ---------------------------------------------------------------- */
+:root[data-typography='v2'] .ty-display {
+  font-family: var(--font-heading);
+  font-size: calc(40px * var(--font-scale, 1));
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+:root[data-typography='v2'] .ty-page-title {
+  font-family: var(--font-heading);
+  font-size: calc(30px * var(--font-scale, 1));
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+:root[data-typography='v2'] .ty-section-title {
+  font-family: var(--font-heading);
+  font-size: calc(24px * var(--font-scale, 1));
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+/* Nombre de producto en la ficha: nunca en mayúsculas forzadas (los nombres
+   largos se leen mal), por eso no depende de data-title-case. */
+:root[data-typography='v2'] .ty-product-title {
+  font-family: var(--font-heading);
+  font-size: calc(26px * var(--font-scale, 1));
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+:root[data-typography='v2'] .ty-block-title {
+  font-family: var(--font-heading);
+  font-size: calc(16px * var(--font-scale, 1));
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+:root[data-typography='v2'] .ty-body {
+  font-size: calc(15px * var(--font-scale, 1));
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+:root[data-typography='v2'] .ty-body-sm {
+  font-size: max(13px, calc(14px * var(--font-scale, 1)));
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+:root[data-typography='v2'] .ty-label {
+  font-size: max(12px, calc(13px * var(--font-scale, 1)));
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+:root[data-typography='v2'] .ty-caption {
+  font-size: max(12px, calc(12px * var(--font-scale, 1)));
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+:root[data-typography='v2'] .ty-eyebrow {
+  font-size: max(12px, calc(12px * var(--font-scale, 1)));
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+@media (min-width: 768px) {
+  :root[data-typography='v2'] .ty-display {
+    font-size: calc(64px * var(--font-scale, 1));
+  }
+  :root[data-typography='v2'] .ty-page-title {
+    font-size: calc(44px * var(--font-scale, 1));
+  }
+  :root[data-typography='v2'] .ty-section-title {
+    font-size: calc(36px * var(--font-scale, 1));
+  }
+  :root[data-typography='v2'] .ty-product-title {
+    font-size: calc(32px * var(--font-scale, 1));
+  }
+  :root[data-typography='v2'] .ty-body {
+    font-size: calc(16px * var(--font-scale, 1));
+  }
+}
+/* Paso intermedio del título del hero: de 64 a 88 recién en pantallas anchas,
+   para que un título largo no desborde en tablet. */
+@media (min-width: 1024px) {
+  :root[data-typography='v2'] .ty-display {
+    font-size: calc(88px * var(--font-scale, 1));
+  }
+}
+:root[data-typography='v2'][data-title-case='original'] .ty-display,
+:root[data-typography='v2'][data-title-case='original'] .ty-page-title,
+:root[data-typography='v2'][data-title-case='original'] .ty-section-title {
+  text-transform: none;
+}

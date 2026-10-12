@@ -8,6 +8,7 @@ import type {
   StoreMenuItem,
 } from './types';
 import { resolveProductLayoutOrNull } from './productLayout';
+import { resolveTitleCase, resolveTypographyVersion } from './typography';
 import { resolveQuantityTiersSettings } from '../components/QuantityTierSelector';
 
 /** Pasos por defecto del flujo de compra (si el comercio no configuró los suyos). */
@@ -357,6 +358,10 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       const n = Number(s.font_scale);
       return Number.isFinite(n) && n > 0 ? Math.min(1.3, Math.max(0.85, n)) : 1;
     })(),
+    // Versión tipográfica. Sin la clave = v1: así quedan todas las tiendas que
+    // existían antes de v2, sin que nadie toque sus datos.
+    typographyVersion: resolveTypographyVersion(s.typography_version),
+    titleCase: resolveTitleCase(s.typography_title_case),
 
     // Alineación de títulos de secciones: key nueva (section_title_align) con
     // fallback a la vieja (category_title_align) para no romper configs viejas.

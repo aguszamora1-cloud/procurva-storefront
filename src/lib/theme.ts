@@ -1,4 +1,5 @@
 import type { ButtonCornerStyle, CornerStyle, StoreConfig } from './types';
+import { typographyFor } from './typographyRuntime';
 
 /**
  * Escalas de esquinas por preset. Las claves son las mismas que la escala de
@@ -155,6 +156,13 @@ export function applyTheme(config: StoreConfig): void {
   // exactamente lo de siempre y el comercio puede agrandar sin que toquemos
   // nada. Es por canal: minorista y mayorista tienen su propio `settings`.
   set('--font-scale', String(config.fontScale));
+
+  // Versión tipográfica (lib/typography). Los roles `ty-*` de globals.css sólo
+  // aplican bajo data-typography="v2", así que en v1 estos atributos no cambian
+  // nada de lo que se ve.
+  const typo = typographyFor(config);
+  root.dataset.typography = typo.version;
+  root.dataset.titleCase = typo.titleCase;
 
   // Esquinas. `rounded-full` NO sale de acá a propósito: es literal en el config
   // de Tailwind, para que elegir "recto" no convierta en cuadrados los swatches

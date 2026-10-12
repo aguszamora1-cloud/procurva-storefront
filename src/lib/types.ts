@@ -655,6 +655,10 @@ export interface RawCatalogSettings {
   font_body?: string;
   /** Multiplicador global del tamaño de texto. Ausente = 1 (sin cambios). */
   font_scale?: number;
+  /** Versión tipográfica. Ausente (o cualquier cosa que no sea 'v2') = v1, los estilos de siempre. */
+  typography_version?: string;
+  /** Sólo v2: 'original' respeta cómo se escribieron los títulos. Ausente = mayúsculas. */
+  typography_title_case?: string;
   theme?: 'dark' | 'light';
   // Alineación de los títulos de todas las secciones del home.
   section_title_align?: 'left' | 'center' | 'right';
@@ -1083,6 +1087,14 @@ export interface StoreConfig {
    * como `--font-scale` y lo consumen todos los tamaños de la tienda.
    */
   fontScale: number;
+  /**
+   * Versión tipográfica GUARDADA (lib/typography). Lo que se pinta puede
+   * diferir por la vista previa del ERP: usar `typographyFor()` o
+   * `useTypography()`, nunca este campo directo.
+   */
+  typographyVersion: 'v1' | 'v2';
+  /** Capitalización de los títulos en v2 (en v1 no tiene efecto). */
+  titleCase: 'upper' | 'original';
   // Alineación de los títulos de todas las secciones del home.
   sectionTitleAlign: 'left' | 'center' | 'right';
   // Modo de visualización de la sección de categorías del home.
