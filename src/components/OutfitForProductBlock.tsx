@@ -114,7 +114,7 @@ export function OutfitForProductBlock({ product, className }: Props) {
         <div className="relative aspect-[4/5] w-full bg-secondary">
           <StoreImage src={hero} alt={outfit.name} transformWidth={640} className="h-full w-full object-cover" />
           {pricing.hasCombo && pricing.cashSaving > 0 && (
-            <span className="absolute left-3 top-3 rounded bg-accent px-2 py-1 text-[calc(10px_*_var(--font-scale,1))] font-bold uppercase tracking-wide text-on-accent">
+            <span className={ty('absolute left-3 top-3 rounded bg-accent px-2 py-1 text-[calc(10px_*_var(--font-scale,1))] font-bold uppercase tracking-wide text-on-accent', 'badge', 'absolute left-3 top-3 rounded bg-accent px-2 py-1 text-on-accent')}>
               Combo · ahorrás {formatPrice(pricing.cashSaving)}
             </span>
           )}

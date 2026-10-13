@@ -541,12 +541,16 @@ input[type='radio'] {
   line-height: 1.4;
   letter-spacing: 0;
 }
-/* Badges y etiquetas chicas (NUEVO, -20%, "Mejor precio"): 12px como piso. */
+/* Badges, cintas y etiquetas de promoción (NUEVO, -20%, MÁS ELEGIDO, PROMO,
+   "Mejor precio"): un solo criterio. 12px de piso, bold, mayúsculas con un
+   poco de aire. Las mayúsculas siguen la opción del comercio (data-title-case);
+   los colores no: cada badge conserva el suyo. */
 :root[data-typography='v2'] .ty-badge {
   font-size: max(12px, calc(12px * var(--font-scale, 1)));
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 /* Campos de texto: nunca menos de 16px, aunque el comercio achique la escala
    (más chico, el texto que se tipea se lee mal y en Android no se puede
@@ -601,6 +605,7 @@ input[type='radio'] {
 :root[data-typography='v2'][data-title-case='original'] .ty-hero-overlay,
 :root[data-typography='v2'][data-title-case='original'] .ty-page-title,
 :root[data-typography='v2'][data-title-case='original'] .ty-section-title,
-:root[data-typography='v2'][data-title-case='original'] .ty-card-title {
+:root[data-typography='v2'][data-title-case='original'] .ty-card-title,
+:root[data-typography='v2'][data-title-case='original'] .ty-badge {
   text-transform: none;
 }

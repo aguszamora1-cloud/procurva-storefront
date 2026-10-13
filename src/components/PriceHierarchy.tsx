@@ -97,7 +97,7 @@ export function PriceHierarchy({
         <span className={primaryCls}>{formatPrice(primary)}</span>
         {hasCash && cashLabel && <span className={`font-medium text-muted ${labelCls}`}>{cashLabel}</span>}
         {cardLine != null && detail && discountPct > 0 && (
-          <span className={v2 ? 'shrink-0 rounded bg-accent px-2 py-0.5 text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] font-bold leading-none tabular-nums text-on-accent shadow-sm' : 'shrink-0 rounded bg-accent px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold leading-none text-on-accent shadow-sm'}>
+          <span className={v2 ? 'shrink-0 rounded bg-accent px-2 py-0.5 ty-badge tabular-nums text-on-accent shadow-sm' : 'shrink-0 rounded bg-accent px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold leading-none text-on-accent shadow-sm'}>
             -{discountPct}%
           </span>
         )}
@@ -119,7 +119,7 @@ export function PriceHierarchy({
       )}
 
       {priceDisplay !== 'contado' && installments && (
-        <p className={`mt-1 font-medium text-muted ${detail ? 'text-[calc(14px_*_var(--font-scale,1))]' : 'text-[calc(12px_*_var(--font-scale,1))] md:text-[calc(13px_*_var(--font-scale,1))]'}`}>
+        <p className={v2 ? `mt-1 font-medium text-muted ${labelCls}` : `mt-1 font-medium text-muted ${detail ? 'text-[calc(14px_*_var(--font-scale,1))]' : 'text-[calc(12px_*_var(--font-scale,1))] md:text-[calc(13px_*_var(--font-scale,1))]'}`}>
           {installments}
         </p>
       )}

@@ -99,7 +99,7 @@ const SECTION_VIEWS: Record<HomeSectionKey, { label: string; title: string; note
 export function ProductList() {
   const { products, isLoading, error, reload } = useProducts();
   const config = useStore();
-  const { ty } = useTypography();
+  const { ty, version: typoVersion } = useTypography();
   const { categories, isLoading: categoriesLoading } = useCategories(products);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -396,14 +396,14 @@ export function ProductList() {
 
         {/* Resultados */}
         <div className="min-w-0 flex-1">
-          <div className="mb-6 flex items-center justify-between gap-4">
+          <div className={typoVersion === 'v2' ? 'mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2' : 'mb-6 flex items-center justify-between gap-4'}>
             <p className="text-[calc(13px_*_var(--font-scale,1))] text-on-surface-muted">{countLabel}</p>
-            <label className="flex items-center gap-2 text-[calc(13px_*_var(--font-scale,1))] text-on-surface-muted">
+            <label className={typoVersion === 'v2' ? 'flex min-w-0 max-w-full items-center gap-2 text-[calc(13px_*_var(--font-scale,1))] text-on-surface-muted' : 'flex items-center gap-2 text-[calc(13px_*_var(--font-scale,1))] text-on-surface-muted'}>
               <span className="hidden sm:inline whitespace-nowrap">Ordenar por</span>
               <select
                 value={orden}
                 onChange={(e) => setOrden(e.target.value)}
-                className={ty('rounded-md border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] font-medium text-on-surface focus:border-accent focus:outline-none', 'input', 'rounded-md border border-line bg-background px-3 py-2 text-on-surface focus:border-accent focus:outline-none')}
+                className={ty('rounded-md border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] font-medium text-on-surface focus:border-accent focus:outline-none', 'input', 'min-w-0 max-w-full rounded-md border border-line bg-background px-3 py-2 text-on-surface focus:border-accent focus:outline-none')}
               >
                 {/* Sólo cuando se llega desde una sección: es el orden con el
                     que abrió la vista y tiene que poder recuperarse. */}

@@ -24,7 +24,7 @@ const BADGE_POSITION_CLASSES: Record<'top-left' | 'top-right' | 'bottom-left' | 
 };
 
 export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
-  const { ty } = useTypography();
+  const { ty, version: typoVersion } = useTypography();
   const image = mainImage(product);
   // Virtual card por color: el link al detalle pre-selecciona ese color.
   const detailHref = product.variant_color
@@ -93,7 +93,10 @@ export function ProductCard({ product, priority = false }: { product: Product; p
       {/* Contenido */}
       <div className="flex flex-1 flex-col p-2.5 md:p-4">
         <Link to={detailHref} className="block">
-          <h3 className={ty('mb-1.5 text-[calc(15px_*_var(--font-scale,1))] font-bold uppercase leading-[1.3] tracking-[0.02em] text-on-surface transition-colors group-hover:text-accent', 'card-title', 'mb-1.5 text-on-surface transition-colors group-hover:text-accent')}>
+          <h3
+            className={ty('mb-1.5 text-[calc(15px_*_var(--font-scale,1))] font-bold uppercase leading-[1.3] tracking-[0.02em] text-on-surface transition-colors group-hover:text-accent', 'card-title', 'mb-1.5 line-clamp-3 md:line-clamp-none text-on-surface transition-colors group-hover:text-accent')}
+            title={typoVersion === 'v2' ? product.name : undefined}
+          >
             {product.name}
           </h3>
           {/* Reseñas verificadas (Extra PRO). Se autooculta sin reseñas. */}

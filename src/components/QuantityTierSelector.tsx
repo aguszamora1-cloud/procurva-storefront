@@ -116,6 +116,14 @@ interface Props {
   showSavings?: boolean;
   /** Muestra la línea "$X tarjeta". Default true. */
   showCardPrice?: boolean;
+  /**
+   * Tipografía legible (v2 del storefront, lib/typography): piso de 12px en los
+   * textos chicos, números de ancho fijo en los precios y las cintas/badges con
+   * el rol `ty-badge`. Default false = exactamente lo de siempre. El ERP no lo
+   * pasa nunca (sus previews quedan igual); el storefront lo prende sólo en v2.
+   * No cambia cálculos, precios ni selección: sólo clases.
+   */
+  legible?: boolean;
 }
 
 /**
@@ -193,6 +201,7 @@ export function QuantityTierSelector({
   layout = QUANTITY_TIERS_DEFAULTS.quantityTiersLayout,
   showSavings = QUANTITY_TIERS_DEFAULTS.quantityTiersShowSavings,
   showCardPrice = QUANTITY_TIERS_DEFAULTS.quantityTiersShowCardPrice,
+  legible = false,
 }: Props) {
   // `name` único por instancia: dos bloques de escalones en la misma página
   // (ej. producto + recomendado) se pisarían la selección si lo compartieran.
@@ -256,7 +265,7 @@ export function QuantityTierSelector({
   return (
     <div className="space-y-2">
       {title ? (
-        <p className={`text-[calc(13px_*_var(--font-scale,1))] font-semibold ${s.heading}`}>{title}</p>
+        <p className={legible ? `text-[length:max(12px,calc(13px_*_var(--font-scale,1)))] font-semibold ${s.heading}` : `text-[calc(13px_*_var(--font-scale,1))] font-semibold ${s.heading}`}>{title}</p>
       ) : null}
       <div
         role={interactive ? 'radiogroup' : undefined}
@@ -291,7 +300,7 @@ export function QuantityTierSelector({
                   // cinta sobresale 11px y el mt-3 de la fila (12px) evita que pise
                   // la fila de arriba o el título.
                   <span
-                    className={`absolute right-3 top-0 -translate-y-1/2 whitespace-nowrap rounded-pill px-2 py-1 text-[calc(11px_*_var(--font-scale,1))] font-bold uppercase tracking-wide ${s.ribbon}`}
+                    className={legible ? `absolute right-3 top-0 -translate-y-1/2 whitespace-nowrap rounded-pill px-2 py-1 ty-badge ${s.ribbon}` : `absolute right-3 top-0 -translate-y-1/2 whitespace-nowrap rounded-pill px-2 py-1 text-[calc(11px_*_var(--font-scale,1))] font-bold uppercase tracking-wide ${s.ribbon}`}
                   >
                     Más elegido
                   </span>
@@ -299,28 +308,28 @@ export function QuantityTierSelector({
                 {radioDot(active)}
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="flex flex-wrap items-center gap-1.5">
-                    <span className={`text-[calc(13px_*_var(--font-scale,1))] font-bold ${s.title}`}>Lleva {t.units}</span>
+                    <span className={legible ? `text-[length:max(12px,calc(13px_*_var(--font-scale,1)))] font-bold ${s.title}` : `text-[calc(13px_*_var(--font-scale,1))] font-bold ${s.title}`}>Lleva {t.units}</span>
                     {t.discountPct > 0 && (
-                      <span className={`rounded px-1.5 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold ${s.badge}`}>
+                      <span className={legible ? `rounded px-1.5 py-0.5 ty-badge tabular-nums ${s.badge}` : `rounded px-1.5 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold ${s.badge}`}>
                         {t.discountPct}% OFF
                       </span>
                     )}
                   </span>
                   {showCardPrice && t.cardPrice != null && (
-                    <span className={`text-[calc(12px_*_var(--font-scale,1))] ${s.muted}`}>{formatPrice(t.cardPrice)} tarjeta c/u</span>
+                    <span className={legible ? `text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] tabular-nums ${s.muted}` : `text-[calc(12px_*_var(--font-scale,1))] ${s.muted}`}>{formatPrice(t.cardPrice)} tarjeta c/u</span>
                   )}
                   {showSavings && savings > 0 && (
-                    <span className={`text-[calc(12px_*_var(--font-scale,1))] font-semibold ${s.price}`}>
+                    <span className={legible ? `text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] font-semibold tabular-nums ${s.price}` : `text-[calc(12px_*_var(--font-scale,1))] font-semibold ${s.price}`}>
                       Ahorrás {formatPrice(savings)} en total
                     </span>
                   )}
                 </span>
                 <span className="flex shrink-0 flex-col items-end leading-tight">
                   {t.strikePrice != null && (
-                    <span className={`text-[calc(12px_*_var(--font-scale,1))] line-through ${s.muted}`}>{formatPrice(t.strikePrice)}</span>
+                    <span className={legible ? `text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] line-through tabular-nums ${s.muted}` : `text-[calc(12px_*_var(--font-scale,1))] line-through ${s.muted}`}>{formatPrice(t.strikePrice)}</span>
                   )}
-                  <span className={`text-[calc(15px_*_var(--font-scale,1))] font-extrabold ${s.price}`}>
-                    {formatPrice(t.unitPrice)} <span className={`text-[calc(11px_*_var(--font-scale,1))] font-medium ${s.muted}`}>c/u</span>
+                  <span className={legible ? `text-[calc(15px_*_var(--font-scale,1))] font-extrabold tabular-nums ${s.price}` : `text-[calc(15px_*_var(--font-scale,1))] font-extrabold ${s.price}`}>
+                    {formatPrice(t.unitPrice)} <span className={legible ? `text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] font-medium ${s.muted}` : `text-[calc(11px_*_var(--font-scale,1))] font-medium ${s.muted}`}>c/u</span>
                   </span>
                 </span>
               </>,
@@ -335,28 +344,28 @@ export function QuantityTierSelector({
             <>
               {featured && (
                 <span
-                  className={`absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-pill px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold uppercase tracking-wide ${s.ribbon}`}
+                  className={legible ? `absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-pill px-2 py-0.5 ty-badge ${s.ribbon}` : `absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-pill px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold uppercase tracking-wide ${s.ribbon}`}
                 >
                   Más elegido
                 </span>
               )}
-              <span className={`text-[calc(13px_*_var(--font-scale,1))] font-bold ${s.title}`}>Lleva {t.units}</span>
+              <span className={legible ? `text-[length:max(12px,calc(13px_*_var(--font-scale,1)))] font-bold ${s.title}` : `text-[calc(13px_*_var(--font-scale,1))] font-bold ${s.title}`}>Lleva {t.units}</span>
               {t.discountPct > 0 ? (
-                <span className={`rounded px-1.5 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold ${s.badge}`}>{t.discountPct}% OFF</span>
+                <span className={legible ? `rounded px-1.5 py-0.5 ty-badge tabular-nums ${s.badge}` : `rounded px-1.5 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold ${s.badge}`}>{t.discountPct}% OFF</span>
               ) : (
-                <span className={`text-[calc(12px_*_var(--font-scale,1))] font-semibold ${s.muted}`}>Precio normal</span>
+                <span className={legible ? `text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] font-semibold ${s.muted}` : `text-[calc(12px_*_var(--font-scale,1))] font-semibold ${s.muted}`}>Precio normal</span>
               )}
               <span className="flex flex-col items-center leading-tight">
                 {t.strikePrice != null && (
-                  <span className={`text-[calc(12px_*_var(--font-scale,1))] line-through ${s.muted}`}>{formatPrice(t.strikePrice)}</span>
+                  <span className={legible ? `text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] line-through tabular-nums ${s.muted}` : `text-[calc(12px_*_var(--font-scale,1))] line-through ${s.muted}`}>{formatPrice(t.strikePrice)}</span>
                 )}
-                <span className={`text-[calc(15px_*_var(--font-scale,1))] font-extrabold ${s.price}`}>{formatPrice(t.unitPrice)}</span>
+                <span className={legible ? `text-[calc(15px_*_var(--font-scale,1))] font-extrabold tabular-nums ${s.price}` : `text-[calc(15px_*_var(--font-scale,1))] font-extrabold ${s.price}`}>{formatPrice(t.unitPrice)}</span>
                 {showCardPrice && t.cardPrice != null && (
-                  <span className={`mt-0.5 text-[calc(11px_*_var(--font-scale,1))] ${s.muted}`}>{formatPrice(t.cardPrice)} tarjeta</span>
+                  <span className={legible ? `mt-0.5 text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] tabular-nums ${s.muted}` : `mt-0.5 text-[calc(11px_*_var(--font-scale,1))] ${s.muted}`}>{formatPrice(t.cardPrice)} tarjeta</span>
                 )}
-                <span className={`mt-0.5 text-[calc(11px_*_var(--font-scale,1))] ${s.muted}`}>c/u</span>
+                <span className={legible ? `mt-0.5 text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] tabular-nums ${s.muted}` : `mt-0.5 text-[calc(11px_*_var(--font-scale,1))] ${s.muted}`}>c/u</span>
                 {anySavings && (
-                  <span className={`mt-0.5 text-[calc(11px_*_var(--font-scale,1))] font-semibold ${savings > 0 ? s.price : 'invisible'}`}>
+                  <span className={legible ? `mt-0.5 text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] font-semibold tabular-nums ${savings > 0 ? s.price : 'invisible'}` : `mt-0.5 text-[calc(11px_*_var(--font-scale,1))] font-semibold ${savings > 0 ? s.price : 'invisible'}`}>
                     {savings > 0 ? `Ahorrás ${formatPrice(savings)} en total` : 'Ahorro'}
                   </span>
                 )}

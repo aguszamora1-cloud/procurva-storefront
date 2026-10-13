@@ -833,6 +833,7 @@ export function ProductDetail() {
         layout={config.quantityTiersLayout}
         showSavings={config.quantityTiersShowSavings}
         showCardPrice={config.quantityTiersShowCardPrice}
+        legible={typoVersion === 'v2'}
       />
     ) : null,
 

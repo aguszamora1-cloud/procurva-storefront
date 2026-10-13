@@ -340,7 +340,7 @@ export function WholesalePurchasePanel({
       {promo && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-line bg-secondary px-3 py-2">
           <span
-            className="inline-flex items-center rounded px-2 py-0.5 text-[calc(11px_*_var(--font-scale,1))] font-bold uppercase leading-none tracking-wide text-white"
+            className={typoVersion === 'v2' ? 'inline-flex items-center rounded px-2 py-0.5 ty-badge text-white' : 'inline-flex items-center rounded px-2 py-0.5 text-[calc(11px_*_var(--font-scale,1))] font-bold uppercase leading-none tracking-wide text-white'}
             style={{ backgroundColor: promo.badge_color || 'var(--color-accent)' }}
           >
             {promo.badge_text || 'PROMO'}
