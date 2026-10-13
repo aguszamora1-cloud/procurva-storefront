@@ -609,3 +609,94 @@ input[type='radio'] {
 :root[data-typography='v2'][data-title-case='original'] .ty-badge {
   text-transform: none;
 }
+
+/* ----------------------------------------------------------------
+   Contraste v2 (lib/contrast.ts, Fase 2).
+
+   Los grises de texto (`muted`, `subtle` y sus variantes on-surface) salen con
+   una opacidad fija que en varias tiendas no llega a AA (subtle #111 sobre
+   blanco: 2,78:1). applyTheme calcula las versiones `-aa` para cada comercio
+   (su mismo color de texto, un poco más firme) y este bloque las cambia por las
+   de siempre.
+
+   Doble candado:
+   - :root[data-typography='v2']: sólo tiendas v2 o la vista previa del ERP.
+   - [data-ink='v2']: sólo dentro de ContrastScope, que envuelve las páginas del
+     alcance (home, listado, categorías, ficha). Carrito, checkout, carrito
+     lateral, navbar y footer quedan afuera y siguen con los grises de hoy.
+
+   Se redefinen las VARIABLES, no las clases: todo lo que ya usa text-muted,
+   text-subtle, el placeholder o un borde hover:border-subtle adentro del
+   ámbito toma el gris nuevo sin tocar un componente.
+   ---------------------------------------------------------------- */
+:root[data-typography='v2'] [data-ink='v2'] {
+  --color-muted: var(--color-muted-aa);
+  --color-subtle: var(--color-subtle-aa);
+  --color-on-surface-muted: var(--color-on-surface-muted-aa);
+  --color-on-surface-subtle: var(--color-on-surface-subtle-aa);
+}
+
+/* Acento como TEXTO con AA (C4, lib/contrast.ts → accentInk).
+
+   El acento del comercio se usa tal cual como color de texto en precios,
+   chips de ahorro, volantas y enlaces; con un verde, naranja, rosa o amarillo
+   no llega a 4,5:1 sobre el fondo. applyTheme calcula una tinta (el mismo tono,
+   apenas más oscuro o más claro según el fondo) y acá reemplaza SÓLO al color
+   de texto: bg-accent, border-accent y los anillos siguen con el acento
+   original, así que botones y bordes no cambian.
+
+   Mismo candado doble que los grises: v2 y dentro de ContrastScope. Va sobre
+   las tres variantes de clase que existen en el código (text-accent,
+   hover:text-accent, group-hover:text-accent). Con acentos que ya cumplen
+   (negro, azul) la tinta ES el acento y no se ve ningún cambio. */
+:root[data-typography='v2'] [data-ink='v2'] .text-accent,
+:root[data-typography='v2'] [data-ink='v2'] .hover\:text-accent:hover,
+:root[data-typography='v2'] [data-ink='v2'] .group:hover .group-hover\:text-accent {
+  color: var(--color-accent-ink);
+}
+
+/* Rellenos con texto encima: botones, cintas y badges (C2, lib/contrast.ts →
+   readableFill).
+
+   Un botón o una cinta de acento o de primario con texto que no llega a
+   4,5:1 (verde #16a34a con blanco: 3,30; el rojo #ff0000 de un primario con
+   blanco: 4,00) conserva el texto de hoy y oscurece o aclara el relleno lo
+   mínimo, con un tope de 20 %; si con eso no alcanza, conserva el relleno y
+   cambia el texto. Con colores que ya cumplen (negro, azul, amarillo con texto
+   oscuro) el relleno y el texto son exactamente los de siempre.
+
+   Se cambian el relleno y el texto JUNTOS: --color-on-accent/--color-on-primary
+   se redefinen en el ámbito, y bg-accent/bg-primary (y sus hover) pintan el
+   relleno ajustado. Bordes, anillos y tintes (color-mix) siguen con el color
+   original. Mismo candado doble: v2 y dentro de ContrastScope (el footer, que
+   también usa el primario, queda afuera con su color de siempre). */
+:root[data-typography='v2'] [data-ink='v2'] {
+  --color-on-accent: var(--color-on-accent-aa);
+  --color-on-primary: var(--color-on-primary-aa);
+}
+:root[data-typography='v2'] [data-ink='v2'] .bg-accent,
+:root[data-typography='v2'] [data-ink='v2'] .hover\:bg-accent:hover {
+  background-color: var(--color-accent-fill);
+}
+:root[data-typography='v2'] [data-ink='v2'] .bg-primary,
+:root[data-typography='v2'] [data-ink='v2'] .hover\:bg-primary:hover,
+:root[data-typography='v2'] [data-ink='v2'] .disabled\:hover\:bg-primary:hover:disabled {
+  background-color: var(--color-primary-fill);
+}
+:root[data-typography='v2'] [data-ink='v2'] .text-primary {
+  color: var(--color-primary-ink);
+}
+
+/* Texto atenuado sobre el relleno primario (newsletter y otras secciones con
+   bg-primary). Las opacidades 60/70/80 % quedan como están si el texto sigue en
+   AA sobre ese relleno; si no (ej. blanco al 60 % sobre rojo: 2,2:1), suben lo
+   justo (--on-primary-min-alpha, calculado en applyTheme). */
+:root[data-typography='v2'] [data-ink='v2'] .bg-primary .opacity-60 {
+  opacity: max(0.6, var(--on-primary-min-alpha, 0));
+}
+:root[data-typography='v2'] [data-ink='v2'] .bg-primary .opacity-70 {
+  opacity: max(0.7, var(--on-primary-min-alpha, 0));
+}
+:root[data-typography='v2'] [data-ink='v2'] .bg-primary .opacity-80 {
+  opacity: max(0.8, var(--on-primary-min-alpha, 0));
+}

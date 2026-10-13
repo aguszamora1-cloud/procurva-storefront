@@ -10,6 +10,7 @@ import { effectiveShippingCost, etaBadgeColors, evalFreeShipping, fetchShippingO
 import { SHIPPING_ICONS } from '@/lib/shippingIcons';
 import { FeaturedShippingTag } from '@/components/FeaturedShippingTag';
 import { useTypography } from '@/hooks/useTypography';
+import { useInk } from '@/hooks/useInk';
 
 type Status = 'idle' | 'loading' | 'done' | 'empty' | 'error';
 
@@ -24,6 +25,9 @@ type Status = 'idle' | 'loading' | 'done' | 'empty' | 'error';
 export function ShippingCalculator({ productId }: { productId?: string } = {}) {
   const { ty } = useTypography();
   const config = useStore();
+  // Verde «envío gratis» y error (C5): tokens de estado en v2 dentro del ámbito
+  // (la ficha); en el carrito, que queda afuera, lo de siempre.
+  const ink = useInk();
   const { items } = useCart();
   const [cp, setCp] = useState('');
   // CP con el que se calcularon las opciones (el input puede seguir cambiando).
@@ -101,12 +105,12 @@ export function ShippingCalculator({ productId }: { productId?: string } = {}) {
       {/* La promo se anuncia acá, con el precio del producto a la vista: es
           donde el cliente todavía puede decidir sumar algo más al carrito. */}
       {allProductsFree ? (
-        <p className="mb-3 flex items-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-[#1e8449]">
+        <p className={ink.aa ? 'mb-3 flex items-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-[color:var(--color-success-ink)]' : 'mb-3 flex items-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-[#1e8449]'}>
           <Truck className="h-3.5 w-3.5 shrink-0" />
           Este producto tiene envío gratis
         </p>
       ) : config.freeShippingFrom > 0 && (
-        <p className="mb-3 flex items-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-[#1e8449]">
+        <p className={ink.aa ? 'mb-3 flex items-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-[color:var(--color-success-ink)]' : 'mb-3 flex items-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-[#1e8449]'}>
           <Truck className="h-3.5 w-3.5 shrink-0" />
           Envío gratis en compras desde {formatPrice(config.freeShippingFrom)}
         </p>
@@ -225,7 +229,7 @@ export function ShippingCalculator({ productId }: { productId?: string } = {}) {
       )}
 
       {status === 'error' && (
-        <p className="mt-4 text-[calc(13px_*_var(--font-scale,1))] text-red-600">No pudimos calcular el envío. Intentá de nuevo.</p>
+        <p className={ink.aa ? 'mt-4 text-[calc(13px_*_var(--font-scale,1))] text-[color:var(--color-danger-ink)]' : 'mt-4 text-[calc(13px_*_var(--font-scale,1))] text-red-600'}>No pudimos calcular el envío. Intentá de nuevo.</p>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Clock } from 'lucide-react';
+import { useInk } from '@/hooks/useInk';
 
 /** Diferencia en ms entre `end` y ahora (0 si ya venció). */
 function remaining(endIso: string): number {
@@ -35,6 +36,10 @@ export function PromoCountdown({
   className?: string;
 }) {
   const [ms, setMs] = useState(() => (endsAt ? remaining(endsAt) : 0));
+  // Contraste AA (C3, sólo v2 dentro del ámbito): texto en la tinta legible del
+  // color de la promo, sobre un tinte del 10 % (contra el que se calcula esa
+  // tinta). Afuera, lo de siempre.
+  const ink = useInk();
 
   useEffect(() => {
     if (!endsAt) return;
@@ -50,7 +55,11 @@ export function PromoCountdown({
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[calc(12px_*_var(--font-scale,1))] font-bold leading-none ${className}`}
-      style={{ backgroundColor: `color-mix(in srgb, ${accent} 12%, transparent)`, color: accent }}
+      style={
+        ink.aa
+          ? { backgroundColor: ink.tint(accent, 10), color: ink.text(accent) }
+          : { backgroundColor: `color-mix(in srgb, ${accent} 12%, transparent)`, color: accent }
+      }
     >
       <Clock size={13} className="flex-none" />
       {label} {fmt(ms)}

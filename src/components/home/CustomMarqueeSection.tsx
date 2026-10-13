@@ -1,5 +1,6 @@
 import { MarqueeStrip, marqueeMessages } from '@/components/MarqueeStrip';
 import type { CustomSection, CustomSectionMarqueeContent } from '@/lib/types';
+import { useInk } from '@/hooks/useInk';
 
 /**
  * Barra de anuncios como sección del home: la misma franja de la barra superior,
@@ -12,10 +13,15 @@ import type { CustomSection, CustomSectionMarqueeContent } from '@/lib/types';
  */
 export function CustomMarqueeSection({ section }: { section: CustomSection }) {
   const c = section.content as CustomSectionMarqueeContent;
+  // v2 dentro del ámbito (C2): si el comercio eligió fondo Y texto y no llegan a
+  // 4,5:1 (ej. blanco sobre #ff0000: 3,99), se ajusta lo mínimo el fondo o, si
+  // cambiaría demasiado, el texto. Afuera, sus colores tal cual.
+  const ink = useInk();
   const messages = marqueeMessages(c.messages);
   if (messages.length === 0) return null;
 
   const custom = !!(c.background_color || c.text_color);
+  const pair = c.background_color && c.text_color ? ink.fill(c.background_color, c.text_color) : null;
   const speed = typeof c.speed_seconds === 'number' && c.speed_seconds > 0 ? c.speed_seconds : 35;
 
   return (
@@ -26,7 +32,9 @@ export function CustomMarqueeSection({ section }: { section: CustomSection }) {
       className={custom ? undefined : 'bg-primary text-on-primary'}
       style={
         custom
-          ? { backgroundColor: c.background_color || undefined, color: c.text_color || undefined }
+          ? ink.aa && pair
+            ? { backgroundColor: pair.fill, color: pair.text }
+            : { backgroundColor: c.background_color || undefined, color: c.text_color || undefined }
           : undefined
       }
     />

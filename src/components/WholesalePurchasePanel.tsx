@@ -29,6 +29,7 @@ import {
 import { applyPromoToPrice, type Promotion } from '@/lib/promotions';
 import type { CartItem, Product } from '@/lib/types';
 import { useTypography } from '@/hooks/useTypography';
+import { useInk } from '@/hooks/useInk';
 
 type PanelTab = 'sueltos' | 'curva' | 'surtida' | 'pack';
 
@@ -57,6 +58,8 @@ export function WholesalePurchasePanel({
   // (PriceHierarchy 'detail': 30-34px, 800). Mismo color que ya tenía (texto,
   // o accent con promo): sólo cambia tamaño, peso y números de ancho fijo.
   const { version: typoVersion } = useTypography();
+  // Colores con contraste AA (v2 dentro del ámbito: promo, estados). Afuera, lo de siempre.
+  const ink = useInk();
   const v2Price = typoVersion === 'v2';
   const V2_PRICE = 'text-[calc(28px_*_var(--font-scale,1))] md:text-[calc(32px_*_var(--font-scale,1))] font-extrabold leading-none tracking-[-0.02em] tabular-nums';
   const { curveTiers, curvaSurtidaTiers, curveDistributions, productPacks } = useWholesalePricing();
@@ -341,7 +344,13 @@ export function WholesalePurchasePanel({
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-line bg-secondary px-3 py-2">
           <span
             className={typoVersion === 'v2' ? 'inline-flex items-center rounded px-2 py-0.5 ty-badge text-white' : 'inline-flex items-center rounded px-2 py-0.5 text-[calc(11px_*_var(--font-scale,1))] font-bold uppercase leading-none tracking-wide text-white'}
-            style={{ backgroundColor: promo.badge_color || 'var(--color-accent)' }}
+            style={
+              ink.aa
+                ? // v2 (C2/C3): el color de la promo con texto legible; si el blanco no
+                  // llega, se ajusta lo mínimo el relleno o se cambia el texto.
+                  (({ fill, text }) => ({ backgroundColor: fill, color: text }))(ink.fill(promo.badge_color || 'var(--color-accent)', '#ffffff'))
+                : { backgroundColor: promo.badge_color || 'var(--color-accent)' }
+            }
           >
             {promo.badge_text || 'PROMO'}
           </span>
@@ -499,12 +508,12 @@ export function WholesalePurchasePanel({
                       </span>
                       <span className="text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">{label}</span>
                       {showSavings && (
-                        <span className="rounded-pill bg-emerald-500/10 px-2 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold leading-none text-emerald-600">
+                        <span className={ink.aa ? 'rounded-pill bg-[color:color-mix(in_srgb,#16a34a_10%,transparent)] px-2 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold leading-none text-[color:var(--color-success-ink)]' : 'rounded-pill bg-emerald-500/10 px-2 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold leading-none text-emerald-600'}>
                           -{formatPrice(savings)}/u
                         </span>
                       )}
                       {isLast && (
-                        <span className="rounded-pill bg-amber-500/10 px-2 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold leading-none text-amber-700">
+                        <span className={ink.aa ? 'rounded-pill bg-[color:color-mix(in_srgb,#d97706_10%,transparent)] px-2 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold leading-none text-[color:var(--color-warning-ink)]' : 'rounded-pill bg-amber-500/10 px-2 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold leading-none text-amber-700'}>
                           Mejor precio
                         </span>
                       )}
@@ -571,7 +580,7 @@ export function WholesalePurchasePanel({
 
           {/* Aviso de stock insuficiente para armar la(s) curva(s) */}
           {color && (maxCurves === 0 || (!!activeTier && selectedCurves > maxCurves)) && (
-            <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-[calc(12px_*_var(--font-scale,1))] font-medium leading-snug text-red-600">
+            <div className={ink.aa ? 'flex items-start gap-2 rounded-md border border-[color:color-mix(in_srgb,#dc2626_25%,transparent)] bg-[color:color-mix(in_srgb,#dc2626_7%,transparent)] px-3 py-2.5 text-[calc(12px_*_var(--font-scale,1))] font-medium leading-snug text-[color:var(--color-danger-ink)]' : 'flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-[calc(12px_*_var(--font-scale,1))] font-medium leading-snug text-red-600'}>
               <AlertCircle size={15} className="mt-px flex-none" />
               <span>
                 {maxCurves === 0

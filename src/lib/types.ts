@@ -1225,6 +1225,8 @@ export interface StoreConfig {
   trustBadgesBgColor: string;
   // Color del texto e íconos de la barra de trust badges (independiente de --color-text).
   trustBadgesTextColor: string;
+  // El que cargó el comercio, sin el negro por defecto ('' = no eligió). Lo usa v2.
+  trustBadgesTextColorCustom: string;
   // Badges de las product cards, normalizados con defaults. El texto se resuelve
   // por contraste sobre `color`. `discount.color` vacío = usa el color de acento.
   badges: {

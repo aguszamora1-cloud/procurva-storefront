@@ -50,6 +50,7 @@ import {
 } from '@/lib/productLayout';
 import type { CustomSection, Product, ProductDetailSlot, StoreConfig, Variant } from '@/lib/types';
 import { useTypography } from '@/hooks/useTypography';
+import { useInk } from '@/hooks/useInk';
 
 /**
  * Grupos visuales de la columna derecha. Los tokens de un mismo grupo que queden
@@ -179,6 +180,8 @@ export function ProductDetail() {
   const [searchParams] = useSearchParams();
   const { product, isLoading, error } = useProduct(id);
   const config = useStore();
+  // Colores con contraste AA (v2 dentro del ámbito); afuera devuelve lo recibido.
+  const ink = useInk();
   const isWholesale = useStoreType() === 'wholesale';
   const { addItem } = useCart();
   const { trackViewContent, trackAddToCart } = useMetaPixel();
@@ -652,13 +655,23 @@ export function ProductDetail() {
             {qtyPromo && qtyPromoMsg && (
               <div
                 className="flex items-center gap-2.5 rounded-lg border px-3 py-2.5"
-                style={{
-                  borderColor: (qtyPromo.badge_color || '#16a34a') + '40',
-                  backgroundColor: (qtyPromo.badge_color || '#16a34a') + '12',
-                }}
+                style={
+                  ink.aa
+                    ? {
+                        // v2: tinte con color-mix (anda con hex de 3 dígitos y con
+                        // variables CSS; el `+ '40'` sólo con hex de 6) y texto en
+                        // la tinta AA del mismo color de la promo.
+                        borderColor: ink.tint(qtyPromo.badge_color || '#16a34a', 25),
+                        backgroundColor: ink.tint(qtyPromo.badge_color || '#16a34a', 7),
+                      }
+                    : {
+                        borderColor: (qtyPromo.badge_color || '#16a34a') + '40',
+                        backgroundColor: (qtyPromo.badge_color || '#16a34a') + '12',
+                      }
+                }
               >
-                <Tag className="h-4 w-4 shrink-0" style={{ color: qtyPromo.badge_color || '#16a34a' }} />
-                <p className="text-[calc(13px_*_var(--font-scale,1))] font-semibold" style={{ color: qtyPromo.badge_color || '#16a34a' }}>
+                <Tag className="h-4 w-4 shrink-0" style={{ color: ink.text(qtyPromo.badge_color || '#16a34a') }} />
+                <p className="text-[calc(13px_*_var(--font-scale,1))] font-semibold" style={{ color: ink.text(qtyPromo.badge_color || '#16a34a') }}>
                   {qtyPromoMsg}
                 </p>
               </div>
@@ -736,7 +749,7 @@ export function ProductDetail() {
       // no queda una línea con el camioncito y nada más: desaparece entera.
       case 'shipping_promise':
         return config.shippingPromiseEnabled && (config.shippingPromiseTitle || config.shippingPromiseSubtitle) ? (
-          <p className="flex items-center gap-2 text-[calc(14px_*_var(--font-scale,1))]" style={{ color: config.shippingPromiseColor }}>
+          <p className="flex items-center gap-2 text-[calc(14px_*_var(--font-scale,1))]" style={{ color: ink.text(config.shippingPromiseColor) }}>
             <Truck size={17} className="flex-none" />
             {config.shippingPromiseTitle && <span className="font-semibold">{config.shippingPromiseTitle}</span>}
             {config.shippingPromiseSubtitle && (
@@ -772,7 +785,14 @@ export function ProductDetail() {
             href={inquiry}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-button border-[1.5px] border-[#25D366] bg-[#25D366] px-6 py-[14px] text-[calc(14px_*_var(--font-scale,1))] font-semibold text-white transition-colors hover:border-[#1DA851] hover:bg-[#1DA851] active:border-[#128C4E] active:bg-[#128C4E]"
+            // v2: el verde de WhatsApp se queda; el texto pasa a casi negro
+            // (blanco sobre #25D366 da 1,98:1; #111 da 9,5:1). El "presionado"
+            // usa el verde del hover: el más oscuro bajaba a 4,4:1 con texto negro.
+            className={
+              ink.aa
+                ? 'inline-flex w-full items-center justify-center gap-2 rounded-button border-[1.5px] border-[#25D366] bg-[#25D366] px-6 py-[14px] text-[calc(14px_*_var(--font-scale,1))] font-semibold text-[#111111] transition-colors hover:border-[#1DA851] hover:bg-[#1DA851] active:border-[#1DA851] active:bg-[#1DA851]'
+                : 'inline-flex w-full items-center justify-center gap-2 rounded-button border-[1.5px] border-[#25D366] bg-[#25D366] px-6 py-[14px] text-[calc(14px_*_var(--font-scale,1))] font-semibold text-white transition-colors hover:border-[#1DA851] hover:bg-[#1DA851] active:border-[#128C4E] active:bg-[#128C4E]'
+            }
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M19.4 4.6A10 10 0 0 0 4.1 17.3L3 21l3.8-1.1A10 10 0 1 0 19.4 4.6Zm-7.4 15.3a8 8 0 0 1-4.1-1.1l-.3-.2-2.3.7.7-2.3-.2-.3a8 8 0 1 1 6.2 3.2Zm4.4-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.3.2-.3.6-1 .1-.1 0-.3 0-.4l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.4 0-.6.3l-.6.7a3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.7 2.6 4.2 3.6 1.5.6 2.1.7 2.9.5.5-.1 1.4-.6 1.6-1.2.2-.5.2-1 .2-1.1-.1-.1-.2-.1-.4-.2Z" />

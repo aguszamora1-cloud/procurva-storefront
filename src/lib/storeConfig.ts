@@ -572,6 +572,7 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     })(),
     trustBadgesBgColor: firstStr(s.trust_badges_bg_color),
     trustBadgesTextColor: firstStr(s.trust_badges_text_color) || '#000000',
+    trustBadgesTextColorCustom: firstStr(s.trust_badges_text_color),
 
     // Badges de las product cards. Defaults pensados para no cambiar el aspecto
     // de tiendas existentes: lowStock/discount/freeShipping activos (freeShipping

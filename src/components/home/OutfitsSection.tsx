@@ -11,6 +11,7 @@ import { formatPrice, getPriceInfo, mainImage, sortSizes } from '@/lib/utils';
 import { outfitImages, outfitPricing } from '@/lib/outfits';
 import { applyStockOverrides } from '@/lib/productStatus';
 import type { Product, Variant } from '@/lib/types';
+import { useContrastAA } from '@/components/ContrastScope';
 
 /**
  * Reparte `total` entre líneas proporcional a `weights`. La última línea con peso
@@ -40,6 +41,11 @@ function adjustToTotal(arr: number[], total: number, weights: number[]): number[
 
 function OutfitCard({ outfit, onOpen }: { outfit: OutfitWithProducts; onOpen: () => void }) {
   const { products } = outfit;
+  // C5: en v2 dentro del ámbito, colores del tema con contraste AA (el bloque
+  // estaba armado con grises y verdes fijos: en un tema oscuro quedaba texto
+  // #333 sobre fondo oscuro). Afuera, los strings de siempre.
+  const aa = useContrastAA();
+  const v2c = (v2: string, v1: string) => (aa ? v2 : v1);
   const { comboCard, comboCash, hasCombo, cardSum, cashSum, cardSaving, cashSaving } = outfitPricing(outfit);
   const hasDual = comboCash > 0 && comboCash < comboCard;
 
@@ -64,7 +70,7 @@ function OutfitCard({ outfit, onOpen }: { outfit: OutfitWithProducts; onOpen: ()
           )}
         </button>
         {hasCombo && cashSaving > 0 && (
-          <span className="pointer-events-none absolute left-3 top-3 rounded bg-[#e74c3c] px-2 py-1 text-[calc(10px_*_var(--font-scale,1))] font-bold uppercase tracking-wide text-white">
+          <span className={v2c('pointer-events-none absolute left-3 top-3 rounded bg-[#d24537] px-2 py-1 text-[calc(10px_*_var(--font-scale,1))] font-bold uppercase tracking-wide text-white', 'pointer-events-none absolute left-3 top-3 rounded bg-[#e74c3c] px-2 py-1 text-[calc(10px_*_var(--font-scale,1))] font-bold uppercase tracking-wide text-white')}>
             Combo
           </span>
         )}
@@ -116,26 +122,32 @@ function OutfitCard({ outfit, onOpen }: { outfit: OutfitWithProducts; onOpen: ()
           {hasDual ? (
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5">
-                <span className="text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-[#888]">Tarjeta</span>
-                <span className="text-[calc(15px_*_var(--font-scale,1))] font-bold text-[#333]">{formatPrice(comboCard)}</span>
-                {cardSaving > 0 && <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-[#999] line-through">{formatPrice(cardSum)}</span>}
+                <span className={v2c('text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-on-surface-muted', 'text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-[#888]')}>Tarjeta</span>
+                <span className={v2c('text-[calc(15px_*_var(--font-scale,1))] font-bold text-on-surface', 'text-[calc(15px_*_var(--font-scale,1))] font-bold text-[#333]')}>{formatPrice(comboCard)}</span>
+                {cardSaving > 0 && <span className={v2c('text-[calc(12px_*_var(--font-scale,1))] font-medium text-on-surface-subtle line-through', 'text-[calc(12px_*_var(--font-scale,1))] font-medium text-[#999] line-through')}>{formatPrice(cardSum)}</span>}
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-[#27ae60]">Efectivo</span>
-                <span className="text-[calc(15px_*_var(--font-scale,1))] font-bold text-[#27ae60]">{formatPrice(comboCash)}</span>
-                {cashSaving > 0 && <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-[#999] line-through">{formatPrice(cashSum)}</span>}
+                <span className={v2c('text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-[color:var(--color-success-ink)]', 'text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-[#27ae60]')}>Efectivo</span>
+                <span className={v2c('text-[calc(15px_*_var(--font-scale,1))] font-bold text-[color:var(--color-success-ink)]', 'text-[calc(15px_*_var(--font-scale,1))] font-bold text-[#27ae60]')}>{formatPrice(comboCash)}</span>
+                {cashSaving > 0 && <span className={v2c('text-[calc(12px_*_var(--font-scale,1))] font-medium text-on-surface-subtle line-through', 'text-[calc(12px_*_var(--font-scale,1))] font-medium text-[#999] line-through')}>{formatPrice(cashSum)}</span>}
               </div>
             </div>
           ) : (
             <span className="flex items-baseline gap-2">
               <span className="text-[calc(16px_*_var(--font-scale,1))] font-semibold text-text">{formatPrice(comboCard)}</span>
-              {cardSaving > 0 && <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#999] line-through">{formatPrice(cardSum)}</span>}
+              {cardSaving > 0 && <span className={v2c('text-[calc(13px_*_var(--font-scale,1))] font-medium text-on-surface-subtle line-through', 'text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#999] line-through')}>{formatPrice(cardSum)}</span>}
             </span>
           )}
           <button
             onClick={onOpen}
             className="text-[calc(12px_*_var(--font-scale,1))] font-semibold uppercase text-white"
-            style={{ background: '#111', letterSpacing: '2px', padding: '12px 28px', borderRadius: '4px' }}
+            style={
+              aa
+                ? // v2: relleno del color del texto del tema y letra del fondo: en un
+                  // tema claro es el mismo negro de siempre; en uno oscuro se invierte.
+                  { background: 'var(--color-on-surface)', color: 'var(--color-background)', letterSpacing: '2px', padding: '12px 28px', borderRadius: '4px' }
+                : { background: '#111', letterSpacing: '2px', padding: '12px 28px', borderRadius: '4px' }
+            }
           >
             Comprar
           </button>
@@ -163,6 +175,11 @@ function resolveVariant(p: Product, color: string | null, size: string | null): 
 }
 
 function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClose: () => void }) {
+  // C5: en v2 dentro del ámbito, colores del tema con contraste AA (el bloque
+  // estaba armado con grises y verdes fijos: en un tema oscuro quedaba texto
+  // #333 sobre fondo oscuro). Afuera, los strings de siempre.
+  const aa = useContrastAA();
+  const v2c = (v2: string, v1: string) => (aa ? v2 : v1);
   const config = useStore();
   const { addItem } = useCart();
 
@@ -406,10 +423,24 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
     : allSelected
       ? 'Agregar al pedido'
       : 'Elegí talle y color de cada prenda';
-  const actionBg = added ? '#27ae60' : allReady ? '#111' : '#999';
+  const actionBg = aa
+    ? added
+      ? 'var(--color-success-fill)'
+      : allReady
+        ? 'var(--color-on-surface)'
+        : 'var(--color-on-surface-subtle)'
+    : added ? '#27ae60' : allReady ? '#111' : '#999';
+  const actionFg = aa ? (added ? 'var(--color-on-success)' : 'var(--color-background)') : '#fff';
+  // Colores del modal: fijos (isla blanca) en v1; del tema en v2.
+  const pal = aa
+    ? { surface: 'var(--color-background)', ink: 'var(--color-on-surface)', line: 'var(--color-border)', chipLine: 'var(--color-border)', chipText: 'var(--color-on-surface-muted)', off: 'var(--color-on-surface-subtle)', offLine: 'var(--color-border-soft)', danger: 'var(--color-danger-ink)', success: 'var(--color-success-ink)' }
+    : { surface: '#fff', ink: '#111', line: '#eee', chipLine: '#ddd', chipText: '#666', off: '#ccc', offLine: '#eee', danger: '#e74c3c', success: '#27ae60' };
 
   return createPortal(
     <div
+      // v2: el modal sale por portal a <body>, fuera del ámbito de la página: se
+      // marca solo para que le lleguen los grises y tintas AA del tema.
+      data-ink={aa ? 'v2' : undefined}
       className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4"
       // `height: 100dvh` (dvh = viewport visible real) evita que en navegadores
       // embebidos el área de centrado sea más alta que lo visible y empuje el
@@ -425,22 +456,22 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
         // header y la cruz por encima del borde — descuenta el notch y el indicador
         // de home. La clase `max-h-[88dvh]` queda de fallback. Sin maxHeight inline:
         // un inline le gana a la regla global y volvía a ignorar las áreas seguras.
-        style={{ background: '#fff', borderRadius: '14px', maxWidth: '440px', color: '#111' }}
+        style={{ background: pal.surface, borderRadius: '14px', maxWidth: '440px', color: pal.ink }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header sticky: siempre visible, con la cruz para cerrar */}
         <div
-          className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[#eee] bg-white"
+          className={v2c('sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-line bg-background', 'sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[#eee] bg-white')}
           style={{ padding: '14px 14px 12px 20px' }}
         >
           <div className="min-w-0">
-            <p className="text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase text-[#999]" style={{ letterSpacing: '1px' }}>Configurar outfit</p>
-            <h2 className="mt-0.5 truncate text-[calc(18px_*_var(--font-scale,1))] font-bold leading-tight text-[#111]">{outfit.name}</h2>
+            <p className={v2c('text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase text-on-surface-subtle', 'text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase text-[#999]')} style={{ letterSpacing: '1px' }}>Configurar outfit</p>
+            <h2 className={v2c('mt-0.5 truncate text-[calc(18px_*_var(--font-scale,1))] font-bold leading-tight text-on-surface', 'mt-0.5 truncate text-[calc(18px_*_var(--font-scale,1))] font-bold leading-tight text-[#111]')}>{outfit.name}</h2>
           </div>
           <button
             onClick={onClose}
             aria-label="Cerrar"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#666] transition-colors hover:bg-[#f2f2f2] hover:text-[#111]"
+            className={v2c('flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-on-surface-muted transition-colors hover:bg-line-soft hover:text-on-surface', 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#666] transition-colors hover:bg-[#f2f2f2] hover:text-[#111]')}
             style={{ cursor: 'pointer' }}
           >
             <X size={20} strokeWidth={2.5} />
@@ -451,7 +482,7 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
             cada prenda ya trae su propia miniatura). */}
         <div className="flex-1 overflow-y-auto" style={{ padding: '0 20px' }}>
           {loadingVariants ? (
-            <p className="py-8 text-center text-[calc(13px_*_var(--font-scale,1))] text-[#888]">Cargando opciones…</p>
+            <p className={v2c('py-8 text-center text-[calc(13px_*_var(--font-scale,1))] text-on-surface-muted', 'py-8 text-center text-[calc(13px_*_var(--font-scale,1))] text-[#888]')}>Cargando opciones…</p>
           ) : (
             enriched.map((p) => {
               const sizes = sizesByProduct[p.id] ?? [];
@@ -460,31 +491,31 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
               // el número que se muestra acá tiene que ser el que se va a cobrar.
               const info = getPriceInfo(p, selectedSizes[p.id] ?? null);
               return (
-                <div key={p.id} style={{ borderBottom: '1px solid #eee', padding: '14px 0' }}>
+                <div key={p.id} style={{ borderBottom: `1px solid ${pal.line}`, padding: '14px 0' }}>
                   {/* Fila superior: thumb + nombre + precio */}
                   <div className="flex items-center gap-3">
                     <img
                       src={mainImage(p) ?? undefined}
                       alt={p.name}
                       style={{ width: '52px', height: '52px', objectFit: 'cover', borderRadius: '8px' }}
-                      className="shrink-0 bg-[#f3f3f3]"
+                      className={v2c('shrink-0 bg-secondary', 'shrink-0 bg-[#f3f3f3]')}
                     />
-                    <p className="flex-1 text-[calc(13px_*_var(--font-scale,1))] font-bold uppercase leading-tight text-[#111]">{p.name}</p>
-                    <p className="text-[calc(15px_*_var(--font-scale,1))] font-bold text-[#111]">{formatPrice(info.mainPrice)}</p>
+                    <p className={v2c('flex-1 text-[calc(13px_*_var(--font-scale,1))] font-bold uppercase leading-tight text-on-surface', 'flex-1 text-[calc(13px_*_var(--font-scale,1))] font-bold uppercase leading-tight text-[#111]')}>{p.name}</p>
+                    <p className={v2c('text-[calc(15px_*_var(--font-scale,1))] font-bold text-on-surface', 'text-[calc(15px_*_var(--font-scale,1))] font-bold text-[#111]')}>{formatPrice(info.mainPrice)}</p>
                   </div>
 
                   {/* Color fijado del look: no editable */}
                   {colors.length > 0 && pinnedColorByProduct[p.id] && colors.includes(pinnedColorByProduct[p.id]) && (
                     <div className="mt-3">
-                      <p className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Color</p>
-                      <p className="mt-1 text-[calc(13px_*_var(--font-scale,1))] font-bold uppercase text-[#111]">{pinnedColorByProduct[p.id]}</p>
+                      <p className={v2c('text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-on-surface-muted', 'text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-[#888]')} style={{ letterSpacing: '1px' }}>Color</p>
+                      <p className={v2c('mt-1 text-[calc(13px_*_var(--font-scale,1))] font-bold uppercase text-on-surface', 'mt-1 text-[calc(13px_*_var(--font-scale,1))] font-bold uppercase text-[#111]')}>{pinnedColorByProduct[p.id]}</p>
                     </div>
                   )}
 
                   {/* Color a elección del cliente */}
                   {colors.length > 0 && !(pinnedColorByProduct[p.id] && colors.includes(pinnedColorByProduct[p.id])) && (
                     <div className="mt-3">
-                      <p className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Color</p>
+                      <p className={v2c('text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-on-surface-muted', 'text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-[#888]')} style={{ letterSpacing: '1px' }}>Color</p>
                       <div className="mt-1.5 flex flex-wrap gap-2">
                         {colors.map((c) => {
                           const selected = selectedColors[p.id] === c;
@@ -496,9 +527,9 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
                               style={{
                                 padding: '6px 16px',
                                 borderRadius: '6px',
-                                background: selected ? '#111' : '#fff',
-                                color: selected ? '#fff' : '#666',
-                                border: `1px solid ${selected ? '#111' : '#ddd'}`,
+                                background: selected ? pal.ink : pal.surface,
+                                color: selected ? pal.surface : pal.chipText,
+                                border: `1px solid ${selected ? pal.ink : pal.chipLine}`,
                                 cursor: 'pointer',
                               }}
                             >
@@ -513,7 +544,7 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
                   {/* Talle */}
                   {sizes.length > 0 && (
                     <div className="mt-3">
-                      <p className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-[#888]" style={{ letterSpacing: '1px' }}>Talle</p>
+                      <p className={v2c('text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-on-surface-muted', 'text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-[#888]')} style={{ letterSpacing: '1px' }}>Talle</p>
                       <div className="mt-1.5 flex flex-wrap gap-2">
                         {sizes.map((s) => {
                           const selected = selectedSizes[p.id] === s;
@@ -528,9 +559,9 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
                                 minWidth: '44px',
                                 height: '38px',
                                 borderRadius: '6px',
-                                background: selected && !disabled ? '#111' : '#fff',
-                                color: disabled ? '#ccc' : selected ? '#fff' : '#666',
-                                border: `1px solid ${disabled ? '#eee' : selected ? '#111' : '#ddd'}`,
+                                background: selected && !disabled ? pal.ink : pal.surface,
+                                color: disabled ? pal.off : selected ? pal.surface : pal.chipText,
+                                border: `1px solid ${disabled ? pal.offLine : selected ? pal.ink : pal.chipLine}`,
                                 textDecoration: disabled ? 'line-through' : 'none',
                                 cursor: disabled ? 'not-allowed' : 'pointer',
                               }}
@@ -544,7 +575,7 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
                   )}
 
                   {comboOutOfStock(p) && (
-                    <p className="mt-2 text-[calc(12px_*_var(--font-scale,1))] font-semibold" style={{ color: '#e74c3c' }}>SIN STOCK en esa variante</p>
+                    <p className="mt-2 text-[calc(12px_*_var(--font-scale,1))] font-semibold" style={{ color: pal.danger }}>SIN STOCK en esa variante</p>
                   )}
                 </div>
               );
@@ -553,25 +584,25 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
         </div>
 
         {/* Footer sticky: totales + acción */}
-        <div style={{ borderTop: '1px solid #eee', padding: '14px 20px 18px' }}>
+        <div style={{ borderTop: `1px solid ${pal.line}`, padding: '14px 20px 18px' }}>
           {hasCombo && cashSaving > 0 && (
-            <div className="mb-2 flex items-center justify-between text-[calc(12px_*_var(--font-scale,1))] font-semibold" style={{ color: '#27ae60' }}>
+            <div className="mb-2 flex items-center justify-between text-[calc(12px_*_var(--font-scale,1))] font-semibold" style={{ color: pal.success }}>
               <span className="uppercase">Precio combo — ahorrás</span>
               <span>{formatPrice(cashSaving)}</span>
             </div>
           )}
           <div className="flex items-center justify-between">
-            <span className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-[#888]">Total tarjeta</span>
+            <span className={v2c('text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-on-surface-muted', 'text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase text-[#888]')}>Total tarjeta</span>
             <span className="flex items-baseline gap-2">
-              {cardSaving > 0 && <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#999] line-through">{formatPrice(cardSum)}</span>}
-              <span className="text-[calc(18px_*_var(--font-scale,1))] font-bold text-[#111]">{formatPrice(comboCard)}</span>
+              {cardSaving > 0 && <span className={v2c('text-[calc(13px_*_var(--font-scale,1))] font-medium text-on-surface-subtle line-through', 'text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#999] line-through')}>{formatPrice(cardSum)}</span>}
+              <span className={v2c('text-[calc(18px_*_var(--font-scale,1))] font-bold text-on-surface', 'text-[calc(18px_*_var(--font-scale,1))] font-bold text-[#111]')}>{formatPrice(comboCard)}</span>
             </span>
           </div>
           <div className="mt-1 flex items-center justify-between">
-            <span className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase" style={{ color: '#27ae60' }}>Total efectivo / transferencia</span>
+            <span className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase" style={{ color: pal.success }}>Total efectivo / transferencia</span>
             <span className="flex items-baseline gap-2">
-              {cashSaving > 0 && <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#999] line-through">{formatPrice(cashSum)}</span>}
-              <span className="text-[calc(18px_*_var(--font-scale,1))] font-bold" style={{ color: '#27ae60' }}>{formatPrice(hasDual ? comboCash : comboCard)}</span>
+              {cashSaving > 0 && <span className={v2c('text-[calc(13px_*_var(--font-scale,1))] font-medium text-on-surface-subtle line-through', 'text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#999] line-through')}>{formatPrice(cashSum)}</span>}
+              <span className="text-[calc(18px_*_var(--font-scale,1))] font-bold" style={{ color: pal.success }}>{formatPrice(hasDual ? comboCash : comboCard)}</span>
             </span>
           </div>
           <button
@@ -580,7 +611,7 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
             className="mt-3 w-full text-[calc(15px_*_var(--font-scale,1))] font-medium transition-colors"
             style={{
               background: actionBg,
-              color: '#fff',
+              color: actionFg,
               padding: '14px',
               borderRadius: '8px',
               cursor: canAdd ? 'pointer' : 'not-allowed',

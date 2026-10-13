@@ -14,6 +14,7 @@ import {
 } from '@/lib/complementarios';
 import type { Product } from '@/lib/types';
 import { useTypography } from '@/hooks/useTypography';
+import { useInk } from '@/hooks/useInk';
 
 interface Props {
   /** Producto principal de la ficha. */
@@ -34,6 +35,10 @@ interface Props {
  */
 export function OtherColorsBlock({ product, selectedColor, className }: Props) {
   const { ty } = useTypography();
+  // Verde de «Agregado» (C5): en v2 dentro del ámbito, el relleno de éxito con
+  // texto AA (blanco sobre green-600 daba 3,30:1). Afuera, el de siempre.
+  const ink = useInk();
+  const addedCls = ink.aa ? 'bg-[color:var(--color-success-fill)] text-[color:var(--color-on-success)]' : 'bg-green-600 text-white';
   const { addItem } = useCart();
   const { curveTiers, curveDistributions, productPacks } = useWholesalePricing();
   const [justAdded, setJustAdded] = useState<string | null>(null);
@@ -131,7 +136,7 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
                   onClick={added ? undefined : () => addColor(color)}
                   aria-label={added ? 'Agregado' : `Agregar curva ${color}`}
                   className={`flex flex-shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    added ? 'bg-green-600 text-white' : 'bg-primary text-on-primary hover:opacity-90'
+                    added ? addedCls : 'bg-primary text-on-primary hover:opacity-90'
                   }`}
                 >
                   {added && <Check className="h-3.5 w-3.5" />}
@@ -173,7 +178,7 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
                     onClick={added ? undefined : () => addColor(color)}
                     aria-label={added ? 'Agregado' : `Agregar curva ${color}`}
                     className={`mt-auto flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-semibold transition-colors ${
-                      added ? 'bg-green-600 text-white' : 'bg-primary text-on-primary hover:opacity-90'
+                      added ? addedCls : 'bg-primary text-on-primary hover:opacity-90'
                     }`}
                   >
                     {added && <Check className="h-3.5 w-3.5" />}
@@ -192,7 +197,7 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
           onClick={justAdded === '__all__' ? undefined : addAll}
           aria-label={`Sumar los ${addable.length} colores`}
           className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary py-2 text-xs font-semibold transition-colors ${
-            justAdded === '__all__' ? 'bg-green-600 text-white' : 'text-primary hover:bg-primary hover:text-on-primary'
+            justAdded === '__all__' ? addedCls : 'text-primary hover:bg-primary hover:text-on-primary'
           }`}
         >
           {justAdded === '__all__' ? (

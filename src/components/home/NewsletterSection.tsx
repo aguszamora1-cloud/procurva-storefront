@@ -3,7 +3,9 @@ import { useStore } from '@/context/StoreProvider';
 import { useCoupon } from '@/context/CouponContext';
 import { subscribeNewsletter } from '@/lib/newsletter';
 import { contrastColor, rgba, safeFill, safeText } from '@/lib/theme';
+import { accentInk, readableFill } from '@/lib/contrast';
 import { useTypography } from '@/hooks/useTypography';
+import { useInk } from '@/hooks/useInk';
 
 // Foco visible sobre el color primario (el outline del navegador no se ve sobre
 // fondos oscuros). Repetido en cada control interactivo de la sección.
@@ -18,6 +20,7 @@ const FOCUS_RING =
 export function NewsletterSection() {
   const config = useStore();
   const { ty } = useTypography();
+  const ink = useInk();
   const { title, subtitle, buttonText, successMessage } = config.newsletterConfig;
   const alignClass =
     config.sectionTitleAlign === 'center' ? 'text-center' : config.sectionTitleAlign === 'right' ? 'text-right' : 'text-left';
@@ -27,10 +30,16 @@ export function NewsletterSection() {
 
   // La sección va sobre el color primario: el botón usa el acento sólo si se
   // distingue de ese fondo (con acento negro sobre sección negra no se veía).
-  const buttonBg = safeFill(config.colorAccent, config.colorPrimary);
-  const buttonFg = contrastColor(buttonBg);
+  const legacyButtonBg = safeFill(config.colorAccent, config.colorPrimary);
+  // v2 dentro del ámbito (C2): el par botón/texto con AA (blanco sobre un acento
+  // naranja daba 2,8:1). Afuera, `ink.fill` devuelve lo recibido.
+  const buttonPair = ink.fill(legacyButtonBg, contrastColor(legacyButtonBg));
+  const buttonBg = buttonPair.fill;
+  const buttonFg = buttonPair.text;
   // Los mensajes de éxito usaban `text-accent` y con acento negro no se leían.
-  const okColor = safeText(config.colorAccent, config.colorPrimary);
+  // v2: además, la tinta AA contra el relleno primario (ajustado) de la sección.
+  const legacyOk = safeText(config.colorAccent, config.colorPrimary);
+  const okColor = ink.aa ? accentInk(legacyOk, readableFill(config.colorPrimary, contrastColor(config.colorPrimary)).fill) : legacyOk;
   // Borde de los campos: derivado del color de la sección. La clase
   // `border-[var(--color-on-primary)]/30` que había NO existe (Tailwind no puede
   // aplicar opacidad sobre una variable CSS), así que el borde caía al gris por
@@ -159,7 +168,9 @@ export function NewsletterSection() {
         )}
 
         {status === 'error' && (
-          <p className="mt-3 text-sm text-red-300" role="alert">
+          // v2 (C5): sobre el primario, un rojo claro no se lee si el primario es
+          // rojo; el error va en el color de texto del primario, en negrita.
+          <p className={ink.aa ? 'mt-3 text-sm font-semibold text-[var(--color-on-primary)]' : 'mt-3 text-sm text-red-300'} role="alert">
             No pudimos suscribirte. Revisá el email y probá de nuevo.
           </p>
         )}

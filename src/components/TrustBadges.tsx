@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useStore } from '@/context/StoreProvider';
+import { useInk } from '@/hooks/useInk';
 
 // Íconos line-art (mismo viewBox/stroke que lucide para mantener el look RSW).
 const ICON = {
@@ -65,9 +66,15 @@ export function TrustBadges({ attached = false, background }: Props = {}) {
   // Colores propios de la barra de confianza, independientes de --color-text.
   // Se leen SIEMPRE de la config del negocio (mismos campos que usa el home),
   // así el detalle de producto no queda con estilos hardcodeados.
-  const textColor = config.trustBadgesTextColor;
   // El prop tiene prioridad (lo pasa el home); si no, cae a la config. '' = transparente.
   const bg = background ?? config.trustBadgesBgColor;
+  // v2: sin color propio usa el texto del tema (no el negro por defecto, que
+  // en un tema oscuro quedaba negro sobre negro); con color propio lo respeta
+  // y lo corre lo mínimo. Siempre contra el fondo REAL de la barra. En v1,
+  // useInk devuelve lo mismo que recibe.
+  const ink = useInk();
+  const label = ink.on(config.trustBadgesTextColorCustom || config.colorText, bg || config.colorBackground, 0.8);
+  const textColor = ink.aa ? label.text : config.trustBadgesTextColor;
 
   const grid = (
     <div
@@ -82,7 +89,8 @@ export function TrustBadges({ attached = false, background }: Props = {}) {
           className="flex flex-col items-center border-line px-3 text-center odd:border-r md:border-r md:last:border-r-0"
         >
           <span className="mb-2">{icon}</span>
-          <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium leading-[1.35] opacity-80 md:text-[calc(12px_*_var(--font-scale,1))]">
+          <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium leading-[1.35] opacity-80 md:text-[calc(12px_*_var(--font-scale,1))]"
+            style={ink.aa && label.alpha !== 0.8 ? { opacity: label.alpha } : undefined}>
             {labels[i] ?? ''}
           </span>
         </div>

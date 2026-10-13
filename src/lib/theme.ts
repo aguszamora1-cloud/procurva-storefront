@@ -1,5 +1,6 @@
 import type { ButtonCornerStyle, CornerStyle, StoreConfig } from './types';
 import { typographyFor } from './typographyRuntime';
+import { STATUS_BASE, accentInk, greyAlphas, minAlphaForContrast, parseHex, readableFill } from './contrast';
 
 /**
  * Escalas de esquinas por preset. Las claves son las mismas que la escala de
@@ -147,6 +148,47 @@ export function applyTheme(config: StoreConfig): void {
   set('--color-on-surface', onSurface);
   set('--color-on-surface-muted', rgba(onSurface, 0.62));
   set('--color-on-surface-subtle', rgba(onSurface, 0.42));
+
+  // Grises con contraste AA (lib/contrast). Se calculan siempre pero SÓLO los
+  // lee el bloque `[data-ink='v2']` de globals.css, que existe únicamente en
+  // v2 y dentro de las páginas del alcance (ContrastScope): en v1 son variables
+  // que nadie usa. Mismo formato rgba que los de arriba, así que sobre otro
+  // fondo se comportan igual que hoy, sólo que más firmes.
+  const greys = greyAlphas(config.colorText, config.colorBackground, config.colorSecondary);
+  set('--color-muted-aa', rgba(config.colorText, greys.muted));
+  set('--color-subtle-aa', rgba(config.colorText, greys.subtle));
+  const surfaceGreys = greyAlphas(onSurface, config.colorBackground, config.colorSecondary);
+  set('--color-on-surface-muted-aa', rgba(onSurface, surfaceGreys.muted));
+  set('--color-on-surface-subtle-aa', rgba(onSurface, surfaceGreys.subtle));
+  // Tinta del acento (C4): el acento como color de TEXTO, con AA. Mismo
+  // criterio: sólo la lee el bloque v2 de globals.css; los fondos de botones y
+  // badges siguen con --color-accent tal cual lo eligió el comercio.
+  set('--color-accent-ink', accentInk(config.colorAccent, config.colorBackground, config.colorSecondary));
+  // Rellenos con texto encima (C2): botones, cintas y badges de acento y de
+  // primario. Conservan el texto de hoy y ajustan el relleno lo mínimo; si
+  // hace falta más de un 20 %, conservan el relleno y cambian el texto.
+  const accentFill = readableFill(config.colorAccent, contrastColor(config.colorAccent));
+  set('--color-accent-fill', accentFill.fill);
+  set('--color-on-accent-aa', accentFill.text);
+  const primaryFill = readableFill(config.colorPrimary, contrastColor(config.colorPrimary));
+  set('--color-primary-fill', primaryFill.fill);
+  set('--color-on-primary-aa', primaryFill.text);
+  set('--color-primary-ink', accentInk(config.colorPrimary, config.colorBackground, config.colorSecondary));
+  // Texto atenuado (opacity-60/70/80) sobre el relleno primario, ej. el
+  // newsletter: la opacidad mínima con la que el texto sigue en AA. Las clases
+  // de opacidad dentro de .bg-primary toman max(la suya, esta) en v2.
+  const pFill = parseHex(primaryFill.fill);
+  const pText = parseHex(primaryFill.text);
+  set('--on-primary-min-alpha', pFill && pText ? String(minAlphaForContrast(pText, [pFill], 0, 4.5)) : '0');
+  // Badges "outline": pastilla blanca fija, texto del color del badge.
+  set('--color-accent-ink-on-white', accentInk(config.colorAccent, '#ffffff'));
+  // Estados (C5): tinta sobre el fondo del comercio y relleno de "agregado".
+  for (const [name, base] of Object.entries(STATUS_BASE)) {
+    set(`--color-${name}-ink`, accentInk(base, config.colorBackground, config.colorSecondary));
+  }
+  const successFill = readableFill(STATUS_BASE.success, '#ffffff');
+  set('--color-success-fill', successFill.fill);
+  set('--color-on-success', successFill.text);
 
   set('--font-heading', `'${config.fontHeading}', system-ui, sans-serif`);
   set('--font-body', `'${config.fontBody}', system-ui, sans-serif`);

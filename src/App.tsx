@@ -12,6 +12,7 @@ import { ScrollToTop } from '@/components/ScrollToTop';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { ErrorScreen } from '@/components/ErrorScreen';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ContrastScope } from '@/components/ContrastScope';
 import { Analytics } from '@/components/Analytics';
 import { MetaPixelPageView } from '@/components/MetaPixelPageView';
 import { StorefrontAnalytics } from '@/components/StorefrontAnalytics';
@@ -62,12 +63,14 @@ function StoreRoutes() {
               listos; el header y el footer nunca parpadean. */}
           <RouteGate>
           <Suspense fallback={<PageFallback />}>
+            {/* ContrastScope: grises AA de v2 sólo en las páginas del alcance
+                (home, listado, categorías, ficha). En v1 es un Fragment. */}
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/productos" element={<ProductList />} />
-              <Route path="/producto/:id" element={<ProductDetail />} />
-              <Route path="/categorias" element={<CategoriesIndex />} />
-              <Route path="/categoria/:name" element={<Category />} />
+              <Route path="/" element={<ContrastScope><Home /></ContrastScope>} />
+              <Route path="/productos" element={<ContrastScope><ProductList /></ContrastScope>} />
+              <Route path="/producto/:id" element={<ContrastScope><ProductDetail /></ContrastScope>} />
+              <Route path="/categorias" element={<ContrastScope><CategoriesIndex /></ContrastScope>} />
+              <Route path="/categoria/:name" element={<ContrastScope><Category /></ContrastScope>} />
               {/* Páginas de texto que publica el comercio (Cambios, FAQ, …). */}
               <Route path="/pagina/:slug" element={<CustomPage />} />
               <Route path="/carrito" element={<Cart />} />
