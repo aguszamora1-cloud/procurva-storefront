@@ -1,5 +1,6 @@
 import { SectionLink } from '@/components/SectionLink';
 import type { CustomSection, CustomSectionCtaContent } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 const TEXT_ALIGN = { left: 'text-left items-start', center: 'text-center items-center', right: 'text-right items-end' } as const;
 
@@ -12,6 +13,7 @@ const TEXT_ALIGN = { left: 'text-left items-start', center: 'text-center items-c
  * externo (incluido WhatsApp) en una pestaña nueva.
  */
 export function CustomCtaSection({ section }: { section: CustomSection }) {
+  const { ty } = useTypography();
   const c = section.content as CustomSectionCtaContent;
   const heading = (c.heading || '').trim();
   const body = (c.body || '').trim();
@@ -29,11 +31,11 @@ export function CustomCtaSection({ section }: { section: CustomSection }) {
     >
       <div className={`mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10 md:py-16 ${TEXT_ALIGN[align]}`}>
         {heading && (
-          <h2 className="font-heading text-[calc(24px_*_var(--font-scale,1))] font-semibold uppercase leading-[1.1] tracking-[1px] md:text-[calc(34px_*_var(--font-scale,1))]">
+          <h2 className={ty('font-heading text-[calc(24px_*_var(--font-scale,1))] font-semibold uppercase leading-[1.1] tracking-[1px] md:text-[calc(34px_*_var(--font-scale,1))]', 'section-title')}>
             {heading}
           </h2>
         )}
-        {body && <p className="max-w-xl text-[calc(14px_*_var(--font-scale,1))] leading-relaxed opacity-80 md:text-[calc(15px_*_var(--font-scale,1))]">{body}</p>}
+        {body && <p className={ty('max-w-xl text-[calc(14px_*_var(--font-scale,1))] leading-relaxed opacity-80 md:text-[calc(15px_*_var(--font-scale,1))]', 'lead', 'max-w-xl opacity-80')}>{body}</p>}
         {buttonText && buttonLink && (
           <SectionLink
             to={buttonLink}

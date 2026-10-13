@@ -9,6 +9,7 @@
     "check:opacity": "node scripts/check-dead-opacity.mjs",
     "check:radius": "node scripts/check-hardcoded-radius.mjs",
     "test:typography": "node scripts/check-typography.mjs",
+    "test:ty-literals": "node scripts/check-ty-literals.mjs",
     "check": "npm run check:mirrors && npm run check:opacity && npm run check:radius",
     "prebuild": "npm run check",
     "build": "tsc -b && vite build && node scripts/spa-shell.mjs",

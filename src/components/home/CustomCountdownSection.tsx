@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { SectionLink } from '@/components/SectionLink';
 import type { CustomSection, CustomSectionCountdownContent } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 /**
  * Cuenta regresiva a una fecha: fin de una promo, lanzamiento, cierre de
@@ -36,17 +37,19 @@ function remaining(endIso: string): Parts | null {
 const pad = (n: number) => String(n).padStart(2, '0');
 
 function Unit({ value, label }: { value: string; label: string }) {
+  const { ty } = useTypography();
   return (
     <div className="flex flex-col items-center gap-1.5">
       <span className="min-w-[58px] rounded-lg border border-current/20 px-3 py-2 text-center font-heading text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none tabular-nums md:min-w-[74px] md:text-[calc(38px_*_var(--font-scale,1))]">
         {value}
       </span>
-      <span className="text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1.5px] opacity-70 md:text-[calc(11px_*_var(--font-scale,1))]">{label}</span>
+      <span className={ty('text-[calc(10px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1.5px] opacity-70 md:text-[calc(11px_*_var(--font-scale,1))]', 'eyebrow', 'opacity-70')}>{label}</span>
     </div>
   );
 }
 
 export function CustomCountdownSection({ section }: { section: CustomSection }) {
+  const { ty } = useTypography();
   const c = section.content as CustomSectionCountdownContent;
   const endsAt = c.ends_at || '';
   const [parts, setParts] = useState<Parts | null>(() => (endsAt ? remaining(endsAt) : null));
@@ -72,11 +75,11 @@ export function CustomCountdownSection({ section }: { section: CustomSection }) 
     >
       <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 px-6 py-10 text-center md:py-14">
         {heading && (
-          <h2 className="font-heading text-[calc(24px_*_var(--font-scale,1))] font-semibold uppercase leading-[1.1] tracking-[1px] md:text-[calc(34px_*_var(--font-scale,1))]">
+          <h2 className={ty('font-heading text-[calc(24px_*_var(--font-scale,1))] font-semibold uppercase leading-[1.1] tracking-[1px] md:text-[calc(34px_*_var(--font-scale,1))]', 'section-title')}>
             {heading}
           </h2>
         )}
-        {subheading && <p className="max-w-xl text-[calc(14px_*_var(--font-scale,1))] leading-relaxed opacity-80 md:text-[calc(15px_*_var(--font-scale,1))]">{subheading}</p>}
+        {subheading && <p className={ty('max-w-xl text-[calc(14px_*_var(--font-scale,1))] leading-relaxed opacity-80 md:text-[calc(15px_*_var(--font-scale,1))]', 'lead', 'max-w-xl opacity-80')}>{subheading}</p>}
 
         <div className="flex items-start gap-3 md:gap-4">
           {parts.d > 0 && <Unit value={pad(parts.d)} label="Días" />}

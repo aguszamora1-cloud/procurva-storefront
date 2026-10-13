@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Play } from 'lucide-react';
 import { ReelsViewer } from './ReelsViewer';
 import type { Reel } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 interface Props {
   reels: Reel[];
@@ -44,6 +45,7 @@ function formatDuration(ms: number | null): string {
  */
 export function ReelsCarousel({ reels, title, width = 'full', variant = 'section' }: Props) {
   const [openAt, setOpenAt] = useState<number | null>(null);
+  const { ty } = useTypography();
   if (reels.length === 0) return null;
 
   const column = variant === 'column';
@@ -51,7 +53,7 @@ export function ReelsCarousel({ reels, title, width = 'full', variant = 'section
   if (column) {
     return (
       <section>
-        {title.trim() && <p className="mb-3 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted">{title}</p>}
+        {title.trim() && <p className={ty('mb-3 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted', 'block-title', 'mb-3 text-text')}>{title}</p>}
         <div className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1">
           {reels.map((reel, i) => (
             <button
@@ -92,7 +94,7 @@ export function ReelsCarousel({ reels, title, width = 'full', variant = 'section
           desde el editor, el carrusel arranca pegado a lo anterior en vez de
           dejar un hueco huérfano. Mismo criterio que SectionHeader. */}
       {title.trim() && (
-        <h2 className="mb-4 font-heading text-[calc(20px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(24px_*_var(--font-scale,1))]">
+        <h2 className={ty('mb-4 font-heading text-[calc(20px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(24px_*_var(--font-scale,1))]', 'section-title', 'mb-4 text-text')}>
           {title}
         </h2>
       )}

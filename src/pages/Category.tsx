@@ -7,12 +7,14 @@ import { ProductGrid, ProductGridSkeleton } from '@/components/ProductGrid';
 import { InlineError } from '@/components/ErrorScreen';
 import { Seo } from '@/components/Seo';
 import { productCategories } from '@/lib/utils';
+import { useTypography } from '@/hooks/useTypography';
 
 export function Category() {
   const { name } = useParams<{ name: string }>();
   const category = decodeURIComponent(name ?? '');
   const { products, isLoading, error, reload } = useProducts();
   const config = useStore();
+  const { ty } = useTypography();
 
   // Título + grilla aparecen juntos (antes el encabezado se pintaba solo y la
   // grilla caía después).
@@ -33,10 +35,10 @@ export function Category() {
         siteName={config.name}
       />
       <header className="mb-8">
-        <Link to="/categorias" className="text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[2px] text-subtle hover:text-accent">
+        <Link to="/categorias" className={ty('text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[2px] text-subtle hover:text-accent', 'eyebrow', 'text-subtle hover:text-accent')}>
           ← Categorías
         </Link>
-        <h1 className="mt-2 font-heading text-[calc(32px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(44px_*_var(--font-scale,1))]">
+        <h1 className={ty('mt-2 font-heading text-[calc(32px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(44px_*_var(--font-scale,1))]', 'page-title', 'mt-2 text-text')}>
           {category}
         </h1>
       </header>

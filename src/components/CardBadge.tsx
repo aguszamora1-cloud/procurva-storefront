@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { contrastColor } from '@/lib/theme';
+import { useTypography } from '@/hooks/useTypography';
 
 interface Props {
   children: ReactNode;
@@ -36,7 +37,8 @@ function outlineText(bg: string): string {
 export function CardBadge({ children, bg, color = '#ffffff', className = '', glow = false, variant = 'solid' }: Props) {
   // Pill compacto: ancho al contenido, esquina de la imagen, sombra sutil. Sin
   // mayúsculas ni full-width (el diseño viejo era una barra sólida pesada).
-  const base = 'inline-flex items-center gap-1 whitespace-nowrap rounded-pill px-2.5 py-1 text-[calc(11px_*_var(--font-scale,1))] font-semibold leading-none shadow-sm';
+  const { ty } = useTypography();
+  const base = ty('inline-flex items-center gap-1 whitespace-nowrap rounded-pill px-2.5 py-1 text-[calc(11px_*_var(--font-scale,1))] font-semibold leading-none shadow-sm', 'badge', 'inline-flex items-center gap-1 whitespace-nowrap rounded-pill px-2.5 py-1 shadow-sm');
 
   if (glow) {
     return (

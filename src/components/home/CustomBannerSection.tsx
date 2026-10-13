@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTypography } from '@/hooks/useTypography';
 import type {
   CustomSection,
   CustomSectionBannerContent,
@@ -237,6 +238,7 @@ function PhoneMockupBanner({
   const touchStartX = useRef<number | null>(null);
 
   const title = content.title?.trim();
+  const { ty } = useTypography();
   const autoplay = content.autoplay ?? true;
   const intervalMs = Math.max(2, content.interval_seconds ?? 5) * 1000;
 
@@ -269,7 +271,7 @@ function PhoneMockupBanner({
       onMouseLeave={() => setPaused(false)}
     >
       {title ? (
-        <h2 className="px-4 mb-8 text-center text-sm sm:text-base font-medium uppercase tracking-[0.2em] text-gray-700 dark:text-gray-200">
+        <h2 className={ty('px-4 mb-8 text-center text-sm sm:text-base font-medium uppercase tracking-[0.2em] text-gray-700 dark:text-gray-200', 'section-title', 'px-4 mb-8 text-center text-gray-700 dark:text-gray-200')}>
           {title}
         </h2>
       ) : null}

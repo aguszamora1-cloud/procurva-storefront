@@ -27,6 +27,7 @@ import {
   type WholesaleData,
 } from '@/lib/complementarios';
 import type { Product } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 type Contexto = 'ficha' | 'modal' | 'carrito';
 
@@ -52,6 +53,10 @@ interface Props {
  */
 export function ComplementaryBlock({ contexto, product, preferredSize, className }: Props) {
   const config = useStore();
+  // v2 sólo en la ficha: este bloque también se pinta en el carrito lateral,
+  // que está fuera del alcance de v2 (Fase 1). Ahí siempre las clases v1.
+  const { ty: tyV2 } = useTypography();
+  const ty: typeof tyV2 = contexto === 'carrito' ? (v1) => v1 : tyV2;
   const storeType = useStoreType() ?? 'retail';
   const { items: cartItems } = useCart();
 
@@ -115,7 +120,7 @@ export function ComplementaryBlock({ contexto, product, preferredSize, className
   return (
     <section className={`rounded-2xl border border-line p-4 ${className ?? ''}`}>
       {/* Título vaciado desde el editor → el bloque va sin encabezado. */}
-      {block.titulo && <h3 className="mb-3 text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">{block.titulo}</h3>}
+      {block.titulo && <h3 className={ty('mb-3 text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text', 'block-title', 'mb-3 text-text')}>{block.titulo}</h3>}
       <ul className="space-y-2">
         {shown.map((card) => (
           <ComplementRow

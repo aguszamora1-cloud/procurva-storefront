@@ -1,6 +1,7 @@
 import { CheckCircle2, Circle, MinusCircle } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
 import type { PurchaseFlowStep } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 const GREEN = '#22c55e';
 
@@ -17,10 +18,11 @@ function StepIcon({ state }: { state: PurchaseFlowStep['state'] }) {
  */
 export function PurchaseFlow() {
   const { purchaseFlowEnabled, purchaseFlowSteps } = useStore();
+  const { ty } = useTypography();
   if (!purchaseFlowEnabled || purchaseFlowSteps.length === 0) return null;
   return (
     <div className="border-t border-line pt-6">
-      <p className="mb-4 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-accent">Así funciona tu compra</p>
+      <p className={ty('mb-4 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-accent', 'block-title', 'mb-4 text-text')}>Así funciona tu compra</p>
       <div>
         {purchaseFlowSteps.map((step, index) => {
           const last = index === purchaseFlowSteps.length - 1;

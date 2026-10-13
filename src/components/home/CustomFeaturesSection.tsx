@@ -1,6 +1,7 @@
 import { SectionHeader } from '@/components/SectionHeader';
 import { FEATURE_ICONS } from '@/lib/featureIcons';
 import type { CustomSection, CustomSectionFeaturesContent, CustomSectionVariant } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 const GRID_COLS = { 2: 'md:grid-cols-2', 3: 'md:grid-cols-3', 4: 'md:grid-cols-2 lg:grid-cols-4' } as const;
 
@@ -19,6 +20,7 @@ export function CustomFeaturesSection({
   variant?: CustomSectionVariant;
 }) {
   const c = section.content as CustomSectionFeaturesContent;
+  const { ty } = useTypography();
   const items = (c.items || []).filter((i) => (i.title || '').trim() || (i.text || '').trim()).slice(0, 8);
   if (items.length === 0) return null;
   const heading = (c.heading || '').trim();
@@ -35,7 +37,7 @@ export function CustomFeaturesSection({
         {heading &&
           (inColumn ? (
             <div className="mb-3">
-              <h2 className="text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">{heading}</h2>
+              <h2 className={ty('text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text', 'block-title', 'text-text')}>{heading}</h2>
               {subheading && <p className="mt-1 text-[calc(13px_*_var(--font-scale,1))] text-muted">{subheading}</p>}
             </div>
           ) : (
@@ -63,7 +65,7 @@ export function CustomFeaturesSection({
                     </p>
                   )}
                   {it.text && (
-                    <p className={`mt-0.5 leading-relaxed text-muted ${inColumn ? 'text-[12.5px]' : 'text-[calc(13.5px_*_var(--font-scale,1))]'}`}>
+                    <p className={ty(`mt-0.5 leading-relaxed text-muted ${inColumn ? 'text-[12.5px]' : 'text-[calc(13.5px_*_var(--font-scale,1))]'}`, 'body-sm', 'mt-0.5 text-muted')}>
                       {it.text}
                     </p>
                   )}

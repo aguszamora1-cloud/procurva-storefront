@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ReviewCard, Stars, type ReviewCardData } from '@/components/ReviewCard';
 import { useTestimonials } from '@/hooks/useTestimonials';
 import { useProductReviews, useRatingSummary } from '@/hooks/useProductReviews';
+import { useTypography } from '@/hooks/useTypography';
 
 /**
  * Reseñas en la página de detalle del producto (Extra PRO).
@@ -34,6 +35,7 @@ export function ProductReviews({
   display?: 'carousel' | 'stack';
 }) {
   const { testimonials } = useTestimonials();
+  const { ty } = useTypography();
   const { reviews: verifiedReviews, isLoading: verifiedLoading } = useProductReviews(productId);
   // El total sale del resumen: la lista viene cortada en 30.
   const summary = useRatingSummary(productId);
@@ -173,11 +175,13 @@ export function ProductReviews({
   const heading = (
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${column ? 'mb-3' : 'mb-4'}`}>
       <p
-        className={
+        className={ty(
           column
             ? 'text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted'
-            : 'text-[calc(12px_*_var(--font-scale,1))] font-semibold uppercase tracking-[0.06em] text-muted'
-        }
+            : 'text-[calc(12px_*_var(--font-scale,1))] font-semibold uppercase tracking-[0.06em] text-muted',
+          'block-title',
+          'text-text',
+        )}
       >
         {title?.trim() || 'Opiniones de clientes'}
       </p>

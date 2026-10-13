@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
 import type { CustomSection, CustomSectionSpotlightContent, CustomSectionVariant } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 /**
  * Foto destacada con puntos: una imagen grande (el estampado, la tela, la
@@ -17,6 +18,7 @@ export function CustomSpotlightSection({
   variant?: CustomSectionVariant;
 }) {
   const c = section.content as CustomSectionSpotlightContent;
+  const { ty } = useTypography();
   const heading = (c.heading || '').trim();
   const body = (c.body || '').trim();
   const image = /^https:\/\//i.test((c.image_url || '').trim()) ? (c.image_url || '').trim() : '';
@@ -47,17 +49,18 @@ export function CustomSpotlightSection({
         <div className={`flex flex-col gap-4 ${inColumn ? '' : imageRight ? 'md:order-1' : 'md:order-2'}`}>
           {heading && (
             <h2
-              className={
+              className={ty(
                 inColumn
                   ? 'text-[calc(15px_*_var(--font-scale,1))] font-semibold'
-                  : 'font-heading text-[calc(24px_*_var(--font-scale,1))] font-semibold uppercase leading-[1.1] tracking-[1px] md:text-[calc(32px_*_var(--font-scale,1))]'
-              }
+                  : 'font-heading text-[calc(24px_*_var(--font-scale,1))] font-semibold uppercase leading-[1.1] tracking-[1px] md:text-[calc(32px_*_var(--font-scale,1))]',
+                inColumn ? 'block-title' : 'section-title',
+              )}
             >
               {heading}
             </h2>
           )}
           {body && (
-            <p className={`leading-relaxed opacity-80 ${inColumn ? 'text-[13px]' : 'text-[calc(14px_*_var(--font-scale,1))] md:text-[calc(15px_*_var(--font-scale,1))]'}`}>
+            <p className={ty(`leading-relaxed opacity-80 ${inColumn ? 'text-[13px]' : 'text-[calc(14px_*_var(--font-scale,1))] md:text-[calc(15px_*_var(--font-scale,1))]'}`, inColumn ? 'body-sm' : 'lead', 'opacity-80')}>
               {body}
             </p>
           )}

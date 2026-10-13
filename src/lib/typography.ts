@@ -32,15 +32,20 @@ export const TYPOGRAPHY_V2_ENABLED = true;
 /** Roles de la escala v2. Cada uno es una clase de globals.css (`ty-<rol>`). */
 export const TYPOGRAPHY_ROLES = [
   'display',
+  'hero-overlay',
+  'lead',
   'page-title',
   'section-title',
   'product-title',
+  'card-title',
   'block-title',
   'body',
   'body-sm',
   'label',
   'caption',
   'eyebrow',
+  'input',
+  'badge',
 ] as const;
 export type TypographyRole = (typeof TYPOGRAPHY_ROLES)[number];
 

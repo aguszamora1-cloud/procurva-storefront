@@ -1,5 +1,6 @@
 import { formatPrice, resolvePricePair } from '@/lib/utils';
 import type { StoreConfig } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 export type PriceVariant = 'card' | 'detail' | 'compact';
 
@@ -60,18 +61,34 @@ export function PriceHierarchy({
 }: Props) {
   const detail = variant === 'detail';
   const compact = variant === 'compact';
+  // v2 (lib/typography) sólo para 'card' y 'detail'. 'compact' queda en v1
+  // siempre: lo usa ComplementaryBlock, que también se pinta en el carrito
+  // lateral, y el carrito está fuera del alcance de v2 (Fase 1).
+  const { version } = useTypography();
+  const v2 = version === 'v2' && !compact;
   const pair = resolvePricePair({ priceDisplay, cashLabel: cashLabelProp ?? 'efectivo o transferencia' }, cash, card);
   const { primary, cardLine } = pair;
   const hasCash = pair.isCash;
   const cashLabel = pair.cashLabel;
 
-  const primaryCls = detail
+  // v2: el principal manda (números de ancho fijo), el tachado mide como mucho
+  // el 75 % del principal (16→12 / 20→15 en la card) y nada legible baja de
+  // 12px aunque el comercio achique la escala. Colores: los mismos tokens.
+  const primaryCls = v2
+    ? detail
+      ? 'text-[calc(30px_*_var(--font-scale,1))] md:text-[calc(34px_*_var(--font-scale,1))] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-accent'
+      : 'text-[calc(16px_*_var(--font-scale,1))] md:text-[calc(20px_*_var(--font-scale,1))] font-extrabold leading-none tracking-[-0.01em] tabular-nums text-accent'
+    : (detail
     ? 'text-[calc(30px_*_var(--font-scale,1))] md:text-[calc(34px_*_var(--font-scale,1))] font-extrabold leading-none tracking-[-0.02em] text-accent'
     : compact
       ? 'text-[calc(14px_*_var(--font-scale,1))] font-bold leading-none text-accent'
-      : 'text-[calc(16px_*_var(--font-scale,1))] md:text-[calc(20px_*_var(--font-scale,1))] font-extrabold leading-none text-accent';
-  const labelCls = detail ? 'text-[calc(13px_*_var(--font-scale,1))]' : compact ? 'text-[calc(11px_*_var(--font-scale,1))]' : 'text-[calc(11px_*_var(--font-scale,1))] md:text-[calc(12px_*_var(--font-scale,1))]';
-  const strikeCls = detail ? 'text-[calc(16px_*_var(--font-scale,1))]' : compact ? 'text-[calc(11px_*_var(--font-scale,1))]' : 'text-[calc(13px_*_var(--font-scale,1))] md:text-[calc(15px_*_var(--font-scale,1))]';
+      : 'text-[calc(16px_*_var(--font-scale,1))] md:text-[calc(20px_*_var(--font-scale,1))] font-extrabold leading-none text-accent');
+  const labelCls = v2
+    ? detail ? 'text-[length:max(12px,calc(13px_*_var(--font-scale,1)))]' : 'text-[length:max(12px,calc(12px_*_var(--font-scale,1)))]'
+    : (detail ? 'text-[calc(13px_*_var(--font-scale,1))]' : compact ? 'text-[calc(11px_*_var(--font-scale,1))]' : 'text-[calc(11px_*_var(--font-scale,1))] md:text-[calc(12px_*_var(--font-scale,1))]');
+  const strikeCls = v2
+    ? detail ? 'text-[calc(16px_*_var(--font-scale,1))]' : 'text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] md:text-[calc(15px_*_var(--font-scale,1))]'
+    : (detail ? 'text-[calc(16px_*_var(--font-scale,1))]' : compact ? 'text-[calc(11px_*_var(--font-scale,1))]' : 'text-[calc(13px_*_var(--font-scale,1))] md:text-[calc(15px_*_var(--font-scale,1))]');
 
   return (
     <div>
@@ -80,7 +97,7 @@ export function PriceHierarchy({
         <span className={primaryCls}>{formatPrice(primary)}</span>
         {hasCash && cashLabel && <span className={`font-medium text-muted ${labelCls}`}>{cashLabel}</span>}
         {cardLine != null && detail && discountPct > 0 && (
-          <span className="shrink-0 rounded bg-accent px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold leading-none text-on-accent shadow-sm">
+          <span className={v2 ? 'shrink-0 rounded bg-accent px-2 py-0.5 text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] font-bold leading-none tabular-nums text-on-accent shadow-sm' : 'shrink-0 rounded bg-accent px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold leading-none text-on-accent shadow-sm'}>
             -{discountPct}%
           </span>
         )}
@@ -90,7 +107,7 @@ export function PriceHierarchy({
       </div>
 
       {savings > 0 && (
-        <p className={`mt-1 font-semibold text-accent ${detail ? 'text-[calc(13px_*_var(--font-scale,1))]' : 'text-[calc(11px_*_var(--font-scale,1))] md:text-[calc(12px_*_var(--font-scale,1))]'}`}>
+        <p className={v2 ? `mt-1 font-semibold text-accent ${labelCls}` : `mt-1 font-semibold text-accent ${detail ? 'text-[calc(13px_*_var(--font-scale,1))]' : 'text-[calc(11px_*_var(--font-scale,1))] md:text-[calc(12px_*_var(--font-scale,1))]'}`}>
           Ahorrás {formatPrice(savings)}
         </p>
       )}

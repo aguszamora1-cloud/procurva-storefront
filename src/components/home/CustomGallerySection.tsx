@@ -1,5 +1,6 @@
 import { SectionHeader } from '@/components/SectionHeader';
 import type { CustomSection, CustomSectionGalleryContent, CustomSectionVariant } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 const GRID_COLS = { 2: 'md:grid-cols-2', 3: 'md:grid-cols-3', 4: 'md:grid-cols-4' } as const;
 
@@ -18,6 +19,7 @@ export function CustomGallerySection({
   variant?: CustomSectionVariant;
 }) {
   const c = section.content as CustomSectionGalleryContent;
+  const { ty } = useTypography();
   const images = (c.images || []).filter((i) => /^https:\/\//i.test((i.image_url || '').trim())).slice(0, 8);
   if (images.length === 0) return null;
   const heading = (c.heading || '').trim();
@@ -30,7 +32,7 @@ export function CustomGallerySection({
       <div className={inColumn ? '' : 'mx-auto max-w-6xl'}>
         {heading &&
           (inColumn ? (
-            <h2 className="mb-3 text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">{heading}</h2>
+            <h2 className={ty('mb-3 text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text', 'block-title', 'mb-3 text-text')}>{heading}</h2>
           ) : (
             <SectionHeader title={heading} />
           ))}
@@ -44,7 +46,7 @@ export function CustomGallerySection({
                 className={`w-full object-cover ${single ? 'max-h-[640px]' : 'aspect-[3/4]'}`}
               />
               {img.caption && (
-                <figcaption className={`mt-1.5 text-muted ${inColumn ? 'text-[12px]' : 'text-[calc(13px_*_var(--font-scale,1))]'}`}>
+                <figcaption className={ty(`mt-1.5 text-muted ${inColumn ? 'text-[12px]' : 'text-[calc(13px_*_var(--font-scale,1))]'}`, 'caption', 'mt-1.5 text-muted')}>
                   {img.caption}
                 </figcaption>
               )}

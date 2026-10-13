@@ -9,11 +9,13 @@ import { ProductGridSkeleton } from '@/components/ProductGrid';
 import { InlineError } from '@/components/ErrorScreen';
 import { Seo } from '@/components/Seo';
 import { StoreImage } from '@/components/StoreImage';
+import { useTypography } from '@/hooks/useTypography';
 
 export function CategoriesIndex() {
   const { products, isLoading, error, reload } = useProducts();
   const { categories, isLoading: categoriesLoading } = useCategories(products);
   const config = useStore();
+  const { ty } = useTypography();
 
   // La grilla de categorías necesita productos (para la foto de fallback) y el
   // orden/visibilidad del admin: esperamos las dos cosas y pintamos junto.
@@ -33,11 +35,11 @@ export function CategoriesIndex() {
           página propia y necesita titular sí o sí. */}
       <header className="mb-8">
         {config.sectionHeadings.categories?.label && (
-          <p className="mb-2 text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[2px] text-accent">
+          <p className={ty('mb-2 text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[2px] text-accent', 'eyebrow', 'mb-2 text-accent')}>
             {config.sectionHeadings.categories.label}
           </p>
         )}
-        <h1 className="font-heading text-[calc(32px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(44px_*_var(--font-scale,1))]">
+        <h1 className={ty('font-heading text-[calc(32px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(44px_*_var(--font-scale,1))]', 'page-title', 'text-text')}>
           {config.sectionHeadings.categories?.title || 'Categorías'}
         </h1>
       </header>

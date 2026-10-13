@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { colorToHex, formatPrice } from '@/lib/utils';
+import { useTypography } from '@/hooks/useTypography';
 
 export interface ProductFiltersProps {
   categories: string[];
@@ -88,6 +89,7 @@ function CheckboxRow({
  * accordions; el encabezado (título + "Limpiar filtros") lo pone el contenedor.
  */
 export function ProductFilters(props: ProductFiltersProps) {
+  const { ty } = useTypography();
   const {
     categories,
     segments,
@@ -197,7 +199,7 @@ export function ProductFilters(props: ProductFiltersProps) {
             onChange={(e) => onPriceMin(e.target.value)}
             placeholder={String(priceBounds.min)}
             aria-label="Precio mínimo"
-            className="w-full border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] text-on-surface outline-none focus:border-accent"
+            className={ty('w-full border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] text-on-surface outline-none focus:border-accent', 'input', 'w-full border border-line bg-background px-3 py-2 text-on-surface outline-none focus:border-accent')}
           />
           <span className="text-on-surface-subtle">—</span>
           <input
@@ -208,11 +210,11 @@ export function ProductFilters(props: ProductFiltersProps) {
             onChange={(e) => onPriceMax(e.target.value)}
             placeholder={String(priceBounds.max)}
             aria-label="Precio máximo"
-            className="w-full border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] text-on-surface outline-none focus:border-accent"
+            className={ty('w-full border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] text-on-surface outline-none focus:border-accent', 'input', 'w-full border border-line bg-background px-3 py-2 text-on-surface outline-none focus:border-accent')}
           />
         </div>
         {priceBounds.max > 0 && (
-          <p className="mt-2 text-[calc(11px_*_var(--font-scale,1))] text-on-surface-subtle">
+          <p className={ty('mt-2 text-[calc(11px_*_var(--font-scale,1))] text-on-surface-subtle', 'caption', 'mt-2 text-on-surface-subtle')}>
             Rango: {formatPrice(priceBounds.min)} – {formatPrice(priceBounds.max)}
           </p>
         )}

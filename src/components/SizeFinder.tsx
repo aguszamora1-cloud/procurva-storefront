@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTypography } from '@/hooks/useTypography';
 
 /**
  * Probador virtual universal (placeholder hasta integrar fashn.ai).
@@ -93,6 +94,7 @@ interface Props {
 }
 
 export function SizeFinder({ sizes, onSelect }: Props) {
+  const { ty } = useTypography();
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [reco, setReco] = useState<ScaleSize | null>(null);
@@ -126,7 +128,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
             value={height}
             onChange={(e) => setHeight(e.target.value)}
             placeholder="170"
-            className="w-full rounded-md border border-line bg-background px-3 py-2.5 text-sm text-text outline-none focus:border-text"
+            className={ty('w-full rounded-md border border-line bg-background px-3 py-2.5 text-sm text-text outline-none focus:border-text', 'input', 'w-full rounded-md border border-line bg-background px-3 py-2.5 text-text outline-none focus:border-text')}
           />
         </label>
         <label className="block">
@@ -137,7 +139,7 @@ export function SizeFinder({ sizes, onSelect }: Props) {
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
             placeholder="70"
-            className="w-full rounded-md border border-line bg-background px-3 py-2.5 text-sm text-text outline-none focus:border-text"
+            className={ty('w-full rounded-md border border-line bg-background px-3 py-2.5 text-sm text-text outline-none focus:border-text', 'input', 'w-full rounded-md border border-line bg-background px-3 py-2.5 text-text outline-none focus:border-text')}
           />
         </label>
       </div>

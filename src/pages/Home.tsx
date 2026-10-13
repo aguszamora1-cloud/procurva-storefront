@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { useStore } from '@/context/StoreProvider';
+import { useTypography } from '@/hooks/useTypography';
 import { useProducts } from '@/hooks/useProducts';
 import { useHomeSections } from '@/hooks/useHomeSections';
 import { sectionListPath } from '@/lib/homeSections';
@@ -93,6 +94,12 @@ function withMissingSections(saved: string[], available: Record<string, ReactNod
 
 export function Home() {
   const config = useStore();
+  const { version: typoVersion } = useTypography();
+  // v2: el home tiene que tener SU h1. Hoy sólo existe si el hero pinta título
+  // (Hero.tsx); con un hero "sólo imagen", sin título o apagado, la página no
+  // tenía h1 (malo para buscadores y lectores de pantalla). Va oculto a la
+  // vista: no cambia nada de lo que se ve.
+  const heroHasH1 = config.heroEnabled && config.heroMode !== 'image_only' && Boolean(config.heroTitle);
   const { products, isLoading } = useProducts();
   const { sections: customSections, isLoading: customLoading } = useCustomSections();
   // Las tres secciones de productos, COMPLETAS (sin cortar). El corte lo hace
@@ -235,6 +242,7 @@ export function Home() {
         siteName={config.name}
         path="/"
       />
+      {typoVersion === 'v2' && !heroHasH1 && <h1 className="sr-only">{config.name}</h1>}
       {/* Banner de promoción de tienda completa (scope 'all'), arriba del contenido. */}
       <PromoBannerAuto />
       {orderedKeys.map((key) => {

@@ -3,6 +3,7 @@ import { useStore } from '@/context/StoreProvider';
 import { useCoupon } from '@/context/CouponContext';
 import { subscribeNewsletter } from '@/lib/newsletter';
 import { contrastColor, rgba, safeFill, safeText } from '@/lib/theme';
+import { useTypography } from '@/hooks/useTypography';
 
 // Foco visible sobre el color primario (el outline del navegador no se ve sobre
 // fondos oscuros). Repetido en cada control interactivo de la sección.
@@ -16,6 +17,7 @@ const FOCUS_RING =
  */
 export function NewsletterSection() {
   const config = useStore();
+  const { ty } = useTypography();
   const { title, subtitle, buttonText, successMessage } = config.newsletterConfig;
   const alignClass =
     config.sectionTitleAlign === 'center' ? 'text-center' : config.sectionTitleAlign === 'right' ? 'text-right' : 'text-left';
@@ -74,8 +76,8 @@ export function NewsletterSection() {
     <section className="bg-primary text-[var(--color-on-primary)]">
       <div className={`mx-auto max-w-2xl px-4 py-10 md:py-16 ${alignClass}`}>
         {/* Vaciados desde el editor → no se pintan (ni ellos ni su margen). */}
-        {title && <h2>{title}</h2>}
-        {subtitle && <p className={`text-sm opacity-80 ${title ? 'mt-2' : ''}`}>{subtitle}</p>}
+        {title && <h2 className={ty('', 'section-title') || undefined}>{title}</h2>}
+        {subtitle && <p className={ty(`text-sm opacity-80 ${title ? 'mt-2' : ''}`, 'lead', `opacity-80 ${title ? 'mt-2' : ''}`)}>{subtitle}</p>}
 
         {status === 'done' ? (
           <div className="mt-6" role="status" aria-live="polite">
@@ -94,7 +96,7 @@ export function NewsletterSection() {
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
                 </button>
-                <p className="mt-1 text-[calc(11px_*_var(--font-scale,1))] opacity-60">
+                <p className={ty('mt-1 text-[calc(11px_*_var(--font-scale,1))] opacity-60', 'caption', 'mt-1 opacity-60')}>
                   {copied ? '¡Copiado!' : 'Ya te lo guardamos — lo vas a ver aplicable cuando compres.'}
                 </p>
               </div>
@@ -117,7 +119,7 @@ export function NewsletterSection() {
                 placeholder="Tu email"
                 aria-label="Tu email"
                 style={{ borderColor: fieldBorder }}
-                className={`field-on-primary flex-1 border bg-transparent px-4 py-3 text-sm outline-none ${FOCUS_RING}`}
+                className={ty(`field-on-primary flex-1 border bg-transparent px-4 py-3 text-sm outline-none ${FOCUS_RING}`, 'input', `field-on-primary flex-1 border bg-transparent px-4 py-3 outline-none ${FOCUS_RING}`)}
               />
               <button
                 type="submit"
@@ -138,7 +140,7 @@ export function NewsletterSection() {
                 aria-label="Tu nombre"
                 autoFocus
                 style={{ borderColor: fieldBorder }}
-                className={`field-on-primary mt-2 w-full border bg-transparent px-4 py-3 text-sm outline-none ${FOCUS_RING}`}
+                className={ty(`field-on-primary mt-2 w-full border bg-transparent px-4 py-3 text-sm outline-none ${FOCUS_RING}`, 'input', `field-on-primary mt-2 w-full border bg-transparent px-4 py-3 outline-none ${FOCUS_RING}`)}
               />
             ) : (
               <button
@@ -150,7 +152,7 @@ export function NewsletterSection() {
               </button>
             )}
 
-            <p className="mt-3 text-[calc(12px_*_var(--font-scale,1))] opacity-60">
+            <p className={ty('mt-3 text-[calc(12px_*_var(--font-scale,1))] opacity-60', 'caption', 'mt-3 opacity-60')}>
               Sin spam. Te escribimos solo cuando hay novedades o descuentos.
             </p>
           </div>

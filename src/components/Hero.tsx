@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
+import { useTypography } from '@/hooks/useTypography';
 import { useBanners } from '@/hooks/useBanners';
 import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { transformedSrc } from '@/lib/images';
@@ -81,6 +82,7 @@ function useIsMobile(): boolean {
 
 export function Hero() {
   const config = useStore();
+  const { ty } = useTypography();
   const { banners, isLoading } = useBanners();
   const isMobile = useIsMobile();
   const [idx, setIdx] = useState(0);
@@ -219,11 +221,11 @@ export function Hero() {
     return (
       <section className="relative bg-primary text-[var(--color-on-primary)]">
         <div className="mx-auto max-w-none px-6 py-24 md:px-12 md:py-40">
-          <h1 className="max-w-3xl font-heading text-[calc(44px_*_var(--font-scale,1))] font-extrabold uppercase leading-[1] tracking-[-0.5px] md:text-[calc(88px_*_var(--font-scale,1))]">
+          <h1 className={ty('max-w-3xl font-heading text-[calc(44px_*_var(--font-scale,1))] font-extrabold uppercase leading-[1] tracking-[-0.5px] md:text-[calc(88px_*_var(--font-scale,1))]', 'display', 'max-w-3xl')}>
             {config.heroTitle}
           </h1>
           {config.heroSubtitle && (
-            <p className="mt-6 max-w-md text-[calc(15px_*_var(--font-scale,1))] text-[var(--color-on-primary)]/75 md:text-[calc(17px_*_var(--font-scale,1))]">
+            <p className={ty('mt-6 max-w-md text-[calc(15px_*_var(--font-scale,1))] text-[var(--color-on-primary)]/75 md:text-[calc(17px_*_var(--font-scale,1))]', 'lead', 'mt-6 max-w-md text-[var(--color-on-primary)]/75')}>
               {config.heroSubtitle}
             </p>
           )}
@@ -295,12 +297,12 @@ export function Hero() {
           {showText && (
             <div className="mb-5 max-w-2xl text-white">
               {config.heroTitle && (
-                <h1 className="font-heading text-[calc(36px_*_var(--font-scale,1))] font-extrabold uppercase leading-[1.02] tracking-[-0.5px] drop-shadow md:text-[calc(64px_*_var(--font-scale,1))]">
+                <h1 className={ty('font-heading text-[calc(36px_*_var(--font-scale,1))] font-extrabold uppercase leading-[1.02] tracking-[-0.5px] drop-shadow md:text-[calc(64px_*_var(--font-scale,1))]', 'hero-overlay', 'drop-shadow')}>
                   {config.heroTitle}
                 </h1>
               )}
               {config.heroSubtitle && (
-                <p className="mt-3 max-w-xl text-[calc(14px_*_var(--font-scale,1))] text-white/85 md:text-[calc(17px_*_var(--font-scale,1))]">{config.heroSubtitle}</p>
+                <p className={ty('mt-3 max-w-xl text-[calc(14px_*_var(--font-scale,1))] text-white/85 md:text-[calc(17px_*_var(--font-scale,1))]', 'lead', 'mt-3 max-w-xl text-white/85')}>{config.heroSubtitle}</p>
               )}
             </div>
           )}

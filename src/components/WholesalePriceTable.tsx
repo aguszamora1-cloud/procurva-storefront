@@ -1,6 +1,7 @@
 import { formatPrice } from '@/lib/utils';
 import { combinedPriceRows, curvaSurtidaRows } from '@/lib/packs';
 import type { CurvePriceTier, ProductPack } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 /**
  * Tabla de precios escalonados mayoristas: "Por talle" (wholesale_price) + una fila
@@ -29,6 +30,7 @@ export function WholesalePriceTable({
 }) {
   const rows = combinedPriceRows(wholesalePrice, tiers, packs);
   const surtidaRows = curvaSurtidaTiers?.length ? curvaSurtidaRows(curvaSurtidaTiers) : [];
+  const { ty } = useTypography();
   if (wholesalePrice <= 0 && rows.length <= 1 && surtidaRows.length === 0) {
     return <p className="text-[calc(15px_*_var(--font-scale,1))] font-semibold text-subtle">Consultar precio</p>;
   }
@@ -51,7 +53,7 @@ export function WholesalePriceTable({
             >
               <span className="flex flex-col leading-tight">
                 <span className="text-[calc(13px_*_var(--font-scale,1))] font-semibold text-on-surface">{r.label}</span>
-                <span className="text-[calc(9px_*_var(--font-scale,1))] font-semibold uppercase tracking-[0.3px] text-subtle">Mejor precio</span>
+                <span className={ty('text-[calc(9px_*_var(--font-scale,1))] font-semibold uppercase tracking-[0.3px] text-subtle', 'badge', 'uppercase text-subtle')}>Mejor precio</span>
               </span>
               <span className="flex items-baseline gap-1.5">
                 {onPromo && <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle line-through tabular-nums">{formatPrice(r.price)}</span>}

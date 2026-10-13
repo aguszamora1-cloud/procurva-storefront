@@ -1,5 +1,6 @@
 import { sanitizeBasicHtml } from '@/lib/sanitizeHtml';
 import type { CustomSection, CustomSectionTextContent, CustomSectionVariant } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 /** Sección custom de texto: título + cuerpo HTML sanitizado, con alineación y fondo. */
 export function CustomTextSection({
@@ -10,6 +11,7 @@ export function CustomTextSection({
   variant?: CustomSectionVariant;
 }) {
   const c = section.content as CustomSectionTextContent;
+  const { ty } = useTypography();
   const heading = (c.heading || '').trim();
   const body = sanitizeBasicHtml(c.body || '');
   if (!heading && !body) return null;
@@ -32,18 +34,24 @@ export function CustomTextSection({
       <div className={padding} style={{ textAlign: align }}>
         {heading ? (
           <h2
-            className={
-              inColumn ? 'text-[calc(15px_*_var(--font-scale,1))] font-semibold mb-2 text-text' : 'text-2xl md:text-3xl font-semibold tracking-tight mb-4'
-            }
+            className={ty(
+              inColumn ? 'text-[calc(15px_*_var(--font-scale,1))] font-semibold mb-2 text-text' : 'text-2xl md:text-3xl font-semibold tracking-tight mb-4',
+              inColumn ? 'block-title' : 'section-title',
+              inColumn ? 'mb-2 text-text' : 'mb-4',
+            )}
           >
             {heading}
           </h2>
         ) : null}
         {body ? (
           <div
-            className={`${
-              inColumn ? 'text-[calc(14px_*_var(--font-scale,1))] leading-relaxed text-muted' : 'text-base leading-relaxed'
-            } [&_a]:underline [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5`}
+            className={ty(
+              `${
+                inColumn ? 'text-[calc(14px_*_var(--font-scale,1))] leading-relaxed text-muted' : 'text-base leading-relaxed'
+              } [&_a]:underline [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5`,
+              inColumn ? 'body-sm' : 'body',
+              `${inColumn ? 'text-muted' : ''} [&_a]:underline [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5`,
+            )}
             dangerouslySetInnerHTML={{ __html: body }}
           />
         ) : null}

@@ -2,6 +2,7 @@ import type { Product } from '@/lib/types';
 import { ProductCard } from '@/components/ProductCard';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useRelatedProducts } from '@/hooks/useRelatedProducts';
+import { useTypography } from '@/hooks/useTypography';
 
 /**
  * "Productos relacionados" en el detalle de producto (sección upsell del admin).
@@ -12,6 +13,7 @@ export function RelatedProducts({ product, variant = 'section' }: { product: Pro
   // precio y el botón de comprar fuera de la pantalla, que es lo contrario de
   // lo que la sección busca.
   const column = variant === 'column';
+  const { ty } = useTypography();
   const { related } = useRelatedProducts(product, column ? 2 : 4);
   if (related.length < 2) return null;
 
@@ -21,7 +23,7 @@ export function RelatedProducts({ product, variant = 'section' }: { product: Pro
   if (column) {
     return (
       <section>
-        <p className="mb-3 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted">También te puede gustar</p>
+        <p className={ty('mb-3 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted', 'block-title', 'mb-3 text-text')}>También te puede gustar</p>
         <div className="grid grid-cols-2 gap-2">
           {related.map((p) => (
             <ProductCard key={p.id} product={p} />

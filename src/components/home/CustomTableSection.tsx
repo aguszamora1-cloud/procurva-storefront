@@ -1,5 +1,6 @@
 import { SectionHeader } from '@/components/SectionHeader';
 import type { CustomSection, CustomSectionTableContent, CustomSectionVariant } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 /**
  * Tabla simple: medidas por talle, comparativa entre modelos. Todo texto plano
@@ -17,6 +18,7 @@ export function CustomTableSection({
   variant?: CustomSectionVariant;
 }) {
   const c = section.content as CustomSectionTableContent;
+  const { ty } = useTypography();
   const columns = (c.columns || []).map((h) => String(h ?? '').trim()).slice(0, 8);
   const rows = (c.rows || [])
     .filter((r) => Array.isArray(r) && r.some((cell) => String(cell ?? '').trim()))
@@ -35,7 +37,7 @@ export function CustomTableSection({
         {heading &&
           (inColumn ? (
             <div className="mb-3">
-              <h2 className="text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">{heading}</h2>
+              <h2 className={ty('text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text', 'block-title', 'text-text')}>{heading}</h2>
               {subheading && <p className="mt-1 text-[calc(13px_*_var(--font-scale,1))] text-muted">{subheading}</p>}
             </div>
           ) : (
@@ -75,7 +77,7 @@ export function CustomTableSection({
           </table>
         </div>
 
-        {note && <p className={`mt-2 text-muted ${inColumn ? 'text-[12px]' : 'text-[calc(12.5px_*_var(--font-scale,1))]'}`}>{note}</p>}
+        {note && <p className={ty(`mt-2 text-muted ${inColumn ? 'text-[12px]' : 'text-[calc(12.5px_*_var(--font-scale,1))]'}`, 'caption', 'mt-2 text-muted')}>{note}</p>}
       </div>
     </section>
   );

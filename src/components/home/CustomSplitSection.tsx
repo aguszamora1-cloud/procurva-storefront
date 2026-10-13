@@ -1,6 +1,7 @@
 import { SectionLink } from '@/components/SectionLink';
 import { sanitizeBasicHtml } from '@/lib/sanitizeHtml';
 import type { CustomSection, CustomSectionSplitContent } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 /**
  * Imagen y texto lado a lado: el bloque de "Sobre nosotros", "Cómo comprar" o
@@ -11,6 +12,7 @@ import type { CustomSection, CustomSectionSplitContent } from '@/lib/types';
  * no hay dos columnas, y dejar el texto arriba empujaría la foto abajo del fold.
  */
 export function CustomSplitSection({ section }: { section: CustomSection }) {
+  const { ty } = useTypography();
   const c = section.content as CustomSectionSplitContent;
   const heading = (c.heading || '').trim();
   const body = sanitizeBasicHtml(c.body || '');
@@ -33,13 +35,13 @@ export function CustomSplitSection({ section }: { section: CustomSection }) {
         )}
         <div className={`flex flex-col gap-4 ${imageRight ? 'md:order-1' : 'md:order-2'}`}>
           {heading && (
-            <h2 className="font-heading text-[calc(24px_*_var(--font-scale,1))] font-semibold uppercase leading-[1.1] tracking-[1px] md:text-[calc(34px_*_var(--font-scale,1))]">
+            <h2 className={ty('font-heading text-[calc(24px_*_var(--font-scale,1))] font-semibold uppercase leading-[1.1] tracking-[1px] md:text-[calc(34px_*_var(--font-scale,1))]', 'section-title')}>
               {heading}
             </h2>
           )}
           {body && (
             <div
-              className="text-[calc(14px_*_var(--font-scale,1))] leading-relaxed opacity-80 md:text-[calc(15px_*_var(--font-scale,1))] [&_a]:underline [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+              className={ty('text-[calc(14px_*_var(--font-scale,1))] leading-relaxed opacity-80 md:text-[calc(15px_*_var(--font-scale,1))] [&_a]:underline [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5', 'lead', 'opacity-80 [&_a]:underline [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5')}
               dangerouslySetInnerHTML={{ __html: body }}
             />
           )}

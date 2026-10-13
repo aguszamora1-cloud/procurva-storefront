@@ -5,6 +5,7 @@ import { useStore } from '@/context/StoreProvider';
 import { sanitizeBasicHtml } from '@/lib/sanitizeHtml';
 import { whatsappLink } from '@/lib/utils';
 import type { CustomSection, CustomSectionFaqContent, CustomSectionVariant } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 /**
  * Preguntas frecuentes en acordeón. Las políticas de envío/cambios/pagos ya
@@ -30,6 +31,7 @@ export function CustomFaqSection({
   variant?: CustomSectionVariant;
 }) {
   const c = section.content as CustomSectionFaqContent;
+  const { ty } = useTypography();
   const config = useStore();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -65,7 +67,7 @@ export function CustomFaqSection({
         {heading &&
           (inColumn ? (
             <div className="mb-3">
-              <h2 className="text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">{heading}</h2>
+              <h2 className={ty('text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text', 'block-title', 'text-text')}>{heading}</h2>
               {subheading && <p className="mt-1 text-[calc(13px_*_var(--font-scale,1))] text-muted">{subheading}</p>}
             </div>
           ) : (
@@ -142,7 +144,7 @@ export function CustomFaqSection({
             <p className={`font-semibold text-text ${inColumn ? 'text-[13.5px]' : 'text-[calc(14px_*_var(--font-scale,1))]'}`}>
               {(c.contact_title || '').trim() || '¿Te quedó alguna duda?'}
             </p>
-            <p className={`mt-1 text-muted ${inColumn ? 'text-[12.5px]' : 'text-[calc(13px_*_var(--font-scale,1))]'}`}>
+            <p className={ty(`mt-1 text-muted ${inColumn ? 'text-[12.5px]' : 'text-[calc(13px_*_var(--font-scale,1))]'}`, 'body-sm', 'mt-1 text-muted')}>
               {(c.contact_description || '').trim() || 'Escribinos y te respondemos a la brevedad.'}
             </p>
             <a

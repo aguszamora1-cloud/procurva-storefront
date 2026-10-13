@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
+import { useTypography } from '@/hooks/useTypography';
 
 interface Props {
   label?: string;
@@ -16,6 +17,7 @@ const SUBTITLE_ALIGN = { left: '', center: 'mx-auto', right: 'ml-auto' } as cons
 
 export function SectionHeader({ label, title, subtitle, linkTo, linkText }: Props) {
   const { sectionTitleAlign: align } = useStore();
+  const { ty } = useTypography();
 
   // Sin titular no se pinta NADA del bloque de texto: si el comercio borró el
   // título desde el editor, la volanta ("Explorá", "Lo más buscado") queda
@@ -25,7 +27,7 @@ export function SectionHeader({ label, title, subtitle, linkTo, linkText }: Prop
 
   const titleBlock = hasTitle ? (
     <div className={`w-full ${TEXT_ALIGN[align]}`}>
-      {label && <p className="mb-2 text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[2px] text-accent">{label}</p>}
+      {label && <p className={ty('mb-2 text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[2px] text-accent', 'eyebrow', 'mb-2 text-accent')}>{label}</p>}
       {/* Tamaño FLUIDO en mobile: "PRODUCTOS DESTACADOS" a 26px fijos mide casi
           exactamente el ancho útil de un teléfono de 390px (342px con el px-6 de
           la sección), así que caía en dos renglones. Con clamp() el titular se
@@ -33,11 +35,11 @@ export function SectionHeader({ label, title, subtitle, linkTo, linkText }: Prop
           para arriba queda en los mismos 26px de siempre y en desktop manda el
           md:text-[calc(40px_*_var(--font-scale,1))]. No se usa `whitespace-nowrap`: un titular muy largo
           tiene que poder cortar en dos renglones antes que desbordarse. */}
-      <h2 className="font-heading text-[clamp(19px,5.9vw,26px)] font-semibold uppercase leading-[1.05] tracking-[1px] text-text md:text-[calc(40px_*_var(--font-scale,1))]">
+      <h2 className={ty('font-heading text-[clamp(19px,5.9vw,26px)] font-semibold uppercase leading-[1.05] tracking-[1px] text-text md:text-[calc(40px_*_var(--font-scale,1))]', 'section-title', 'text-text')}>
         {title}
       </h2>
       {subtitle && (
-        <p className={`mt-3 max-w-xl text-[calc(14px_*_var(--font-scale,1))] text-muted md:text-[calc(15px_*_var(--font-scale,1))] ${SUBTITLE_ALIGN[align]}`}>{subtitle}</p>
+        <p className={ty(`mt-3 max-w-xl text-[calc(14px_*_var(--font-scale,1))] text-muted md:text-[calc(15px_*_var(--font-scale,1))] ${SUBTITLE_ALIGN[align]}`, 'lead', `mt-3 max-w-xl text-muted ${SUBTITLE_ALIGN[align]}`)}>{subtitle}</p>
       )}
     </div>
   ) : null;

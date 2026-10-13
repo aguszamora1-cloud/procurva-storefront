@@ -7,6 +7,7 @@ import { formatPrice, mainImage, resolvePricePair } from '@/lib/utils';
 import { outfitImages, outfitPricing, outfitsContaining } from '@/lib/outfits';
 import type { Product } from '@/lib/types';
 import type { OutfitWithProducts } from '@/hooks/useOutfits';
+import { useTypography } from '@/hooks/useTypography';
 
 interface Props {
   /** Producto de la ficha. */
@@ -22,6 +23,7 @@ interface Props {
  * ningún outfit. Enlaza a las prendas del look (el producto actual va marcado).
  */
 export function OutfitForProductBlock({ product, className }: Props) {
+  const { ty } = useTypography();
   const config = useStore();
   const { outfits, isLoading } = useOutfits();
   const block = config.complementaryBlock;
@@ -95,9 +97,9 @@ export function OutfitForProductBlock({ product, className }: Props) {
             <div className="h-16 w-14 flex-shrink-0 rounded-lg bg-secondary" />
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-[calc(12px_*_var(--font-scale,1))] font-semibold text-subtle">Es parte de un look</p>
+            <p className={ty('text-[calc(12px_*_var(--font-scale,1))] font-semibold text-subtle', 'label', 'text-subtle')}>Es parte de un look</p>
             <p className="truncate text-sm font-semibold text-text">{outfit.name}</p>
-            <p className="text-[calc(11px_*_var(--font-scale,1))] text-subtle">{outfit.products.length} prendas</p>
+            <p className={ty('text-[calc(11px_*_var(--font-scale,1))] text-subtle', 'caption', 'text-subtle')}>{outfit.products.length} prendas</p>
             <div className="mt-1">{priceEl}</div>
           </div>
         </div>
@@ -125,7 +127,7 @@ export function OutfitForProductBlock({ product, className }: Props) {
         </div>
       )}
       <div className="p-4">
-        <p className="text-[calc(12px_*_var(--font-scale,1))] font-semibold text-subtle">Es parte de un look</p>
+        <p className={ty('text-[calc(12px_*_var(--font-scale,1))] font-semibold text-subtle', 'label', 'text-subtle')}>Es parte de un look</p>
         <h3 className="mb-1 font-heading text-lg font-semibold text-text">{outfit.name}</h3>
         {outfit.description && <p className="mb-2 text-xs text-subtle">{outfit.description}</p>}
         <div className="mb-3">{priceEl}</div>

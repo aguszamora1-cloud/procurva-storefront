@@ -11,6 +11,7 @@ import { StoreImage } from './StoreImage';
 import { CardBadge } from './CardBadge';
 import { RatingLine } from './RatingLine';
 import { colorToHex, mainImage } from '@/lib/utils';
+import { useTypography } from '@/hooks/useTypography';
 
 // Clases del contenedor de badges según la esquina elegida. En las esquinas
 // inferiores se apila hacia arriba (flex-col-reverse) para no desbordar la card.
@@ -23,6 +24,7 @@ const BADGE_POSITION_CLASSES: Record<'top-left' | 'top-right' | 'bottom-left' | 
 };
 
 export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
+  const { ty } = useTypography();
   const image = mainImage(product);
   // Virtual card por color: el link al detalle pre-selecciona ese color.
   const detailHref = product.variant_color
@@ -91,7 +93,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
       {/* Contenido */}
       <div className="flex flex-1 flex-col p-2.5 md:p-4">
         <Link to={detailHref} className="block">
-          <h3 className="mb-1.5 text-[calc(15px_*_var(--font-scale,1))] font-bold uppercase leading-[1.3] tracking-[0.02em] text-on-surface transition-colors group-hover:text-accent">
+          <h3 className={ty('mb-1.5 text-[calc(15px_*_var(--font-scale,1))] font-bold uppercase leading-[1.3] tracking-[0.02em] text-on-surface transition-colors group-hover:text-accent', 'card-title', 'mb-1.5 text-on-surface transition-colors group-hover:text-accent')}>
             {product.name}
           </h3>
           {/* Reseñas verificadas (Extra PRO). Se autooculta sin reseñas. */}
@@ -137,7 +139,7 @@ export function ProductCard({ product, priority = false }: { product: Product; p
               />
             ))}
           {siblingColors.length > 5 && (
-            <span className="text-[calc(11px_*_var(--font-scale,1))] text-subtle">+{siblingColors.length - 5}</span>
+            <span className={ty('text-[calc(11px_*_var(--font-scale,1))] text-subtle', 'caption', 'text-subtle')}>+{siblingColors.length - 5}</span>
           )}
         </div>
 

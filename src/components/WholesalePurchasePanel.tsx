@@ -28,6 +28,7 @@ import {
 } from '@/lib/packs';
 import { applyPromoToPrice, type Promotion } from '@/lib/promotions';
 import type { CartItem, Product } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 type PanelTab = 'sueltos' | 'curva' | 'surtida' | 'pack';
 
@@ -52,6 +53,12 @@ export function WholesalePurchasePanel({
   onColorChange?: (color: string | null) => void;
 }) {
   const { addItem, close } = useCart();
+  // v2: el precio mayorista con la misma presencia que el minorista de la ficha
+  // (PriceHierarchy 'detail': 30-34px, 800). Mismo color que ya tenía (texto,
+  // o accent con promo): sólo cambia tamaño, peso y números de ancho fijo.
+  const { version: typoVersion } = useTypography();
+  const v2Price = typoVersion === 'v2';
+  const V2_PRICE = 'text-[calc(28px_*_var(--font-scale,1))] md:text-[calc(32px_*_var(--font-scale,1))] font-extrabold leading-none tracking-[-0.02em] tabular-nums';
   const { curveTiers, curvaSurtidaTiers, curveDistributions, productPacks } = useWholesalePricing();
   const navigate = useNavigate();
 
@@ -445,7 +452,7 @@ export function WholesalePurchasePanel({
                 {promo && d(wholesalePrice) < wholesalePrice && (
                   <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-subtle line-through">{formatPrice(wholesalePrice)}</span>
                 )}
-                <span className={`text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(wholesalePrice))}</span>
+                <span className={v2Price ? `${V2_PRICE} ${promo ? 'text-accent' : 'text-text'}` : `text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(wholesalePrice))}</span>
                 <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-subtle">c/u</span>
               </p>
             </div>
@@ -507,7 +514,7 @@ export function WholesalePurchasePanel({
                       {promo && d(tier.price_per_unit) < tier.price_per_unit && (
                         <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-subtle line-through">{formatPrice(tier.price_per_unit)}</span>
                       )}
-                      <span className={`text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(tier.price_per_unit))}</span>
+                      <span className={v2Price ? `${V2_PRICE} ${promo ? 'text-accent' : 'text-text'}` : `text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(tier.price_per_unit))}</span>
                       <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-subtle">c/u</span>
                     </span>
                   </button>
@@ -552,7 +559,7 @@ export function WholesalePurchasePanel({
                         {promo && d(lastTier.price_per_unit) < lastTier.price_per_unit && (
                           <span className="text-[calc(14px_*_var(--font-scale,1))] font-medium text-subtle line-through">{formatPrice(lastTier.price_per_unit)}</span>
                         )}
-                        <span className={`text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(lastTier.price_per_unit))}</span>
+                        <span className={v2Price ? `${V2_PRICE} ${promo ? 'text-accent' : 'text-text'}` : `text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none ${promo ? 'text-accent' : 'text-text'}`}>{formatPrice(d(lastTier.price_per_unit))}</span>
                         <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-subtle">c/u</span>
                       </span>
                     </div>
@@ -583,7 +590,7 @@ export function WholesalePurchasePanel({
               </span>
               <div className="text-right">
                 <p className="text-[calc(13px_*_var(--font-scale,1))] font-medium leading-none text-subtle">Total</p>
-                <p className="mt-1 text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none text-text">{formatPrice(totalCurvaUnits * d(activeTierPrice))}</p>
+                <p className={v2Price ? `mt-1 ${V2_PRICE} text-text` : 'mt-1 text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none text-text'}>{formatPrice(totalCurvaUnits * d(activeTierPrice))}</p>
                 <p className="mt-1.5 flex items-baseline justify-end gap-1">
                   {promo && d(activeTierPrice) < activeTierPrice && (
                     <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle line-through">{formatPrice(activeTierPrice)}</span>
@@ -641,7 +648,7 @@ export function WholesalePurchasePanel({
               </span>
               <div className="text-right">
                 <p className="text-[calc(13px_*_var(--font-scale,1))] font-medium leading-none text-subtle">Total estimado</p>
-                <p className="mt-1 text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none text-text">{formatPrice(surtidaUnits * d(surtidaPrice))}</p>
+                <p className={v2Price ? `mt-1 ${V2_PRICE} text-text` : 'mt-1 text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none text-text'}>{formatPrice(surtidaUnits * d(surtidaPrice))}</p>
                 <p className="mt-1.5 flex items-baseline justify-end gap-1">
                   {promo && d(surtidaPrice) < surtidaPrice && (
                     <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle line-through">{formatPrice(surtidaPrice)}</span>
@@ -765,7 +772,7 @@ export function WholesalePurchasePanel({
             </span>
             <div className="text-right">
               <p className="text-[calc(13px_*_var(--font-scale,1))] font-medium leading-none text-subtle">Total</p>
-              <p className="mt-1 text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none text-text">{formatPrice(packTotalUnits * d(packUnitPrice))}</p>
+              <p className={v2Price ? `mt-1 ${V2_PRICE} text-text` : 'mt-1 text-[calc(26px_*_var(--font-scale,1))] font-bold leading-none text-text'}>{formatPrice(packTotalUnits * d(packUnitPrice))}</p>
               <p className="mt-1.5 flex items-baseline justify-end gap-1">
                 {promo && d(packUnitPrice) < packUnitPrice && (
                   <span className="text-[calc(12px_*_var(--font-scale,1))] font-medium text-subtle line-through">{formatPrice(packUnitPrice)}</span>

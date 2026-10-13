@@ -49,6 +49,7 @@ import {
   type ProductLayout,
 } from '@/lib/productLayout';
 import type { CustomSection, Product, ProductDetailSlot, StoreConfig, Variant } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 /**
  * Grupos visuales de la columna derecha. Los tokens de un mismo grupo que queden
@@ -173,6 +174,7 @@ function viewersFromId(id: string): number {
 }
 
 export function ProductDetail() {
+  const { ty, version: typoVersion } = useTypography();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const { product, isLoading, error } = useProduct(id);
@@ -966,7 +968,7 @@ export function ProductDetail() {
               ))}
             </div>
           )}
-          <h1 className="font-heading text-[calc(26px_*_var(--font-scale,1))] font-bold leading-[1.15] tracking-[-0.02em] text-text md:text-[calc(32px_*_var(--font-scale,1))]">
+          <h1 className={ty('font-heading text-[calc(26px_*_var(--font-scale,1))] font-bold leading-[1.15] tracking-[-0.02em] text-text md:text-[calc(32px_*_var(--font-scale,1))]', 'product-title', 'text-text')}>
             {product.name}
           </h1>
 
@@ -1052,8 +1054,8 @@ export function ProductDetail() {
 
           {product.description && (
             <div className="border-t border-line pt-6">
-              <p className="mb-2 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted">Descripción</p>
-              <p className="whitespace-pre-line text-[calc(14px_*_var(--font-scale,1))] leading-relaxed text-muted">{product.description}</p>
+              <p className={ty('mb-2 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-muted', 'block-title', 'mb-2 text-text')}>Descripción</p>
+              <p className={ty('whitespace-pre-line text-[calc(14px_*_var(--font-scale,1))] leading-relaxed text-muted', 'body', 'whitespace-pre-line text-text')}>{product.description}</p>
             </div>
           )}
 
@@ -1103,24 +1105,24 @@ export function ProductDetail() {
           <div className="min-w-0 flex-1">
             {/* Contado protagonista + tarjeta chica al lado (si hay descuento de contado). */}
             <p className="flex flex-wrap items-baseline gap-x-1.5 leading-none">
-              <span className="text-[calc(18px_*_var(--font-scale,1))] font-extrabold text-accent">
+              <span className={typoVersion === 'v2' ? 'text-[calc(18px_*_var(--font-scale,1))] font-extrabold tabular-nums text-accent' : 'text-[calc(18px_*_var(--font-scale,1))] font-extrabold text-accent'}>
                 {formatPrice(finalCash != null && finalCash < displayPrice ? finalCash : displayPrice)}
               </span>
               {finalCash != null && finalCash < displayPrice && (
-                <span className="text-[calc(11px_*_var(--font-scale,1))] font-medium text-subtle">{formatPrice(displayPrice)} tarjeta</span>
+                <span className={ty('text-[calc(11px_*_var(--font-scale,1))] font-medium text-subtle', 'caption', 'text-subtle')}>{formatPrice(displayPrice)} tarjeta</span>
               )}
             </p>
             {inTierMode ? (
               // Cuando las N unidades comparten variante la barra puede nombrarla
               // de verdad en vez de quedarse en "Lleva N". Con las filas por unidad
               // y variantes distintas no hay una variante que nombrar: "surtido".
-              <p className="mt-0.5 truncate text-[calc(11px_*_var(--font-scale,1))] text-subtle">
+              <p className={ty('mt-0.5 truncate text-[calc(11px_*_var(--font-scale,1))] text-subtle', 'caption', 'mt-0.5 truncate text-subtle')}>
                 Lleva {tierUnits}
                 {tierVariantLabel ? ` · ${tierVariantLabel}` : ''}
               </p>
             ) : (
               (selectedColor || selectedSize) && (
-                <p className="mt-0.5 truncate text-[calc(11px_*_var(--font-scale,1))] text-subtle">{[selectedColor, selectedSize].filter(Boolean).join(' · ')}</p>
+                <p className={ty('mt-0.5 truncate text-[calc(11px_*_var(--font-scale,1))] text-subtle', 'caption', 'mt-0.5 truncate text-subtle')}>{[selectedColor, selectedSize].filter(Boolean).join(' · ')}</p>
               )
             )}
           </div>

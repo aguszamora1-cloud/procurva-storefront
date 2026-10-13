@@ -9,6 +9,7 @@ import { useFreeShippingProducts } from '@/hooks/useFreeShippingProducts';
 import { effectiveShippingCost, etaBadgeColors, evalFreeShipping, fetchShippingOptions, hasOwnZoneCoverage, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption } from '@/lib/shipping';
 import { SHIPPING_ICONS } from '@/lib/shippingIcons';
 import { FeaturedShippingTag } from '@/components/FeaturedShippingTag';
+import { useTypography } from '@/hooks/useTypography';
 
 type Status = 'idle' | 'loading' | 'done' | 'empty' | 'error';
 
@@ -21,6 +22,7 @@ type Status = 'idle' | 'loading' | 'done' | 'empty' | 'error';
  * está en el carrito): es el envío que pagaría si lo suma y va a comprar.
  */
 export function ShippingCalculator({ productId }: { productId?: string } = {}) {
+  const { ty } = useTypography();
   const config = useStore();
   const { items } = useCart();
   const [cp, setCp] = useState('');
@@ -94,7 +96,7 @@ export function ShippingCalculator({ productId }: { productId?: string } = {}) {
 
   return (
     <div className="border-t border-line pt-6">
-      <p className="mb-2 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-subtle">Calculá tu envío</p>
+      <p className={ty('mb-2 text-[calc(13px_*_var(--font-scale,1))] font-semibold text-subtle', 'block-title', 'mb-2 text-text')}>Calculá tu envío</p>
 
       {/* La promo se anuncia acá, con el precio del producto a la vista: es
           donde el cliente todavía puede decidir sumar algo más al carrito. */}

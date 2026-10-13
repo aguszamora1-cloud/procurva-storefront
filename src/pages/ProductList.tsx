@@ -17,6 +17,7 @@ import { Seo } from '@/components/Seo';
 // el que se ve sería una trampa (buscás "hasta $20.000" y no aparece un producto
 // cuyo S sale $18.000).
 import { availableColors, availableSizes, listPriceInfo, productCategories, sortSizes } from '@/lib/utils';
+import { useTypography } from '@/hooks/useTypography';
 
 /** Helper para togglear un valor dentro de un Set en el estado. */
 const toggleInSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>) => (value: string) =>
@@ -98,6 +99,7 @@ const SECTION_VIEWS: Record<HomeSectionKey, { label: string; title: string; note
 export function ProductList() {
   const { products, isLoading, error, reload } = useProducts();
   const config = useStore();
+  const { ty } = useTypography();
   const { categories, isLoading: categoriesLoading } = useCategories(products);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -333,10 +335,10 @@ export function ProductList() {
         siteName={config.name}
       />
       <header className="mb-8">
-        <p className="mb-2 text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[2px] text-accent">
+        <p className={ty('mb-2 text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[2px] text-accent', 'eyebrow', 'mb-2 text-accent')}>
           {query ? 'Búsqueda' : sectionView ? sectionView.label : 'Catálogo'}
         </p>
-        <h1 className="font-heading text-[calc(32px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(44px_*_var(--font-scale,1))]">
+        <h1 className={ty('font-heading text-[calc(32px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1px] text-text md:text-[calc(44px_*_var(--font-scale,1))]', 'page-title', 'text-text')}>
           {query ? <>Resultados para “{query}”</> : sectionView ? sectionView.title : 'Todos los productos'}
         </h1>
         {/* Sin búsqueda activa: aclaramos qué es esta vista. Para Destacados y
@@ -401,7 +403,7 @@ export function ProductList() {
               <select
                 value={orden}
                 onChange={(e) => setOrden(e.target.value)}
-                className="rounded-md border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] font-medium text-on-surface focus:border-accent focus:outline-none"
+                className={ty('rounded-md border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] font-medium text-on-surface focus:border-accent focus:outline-none', 'input', 'rounded-md border border-line bg-background px-3 py-2 text-on-surface focus:border-accent focus:outline-none')}
               >
                 {/* Sólo cuando se llega desde una sección: es el orden con el
                     que abrió la vista y tiene que poder recuperarse. */}

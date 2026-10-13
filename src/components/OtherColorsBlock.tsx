@@ -13,6 +13,7 @@ import {
   type WholesaleData,
 } from '@/lib/complementarios';
 import type { Product } from '@/lib/types';
+import { useTypography } from '@/hooks/useTypography';
 
 interface Props {
   /** Producto principal de la ficha. */
@@ -32,6 +33,7 @@ interface Props {
  * `mostrar_otros_colores` (solo mayorista) desde el componente padre.
  */
 export function OtherColorsBlock({ product, selectedColor, className }: Props) {
+  const { ty } = useTypography();
   const { addItem } = useCart();
   const { curveTiers, curveDistributions, productPacks } = useWholesalePricing();
   const [justAdded, setJustAdded] = useState<string | null>(null);
@@ -103,8 +105,8 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
 
   return (
     <section className={`rounded-2xl border border-line p-4 ${className ?? ''}`}>
-      <h3 className="mb-1 text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text">Sumá otros colores</h3>
-      <p className="mb-3 text-xs text-subtle">Mismo modelo, otros colores — por curva.</p>
+      <h3 className={ty('mb-1 text-[calc(15px_*_var(--font-scale,1))] font-semibold text-text', 'block-title', 'mb-1 text-text')}>Sumá otros colores</h3>
+      <p className={ty('mb-3 text-xs text-subtle', 'caption', 'mb-3 text-subtle')}>Mismo modelo, otros colores — por curva.</p>
 
       {single ? (
         // ── Fila compacta (1 color) ──────────────────────────────────────────
