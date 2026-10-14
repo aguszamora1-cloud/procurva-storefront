@@ -156,12 +156,15 @@ export function OtherColorsBlock({ product, selectedColor, className }: Props) {
             return (
               <div
                 key={color}
-                className={`flex flex-col gap-1.5 rounded-xl border border-line/70 p-2 ${isSelected ? 'opacity-60' : ''}`}
+                // v2 (C5): el estado "en el pedido" atenúa SÓLO la foto; nombre, precio y
+                // la etiqueta quedan a contraste AA (con la tarjeta entera al 60 % daban
+                // 2,3:1). En v1 sigue la tarjeta entera atenuada.
+                className={`flex flex-col gap-1.5 rounded-xl border border-line/70 p-2 ${isSelected && !ink.aa ? 'opacity-60' : ''}`}
               >
                 {thumb ? (
-                  <img src={thumb} alt="" className="aspect-square w-full rounded-lg object-cover" />
+                  <img src={thumb} alt="" className={`aspect-square w-full rounded-lg object-cover${isSelected && ink.aa ? ' opacity-60' : ''}`} />
                 ) : (
-                  <div className="aspect-square w-full rounded-lg bg-secondary" />
+                  <div className={`aspect-square w-full rounded-lg bg-secondary${isSelected && ink.aa ? ' opacity-60' : ''}`} />
                 )}
                 <p className="truncate text-xs font-medium text-text">{color}</p>
                 <p className="text-[calc(11px_*_var(--font-scale,1))] text-subtle">

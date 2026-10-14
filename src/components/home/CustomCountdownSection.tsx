@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { SectionLink } from '@/components/SectionLink';
 import type { CustomSection, CustomSectionCountdownContent } from '@/lib/types';
 import { useTypography } from '@/hooks/useTypography';
+import { useInk } from '@/hooks/useInk';
 
 /**
  * Cuenta regresiva a una fecha: fin de una promo, lanzamiento, cierre de
@@ -51,6 +52,8 @@ function Unit({ value, label }: { value: string; label: string }) {
 export function CustomCountdownSection({ section }: { section: CustomSection }) {
   const { ty } = useTypography();
   const c = section.content as CustomSectionCountdownContent;
+  // Colores con contraste AA (v2 dentro del ámbito); afuera, los de siempre.
+  const ink = useInk();
   const endsAt = c.ends_at || '';
   const [parts, setParts] = useState<Parts | null>(() => (endsAt ? remaining(endsAt) : null));
 
@@ -71,7 +74,7 @@ export function CustomCountdownSection({ section }: { section: CustomSection }) 
   return (
     <section
       className={custom ? '' : 'bg-primary text-on-primary'}
-      style={custom ? { backgroundColor: c.background_color || undefined, color: c.text_color || undefined } : undefined}
+      style={ink.section(c.background_color, c.text_color)}
     >
       <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 px-6 py-10 text-center md:py-14">
         {heading && (

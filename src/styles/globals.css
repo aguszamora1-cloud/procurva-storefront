@@ -605,10 +605,11 @@ input[type='radio'] {
 :root[data-typography='v2'][data-title-case='original'] .ty-hero-overlay,
 :root[data-typography='v2'][data-title-case='original'] .ty-page-title,
 :root[data-typography='v2'][data-title-case='original'] .ty-section-title,
-:root[data-typography='v2'][data-title-case='original'] .ty-card-title,
-:root[data-typography='v2'][data-title-case='original'] .ty-badge {
+:root[data-typography='v2'][data-title-case='original'] .ty-card-title {
   text-transform: none;
 }
+/* Los badges (NUEVO, -20 %, PROMO) NO siguen esa opción: una pastilla chica se
+   lee mejor siempre en mayúsculas y es la regla propia de los badges. */
 
 /* ----------------------------------------------------------------
    Contraste v2 (lib/contrast.ts, Fase 2).

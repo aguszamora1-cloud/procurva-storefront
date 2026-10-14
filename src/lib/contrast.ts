@@ -70,6 +70,12 @@ export const MUTED_ALPHA = 0.62;
 export const SUBTLE_ALPHA = 0.42;
 /** WCAG AA para texto normal: el terciario más chico de la tienda es 12px. */
 export const TEXT_AA = 4.5;
+/**
+ * Meta de todo lo que se CALCULA (grises, tintas, rellenos, badges glass, texto
+ * sobre fondo propio): un poco por encima de AA, así ningún color queda en
+ * 4,50 justo y el redondeo del suavizado de bordes lo deja en 4,49.
+ */
+export const AA_MARGIN = 4.6;
 /** Hacia dónde apunta el secundario cuando hay que corregirlo. */
 export const MUTED_TARGET = 7;
 /**
@@ -107,22 +113,22 @@ export function greyAlphas(text: string, background: string, secondary?: string 
   const panel = parseHex(secondary);
   const surfaces: Rgb[] = panel && contrastRatio(bg, panel) < PANEL_TINT_MAX ? [bg, panel] : [bg];
 
-  const subtle = minAlphaForContrast(fg, surfaces, SUBTLE_ALPHA, TEXT_AA);
+  const subtle = minAlphaForContrast(fg, surfaces, SUBTLE_ALPHA, AA_MARGIN);
   const worst = (alpha: number) => Math.min(...surfaces.map((s) => alphaContrast(fg, s, alpha)));
   const subtleContrast = worst(subtle);
   const mutedToday = worst(MUTED_ALPHA);
-  if (mutedToday >= TEXT_AA && mutedToday >= subtleContrast * HIERARCHY_STEP) {
+  if (mutedToday >= AA_MARGIN && mutedToday >= subtleContrast * HIERARCHY_STEP) {
     return { muted: Math.max(MUTED_ALPHA, subtle), subtle };
   }
   const from = Math.max(MUTED_ALPHA, subtle);
-  const target = Math.max(TEXT_AA, Math.min(MUTED_TARGET, subtleContrast * HIERARCHY_STEP));
+  const target = Math.max(AA_MARGIN, Math.min(MUTED_TARGET, subtleContrast * HIERARCHY_STEP));
   let muted = minAlphaForContrast(fg, surfaces, from, target);
   if (worst(muted) < target) {
     // El escalón no se alcanza con este color (texto y fondo de tonos muy
     // distintos: la mezcla no es monótona y el 100 % puede contrastar MENOS que
     // un 88 %). Antes que perder AA, la mínima opacidad que lo cumple.
-    const aa = minAlphaForContrast(fg, surfaces, from, TEXT_AA);
-    muted = worst(aa) >= TEXT_AA ? aa : from;
+    const aa = minAlphaForContrast(fg, surfaces, from, AA_MARGIN);
+    muted = worst(aa) >= AA_MARGIN ? aa : from;
   }
   return { muted, subtle };
 }
@@ -170,7 +176,7 @@ export function accentInk(accent: string, background: string, secondary?: string
     // Se valida el color YA redondeado a hex, que es el que se pinta: sin
     // redondear, algunos quedaban en 4,49.
     const ink = blend(pole, a, step / 100).map(Math.round) as unknown as Rgb;
-    if (surfaces.every((s) => contrastRatio(ink, s) >= TEXT_AA)) {
+    if (surfaces.every((s) => contrastRatio(ink, s) >= AA_MARGIN)) {
       return step === 0 ? accent : toHex(ink);
     }
   }
@@ -226,11 +232,11 @@ export function readableFill(fill: string, text?: string | null): FillPair {
   const wanted = text ?? legacyTextOn(fill);
   const t = parseHex(wanted);
   if (!f || !t) return { fill, text: wanted };
-  if (contrastRatio(t, f) >= TEXT_AA) return { fill, text: wanted };
+  if (contrastRatio(t, f) >= AA_MARGIN) return { fill, text: wanted };
   const pole = relativeLuminance(t) > 0.5 ? BLACK : WHITE;
   for (let step = 1; step <= Math.round(FILL_SHIFT_MAX * 100); step++) {
     const shifted = blend(pole, f, step / 100).map(Math.round) as unknown as Rgb;
-    if (contrastRatio(t, shifted) >= TEXT_AA) return { fill: toHex(shifted), text: wanted };
+    if (contrastRatio(t, shifted) >= AA_MARGIN) return { fill: toHex(shifted), text: wanted };
   }
   return { fill, text: contrastRatio(WHITE, f) >= contrastRatio(BLACK, f) ? '#ffffff' : '#000000' };
 }
@@ -248,7 +254,7 @@ export function glassAlpha(fill: string, text: string, from = 0.85): number {
   const worst = relativeLuminance(t) > 0.5 ? WHITE : BLACK;
   for (let step = Math.round(from * 100); step <= 100; step++) {
     const seen = blend(f, worst, step / 100).map(Math.round) as unknown as Rgb;
-    if (contrastRatio(t, seen) >= TEXT_AA) return step / 100;
+    if (contrastRatio(t, seen) >= AA_MARGIN) return step / 100;
   }
   return 1;
 }
@@ -271,9 +277,9 @@ export function readableText(text: string, background: string, alpha = 1): TextO
   const pole = contrastRatio(BLACK, bg) >= contrastRatio(WHITE, bg) ? BLACK : WHITE;
   for (let step = 0; step <= 100; step++) {
     const ink = blend(pole, t, step / 100).map(Math.round) as unknown as Rgb;
-    if (alphaContrast(ink, bg, alpha) >= TEXT_AA) return { text: step === 0 ? text : toHex(ink), alpha };
+    if (alphaContrast(ink, bg, alpha) >= AA_MARGIN) return { text: step === 0 ? text : toHex(ink), alpha };
   }
-  return { text: toHex(pole), alpha: minAlphaForContrast(pole, [bg], alpha, TEXT_AA) };
+  return { text: toHex(pole), alpha: minAlphaForContrast(pole, [bg], alpha, AA_MARGIN) };
 }
 
 // ── Colores de estado (C5) ───────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { FEATURE_ICONS } from '@/lib/featureIcons';
 import type { CustomSection, CustomSectionFeaturesContent, CustomSectionVariant } from '@/lib/types';
 import { useTypography } from '@/hooks/useTypography';
+import { useInk } from '@/hooks/useInk';
 
 const GRID_COLS = { 2: 'md:grid-cols-2', 3: 'md:grid-cols-3', 4: 'md:grid-cols-2 lg:grid-cols-4' } as const;
 
@@ -20,6 +21,8 @@ export function CustomFeaturesSection({
   variant?: CustomSectionVariant;
 }) {
   const c = section.content as CustomSectionFeaturesContent;
+  // Colores con contraste AA (v2 dentro del ámbito); afuera, los de siempre.
+  const ink = useInk();
   const { ty } = useTypography();
   const items = (c.items || []).filter((i) => (i.title || '').trim() || (i.text || '').trim()).slice(0, 8);
   if (items.length === 0) return null;
@@ -30,7 +33,7 @@ export function CustomFeaturesSection({
 
   return (
     <section
-      style={c.background_color ? { backgroundColor: c.background_color } : undefined}
+      style={ink.section(c.background_color)}
       className={inColumn ? (c.background_color ? 'rounded-lg px-4 py-4' : '') : 'px-6 py-8 md:py-14'}
     >
       <div className={inColumn ? '' : 'mx-auto max-w-5xl'}>

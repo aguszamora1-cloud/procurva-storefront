@@ -1,6 +1,7 @@
 import { SectionLink } from '@/components/SectionLink';
 import type { CustomSection, CustomSectionCtaContent } from '@/lib/types';
 import { useTypography } from '@/hooks/useTypography';
+import { useInk } from '@/hooks/useInk';
 
 const TEXT_ALIGN = { left: 'text-left items-start', center: 'text-center items-center', right: 'text-right items-end' } as const;
 
@@ -15,6 +16,8 @@ const TEXT_ALIGN = { left: 'text-left items-start', center: 'text-center items-c
 export function CustomCtaSection({ section }: { section: CustomSection }) {
   const { ty } = useTypography();
   const c = section.content as CustomSectionCtaContent;
+  // Colores con contraste AA (v2 dentro del ámbito); afuera, los de siempre.
+  const ink = useInk();
   const heading = (c.heading || '').trim();
   const body = (c.body || '').trim();
   const buttonText = (c.button_text || '').trim();
@@ -27,7 +30,7 @@ export function CustomCtaSection({ section }: { section: CustomSection }) {
   return (
     <section
       className={custom ? '' : 'bg-secondary text-text'}
-      style={custom ? { backgroundColor: c.background_color || undefined, color: c.text_color || undefined } : undefined}
+      style={ink.section(c.background_color, c.text_color)}
     >
       <div className={`mx-auto flex max-w-3xl flex-col gap-4 px-6 py-10 md:py-16 ${TEXT_ALIGN[align]}`}>
         {heading && (

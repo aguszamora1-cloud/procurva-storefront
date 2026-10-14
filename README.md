@@ -66,6 +66,24 @@ npm run build
 automáticamente** — aplicar a mano. No toca RLS (las políticas de lectura pública ya
 existen en `procurva2`).
 
+## Diseño v2: etapas y rollback
+
+El diseño nuevo (tipografía + contraste, `lib/typography`, `lib/contrast`) se
+activa por empresa en `src/lib/typographyRollout.ts` (`TYPOGRAPHY_V2_STAGE`;
+`'all'` = todas). Cada etapa es un cambio ahí + deploy. Una tienda sin
+`typography_version` guardada NO cambia hasta que su empresa entre.
+
+- **Rollback por tienda (sin deploy):** `typography_version: 'v1'` en
+  `companies.storefront_config.<tienda>.settings` (SQL). Gana siempre.
+- **Activar una tienda suelta (sin deploy):** `typography_version: 'v2'`.
+- **Rollback global:** `TYPOGRAPHY_V2_ENABLED = false` en `lib/typography.ts`
+  + deploy, o Instant Rollback de Vercel.
+- **Vista previa en cualquier tienda:** `?pc_preview=1&typo=v1|v2` (sólo esa
+  pestaña, sin métricas).
+
+Hasta la limpieza del código v1, `npm run test:ty-literals -- 162e42b`
+garantiza que v1 sigue byte a byte como antes.
+
 ## Deploy
 
 Vercel. Requiere DNS wildcard `*.procurva.app` apuntando al proyecto (infra).

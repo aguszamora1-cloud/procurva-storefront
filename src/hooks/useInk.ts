@@ -1,6 +1,12 @@
 import { useStore } from '@/context/StoreProvider';
 import { useContrastAA } from '@/components/ContrastScope';
-import { accentInk, glassAlpha, readableFill, readableText, type FillPair, type TextOn } from '@/lib/contrast';
+import type { CSSProperties } from 'react';
+import { accentInk, glassAlpha, greyAlphas, parseHex, readableFill, readableText, type FillPair, type TextOn } from '@/lib/contrast';
+
+const rgba = (hex: string, alpha: number): string => {
+  const c = parseHex(hex)!;
+  return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${alpha})`;
+};
 
 const ACCENT_VAR = 'var(--color-accent)';
 
@@ -32,6 +38,29 @@ export function useInk() {
     on(text: string, background: string, alpha = 1): TextOn {
       if (!aa) return { text, alpha };
       return readableText(text, background, alpha);
+    },
+    /**
+     * Estilo de una sección con fondo y/o color de texto propios del comercio
+     * (FAQ, texto, CTA, destacado, cuenta regresiva…). Fuera del ámbito:
+     * exactamente lo de hoy. En v2: el texto (el elegido o, si no eligió, el
+     * del tema) se corre lo mínimo hasta AA contra el fondo REAL de la sección,
+     * y los grises de adentro (text-muted / text-subtle) se recalculan para ese
+     * fondo. Se calcula al 80 %, que es el `opacity-80` que usan estos bloques.
+     */
+    section(bg?: string | null, text?: string | null): CSSProperties | undefined {
+      const legacy: CSSProperties | undefined = bg || text ? { backgroundColor: bg || undefined, color: text || undefined } : undefined;
+      if (!aa || !legacy) return legacy;
+      const surface = bg || config.colorBackground;
+      const on = readableText(text || config.colorText, surface, 0.8);
+      if (!parseHex(on.text) || !parseHex(surface)) return legacy;
+      const greys = greyAlphas(on.text, surface);
+      return {
+        backgroundColor: bg || undefined,
+        color: on.text,
+        '--color-text': on.text,
+        '--color-muted': rgba(on.text, greys.muted),
+        '--color-subtle': rgba(on.text, greys.subtle),
+      } as CSSProperties;
     },
     /** Texto de un badge outline (pastilla blanca fija). */
     onWhite(color: string): string {

@@ -94,7 +94,10 @@ export function ProductCard({ product, priority = false }: { product: Product; p
       <div className="flex flex-1 flex-col p-2.5 md:p-4">
         <Link to={detailHref} className="block">
           <h3
-            className={ty('mb-1.5 text-[calc(15px_*_var(--font-scale,1))] font-bold uppercase leading-[1.3] tracking-[0.02em] text-on-surface transition-colors group-hover:text-accent', 'card-title', 'mb-1.5 line-clamp-3 md:line-clamp-none text-on-surface transition-colors group-hover:text-accent')}
+            // v2: el nombre se recorta en celular a 3 renglones (4 en tiendas
+            // mayoristas, cuyos nombres llevan la variante y son más largos) con el
+            // nombre completo en `title`; en la ficha y en los datos va siempre entero.
+            className={ty('mb-1.5 text-[calc(15px_*_var(--font-scale,1))] font-bold uppercase leading-[1.3] tracking-[0.02em] text-on-surface transition-colors group-hover:text-accent', 'card-title', `mb-1.5 ${isWholesale ? 'line-clamp-4' : 'line-clamp-3'} md:line-clamp-none text-on-surface transition-colors group-hover:text-accent`)}
             title={typoVersion === 'v2' ? product.name : undefined}
           >
             {product.name}

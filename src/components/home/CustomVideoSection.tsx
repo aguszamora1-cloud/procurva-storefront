@@ -1,5 +1,6 @@
 import { SectionHeader } from '@/components/SectionHeader';
 import type { CustomSection, CustomSectionVideoContent } from '@/lib/types';
+import { useInk } from '@/hooks/useInk';
 
 /**
  * Video del home: YouTube, Vimeo o un archivo propio (mp4/webm).
@@ -33,6 +34,8 @@ const isFile = (url: string) => /\.(mp4|webm|ogg)(\?.*)?$/i.test(url.trim());
 
 export function CustomVideoSection({ section }: { section: CustomSection }) {
   const c = section.content as CustomSectionVideoContent;
+  // Colores con contraste AA (v2 dentro del ámbito); afuera, los de siempre.
+  const ink = useInk();
   const url = (c.url || '').trim();
   if (!url) return null;
 
@@ -48,7 +51,7 @@ export function CustomVideoSection({ section }: { section: CustomSection }) {
 
   return (
     <section
-      style={c.background_color ? { backgroundColor: c.background_color } : undefined}
+      style={ink.section(c.background_color)}
       className="mx-auto max-w-none px-6 py-8 md:py-16"
     >
       {heading && <SectionHeader title={heading} />}

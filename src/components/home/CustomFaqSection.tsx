@@ -6,6 +6,7 @@ import { sanitizeBasicHtml } from '@/lib/sanitizeHtml';
 import { whatsappLink } from '@/lib/utils';
 import type { CustomSection, CustomSectionFaqContent, CustomSectionVariant } from '@/lib/types';
 import { useTypography } from '@/hooks/useTypography';
+import { useInk } from '@/hooks/useInk';
 
 /**
  * Preguntas frecuentes en acordeón. Las políticas de envío/cambios/pagos ya
@@ -31,6 +32,8 @@ export function CustomFaqSection({
   variant?: CustomSectionVariant;
 }) {
   const c = section.content as CustomSectionFaqContent;
+  // Colores con contraste AA (v2 dentro del ámbito); afuera, los de siempre.
+  const ink = useInk();
   const { ty } = useTypography();
   const config = useStore();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -54,7 +57,7 @@ export function CustomFaqSection({
 
   return (
     <section
-      style={c.background_color ? { backgroundColor: c.background_color } : undefined}
+      style={ink.section(c.background_color)}
       className={
         inColumn
           ? c.background_color

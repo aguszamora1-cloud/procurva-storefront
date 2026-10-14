@@ -28,6 +28,7 @@ import {
   SUBTLE_ALPHA,
   TEXT_AA,
   ACCENT_TINT,
+  AA_MARGIN,
   STATUS_BASE,
   accentInk,
   alphaContrast,
@@ -104,23 +105,23 @@ test('barrido: AA cuando se puede, nunca más claro que hoy, jerarquía, sin cam
         // monótona: con tonos muy distintos, ej. bordó sobre verde agua, un 88 %
         // puede contrastar más que el 100 %).
         let reachable = false;
-        for (let s = Math.round(SUBTLE_ALPHA * 100); s <= 100 && !reachable; s++) reachable = worst(s / 100) >= TEXT_AA;
+        for (let s = Math.round(SUBTLE_ALPHA * 100); s <= 100 && !reachable; s++) reachable = worst(s / 100) >= AA_MARGIN;
         if (reachable) {
-          assert.ok(worst(subtle) >= TEXT_AA, `subtle < 4,5: ${ctx}`);
-          assert.ok(worst(muted) >= TEXT_AA, `muted < 4,5: ${ctx}`);
+          assert.ok(worst(subtle) >= AA_MARGIN, `subtle < 4,6: ${ctx}`);
+          assert.ok(worst(muted) >= AA_MARGIN, `muted < 4,6: ${ctx}`);
           // Mínimo: un paso menos ya no llegaría (salvo que sea el piso de hoy).
-          if (subtle > SUBTLE_ALPHA) assert.ok(worst(subtle - 0.01) < TEXT_AA, `subtle no es el mínimo: ${ctx}`);
+          if (subtle > SUBTLE_ALPHA) assert.ok(worst(subtle - 0.01) < AA_MARGIN, `subtle no es el mínimo: ${ctx}`);
         } else {
           // El color del comercio no da AA ni al 100 %: lo más firme posible.
           assert.equal(subtle, 1, `sin AA posible, subtle debería ser 1: ${ctx}`);
         }
         const mutedToday = worst(MUTED_ALPHA);
-        if (mutedToday >= TEXT_AA && mutedToday >= worst(subtle) * HIERARCHY_STEP) {
+        if (mutedToday >= AA_MARGIN && mutedToday >= worst(subtle) * HIERARCHY_STEP) {
           assert.equal(muted, Math.max(MUTED_ALPHA, subtle), `muted cambió sin necesidad: ${ctx}`);
           mutedUntouched++;
         } else {
           // Llega al objetivo de jerarquía si alguna opacidad lo permite.
-          const want = Math.max(TEXT_AA, Math.min(MUTED_TARGET, worst(subtle) * HIERARCHY_STEP));
+          const want = Math.max(AA_MARGIN, Math.min(MUTED_TARGET, worst(subtle) * HIERARCHY_STEP));
           let wantReachable = false;
           for (let s = Math.round(Math.max(MUTED_ALPHA, subtle) * 100); s <= 100 && !wantReachable; s++) wantReachable = worst(s / 100) >= want;
           if (wantReachable) assert.ok(worst(muted) >= want, `muted no llega a su objetivo: ${ctx}`);
@@ -173,10 +174,10 @@ const inkSurfaces = (accent, bg, panel) => {
 
 test('acento que ya cumple sale tal cual; lo que no es hex, también', () => {
   assert.equal(accentInk('#000000', '#ffffff', '#f5f5f5'), '#000000');
-  // Azul: 5,17 sobre blanco pero 4,497 sobre su propio tinte del 10 % → se
-  // corre un 1 % (imperceptible: ningún canal se mueve más de 2).
+  // Azul: 5,17 sobre blanco pero 4,497 sobre su propio tinte del 10 % → con la
+  // meta de 4,6 se corre un 2 % (imperceptible: ningún canal se mueve más de 6).
   const blue = parseHex(accentInk('#2563eb', '#ffffff', '#f5f5f5'));
-  assert.ok(blue.every((c, i) => Math.abs(c - parseHex('#2563eb')[i]) <= 2));
+  assert.ok(blue.every((c, i) => Math.abs(c - parseHex('#2563eb')[i]) <= 6));
   assert.equal(accentInk('#22c55e', '#111111', '#1c1c1c'), '#22c55e');
   assert.equal(accentInk('var(--x)', '#ffffff'), 'var(--x)');
   assert.equal(accentInk('#16a34a', ''), '#16a34a');
@@ -194,16 +195,16 @@ test('barrido de acentos: AA en fondo, tinte y panel, mínimo cambio, mismo tono
         const surfaces = inkSurfaces(accent, bg, panel);
         const B = parseHex(bg);
         const pole = contrastRatio([0, 0, 0], B) >= contrastRatio([255, 255, 255], B) ? [0, 0, 0] : [255, 255, 255];
-        if (!surfaces.every((s) => contrastRatio(pole, s) >= TEXT_AA)) {
+        if (!surfaces.every((s) => contrastRatio(pole, s) >= AA_MARGIN)) {
           // Fondo de tono medio: ni el negro ni el blanco llegan. Lo mejor posible es el extremo.
           assert.deepEqual(I, pole, `inalcanzable, debería ser el extremo: ${ctx}`);
           continue;
         }
-        assert.ok(surfaces.every((s) => contrastRatio(I, s) >= TEXT_AA), `tinta sin AA: ${ctx}`);
+        assert.ok(surfaces.every((s) => contrastRatio(I, s) >= AA_MARGIN), `tinta sin AA: ${ctx}`);
         if (ink === accent) continue;
         changed++;
         // Mínimo: el acento sin tocar no llegaba.
-        assert.ok(!surfaces.every((s) => contrastRatio(parseHex(accent), s) >= TEXT_AA), `cambió sin necesidad: ${ctx}`);
+        assert.ok(!surfaces.every((s) => contrastRatio(parseHex(accent), s) >= AA_MARGIN), `cambió sin necesidad: ${ctx}`);
         // Mismo tono (mezclar con negro o blanco no gira el matiz). Los grises no tienen tono.
         const h0 = hue(parseHex(accent)), h1 = hue(I);
         if (h0 !== null && h1 !== null) {
@@ -230,7 +231,7 @@ const ACCENTS = [
 for (const [name, accent, bg, panel] of ACCENTS) {
   test(`acento de referencia: ${name}`, () => {
     const ink = accentInk(accent, bg, panel);
-    for (const s of inkSurfaces(accent, bg, panel)) assert.ok(contrastRatio(parseHex(ink), s) >= TEXT_AA, `${name}: ${ink}`);
+    for (const s of inkSurfaces(accent, bg, panel)) assert.ok(contrastRatio(parseHex(ink), s) >= AA_MARGIN, `${name}: ${ink}`);
     if (name === 'negro') assert.equal(ink, accent);
   });
 }
@@ -261,7 +262,7 @@ test('barrido de rellenos: siempre AA, ajuste ≤ 20 % y mínimo, o texto cambia
       const r = readableFill(fill, wanted);
       const ctx = `relleno ${fill} texto ${wanted} → ${JSON.stringify(r)}`;
       const R = parseHex(r.fill), T = parseHex(r.text);
-      assert.ok(contrastRatio(T, R) >= TEXT_AA, `sin AA: ${ctx}`);
+      assert.ok(contrastRatio(T, R) >= AA_MARGIN, `sin AA: ${ctx}`);
       const keep = wanted ?? (((0.299 * F[0] + 0.587 * F[1] + 0.114 * F[2]) / 255) > 0.6 ? '#111111' : '#ffffff');
       if (r.text === keep && r.fill === fill) continue;
       if (r.text === keep) {
@@ -269,7 +270,7 @@ test('barrido de rellenos: siempre AA, ajuste ≤ 20 % y mínimo, o texto cambia
         const pole = keep === '#ffffff' ? 0 : 255;
         const shares = [0, 1, 2].filter((i) => F[i] !== pole).map((i) => (F[i] - R[i]) / (F[i] - pole));
         assert.ok(shares.every((t) => t >= -0.01 && t <= 0.21), `corrimiento fuera de tope: ${ctx}`);
-        assert.ok(contrastRatio(parseHex(keep), F) < TEXT_AA, `cambió sin necesidad: ${ctx}`);
+        assert.ok(contrastRatio(parseHex(keep), F) < AA_MARGIN, `cambió sin necesidad: ${ctx}`);
       } else {
         // Se cambió el texto: el relleno queda tal cual.
         assert.equal(r.fill, fill, `cambió texto y relleno: ${ctx}`);
@@ -287,7 +288,7 @@ test('glass sobre foto: opacidad ≥ 85 % y AA contra el peor píxel', () => {
       const worst = relativeLuminance(parseHex(text)) > 0.5 ? [255, 255, 255] : [0, 0, 0];
       const seen = blend(parseHex(fill), worst, a).map(Math.round);
       // Si ni sólido alcanza, el ajuste del relleno (readableFill) es el que lo resuelve.
-      if (a < 1) assert.ok(contrastRatio(parseHex(text), seen) >= TEXT_AA, `${fill} ${text} → ${a}`);
+      if (a < 1) assert.ok(contrastRatio(parseHex(text), seen) >= AA_MARGIN, `${fill} ${text} → ${a}`);
     }
   }
 });
@@ -303,15 +304,24 @@ test('barra de beneficios: texto AA sobre su fondo real, mínimo cambio, mismo t
   for (const text of hexes) for (const bg of hexes) {
     const r = readableText(text, bg, 0.8);
     const ink = parseHex(r.text), b = parseHex(bg);
-    assert.ok(alphaContrast(ink, b, r.alpha) >= TEXT_AA, text + ' sobre ' + bg);
+    assert.ok(alphaContrast(ink, b, r.alpha) >= AA_MARGIN, text + ' sobre ' + bg);
     assert.ok(r.alpha >= 0.8);
     // Mínimo: un paso menos ya no alcanzaría (si hubo cambio de color).
     if (r.text !== text && r.alpha === 0.8) {
       const pole = contrastRatio([0, 0, 0], b) >= contrastRatio([255, 255, 255], b) ? [0, 0, 0] : [255, 255, 255];
       const t0 = parseHex(text);
       let k = 0; while (k <= 100 && blend(pole, t0, k / 100).map(Math.round).join() !== ink.join()) k++;
-      if (k > 0 && k <= 100) assert.ok(alphaContrast(blend(pole, t0, (k - 1) / 100).map(Math.round), b, 0.8) < TEXT_AA, 'no mínimo ' + text + '/' + bg);
+      if (k > 0 && k <= 100) assert.ok(alphaContrast(blend(pole, t0, (k - 1) / 100).map(Math.round), b, 0.8) < AA_MARGIN, 'no mínimo ' + text + '/' + bg);
     }
+  }
+});
+
+test('margen: todo lo calculado llega a 4,6 (no queda nada en 4,50 justo)', () => {
+  assert.equal(AA_MARGIN, 4.6);
+  for (const [a, bg] of [['#ec4899', '#ffffff'], ['#16a34a', '#ffffff'], ['#facc15', '#ffffff'], ['#b45309', '#f7f3ec']]) {
+    assert.ok(contrastRatio(parseHex(accentInk(a, bg)), parseHex(bg)) >= AA_MARGIN, a);
+    const r = readableFill(a, '#ffffff');
+    assert.ok(contrastRatio(parseHex(r.fill), parseHex(r.text)) >= AA_MARGIN, 'relleno ' + a);
   }
 });
 

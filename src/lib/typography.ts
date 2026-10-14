@@ -54,6 +54,25 @@ export function resolveTypographyVersion(raw: unknown): TypographyVersion {
   return raw === 'v2' ? 'v2' : 'v1';
 }
 
+/**
+ * Versión que pinta una tienda según lo guardado y la etapa de lanzamiento
+ * (lib/typographyRollout.ts). En orden:
+ *  1. 'v1' explícito → v1: rollback por tienda, gana siempre.
+ *  2. 'v2' explícito → v2: activación por tienda sin deploy.
+ *  3. Empresa en la etapa (o 'all') → v2.
+ *  4. Si no → v1: una tienda sin clave no cambia hasta que su empresa entre.
+ */
+export function savedTypographyVersion(
+  raw: unknown,
+  companyId: string | null | undefined,
+  stage: readonly string[] | 'all',
+): TypographyVersion {
+  if (raw === 'v1') return 'v1';
+  if (raw === 'v2') return 'v2';
+  if (stage === 'all') return 'v2';
+  return typeof companyId === 'string' && companyId !== '' && stage.includes(companyId) ? 'v2' : 'v1';
+}
+
 /** Valor guardado → capitalización. Sólo 'original' exacto la cambia. */
 export function resolveTitleCase(raw: unknown): TitleCase {
   return raw === 'original' ? 'original' : 'upper';

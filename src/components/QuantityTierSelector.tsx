@@ -117,10 +117,11 @@ interface Props {
   /** Muestra la línea "$X tarjeta". Default true. */
   showCardPrice?: boolean;
   /**
-   * Tipografía legible (v2 del storefront, lib/typography): piso de 12px en los
+   * Tipografía legible (el diseño v2 del storefront): piso de 12px en los
    * textos chicos, números de ancho fijo en los precios y las cintas/badges con
-   * el rol `ty-badge`. Default false = exactamente lo de siempre. El ERP no lo
-   * pasa nunca (sus previews quedan igual); el storefront lo prende sólo en v2.
+   * la regla de los badges (12px, bold, mayúsculas). Son clases explícitas, sin
+   * depender del CSS de ningún repo: las vistas previas del ERP la pasan en true
+   * y se ven igual que la tienda. Default false = exactamente lo de siempre.
    * No cambia cálculos, precios ni selección: sólo clases.
    */
   legible?: boolean;
@@ -300,7 +301,7 @@ export function QuantityTierSelector({
                   // cinta sobresale 11px y el mt-3 de la fila (12px) evita que pise
                   // la fila de arriba o el título.
                   <span
-                    className={legible ? `absolute right-3 top-0 -translate-y-1/2 whitespace-nowrap rounded-pill px-2 py-1 ty-badge ${s.ribbon}` : `absolute right-3 top-0 -translate-y-1/2 whitespace-nowrap rounded-pill px-2 py-1 text-[calc(11px_*_var(--font-scale,1))] font-bold uppercase tracking-wide ${s.ribbon}`}
+                    className={legible ? `absolute right-3 top-0 -translate-y-1/2 whitespace-nowrap rounded-pill px-2 py-1 text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] font-bold uppercase leading-none tracking-[0.04em] ${s.ribbon}` : `absolute right-3 top-0 -translate-y-1/2 whitespace-nowrap rounded-pill px-2 py-1 text-[calc(11px_*_var(--font-scale,1))] font-bold uppercase tracking-wide ${s.ribbon}`}
                   >
                     Más elegido
                   </span>
@@ -310,7 +311,7 @@ export function QuantityTierSelector({
                   <span className="flex flex-wrap items-center gap-1.5">
                     <span className={legible ? `text-[length:max(12px,calc(13px_*_var(--font-scale,1)))] font-bold ${s.title}` : `text-[calc(13px_*_var(--font-scale,1))] font-bold ${s.title}`}>Lleva {t.units}</span>
                     {t.discountPct > 0 && (
-                      <span className={legible ? `rounded px-1.5 py-0.5 ty-badge tabular-nums ${s.badge}` : `rounded px-1.5 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold ${s.badge}`}>
+                      <span className={legible ? `rounded px-1.5 py-0.5 text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] font-bold uppercase leading-none tracking-[0.04em] tabular-nums ${s.badge}` : `rounded px-1.5 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold ${s.badge}`}>
                         {t.discountPct}% OFF
                       </span>
                     )}
@@ -344,14 +345,14 @@ export function QuantityTierSelector({
             <>
               {featured && (
                 <span
-                  className={legible ? `absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-pill px-2 py-0.5 ty-badge ${s.ribbon}` : `absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-pill px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold uppercase tracking-wide ${s.ribbon}`}
+                  className={legible ? `absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-pill px-2 py-0.5 text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] font-bold uppercase leading-none tracking-[0.04em] ${s.ribbon}` : `absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-pill px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold uppercase tracking-wide ${s.ribbon}`}
                 >
                   Más elegido
                 </span>
               )}
               <span className={legible ? `text-[length:max(12px,calc(13px_*_var(--font-scale,1)))] font-bold ${s.title}` : `text-[calc(13px_*_var(--font-scale,1))] font-bold ${s.title}`}>Lleva {t.units}</span>
               {t.discountPct > 0 ? (
-                <span className={legible ? `rounded px-1.5 py-0.5 ty-badge tabular-nums ${s.badge}` : `rounded px-1.5 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold ${s.badge}`}>{t.discountPct}% OFF</span>
+                <span className={legible ? `rounded px-1.5 py-0.5 text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] font-bold uppercase leading-none tracking-[0.04em] tabular-nums ${s.badge}` : `rounded px-1.5 py-0.5 text-[calc(12px_*_var(--font-scale,1))] font-bold ${s.badge}`}>{t.discountPct}% OFF</span>
               ) : (
                 <span className={legible ? `text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] font-semibold ${s.muted}` : `text-[calc(12px_*_var(--font-scale,1))] font-semibold ${s.muted}`}>Precio normal</span>
               )}

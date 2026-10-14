@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import type { CustomSection, CustomSectionSpotlightContent, CustomSectionVariant } from '@/lib/types';
 import { useTypography } from '@/hooks/useTypography';
+import { useInk } from '@/hooks/useInk';
 
 /**
  * Foto destacada con puntos: una imagen grande (el estampado, la tela, la
@@ -18,6 +19,8 @@ export function CustomSpotlightSection({
   variant?: CustomSectionVariant;
 }) {
   const c = section.content as CustomSectionSpotlightContent;
+  // Colores con contraste AA (v2 dentro del ámbito); afuera, los de siempre.
+  const ink = useInk();
   const { ty } = useTypography();
   const heading = (c.heading || '').trim();
   const body = (c.body || '').trim();
@@ -32,7 +35,7 @@ export function CustomSpotlightSection({
   return (
     <section
       className={custom ? (inColumn ? 'rounded-lg px-4 py-4' : '') : inColumn ? '' : 'bg-background text-text'}
-      style={custom ? { backgroundColor: c.background_color || undefined, color: c.text_color || undefined } : undefined}
+      style={ink.section(c.background_color, c.text_color)}
     >
       <div
         className={

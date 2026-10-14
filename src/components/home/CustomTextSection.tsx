@@ -1,6 +1,7 @@
 import { sanitizeBasicHtml } from '@/lib/sanitizeHtml';
 import type { CustomSection, CustomSectionTextContent, CustomSectionVariant } from '@/lib/types';
 import { useTypography } from '@/hooks/useTypography';
+import { useInk } from '@/hooks/useInk';
 
 /** Sección custom de texto: título + cuerpo HTML sanitizado, con alineación y fondo. */
 export function CustomTextSection({
@@ -11,6 +12,8 @@ export function CustomTextSection({
   variant?: CustomSectionVariant;
 }) {
   const c = section.content as CustomSectionTextContent;
+  // Colores con contraste AA (v2 dentro del ámbito); afuera, los de siempre.
+  const ink = useInk();
   const { ty } = useTypography();
   const heading = (c.heading || '').trim();
   const body = sanitizeBasicHtml(c.body || '');
@@ -29,7 +32,7 @@ export function CustomTextSection({
   return (
     <section
       className={inColumn && c.background_color ? 'rounded-lg' : undefined}
-      style={c.background_color ? { backgroundColor: c.background_color } : undefined}
+      style={ink.section(c.background_color)}
     >
       <div className={padding} style={{ textAlign: align }}>
         {heading ? (

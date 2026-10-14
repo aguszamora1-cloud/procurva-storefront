@@ -21,8 +21,10 @@ import {
   parseTypographyPreview,
   resolveTitleCase,
   resolveTypographyVersion,
+  savedTypographyVersion,
   ty,
 } from '../src/lib/typography.ts';
+import { TYPOGRAPHY_V2_STAGE } from '../src/lib/typographyRollout.ts';
 
 let passed = 0;
 const test = (name, fn) => {
@@ -43,6 +45,29 @@ test('sin clave o valor raro → v1', () => {
 });
 test("sólo 'v2' exacto → v2", () => {
   assert.equal(resolveTypographyVersion('v2'), 'v2');
+});
+test('etapas: v1 explícito gana, v2 explícito activa, la etapa activa a su empresa, el resto queda en v1', () => {
+  const stage = ['a-1', 'b-2'];
+  for (const raw of [undefined, null, '', 'v3', 'V2', 2]) {
+    assert.equal(savedTypographyVersion(raw, 'a-1', stage), 'v2', `en etapa, raw ${JSON.stringify(raw)}`);
+    assert.equal(savedTypographyVersion(raw, 'c-3', stage), 'v1', `fuera, raw ${JSON.stringify(raw)}`);
+    assert.equal(savedTypographyVersion(raw, null, stage), 'v1');
+    assert.equal(savedTypographyVersion(raw, '', stage), 'v1');
+    assert.equal(savedTypographyVersion(raw, 'c-3', 'all'), 'v2', 'all');
+  }
+  // Rollback por tienda: 'v1' gana aunque la empresa esté en la etapa o sea 'all'.
+  assert.equal(savedTypographyVersion('v1', 'a-1', stage), 'v1');
+  assert.equal(savedTypographyVersion('v1', 'a-1', 'all'), 'v1');
+  // Activación por tienda: 'v2' vale fuera de la etapa.
+  assert.equal(savedTypographyVersion('v2', 'c-3', stage), 'v2');
+  // Sin coincidencias flojas.
+  assert.equal(savedTypographyVersion(undefined, 'A-1', stage), 'v1');
+  assert.equal(savedTypographyVersion(undefined, ' a-1', stage), 'v1');
+});
+test('la etapa real: lista cerrada de ids válidos (todavía no es all)', () => {
+  assert.notEqual(TYPOGRAPHY_V2_STAGE, 'all');
+  assert.ok(TYPOGRAPHY_V2_STAGE.length >= 1);
+  for (const id of TYPOGRAPHY_V2_STAGE) assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
 });
 test('capitalización: default mayúsculas', () => {
   for (const raw of [undefined, null, '', 'upper', 'ORIGINAL', 'lower', 1]) {
@@ -124,10 +149,10 @@ test('cada rol declarado tiene su regla en globals.css', () => {
   }
 });
 
-// 6. Normalización: la tienda lee la clave con el resolver, sin default propio --
-test('storeConfig normaliza con resolveTypographyVersion', () => {
+// 6. Normalización: la tienda lee la clave con el resolver por etapas, sin default propio
+test('storeConfig normaliza con savedTypographyVersion y la etapa', () => {
   const src = readFileSync(fileURLToPath(new URL('../src/lib/storeConfig.ts', import.meta.url)), 'utf8');
-  assert.match(src, /typographyVersion:\s*resolveTypographyVersion\(s\.typography_version\)/);
+  assert.match(src, /typographyVersion:\s*savedTypographyVersion\(s\.typography_version,\s*resolved\.company_id,\s*TYPOGRAPHY_V2_STAGE\)/);
   assert.match(src, /titleCase:\s*resolveTitleCase\(s\.typography_title_case\)/);
 });
 

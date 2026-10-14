@@ -2,6 +2,7 @@ import { SectionLink } from '@/components/SectionLink';
 import { sanitizeBasicHtml } from '@/lib/sanitizeHtml';
 import type { CustomSection, CustomSectionSplitContent } from '@/lib/types';
 import { useTypography } from '@/hooks/useTypography';
+import { useInk } from '@/hooks/useInk';
 
 /**
  * Imagen y texto lado a lado: el bloque de "Sobre nosotros", "Cómo comprar" o
@@ -14,6 +15,8 @@ import { useTypography } from '@/hooks/useTypography';
 export function CustomSplitSection({ section }: { section: CustomSection }) {
   const { ty } = useTypography();
   const c = section.content as CustomSectionSplitContent;
+  // Colores con contraste AA (v2 dentro del ámbito); afuera, los de siempre.
+  const ink = useInk();
   const heading = (c.heading || '').trim();
   const body = sanitizeBasicHtml(c.body || '');
   const image = (c.image_url || '').trim();
@@ -25,7 +28,7 @@ export function CustomSplitSection({ section }: { section: CustomSection }) {
   return (
     <section
       className={custom ? '' : 'bg-background text-text'}
-      style={custom ? { backgroundColor: c.background_color || undefined, color: c.text_color || undefined } : undefined}
+      style={ink.section(c.background_color, c.text_color)}
     >
       <div className="mx-auto grid max-w-6xl items-center gap-8 px-6 py-10 md:grid-cols-2 md:gap-12 md:py-16">
         {image && (
