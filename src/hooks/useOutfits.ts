@@ -23,7 +23,7 @@ const OUTFIT_PRODUCT_COLUMNS = `${OUTFIT_PRODUCT_COLUMNS_BASE}, track_stock`;
 
 /** Outfits activos del tenant con sus productos resueltos, ordenados por `order`. */
 export function useOutfits(): { outfits: OutfitWithProducts[]; isLoading: boolean } {
-  const { companyId, productFilter } = useStoreStatus();
+  const { companyId, productFilter, hideOutOfStock } = useStoreStatus();
   const productFilterKeyStr = productFilterKey(productFilter);
   const [outfits, setOutfits] = useState<OutfitWithProducts[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,10 +99,11 @@ export function useOutfits(): { outfits: OutfitWithProducts[]; isLoading: boolea
         }
         if (cancelled) return;
         if (prodErr) console.error('[useOutfits] error cargando productos:', prodErr);
-        // Los ocultos / Inactivo quedan fuera del map: el look se arma con el
-        // resto y, si no queda ninguno, la sección ya descarta los outfits vacíos.
+        // Los ocultos / Inactivo (y los agotados, si la tienda los oculta) quedan
+        // fuera del map: el look se arma con el resto y, si no queda ninguno, la
+        // sección ya descarta los outfits vacíos.
         productMap = new Map(
-          applyStoreStatusList((prodRows ?? []) as unknown as Product[]).map((p) => [p.id, p]),
+          applyStoreStatusList((prodRows ?? []) as unknown as Product[], { hideOutOfStock }).map((p) => [p.id, p]),
         );
       }
 
@@ -136,7 +137,7 @@ export function useOutfits(): { outfits: OutfitWithProducts[]; isLoading: boolea
     return () => {
       cancelled = true;
     };
-  }, [companyId, productFilterKeyStr]);
+  }, [companyId, productFilterKeyStr, hideOutOfStock]);
 
   return { outfits, isLoading };
 }

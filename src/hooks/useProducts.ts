@@ -101,7 +101,7 @@ function writeProductsCache(key: string, products: Product[]): void {
  * ordenan al final de la lista.
  */
 export function useProducts(): ProductsState {
-  const { companyId, storeType, productFilter } = useStoreStatus();
+  const { companyId, storeType, productFilter, hideOutOfStock } = useStoreStatus();
   // Serializado para poder usarlo como dependencia del efecto sin re-disparar
   // por identidad de objeto en cada render.
   const filterKey = productFilterKey(productFilter);
@@ -115,7 +115,9 @@ export function useProducts(): ProductsState {
   useEffect(() => {
     if (!companyId || !storeType) return;
     let cancelled = false;
-    const key = cacheKey(companyId, storeType, filterKey);
+    // El flag va en la clave: si el comercio prende "ocultar sin stock", el
+    // visitante que vuelve no pinta los agotados desde el cache viejo.
+    const key = cacheKey(companyId, storeType, filterKey + (hideOutOfStock ? '|hide0' : ''));
 
     // 1) Servir desde cache para el primer paint (stale-while-revalidate).
     const cached = readProductsCache(key);
@@ -177,9 +179,10 @@ export function useProducts(): ProductsState {
       }
       // applyStoreStatusList aplica products.status: saca los Inactivo y pone en
       // stock 0 los marcados Agotado (así caen al final y quedan no comprables).
-      // No descartamos los sin stock: los ordenamos al final (sort estable, así
-      // dentro de cada grupo se respeta el orden por created_at de la query).
-      const next = applyStoreStatusList((data ?? []) as unknown as Product[])
+      // Los sin stock se descartan sólo si la tienda tiene "ocultar sin stock";
+      // si no, se ordenan al final (sort estable, así dentro de cada grupo se
+      // respeta el orden por created_at de la query).
+      const next = applyStoreStatusList((data ?? []) as unknown as Product[], { hideOutOfStock })
         .sort((a, b) => Number(hasStock(b)) - Number(hasStock(a)));
       setProducts(next);
       setError(null);
@@ -190,7 +193,7 @@ export function useProducts(): ProductsState {
     return () => {
       cancelled = true;
     };
-  }, [companyId, storeType, filterKey, reloadKey]);
+  }, [companyId, storeType, filterKey, reloadKey, hideOutOfStock]);
 
   return { products, isLoading, error, reload };
 }

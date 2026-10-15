@@ -6,7 +6,8 @@ import { applyProductFilter, productFilterKey } from '@/lib/productFilter';
 import { storeScopeValues } from '@/lib/storeScope';
 import { useCart } from '@/context/CartContext';
 import { supabase } from '@/lib/supabase';
-import { isUnpublished } from '@/lib/productStatus';
+import { applyStockOverrides, isOutOfStock, isUnpublished } from '@/lib/productStatus';
+import { selectWithVariantStock } from '@/lib/variantStock';
 import { surfaceVars } from '@/lib/theme';
 import type { StoreMenuItem } from '@/lib/types';
 
@@ -105,7 +106,7 @@ function TrackingForm({ item }: { item: Extract<StoreMenuItem, { kind: 'tracking
 
 export function Navbar() {
   const config = useStore();
-  const { storeType, storeKey, productFilter } = useStoreStatus();
+  const { storeType, storeKey, productFilter, hideOutOfStock } = useStoreStatus();
   const productFilterKeyStr = productFilterKey(productFilter);
   const { itemCount, open } = useCart();
   const location = useLocation();
@@ -156,24 +157,47 @@ export function Navbar() {
         // El menú lateral tiene su PROPIA query (no pasa por useProducts), así
         // que también le va el filtro de catálogo: si no, la segunda marca
         // muestra en el menú las categorías de la primera.
-        applyProductFilter(
-          supabase
-            .from('products')
-            .select('categories, status')
-            .eq('company_id', cid)
-            .eq('catalog_visible', true)
-            .gt(priceCol, 0),
-          productFilter,
-        ),
+        //
+        // Con "ocultar sin stock" se piden además las variantes: si no, una
+        // categoría cuyos productos están todos agotados seguiría en el menú y
+        // abriría vacía. Sin la opción, la query sigue siendo la liviana.
+        hideOutOfStock
+          ? selectWithVariantStock((stockCol) =>
+              applyProductFilter(
+                supabase
+                  .from('products')
+                  .select(`categories, status, track_stock, product_variants ( ${stockCol} )`)
+                  .eq('company_id', cid)
+                  .eq('catalog_visible', true)
+                  .gt(priceCol, 0),
+                productFilter,
+              ),
+            )
+          : applyProductFilter(
+              supabase
+                .from('products')
+                .select('categories, status')
+                .eq('company_id', cid)
+                .eq('catalog_visible', true)
+                .gt(priceCol, 0),
+              productFilter,
+            ),
       ]);
       if (cancelled) return;
 
       // Conteo por categoría a partir de los productos visibles. El status se
       // filtra en JS y no con .neq(): en SQL, `status <> 'Inactivo'` es NULL para
       // las filas sin estado y se llevaría puestos esos productos.
+      type MenuProductRow = {
+        categories: string[] | null;
+        status: string | null;
+        track_stock?: boolean | null;
+        product_variants?: { stock?: number | null }[] | null;
+      };
       const counts = new Map<string, number>();
-      for (const p of (prodRes.data as { categories: string[] | null; status: string | null }[] | null) ?? []) {
+      for (const p of (prodRes.data as MenuProductRow[] | null) ?? []) {
         if (isUnpublished(p)) continue;
+        if (hideOutOfStock && isOutOfStock(applyStockOverrides(p))) continue;
         for (const c of Array.isArray(p.categories) ? p.categories : []) {
           counts.set(c, (counts.get(c) ?? 0) + 1);
         }
@@ -197,7 +221,7 @@ export function Navbar() {
     return () => {
       cancelled = true;
     };
-  }, [config.companyId, storeType, storeKey, productFilterKeyStr]);
+  }, [config.companyId, storeType, storeKey, productFilterKeyStr, hideOutOfStock]);
 
   // ¿La tienda tiene outfits activos? Query liviana (solo count) gateada por los
   // mismos flags que el home usa para renderizar la sección.

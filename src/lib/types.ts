@@ -830,6 +830,10 @@ export interface RawCatalogSettings {
   trust_badges_bg_color?: string;
   // Color del texto e íconos de la barra de trust badges. Default #000000.
   trust_badges_text_color?: string;
+  // Ocultar de la tienda los productos sin stock (en vez de mostrarlos con el
+  // cartel "Sin stock" al final de la grilla). Default false. Lo escribe el
+  // panel Productos del editor. Ver lib/productStatus.
+  hide_out_of_stock?: boolean;
   // Badges de las product cards (Últimas unidades / Nuevo / Envío gratis /
   // Descuento). Cada uno: on/off, color de fondo (texto por contraste) y label;
   // low_stock/new con su parámetro propio. Lo escribe el panel Diseño → Badges.
@@ -1227,6 +1231,9 @@ export interface StoreConfig {
   trustBadgesTextColor: string;
   // El que cargó el comercio, sin el negro por defecto ('' = no eligió). Lo usa v2.
   trustBadgesTextColorCustom: string;
+  // Los productos sin stock no se muestran en la tienda (listados, búsqueda,
+  // menú, outfits). La ficha por link directo sigue abriendo, no comprable.
+  hideOutOfStock: boolean;
   // Badges de las product cards, normalizados con defaults. El texto se resuelve
   // por contraste sobre `color`. `discount.color` vacío = usa el color de acento.
   badges: {

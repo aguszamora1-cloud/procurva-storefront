@@ -575,6 +575,10 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     trustBadgesTextColor: firstStr(s.trust_badges_text_color) || '#000000',
     trustBadgesTextColorCustom: firstStr(s.trust_badges_text_color),
 
+    // Default false: las tiendas existentes siguen mostrando los agotados con
+    // cartel y al final, que es el comportamiento de siempre.
+    hideOutOfStock: bool(s.hide_out_of_stock, false),
+
     // Badges de las product cards. Defaults pensados para no cambiar el aspecto
     // de tiendas existentes: lowStock/discount/freeShipping activos (freeShipping
     // no aparece hasta marcar un producto), "Nuevo" apagado por defecto.

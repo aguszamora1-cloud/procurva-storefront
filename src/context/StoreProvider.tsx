@@ -365,6 +365,8 @@ export function useStoreStatus(): {
   requiresPassword: boolean;
   slug: string | null;
   pendingStore: PendingStore | null;
+  /** settings.hide_out_of_stock ya normalizado. false hasta que cargue la config. */
+  hideOutOfStock: boolean;
   unlock: (resolved: ResolvedStorefront) => void;
 } {
   const ctx = useContext(StoreContext);
@@ -378,6 +380,7 @@ export function useStoreStatus(): {
     requiresPassword: ctx.requiresPassword,
     slug: ctx.slug,
     pendingStore: ctx.pendingStore,
+    hideOutOfStock: ctx.config?.hideOutOfStock ?? false,
     unlock: ctx.unlock,
   };
 }

@@ -133,12 +133,38 @@ export function applyStoreStatus<T extends StatusRow>(row: T): T | null {
   return applyStockOverrides(row);
 }
 
+/**
+ * ¿Ninguna variante tiene stock? Se evalúa DESPUÉS de applyStockOverrides, así
+ * cuenta el estado manual Agotado (stock forzado a 0) y el stock infinito de los
+ * productos sin control. Un producto sin variantes también es "sin stock".
+ */
+export function isOutOfStock(row: StatusRow): boolean {
+  return !(row.product_variants ?? []).some((v) => (v.stock ?? 0) > 0);
+}
+
+export interface StoreStatusListOptions {
+  /**
+   * Ajuste "Ocultar productos sin stock" de la tienda (settings.hide_out_of_stock).
+   * Con `true`, los agotados se descartan de la lista como si fueran Inactivo en
+   * vez de mostrarse con el cartel "Sin stock" al final. Es una opción de LISTA a
+   * propósito: la ficha por link directo (useProduct) no la aplica, así un link
+   * compartido de un producto que se acaba de agotar muestra "Sin stock" y no
+   * "Producto no encontrado".
+   */
+  hideOutOfStock?: boolean;
+}
+
 /** Igual que applyStoreStatus, sobre una lista (descarta los que no van). */
-export function applyStoreStatusList<T extends StatusRow>(rows: T[]): T[] {
+export function applyStoreStatusList<T extends StatusRow>(
+  rows: T[],
+  options: StoreStatusListOptions = {},
+): T[] {
   const out: T[] = [];
   for (const row of rows) {
     const next = applyStoreStatus(row);
-    if (next) out.push(next);
+    if (!next) continue;
+    if (options.hideOutOfStock && isOutOfStock(next)) continue;
+    out.push(next);
   }
   return out;
 }
