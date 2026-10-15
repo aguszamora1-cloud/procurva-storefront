@@ -27,4 +27,11 @@
 export const TYPOGRAPHY_V2_STAGE: readonly string[] | 'all' = [
   // Etapa 1 · ProCurva (cuenta de pruebas): rosariosportwear + mayoristarosario.
   '71ee0d15-57c6-4f9d-9f3e-0585e2479d71',
+  // Etapa 2 · grupo reducido con temas distintos (estudio de impacto 14/10/2026).
+  // Cada empresa entra con TODOS sus canales: minorista, mayorista y dominio
+  // propio; sus tiendas en construcción también, si las publican.
+  'ac784e57-5761-4223-a5a0-a92f7bf8cf6b', // DESDEABAJO.IND · desdeabajo (fondo negro, Inter)
+  '5688013f-a3ed-48dd-81d5-2295a32b8d36', // LAS POPAS · las-popas-2 + laspopas.com.ar (crema y azul, Poppins)
+  '8f2546c2-ffcd-45a0-b6ea-ee37b282fa50', // Tienda Manes · tienda-manes (acento rojo)
+  '0bb6bc14-3163-4442-8968-49f36cf6a6e7', // Sanito Calzados · sanito-calzados (+ mayorista en construcción)
 ];

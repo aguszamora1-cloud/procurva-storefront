@@ -747,19 +747,26 @@ export function ProductDetail() {
 
       // Promesa de envío. Si el comercio vació el título (y no cargó subtítulo)
       // no queda una línea con el camioncito y nada más: desaparece entera.
-      case 'shipping_promise':
-        return config.shippingPromiseEnabled && (config.shippingPromiseTitle || config.shippingPromiseSubtitle) ? (
+      case 'shipping_promise': {
+        if (!config.shippingPromiseEnabled || !(config.shippingPromiseTitle || config.shippingPromiseSubtitle)) return null;
+        // Subtítulo al 70 %: en v1 es `opacity-70` a secas (con un color claro,
+        // ej. dorado, queda en 2,8:1). En v2 el color del comercio se corre lo
+        // mínimo para que A ESA OPACIDAD EFECTIVA siga en AA contra el fondo de
+        // la tienda; si ni el polo alcanza, sube la opacidad lo justo.
+        const subtitle = ink.aa ? ink.on(config.shippingPromiseColor, config.colorBackground, 0.7) : null;
+        return (
           <p className="flex items-center gap-2 text-[calc(14px_*_var(--font-scale,1))]" style={{ color: ink.text(config.shippingPromiseColor) }}>
             <Truck size={17} className="flex-none" />
             {config.shippingPromiseTitle && <span className="font-semibold">{config.shippingPromiseTitle}</span>}
             {config.shippingPromiseSubtitle && (
-              <span className="opacity-70">
+              <span className={subtitle ? undefined : 'opacity-70'} style={subtitle ? { color: subtitle.text, opacity: subtitle.alpha } : undefined}>
                 {config.shippingPromiseTitle ? '· ' : ''}
                 {config.shippingPromiseSubtitle}
               </span>
             )}
           </p>
-        ) : null;
+        );
+      }
 
       case 'add_to_cart':
         return (

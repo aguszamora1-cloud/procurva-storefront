@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
@@ -18,6 +18,21 @@ import { Seo } from '@/components/Seo';
 // cuyo S sale $18.000).
 import { availableColors, availableSizes, listPriceInfo, productCategories, sortSizes } from '@/lib/utils';
 import { useTypography } from '@/hooks/useTypography';
+import { useSelectFits } from '@/hooks/useSelectFits';
+
+/**
+ * Opciones de orden: etiqueta completa y etiqueta corta. La corta se usa SOLO
+ * en v2 y SOLO cuando la completa no entra en el select con el ancho que hay
+ * (320 px con escala 1,3 y fuente ancha): un select nativo corta el texto en
+ * vez de partirlo. La letra no se achica.
+ */
+const SORT_OPTIONS: ReadonlyArray<{ value: string; label: string; short: string }> = [
+  { value: 'destacados', label: 'Destacados', short: 'Destacados' },
+  { value: 'nuevos', label: 'Más nuevos', short: 'Más nuevos' },
+  { value: 'precio_asc', label: 'Precio: menor a mayor', short: 'Menor precio' },
+  { value: 'precio_desc', label: 'Precio: mayor a menor', short: 'Mayor precio' },
+  { value: 'az', label: 'Alfabético (A-Z)', short: 'A-Z' },
+];
 
 /** Helper para togglear un valor dentro de un Set en el estado. */
 const toggleInSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>) => (value: string) =>
@@ -257,6 +272,15 @@ export function ProductList() {
 
   const sectionView = seccion ? SECTION_VIEWS[seccion] : null;
 
+  // Select «Ordenar por»: en v2, si las etiquetas completas no entran en el
+  // ancho disponible (320 px + escala 1,3 + fuente ancha), se usan las cortas.
+  const sortRef = useRef<HTMLSelectElement>(null);
+  const sortLabels = useMemo(
+    () => [...SORT_OPTIONS.map((o) => o.label), ...(sectionView ? [`Orden de ${sectionView.title.toLowerCase()}`] : [])],
+    [sectionView],
+  );
+  const sortFits = useSelectFits(sortRef, sortLabels, typoVersion === 'v2');
+
   const activeCount =
     selectedCats.size +
     selectedSegments.size +
@@ -401,18 +425,19 @@ export function ProductList() {
             <label className={typoVersion === 'v2' ? 'flex min-w-0 max-w-full items-center gap-2 text-[calc(13px_*_var(--font-scale,1))] text-on-surface-muted' : 'flex items-center gap-2 text-[calc(13px_*_var(--font-scale,1))] text-on-surface-muted'}>
               <span className="hidden sm:inline whitespace-nowrap">Ordenar por</span>
               <select
+                ref={sortRef}
                 value={orden}
                 onChange={(e) => setOrden(e.target.value)}
                 className={ty('rounded-md border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] font-medium text-on-surface focus:border-accent focus:outline-none', 'input', 'min-w-0 max-w-full rounded-md border border-line bg-background px-3 py-2 text-on-surface focus:border-accent focus:outline-none')}
               >
                 {/* Sólo cuando se llega desde una sección: es el orden con el
                     que abrió la vista y tiene que poder recuperarse. */}
-                {sectionView && <option value="seccion">Orden de {sectionView.title.toLowerCase()}</option>}
-                <option value="destacados">Destacados</option>
-                <option value="nuevos">Más nuevos</option>
-                <option value="precio_asc">Precio: menor a mayor</option>
-                <option value="precio_desc">Precio: mayor a menor</option>
-                <option value="az">Alfabético (A-Z)</option>
+                {sectionView && <option value="seccion">{sortFits ? `Orden de ${sectionView.title.toLowerCase()}` : 'Orden original'}</option>}
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {sortFits ? o.label : o.short}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
