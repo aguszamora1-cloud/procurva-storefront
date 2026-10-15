@@ -32,7 +32,7 @@ export function CustomPage() {
       <Seo
         title={`${page.label} · ${config.name}`}
         description={paragraphs[0]?.slice(0, 160) || config.metaDescription}
-        image={config.ogImageUrl}
+        image={page.imageUrl || config.ogImageUrl}
         slug={config.slug}
         siteName={config.name}
       />
@@ -46,6 +46,15 @@ export function CustomPage() {
           </p>
         ))}
       </div>
+      {/* Imagen opcional (tabla de medidas): entera, sin recorte, debajo del texto. */}
+      {page.imageUrl && (
+        <img
+          src={page.imageUrl}
+          alt={page.label}
+          className={`h-auto w-full rounded-lg ${paragraphs.length > 0 ? 'mt-8' : ''}`}
+          loading="eager"
+        />
+      )}
     </div>
   );
 }

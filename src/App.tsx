@@ -34,6 +34,7 @@ const CheckoutSuccess = lazy(() => import('@/pages/CheckoutResult').then((m) => 
 const CheckoutFailure = lazy(() => import('@/pages/CheckoutResult').then((m) => ({ default: m.CheckoutFailure })));
 const CheckoutPending = lazy(() => import('@/pages/CheckoutResult').then((m) => ({ default: m.CheckoutPending })));
 const CustomPage = lazy(() => import('@/pages/CustomPage').then((m) => ({ default: m.CustomPage })));
+const PromoPage = lazy(() => import('@/pages/PromoPage').then((m) => ({ default: m.PromoPage })));
 const Resena = lazy(() => import('@/pages/Resena').then((m) => ({ default: m.Resena })));
 
 /** Fallback liviano mientras se descarga el chunk de la página. */
@@ -73,6 +74,7 @@ function StoreRoutes() {
               <Route path="/categoria/:name" element={<ContrastScope><Category /></ContrastScope>} />
               {/* Páginas de texto que publica el comercio (Cambios, FAQ, …). */}
               <Route path="/pagina/:slug" element={<CustomPage />} />
+              <Route path="/promo/:slug" element={<ContrastScope><PromoPage /></ContrastScope>} />
               <Route path="/carrito" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/checkout/success" element={<CheckoutSuccess />} />

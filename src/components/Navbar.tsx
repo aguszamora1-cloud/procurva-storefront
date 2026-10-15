@@ -5,6 +5,8 @@ import { useStore, useStoreStatus } from '@/context/StoreProvider';
 import { applyProductFilter, productFilterKey } from '@/lib/productFilter';
 import { storeScopeValues } from '@/lib/storeScope';
 import { useCart } from '@/context/CartContext';
+import { usePromotions } from '@/context/PromotionsContext';
+import { promoPath, promoVisibleIn } from '@/lib/promoPage';
 import { supabase } from '@/lib/supabase';
 import { applyStockOverrides, isOutOfStock, isUnpublished } from '@/lib/productStatus';
 import { selectWithVariantStock } from '@/lib/variantStock';
@@ -113,6 +115,11 @@ export function Navbar() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(true);
+  const [promoOpen, setPromoOpen] = useState(true);
+  // Promos vigentes que descuentan algo en ESTA tienda (canal). Cada una tiene su
+  // página (/promo/:slug); se van solas del menú cuando vencen.
+  const { promotions } = usePromotions();
+  const menuPromos = promotions.filter((p) => promoVisibleIn(p, storeType ?? 'retail'));
   const [categories, setCategories] = useState<string[]>([]);
   const [scrolled, setScrolled] = useState(false);
   // Id del buscador de seguimiento desplegado (uno por vez, como el acordeón de categorías).
@@ -475,6 +482,36 @@ export function Navbar() {
               {item.label}
             </NavLink>
           ))}
+
+          {/* Promociones vigentes: aparece sola cuando hay al menos una. No tiene
+              página índice (el encabezado sólo despliega), cada promo lleva a la suya. */}
+          {menuPromos.length > 0 && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setPromoOpen((v) => !v)}
+                aria-expanded={promoOpen}
+                className="flex w-full items-center justify-between py-3 text-left text-[calc(15px_*_var(--font-scale,1))] font-medium text-on-surface transition-colors hover:text-accent"
+              >
+                PROMOCIONES
+                <ChevronDown className={`h-4 w-4 text-on-surface-muted transition-transform ${promoOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {promoOpen && (
+                <div className="mb-1 ml-1.5 border-l border-line-soft pl-3">
+                  {menuPromos.map((p) => (
+                    <Link
+                      key={p.id}
+                      to={promoPath(p)}
+                      onClick={() => setMenuOpen(false)}
+                      className="block py-2 text-[calc(14px_*_var(--font-scale,1))] text-on-surface-muted transition-colors hover:text-accent"
+                    >
+                      {p.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Categorías (con subcategorías expandibles si las hay) */}
           <div>

@@ -1013,7 +1013,7 @@ export type StoreMenuItem =
       help: string;
       carriers: Array<{ name: string; url: string }>;
     }
-  | { kind: 'page'; id: string; label: string; slug: string; body: string };
+  | { kind: 'page'; id: string; label: string; slug: string; body: string; imageUrl: string };
 
 export interface StoreConfig {
   companyId: string;

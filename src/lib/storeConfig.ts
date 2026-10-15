@@ -56,9 +56,11 @@ function parseMenuItems(raw: unknown): StoreMenuItem[] {
     if (o.type === 'page') {
       const slug = str(o.slug);
       const body = str(o.body);
-      if (!slug || !body || usedSlugs.has(slug)) continue;
+      // Imagen opcional (tabla de medidas). Con imagen, el texto puede faltar.
+      const imageUrl = /^https?:\/\//i.test(str(o.image_url)) ? str(o.image_url) : '';
+      if (!slug || (!body && !imageUrl) || usedSlugs.has(slug)) continue;
       usedSlugs.add(slug);
-      out.push({ kind: 'page', id, label, slug, body });
+      out.push({ kind: 'page', id, label, slug, body, imageUrl });
       continue;
     }
 

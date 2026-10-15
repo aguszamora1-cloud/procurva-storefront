@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
 import { usePromotions } from '@/context/PromotionsContext';
+import { promoPath } from '@/lib/promoPage';
 import { PromoCountdown } from './PromoCountdown';
 
 /**
  * Banner de promoción de tienda completa (scope 'all' con banner_image_url). Se
  * muestra arriba del grid del home. Si hay varias, mostramos la primera (la más
- * relevante). Linkea al listado de productos. Si la promo tiene countdown, lo
- * superpone sobre la imagen.
+ * relevante). Linkea a la página de la promo (/promo/:slug). Si la promo tiene
+ * countdown, lo superpone sobre la imagen.
  */
 export function PromoBannerAuto() {
   const { bannerPromotions } = usePromotions();
@@ -15,7 +16,7 @@ export function PromoBannerAuto() {
 
   return (
     <section className="relative">
-      <Link to="/productos" className="block">
+      <Link to={promoPath(promo)} className="block">
         <img
           src={promo.banner_image_url}
           alt={promo.name}

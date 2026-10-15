@@ -29,6 +29,13 @@ import type { StoreType } from '@/lib/types';
 interface PromotionsValue {
   promotions: Promotion[];
   loading: boolean;
+  /**
+   * true cuando ya terminó la carga de las promos de ESTA empresa. `loading`
+   * arranca en false antes de que corra el efecto, así que no alcanza para
+   * distinguir "todavía no cargó" de "no hay promos" (lo necesita /promo/:slug
+   * para no mostrar "terminó" en el primer frame).
+   */
+  ready: boolean;
   /** Mejor promo aplicable a un producto (para badge/countdown). */
   promoForProduct: (product: PromoProduct, color?: string | null) => Promotion | null;
   /** Precio promocional de un precio de referencia para un producto (storeType-aware). */
@@ -46,6 +53,7 @@ interface PromotionsValue {
 const PromotionsContext = createContext<PromotionsValue>({
   promotions: [],
   loading: false,
+  ready: false,
   promoForProduct: () => null,
   priceFor: (p) => ({ finalPrice: p, promo: null, savings: 0, discountPct: 0 }),
   quantityPromoFor: () => null,
@@ -58,6 +66,7 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
   const { companyId, storeType } = useStoreStatus();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!companyId) {
@@ -92,6 +101,7 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
         setPromotions((data ?? []) as Promotion[]);
       }
       setLoading(false);
+      setLoadedFor(companyId);
     })();
     return () => {
       cancelled = true;
@@ -99,6 +109,7 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
   }, [companyId]);
 
   const effectiveStoreType: StoreType = storeType ?? 'retail';
+  const ready = !!companyId && loadedFor === companyId;
 
   const promoForProduct = useCallback(
     (product: PromoProduct, color?: string | null) =>
@@ -138,8 +149,8 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<PromotionsValue>(
-    () => ({ promotions, loading, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, colorPromoHintFor, bannerPromotions }),
-    [promotions, loading, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, colorPromoHintFor, bannerPromotions],
+    () => ({ promotions, loading, ready, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, colorPromoHintFor, bannerPromotions }),
+    [promotions, loading, ready, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, colorPromoHintFor, bannerPromotions],
   );
 
   return <PromotionsContext.Provider value={value}>{children}</PromotionsContext.Provider>;
