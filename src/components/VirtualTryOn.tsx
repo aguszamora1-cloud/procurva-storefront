@@ -12,6 +12,10 @@ interface VirtualTryOnProps {
   garmentName: string;
   /** Categoría FASHN. Default 'auto'. Usá `mapFashnCategory` para derivarla del producto. */
   garmentCategory?: FashnCategory;
+  /** Slug de la tienda: el servidor resuelve con él la empresa y si el probador está habilitado. */
+  storeSlug: string;
+  /** Producto al que pertenece la prenda: el servidor valida que la foto sea de ese producto. */
+  productId: string;
 }
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
@@ -80,7 +84,7 @@ async function readInvokeError(error: unknown): Promise<{ message: string; timeo
   return { message: 'No pudimos generar la imagen. Probá de nuevo en un momento.', timeout: false };
 }
 
-export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = 'auto' }: VirtualTryOnProps) {
+export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = 'auto', storeSlug, productId }: VirtualTryOnProps) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>('idle');
   const [userImage, setUserImage] = useState<string | null>(null);
@@ -133,11 +137,13 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
     setErrorMsg('');
     try {
       const { data, error } = await supabase.functions.invoke('fashn-tryon', {
+        // El modo de FASHN lo fija el servidor; acá sólo viaja qué tienda y qué producto.
         body: {
+          store_slug: storeSlug,
+          product_id: productId,
           model_image: userImage,
           garment_image_url: garmentImageUrl,
           category: garmentCategory,
-          mode: 'balanced',
         },
       });
       if (error) {
@@ -151,14 +157,19 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
         setResultUrl(output[0]);
         setStatus('completed');
       } else {
-        setErrorMsg(data?.error || 'No pudimos generar la imagen. Probá de nuevo.');
+        // 202 "timeout": la generación sigue en FASHN; mostrar el mensaje, no la palabra "timeout".
+        setErrorMsg(
+          data?.error === 'timeout'
+            ? data?.message || 'La generación está tardando demasiado. Probá de nuevo.'
+            : data?.error || 'No pudimos generar la imagen. Probá de nuevo.',
+        );
         setStatus('error');
       }
     } catch {
       setErrorMsg('Ocurrió un error inesperado. Probá de nuevo.');
       setStatus('error');
     }
-  }, [userImage, garmentImageUrl, garmentCategory]);
+  }, [userImage, garmentImageUrl, garmentCategory, storeSlug, productId]);
 
   const download = useCallback(async () => {
     if (!resultUrl) return;
