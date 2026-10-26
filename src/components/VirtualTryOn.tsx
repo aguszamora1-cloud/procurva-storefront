@@ -1,6 +1,8 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertCircle, Camera, Download, Loader2, RefreshCw, Shirt, Sparkles, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { isFromFrame, requestTryonToken, tryonFrameOrigin, tryonFrameSrc, waitFrameReady, type FrameMessage } from '@/lib/turnstileFrame';
+import { tryonAvailable } from '@/lib/tryonAvailability';
 
 type FashnCategory = 'auto' | 'tops' | 'bottoms' | 'one-pieces';
 type Status = 'idle' | 'uploading' | 'processing' | 'completed' | 'error';
@@ -16,7 +18,16 @@ interface VirtualTryOnProps {
   storeSlug: string;
   /** Producto al que pertenece la prenda: el servidor valida que la foto sea de ese producto. */
   productId: string;
+  /** Empresa de la tienda: sólo para saber si mostrar el botón (tryon_available). */
+  companyId: string;
 }
+
+/** ¿El probador está disponible para esta empresa? (sólo para mostrar o no el botón) */
+const fetchTryonAvailable = async (companyId: string): Promise<boolean> => {
+  const { data, error } = await supabase.rpc('tryon_available', { p_company_id: companyId });
+  if (error) throw error;
+  return data === true;
+};
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15MB antes de comprimir
@@ -84,7 +95,14 @@ async function readInvokeError(error: unknown): Promise<{ message: string; timeo
   return { message: 'No pudimos generar la imagen. Probá de nuevo en un momento.', timeout: false };
 }
 
-export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = 'auto', storeSlug, productId }: VirtualTryOnProps) {
+export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = 'auto', storeSlug, productId, companyId }: VirtualTryOnProps) {
+  // Sin respuesta todavía o "no disponible": no se muestra nada (como en una tienda sin probador).
+  const [available, setAvailable] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    tryonAvailable(companyId, fetchTryonAvailable).then((v) => { if (alive) setAvailable(v); });
+    return () => { alive = false; };
+  }, [companyId]);
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<Status>('idle');
   const [userImage, setUserImage] = useState<string | null>(null);
@@ -92,6 +110,25 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Verificación anti-bots (Turnstile) en el iframe del subdominio de la tienda.
+  // Sólo se ve si Cloudflare pide interacción.
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const frameOrigin = tryonFrameOrigin(storeSlug);
+  const [frameVisible, setFrameVisible] = useState(false);
+  const frameReady = useRef(false);
+
+  useEffect(() => {
+    if (!open) return;
+    frameReady.current = false;
+    const onMessage = (ev: MessageEvent) => {
+      if (!isFromFrame(ev, frameRef.current, frameOrigin)) return;
+      const m = ev.data as FrameMessage;
+      if (m.type === 'tryon:frame-ready') frameReady.current = true;
+      if (m.type === 'tryon:interactive') setFrameVisible(!!m.visible);
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [open, frameOrigin]);
 
   const reset = useCallback(() => {
     setStatus('idle');
@@ -135,6 +172,19 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
     if (!userImage) return;
     setStatus('processing');
     setErrorMsg('');
+    // Un token nuevo por intento: el servidor no acepta uno ya usado.
+    let turnstileToken: string;
+    try {
+      if (!frameRef.current) throw new Error('turnstile:frame');
+      await waitFrameReady(() => frameReady.current);
+      turnstileToken = await requestTryonToken(frameRef.current, frameOrigin, productId);
+    } catch {
+      setFrameVisible(false);
+      setErrorMsg('No pudimos verificar el pedido. Recargá la página y volvé a probar.');
+      setStatus('error');
+      return;
+    }
+    setFrameVisible(false);
     try {
       const { data, error } = await supabase.functions.invoke('fashn-tryon', {
         // El modo de FASHN lo fija el servidor; acá sólo viaja qué tienda y qué producto.
@@ -144,6 +194,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
           model_image: userImage,
           garment_image_url: garmentImageUrl,
           category: garmentCategory,
+          turnstile_token: turnstileToken,
         },
       });
       if (error) {
@@ -169,7 +220,7 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
       setErrorMsg('Ocurrió un error inesperado. Probá de nuevo.');
       setStatus('error');
     }
-  }, [userImage, garmentImageUrl, garmentCategory, storeSlug, productId]);
+  }, [userImage, garmentImageUrl, garmentCategory, storeSlug, productId, frameOrigin]);
 
   const download = useCallback(async () => {
     if (!resultUrl) return;
@@ -195,6 +246,8 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
     setDragOver(false);
     handleFile(e.dataTransfer.files?.[0]);
   };
+
+  if (!available) return null;
 
   return (
     <>
@@ -321,6 +374,20 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
                   </div>
                 </div>
               )}
+
+              {/* Verificación anti-bots (Turnstile): invisible salvo que Cloudflare pida interacción */}
+              <iframe
+                ref={frameRef}
+                src={tryonFrameSrc(storeSlug)}
+                title="Verificación de seguridad"
+                aria-hidden={!frameVisible}
+                tabIndex={frameVisible ? 0 : -1}
+                className={
+                  frameVisible
+                    ? 'mt-4 block h-[72px] w-full border-0'
+                    : 'pointer-events-none absolute h-px w-px border-0 opacity-0'
+                }
+              />
 
               {/* Procesando */}
               {status === 'processing' && (

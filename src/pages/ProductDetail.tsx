@@ -811,13 +811,15 @@ export function ProductDetail() {
       // Probador virtual con IA (FASHN) — plan PRO, sólo si section_virtual_tryon.
       case 'virtual_try':
         // El servidor vuelve a validar tienda, plan, producto y cupo: esto sólo decide si se muestra.
-        return config.isPro && config.sections.virtualTryon && images[0] && config.slug ? (
+        // Además, el propio componente se oculta si el probador no está disponible para la empresa.
+        return config.isPro && config.sections.virtualTryon && images[0] && config.slug && config.companyId ? (
           <VirtualTryOn
             garmentImageUrl={images[0]}
             garmentName={product.name}
             garmentCategory={mapFashnCategory(cats)}
             storeSlug={config.slug}
             productId={product.id}
+            companyId={config.companyId}
           />
         ) : null;
 
