@@ -251,6 +251,21 @@ export function ProductDetail() {
   // orden de elección real), así que la asimetría es la correcta.
   const colorDisabled = (color: string) => !variants.some((v) => v.color === color && (v.stock ?? 0) > 0);
 
+  // "Ocultar talles y colores sin stock" (editor → Productos): en vez de tachados,
+  // no se muestran. Solo venta suelta (el mayorista arma curvas y packs con la
+  // curva completa a la vista) y solo si queda algo con stock: un producto agotado
+  // entero se ve como siempre, con todo tachado y "Sin stock".
+  const hideVariants = config.hideOutOfStockVariants && !isWholesale && variants.some((v) => (v.stock ?? 0) > 0);
+  const shownColors = useMemo(
+    () => (hideVariants ? colors.filter((c) => variants.some((v) => v.color === c && (v.stock ?? 0) > 0)) : colors),
+    [hideVariants, colors, variants],
+  );
+  // Talles del selector único: se recalculan contra el color elegido (sizeDisabled).
+  const shownSizes = hideVariants ? sizes.filter((s) => !sizeDisabled(s)) : sizes;
+  // Filas por unidad: cada fila tiene su color, así que acá van los talles con
+  // stock en ALGÚN color; el tachado por fila (sizeDisabledFor) sigue resolviendo el resto.
+  const shownSizesAnyColor = hideVariants ? sizes.filter((s) => variants.some((v) => v.size === s && (v.stock ?? 0) > 0)) : sizes;
+
   const images = product ? productImages(product) : [];
   // Galería unificada: si product_media ya tiene imágenes, es la fuente (orden
   // por sort_order, fotos y videos intercalados como los dejó el comercio). Si
@@ -308,9 +323,15 @@ export function ProductDetail() {
   }, [product?.id]);
 
   // Si hay un solo color disponible, lo pre-seleccionamos (el usuario no tiene que tocarlo).
+  // Con las variantes sin stock ocultas cuenta el color que queda a la vista, y un
+  // color elegido que ya no se muestra (p.ej. por ?color= en el link) se suelta.
   useEffect(() => {
-    if (colors.length === 1 && !selectedColor) setSelectedColor(colors[0]);
-  }, [colors, selectedColor]);
+    if (hideVariants && selectedColor && !shownColors.includes(selectedColor)) {
+      setSelectedColor(shownColors.length === 1 ? shownColors[0] : null);
+      return;
+    }
+    if (shownColors.length === 1 && !selectedColor) setSelectedColor(shownColors[0]);
+  }, [hideVariants, shownColors, selectedColor]);
 
   // Volume tiers: mantener `tierSelections` con exactamente `tierUnits` slots (uno
   // por unidad), preservando lo ya elegido al cambiar de escalón.
@@ -688,7 +709,7 @@ export function ProductDetail() {
       case 'colors':
         return showSingleSelectors && needColor ? (
           <ColorSelector
-            colors={colors}
+            colors={shownColors}
             selected={selectedColor}
             isDisabled={colorDisabled}
             onSelect={(c) => {
@@ -705,7 +726,7 @@ export function ProductDetail() {
 
       case 'sizes':
         return showSingleSelectors && needSize ? (
-          <SizeSelector sizes={sizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />
+          <SizeSelector sizes={shownSizes} selected={selectedSize} isDisabled={sizeDisabled} onSelect={setSelectedSize} />
         ) : null;
 
       // Recomendador de talle — plan TIENDA+, sólo si section_probador. Panel
@@ -923,8 +944,8 @@ export function ProductDetail() {
             {withRows && (
               <UnitVariantRows
                 selections={tierSelections}
-                sizes={sizes}
-                colors={colors}
+                sizes={shownSizesAnyColor}
+                colors={shownColors}
                 sizeDisabledFor={sizeDisabledFor}
                 colorDisabled={colorDisabled}
                 onChange={updateTierUnit}

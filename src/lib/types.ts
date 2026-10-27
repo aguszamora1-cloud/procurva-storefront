@@ -834,6 +834,10 @@ export interface RawCatalogSettings {
   // cartel "Sin stock" al final de la grilla). Default false. Lo escribe el
   // panel Productos del editor. Ver lib/productStatus.
   hide_out_of_stock?: boolean;
+  // Ocultar los talles y colores sin stock en la ficha y en los quick-add
+  // (reels, complementarios) en vez de mostrarlos tachados. Solo venta suelta:
+  // las curvas y packs mayoristas necesitan ver la curva completa. Default false.
+  hide_out_of_stock_variants?: boolean;
   // Badges de las product cards (Últimas unidades / Nuevo / Envío gratis /
   // Descuento). Cada uno: on/off, color de fondo (texto por contraste) y label;
   // low_stock/new con su parámetro propio. Lo escribe el panel Diseño → Badges.
@@ -1234,6 +1238,10 @@ export interface StoreConfig {
   // Los productos sin stock no se muestran en la tienda (listados, búsqueda,
   // menú, outfits). La ficha por link directo sigue abriendo, no comprable.
   hideOutOfStock: boolean;
+  // Los talles/colores sin stock no se muestran al elegir (venta suelta). Si el
+  // producto está agotado entero se muestran igual, tachados, para que la ficha
+  // por link directo no quede sin opciones.
+  hideOutOfStockVariants: boolean;
   // Badges de las product cards, normalizados con defaults. El texto se resuelve
   // por contraste sobre `color`. `discount.color` vacío = usa el color de acento.
   badges: {
