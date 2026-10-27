@@ -127,13 +127,18 @@ export function captureAttribution(): void {
 }
 
 /**
- * Atribución para guardar en el pedido. `null` si no sabemos nada (entrada directa sin
- * cookies del pixel), así el pedido queda sin la clave en vez de con un objeto vacío.
+ * Atribución para guardar en el pedido.
  *
  * Los campos del último toque van sueltos en la raíz (son los que cruza el ERP); el
  * primero, anidado en `first`. `fbp`/`fbc` son las cookies del pixel de Meta: mejoran el
  * match de la Conversions API y confirman que hubo un click de Meta aunque el fbclid ya
  * no esté en la URL.
+ *
+ * `client` (user-agent y página del checkout) es lo que necesita el servidor para mandar
+ * el Purchase a la Conversions API cuando el webhook confirma el pago: Meta exige
+ * client_user_agent y event_source_url en eventos web, y en ese momento ya no hay
+ * navegador. Por eso desde la Fase 0 de Publicidad el objeto se guarda SIEMPRE (una
+ * entrada directa queda como "Directo o sin dato" en el ERP, igual que antes).
  */
 export function getAttribution(): Record<string, unknown> | null {
   if (typeof window === 'undefined') return null;
@@ -143,12 +148,16 @@ export function getAttribution(): Record<string, unknown> | null {
     const fbp = cookie('_fbp');
     const fbc = cookie('_fbc');
     const lastValid = last && !isExpired(last) ? last : null;
-    if (!lastValid && !first && !fbp && !fbc) return null;
+    const client = {
+      ua: String(navigator.userAgent || '').slice(0, 300),
+      page: `${window.location.origin}${window.location.pathname}`.slice(0, 500),
+    };
     return {
       ...(lastValid || {}),
       ...(first ? { first } : {}),
       ...(fbp ? { fbp } : {}),
       ...(fbc ? { fbc } : {}),
+      client,
       model: 'last_non_direct',
       window_days: WINDOW_DAYS,
       captured_at: new Date().toISOString(),

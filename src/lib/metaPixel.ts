@@ -12,7 +12,6 @@
  * del tenant.
  */
 
-import { sendServerEvent } from '@/lib/serverEvents';
 import { currencyCode } from './regional';
 import { isGoogleTagLoaded, trackGoogleAddToCart, trackGoogleBeginCheckout, trackGooglePurchase, trackGoogleViewItem } from './googleTag';
 
@@ -124,19 +123,23 @@ export function trackInitiateCheckout(p: { contentIds: string[]; value: number; 
 
 const PENDING_KEY = 'procurva_meta_pending_purchase';
 const TRACKED_KEY = 'procurva_meta_tracked_purchases';
-// Pedidos cuyo Purchase server-side (CAPI) ya se disparó en este page load — evita
-// re-disparar en los reintentos del flush mientras el pixel del browser termina de cargar.
-const serverFired = new Set<string>();
+
+/**
+ * event_id del Purchase de un pedido. Es DETERMINÍSTICO a propósito: el pixel lo dispara
+ * acá con este id y el servidor (track-event, llamado por el webhook de pago cuando el
+ * cobro queda confirmado) manda el mismo Purchase a la Conversions API con el MISMO id →
+ * Meta deduplica aunque viajen por caminos distintos y en momentos distintos.
+ * Espejo de `purchaseEventId` en supabase/functions/track-event/index.ts: cambiar juntos.
+ */
+export const purchaseEventId = (orderId: string) => `purchase-${orderId}`;
 
 export interface PendingPurchase {
   orderId: string;
   value: number;
   contentIds: string[];
   numItems: number;
-  // Para el disparo dual (pixel + CAPI) del Purchase, deduplicado por eventId.
+  /** Id compartido pixel <-> CAPI (ver purchaseEventId). */
   eventId?: string;
-  companyId?: string;
-  userData?: { email?: string; phone?: string };
 }
 
 /**
@@ -214,28 +217,14 @@ export function flushPendingPurchase(): boolean {
     return true;
   }
 
-  // CAPI (server-side) primero: se dispara SIEMPRE que haya companyId, incluso si el pixel
-  // del browser no cargó (adblocker) — es justamente lo que CAPI recupera. Dedup por eventId.
-  // El guard `serverFired` evita re-disparar en los reintentos del flush (mismo page load);
-  // entre reloads deduplica el edge fn por (company_id,event_id).
-  if (p.companyId && p.eventId && !serverFired.has(p.orderId)) {
-    serverFired.add(p.orderId);
-    sendServerEvent({
-      companyId: p.companyId,
-      eventId: p.eventId,
-      eventName: 'Purchase',
-      value: p.value,
-      currency: metaPixelCurrency(),
-      contentIds: p.contentIds,
-      orderId: p.orderId,
-      userData: p.userData,
-    });
-  }
+  // El Purchase server-side (Conversions API) ya NO sale de acá: lo manda el webhook de
+  // pago (MercadoPago / GoCuotas) cuando el cobro queda confirmado, con el mismo event_id
+  // (purchaseEventId). Desde el navegador cualquiera podía inventar compras. Acá sólo el
+  // pixel y la etiqueta de Google.
 
   // Ni el pixel ni la etiqueta de Google cargados todavía: dejamos el stash y pedimos
-  // reintento (el CAPI ya salió arriba; el edge fn deduplica por (company_id,event_id), así
-  // que un reintento no duplica). Analytics instala los dos snippets en el mismo render,
-  // así que cuando aparece uno ya están los dos.
+  // reintento. Analytics instala los dos snippets en el mismo render, así que cuando
+  // aparece uno ya están los dos.
   const fbq = getFbq();
   if (!fbq && !isGoogleTagLoaded()) return false;
 
@@ -246,7 +235,7 @@ export function flushPendingPurchase(): boolean {
       value: p.value,
       currency: metaPixelCurrency(),
       num_items: p.numItems,
-    }, p.eventId);
+    }, p.eventId || purchaseEventId(p.orderId));
   }
   // Conversión de Google Ads / GA4; transaction_id evita contar dos veces el pedido.
   trackGooglePurchase(p);

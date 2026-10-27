@@ -4,7 +4,7 @@ import { ShoppingBag, X, ArrowLeft, Plus, MapPin, Info, AlertTriangle, Image as 
 import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
 import { useMetaPixel } from '@/hooks/useMetaPixel';
-import { stashPendingPurchase } from '@/lib/metaPixel';
+import { purchaseEventId, stashPendingPurchase } from '@/lib/metaPixel';
 import { useStore, useStoreType, useStoreStatus } from '@/context/StoreProvider';
 import { supabase } from '@/lib/supabase';
 import { Seo } from '@/components/Seo';
@@ -884,11 +884,9 @@ export function Checkout() {
           value: Math.round(orderTotal),
           contentIds: Array.from(new Set(pricedItems.map((i) => i.product_id))),
           numItems: itemCount,
-          // Disparo dual (pixel + CAPI) del Purchase en la pantalla de éxito, dedup por eventId.
-          // userData mejora el match de Meta (se hashea SHA-256 en el Edge Function).
-          eventId: crypto.randomUUID(),
-          companyId: config.companyId,
-          userData: { email: form.email, phone: form.phone },
+          // Mismo event_id que usa el servidor para el Purchase de la Conversions API
+          // (lo manda el webhook de pago, con los datos del pedido): Meta deduplica.
+          eventId: purchaseEventId(String(orderId)),
         });
       };
 

@@ -17,7 +17,9 @@ import { getStoredClickId, getMetaCookies } from './attribution';
 export interface ServerEventInput {
   companyId: string;
   eventId: string;
-  eventName: 'ViewContent' | 'AddToCart' | 'InitiateCheckout' | 'Purchase';
+  // Purchase NO va por acá: lo manda el servidor desde el webhook de pago (track-event lo
+  // rechaza si llega del navegador). Ver metaPixel.ts → purchaseEventId.
+  eventName: 'ViewContent' | 'AddToCart' | 'InitiateCheckout';
   value?: number;
   currency?: string;
   contentIds?: string[];
