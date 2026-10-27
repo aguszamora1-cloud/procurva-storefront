@@ -16,7 +16,7 @@ import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, checkCartStock, CouponError, StockError, type CouponErrorCode, type CustomerInfo, type StockShortfall, type PriceBreakdown } from '@/lib/orders';
 import { effectiveShippingCost, evalFreeShipping, expandMethod, hasOwnZoneCoverage, isFreeByPromo, methodAvailableForChannel, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption, type StoreChannel } from '@/lib/shipping';
 import { looksLikePhone } from '@/lib/phone';
-import { computeDiscount, eligibleSubtotal, eligibleItems } from '@/lib/coupons';
+import { computeDiscount, eligibleSubtotal, eligibleItems, minimumBase } from '@/lib/coupons';
 import { track } from '@/lib/tracking';
 import { useCoupon } from '@/context/CouponContext';
 import { CouponChip } from '@/components/CouponChip';
@@ -608,16 +608,14 @@ export function Checkout() {
   // compra mínima del cupón, el descuento es 0 (sin romper nada).
   // El descuento se calcula sobre el SUBTOTAL ELEGIBLE: si el cupón tiene alcance
   // acotado (productos/categorías), sólo descuenta sobre esos items; el resto se
-  // cobra a precio normal. La compra mínima se evalúa sobre el subtotal total.
+  // cobra a precio normal. La compra mínima se mide sobre todo el carrito a precio
+  // de lista (minimumBase, igual que la RPC server-side): no depende del medio de pago.
+  const couponMinMet = !appliedCoupon?.min_subtotal || minimumBase(couponItems) >= appliedCoupon.min_subtotal;
   const discountAmount = useMemo(() => {
-    if (!appliedCoupon) return 0;
-    // El mínimo se mide sobre el subtotal ELEGIBLE (igual que la RPC server-side),
-    // no sobre el total del carrito: así nunca mostramos un descuento que el
-    // servidor va a rechazar.
+    if (!appliedCoupon || !couponMinMet) return 0;
     const elig = eligibleSubtotal(appliedCoupon, couponItems, priceMode);
-    if (appliedCoupon.min_subtotal && elig < appliedCoupon.min_subtotal) return 0;
     return Math.round(computeDiscount(appliedCoupon, elig));
-  }, [appliedCoupon, couponItems, priceMode]);
+  }, [appliedCoupon, couponMinMet, couponItems, priceMode]);
 
   // Productos del carrito alcanzados por el cupón (para el desglose cuando aplica
   // parcialmente). Vacío si el alcance es 'all'.
@@ -635,11 +633,8 @@ export function Checkout() {
   const totalForMode = (mode: 'cash' | 'card') => {
     const sub = mode === 'cash' ? cashSubtotal : cardSubtotal;
     let disc = 0;
-    if (appliedCoupon) {
-      const elig = eligibleSubtotal(appliedCoupon, couponItems, mode);
-      if (!(appliedCoupon.min_subtotal && elig < appliedCoupon.min_subtotal)) {
-        disc = Math.round(computeDiscount(appliedCoupon, elig));
-      }
+    if (appliedCoupon && couponMinMet) {
+      disc = Math.round(computeDiscount(appliedCoupon, eligibleSubtotal(appliedCoupon, couponItems, mode)));
     }
     // El envío se recalcula por modo: con el umbral prendido, pagar con tarjeta
     // puede alcanzarlo y pagar en contado no.

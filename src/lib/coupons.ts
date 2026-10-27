@@ -85,6 +85,19 @@ export function eligibleSubtotal(coupon: CouponRecord, items: CartItem[], mode: 
 }
 
 /**
+ * Monto contra el que se mide la COMPRA MÍNIMA del cupón: TODO el carrito a precio
+ * de lista (tarjeta, ya con las promos por cantidad), sin importar el alcance del
+ * cupón ni el descuento del medio de pago. Es lo que el comercio tiene en la cabeza
+ * al cargar "compra mínima $X" (caso Las Popas 27/10: camisa del cupón + pantalón
+ * de otra categoría = $400.000, pero se medía solo la camisa a precio de contado,
+ * $160.000, y rebotaba con mínimo $165.000). La RPC create_catalog_order_dedup mide
+ * lo mismo con `price_card` de cada item (ver mapItems en orders.ts).
+ */
+export function minimumBase(items: CartItem[]): number {
+  return items.reduce((s, it) => s + it.unit_price * it.qty, 0);
+}
+
+/**
  * Calcula el monto descontado para un cupón y un subtotal dados.
  * - percent: subtotal * (discount_value / 100)
  * - fixed:   discount_value
@@ -172,10 +185,10 @@ export async function validateCoupon(
 
   const elig = eligibleSubtotal(coupon, ctx.items, ctx.mode);
 
-  // La compra mínima se evalúa sobre el SUBTOTAL ELEGIBLE (los items que matchean
-  // el alcance del cupón), igual que la RPC create_catalog_order_dedup server-side.
-  // Así el cliente nunca muestra un descuento que el servidor va a rechazar.
-  if (coupon.min_subtotal && elig < coupon.min_subtotal) {
+  // La compra mínima se mide sobre todo el carrito a precio de lista (minimumBase),
+  // igual que la RPC create_catalog_order_dedup server-side. El descuento, en
+  // cambio, se calcula sobre el subtotal elegible.
+  if (coupon.min_subtotal && minimumBase(ctx.items) < coupon.min_subtotal) {
     return {
       ok: false,
       error: `Compra mínima de ${formatMoney(Number(coupon.min_subtotal))} para usar este cupón.`,
@@ -269,8 +282,9 @@ export interface CouponCartEval {
 
 /**
  * Evalúa un cupón contra el carrito para el chip tri-estado (disponible / aplicado /
- * no-aplicable). Alinea la regla de mínimo con la RPC server-side: se mide sobre el
- * subtotal ELEGIBLE. `hasNonStackablePromo` bloquea el cupón (promo no acumulable).
+ * no-aplicable). Alinea la regla de mínimo con la RPC server-side: se mide sobre todo
+ * el carrito a precio de lista (minimumBase). `hasNonStackablePromo` bloquea el cupón
+ * (promo no acumulable).
  */
 export function evaluateCouponForCart(
   coupon: CouponRecord,
@@ -288,7 +302,8 @@ export function evaluateCouponForCart(
   const eligibleNames = scope === 'all' ? [] : Array.from(new Set(matched.map((it) => it.name)));
   const partial = scope !== 'all' && matched.length > 0 && matched.length < items.length;
   const min = coupon.min_subtotal ?? 0;
-  const missingForMin = Math.max(0, min - eligible);
+  const base = minimumBase(items);
+  const missingForMin = Math.max(0, min - base);
   const rawDiscount = Math.round(computeDiscount(coupon, eligible));
 
   let applicable = true;
@@ -299,7 +314,7 @@ export function evaluateCouponForCart(
   } else if (scope !== 'all' && matched.length === 0) {
     applicable = false;
     reason = 'scope';
-  } else if (min > 0 && eligible < min) {
+  } else if (min > 0 && base < min) {
     applicable = false;
     reason = 'min';
   } else if (rawDiscount <= 0) {
