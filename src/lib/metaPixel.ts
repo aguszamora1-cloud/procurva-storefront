@@ -154,6 +154,21 @@ export function stashPendingPurchase(p: PendingPurchase): void {
   }
 }
 
+/**
+ * Id del pedido de la compra pendiente (si hay stash), sin disparar nada. La pantalla de
+ * éxito lo usa para confirmar en la base que ESE pedido está pagado antes de disparar.
+ */
+export function peekPendingPurchaseOrderId(): string | null {
+  try {
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as PendingPurchase;
+    return p && typeof p.orderId === 'string' && p.orderId ? p.orderId : null;
+  } catch {
+    return null;
+  }
+}
+
 /** IDs de pedidos ya trackeados (dedup ante recargas de la pantalla de éxito). */
 function readTracked(): string[] {
   try {
