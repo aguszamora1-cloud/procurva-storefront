@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Clock, XCircle, MessageCircle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useStore } from '@/context/StoreProvider';
-import { flushPendingPurchase } from '@/lib/metaPixel';
+import { flushPendingPurchase, peekPendingPurchaseOrderId } from '@/lib/metaPixel';
+import { supabase } from '@/lib/supabase';
 import { Seo } from '@/components/Seo';
 import { formatPrice, whatsappLink } from '@/lib/utils';
 
@@ -166,23 +167,56 @@ function CheckoutStatus({ variant }: { variant: Variant }) {
     if (variant === 'success') clear();
   }, [variant, clear]);
 
-  // Meta Pixel: disparamos Purchase si quedó una compra pendiente (la dejó el
-  // checkout antes de redirigir a la pasarela). Reintentamos un rato corto por
-  // si el pixel todavía está cargando al volver de Mercado Pago / GoCuotas.
+  // Meta Pixel: disparamos Purchase si quedó una compra pendiente (la dejó el checkout
+  // antes de redirigir a la pasarela) y SÓLO cuando la base confirma que ese pedido está
+  // pagado (catalog_order_is_paid). Entrar a /checkout/success no alcanza: la URL es
+  // pública y el webhook de pago puede tardar unos segundos más que la vuelta de la
+  // pasarela. Consultamos cada 3 s hasta 90 s; el stash sobrevive en sessionStorage, así
+  // que una recarga más tarde también dispara. El event_id es purchaseEventId(orderId), el
+  // mismo que manda el servidor por la Conversions API → Meta deduplica.
   useEffect(() => {
     if (variant !== 'success') return;
+    const pendingOrderId = peekPendingPurchaseOrderId();
+    if (!pendingOrderId) return; // transferencia / WhatsApp / nada pendiente
+    if (orderId && orderId !== pendingOrderId) return; // stash de otro pedido: no disparar
+
+    let cancelled = false;
     let timer: number | undefined;
-    let tries = 0;
-    const attempt = () => {
-      if (flushPendingPurchase()) return; // disparó, o no había nada pendiente
-      if (++tries > 20) return; // ~2s esperando a que cargue el pixel
-      timer = window.setTimeout(attempt, 100);
+    let polls = 0;
+
+    // Con el pago confirmado, esperamos un rato corto a que cargue el pixel.
+    const flushWhenLoaded = () => {
+      let tries = 0;
+      const attempt = () => {
+        if (cancelled) return;
+        if (flushPendingPurchase()) return; // disparó, o no había nada pendiente
+        if (++tries > 20) return; // ~2s esperando a que cargue el pixel
+        timer = window.setTimeout(attempt, 100);
+      };
+      attempt();
     };
-    timer = window.setTimeout(attempt, 0);
+
+    const checkPaid = async () => {
+      if (cancelled) return;
+      let paid = false;
+      try {
+        const { data } = await supabase.rpc('catalog_order_is_paid', { p_order_id: pendingOrderId });
+        paid = data === true;
+      } catch {
+        paid = false; // sin red / RPC ausente: probamos de nuevo
+      }
+      if (cancelled) return;
+      if (paid) { flushWhenLoaded(); return; }
+      if (++polls >= 30) return; // ~90 s
+      timer = window.setTimeout(checkPaid, 3000);
+    };
+    checkPaid();
+
     return () => {
+      cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [variant]);
+  }, [variant, orderId]);
 
   return (
     <div className="mx-auto flex max-w-[640px] flex-col items-center gap-5 px-6 py-24 text-center">
