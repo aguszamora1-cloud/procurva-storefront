@@ -186,6 +186,9 @@ function mapItems(items: CartItem[], priceMode: 'cash' | 'card') {
     color: i.color,
     quantity: i.qty,
     price: itemPrice(i, priceMode),
+    // Precio de lista (tarjeta, con promo por cantidad): la RPC mide con esto la
+    // compra mínima del cupón, igual que minimumBase() en coupons.ts.
+    price_card: i.unit_price,
     // 'suelto' (retail y compra suelta mayorista), 'curva', 'curva_surtida' o 'pack'.
     source: i.source ?? 'suelto',
     ...((i.source === 'curva' || i.source === 'curva_surtida') && i.curves ? { curves: i.curves } : {}),
