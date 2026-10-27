@@ -37,6 +37,10 @@ export function findVariant(p: Product, color: string | null, size: string | nul
 /** true si la variante existe y tiene stock. */
 export const variantHasStock = (v: Variant | null): boolean => !!v && (v.stock ?? 0) > 0;
 
+/** Color con al menos una variante con stock. */
+export const colorInStock = (p: Product, color: string): boolean =>
+  variantsOf(p).some((v) => v.color === color && (v.stock ?? 0) > 0);
+
 /** Talle disponible (con stock) para un color puntual. */
 export const sizeInStock = (p: Product, color: string | null, size: string): boolean =>
   variantsOf(p).some((v) => v.size === size && (!color || v.color === color) && (v.stock ?? 0) > 0);

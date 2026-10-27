@@ -13,6 +13,7 @@ import { applyStockOverrides } from '@/lib/productStatus';
 import { PriceStack } from './PriceStack';
 import {
   colorsOf,
+  colorInStock,
   sizesOf,
   findVariant,
   sizeInStock,
@@ -147,6 +148,7 @@ interface RowProps {
 
 function ComplementRow({ card, base, variants, storeType, preferredSize }: RowProps) {
   const { addItem } = useCart();
+  const { hideOutOfStockVariants } = useStore();
   const { curveTiers, curveDistributions, productPacks } = useWholesalePricing();
 
   const [added, setAdded] = useState(false);
@@ -177,13 +179,16 @@ function ComplementRow({ card, base, variants, storeType, preferredSize }: RowPr
     [curveTiers, curveDistributions, productPacks, full.id],
   );
 
-  const colors = pinned ? [pinned] : colorsOf(full);
+  // "Ocultar talles y colores sin stock": solo minorista (ver ProductDetail). El
+  // color fijado por la card se respeta siempre.
+  const hideVariants = hideOutOfStockVariants && storeType !== 'wholesale';
+  const colors = pinned ? [pinned] : colorsOf(full).filter((c) => !hideVariants || colorInStock(full, c));
   const kind = storeType === 'wholesale' ? minUnitKind(full, wdata) : 'unit';
 
   // Color efectivo (único, fijado o elegido).
   const effColor = colors.length === 1 ? colors[0] : pickColor;
   // Talle efectivo (retail/unit): herencia del principal → único → elegido.
-  const sizesForColor = sizesOf(full, effColor);
+  const sizesForColor = sizesOf(full, effColor).filter((s) => !hideVariants || sizeInStock(full, effColor, s));
   const inheritedSize =
     preferredSize && effColor != null && sizeInStock(full, effColor, preferredSize) ? preferredSize : null;
   const effSize = inheritedSize ?? (sizesForColor.length === 1 ? sizesForColor[0] : pickSize);

@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { useStoreType } from '@/context/StoreProvider';
+import { useStore, useStoreType } from '@/context/StoreProvider';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
 import { useProducts } from '@/hooks/useProducts';
 import { useProductVariants } from '@/hooks/useProductVariants';
@@ -11,6 +11,7 @@ import { formatPrice } from '@/lib/utils';
 import { applyStockOverrides } from '@/lib/productStatus';
 import {
   colorsOf,
+  colorInStock,
   sizesOf,
   findVariant,
   sizeInStock,
@@ -102,6 +103,7 @@ interface Props {
 export function ReelProductCard({ product, onNavigate, onAdded }: Props) {
   const { addItem } = useCart();
   const storeType = useStoreType() ?? 'retail';
+  const { hideOutOfStockVariants } = useStore();
   const { curveTiers, curveDistributions, productPacks } = useWholesalePricing();
 
   const [added, setAdded] = useState(false);
@@ -117,11 +119,14 @@ export function ReelProductCard({ product, onNavigate, onAdded }: Props) {
     [curveTiers, curveDistributions, productPacks, product.id],
   );
 
-  const colors = colorsOf(product);
+  // "Ocultar talles y colores sin stock": solo minorista (ver ProductDetail).
+  // Con el producto agotado entero no se filtra: los selectores ya no se muestran.
+  const hideVariants = hideOutOfStockVariants && storeType !== 'wholesale';
+  const colors = colorsOf(product).filter((c) => !hideVariants || colorInStock(product, c));
   const kind = storeType === 'wholesale' ? minUnitKind(product, wdata) : 'unit';
 
   const effColor = colors.length === 1 ? colors[0] : pickColor;
-  const sizes = sizesOf(product, effColor);
+  const sizes = sizesOf(product, effColor).filter((s) => !hideVariants || sizeInStock(product, effColor, s));
   const effSize = sizes.length === 1 ? sizes[0] : pickSize;
 
   const needsColor = colors.length > 1;
