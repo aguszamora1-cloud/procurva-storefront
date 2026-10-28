@@ -10,9 +10,12 @@
 // Nombres de color (mercado textil argentino) → hex, para pintar círculos/chips
 // de color con el color que el comerciante realmente escribió.
 //
-// El campo `product_variants.color` es TEXTO LIBRE: no hay hex en la base, ni
-// nombre normalizado, ni tabla de colores. Este mapa es la única forma de saber
-// de qué color estamos hablando, y por eso nunca va a cubrir el 100%: medido
+// El campo `product_variants.color` es TEXTO LIBRE: no hay hex en la variante ni
+// nombre normalizado. Cada empresa puede cargar SUS colores (nombre → hex, tabla
+// `company_colors`, pantalla Ajustes → Colores); esos se registran con
+// setCustomColors() y tienen prioridad sobre este mapa. Fuera de eso, el mapa es
+// la única forma de saber de qué color estamos hablando, y por eso nunca va a
+// cubrir el 100%: medido
 // contra los datos reales del catálogo público (1.785 pares producto-color, 600
 // nombres distintos) resuelve ~71% con el match por substring incluido. Lo que
 // queda afuera es sobre todo inglés (black, white, blue), género/plural (negra,
@@ -134,6 +137,60 @@ export const COLOR_MAP: Record<string, string> = {
   'uva': '#6F2DA8',
   'ciruela': '#8E4585',
 
+  // Italiano (marcas que nombran los colores como el proveedor). Los que se
+  // escriben igual que en castellano (rosa, verde, fucsia, lavanda) ya están
+  // arriba. Los tonos puntuales los carga cada empresa en Ajustes → Colores.
+  'nero': '#000000',
+  'bianco': '#FFFFFF',
+  'bianco ottico': '#FFFFFF',
+  'panna': '#FFFDD0',
+  'avorio': '#FFFFF0',
+  'ecru': '#F0EAD6',
+  'grigio': '#808080',
+  'grigio chiaro': '#D3D3D3',
+  'grigio scuro': '#404040',
+  'grigio melange': '#B0B0B0',
+  'antracite': '#3B3B3B',
+  'blu': '#0000FF',
+  'blu navy': '#001F5B',
+  'blu notte': '#191970',
+  'blu scuro': '#00008B',
+  'blu royal': '#4169E1',
+  'azzurro': '#87CEEB',
+  'turchese': '#40E0D0',
+  'petrolio': '#005F6B',
+  'rosso': '#FF0000',
+  'bordeaux': '#800020',
+  'corallo': '#FF7F50',
+  'cipria': '#E8C4B8',
+  'rosa antico': '#C08081',
+  'verde militare': '#4B5320',
+  'verde bottiglia': '#006A4E',
+  'oliva': '#808000',
+  'salvia': '#9CAF88',
+  'menta': '#98FF98',
+  'smeraldo': '#50C878',
+  'marrone': '#8B4513',
+  'testa di moro': '#3D2B1F',
+  'cioccolato': '#7B3F00',
+  'cammello': '#C19A6B',
+  'cuoio': '#9A463D',
+  'tortora': '#B9A99A',
+  'sabbia': '#C2B280',
+  'giallo': '#FFD700',
+  'senape': '#FFDB58',
+  'arancio': '#FFA500',
+  'arancione': '#FFA500',
+  'ruggine': '#B7410E',
+  'mattone': '#CB4154',
+  'viola': '#8B00FF',
+  'lilla': '#C8A2C8',
+  'glicine': '#C9A0DC',
+  'prugna': '#8E4585',
+  'melanzana': '#614051',
+  'oro': '#DAA520',
+  'argento': '#C0C0C0',
+
   // Catch-all / single-size sentinel
   'único': '#9CA3AF',
   'unico': '#9CA3AF',
@@ -156,10 +213,64 @@ function normalize(input: string): string {
   return input.toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
+const HEX_RE = /^#[0-9a-f]{6}$/i;
+
+// Colores propios de la empresa activa (nombre normalizado → hex). Los carga una
+// sola vez la app (ERP: al conocer la empresa; tienda: al resolver la tienda) y
+// tienen prioridad sobre COLOR_MAP. Vacío = comportamiento de siempre.
+let customColors: Record<string, string> = {};
+let customColorsVersion = 0;
+const customColorsListeners = new Set<() => void>();
+
+/**
+ * Registra los colores propios de la empresa. Filas con nombre vacío, hex
+ * inválido o nombre centinela ('único', '-', …) se descartan. Avisa a los
+ * suscriptos para que los círculos ya pintados se vuelvan a pintar.
+ */
+export function setCustomColors(list: ReadonlyArray<{ name: string | null; hex: string | null }> | null | undefined): void {
+  const next: Record<string, string> = {};
+  for (const row of list ?? []) {
+    const name = normalize(row?.name ?? '');
+    const hex = (row?.hex ?? '').trim();
+    if (!name || SENTINELS.has(name) || !HEX_RE.test(hex)) continue;
+    next[name] = hex.toUpperCase();
+  }
+  customColors = next;
+  customColorsVersion += 1;
+  customColorsListeners.forEach((fn) => fn());
+}
+
+/** Para useSyncExternalStore: se dispara cada vez que cambian los colores propios. */
+export function subscribeCustomColors(fn: () => void): () => void {
+  customColorsListeners.add(fn);
+  return () => {
+    customColorsListeners.delete(fn);
+  };
+}
+
+export function getCustomColorsVersion(): number {
+  return customColorsVersion;
+}
+
+// Match parcial: la clave más larga que aparece dentro del nombre (o al revés),
+// así "azul marino" le gana a "azul".
+function bestPartial(name: string, map: Record<string, string>): string | null {
+  let best: string | undefined;
+  for (const key of Object.keys(map)) {
+    if (name.includes(key) || key.includes(name)) {
+      if (!best || key.length > best.length) best = key;
+    }
+  }
+  return best ? map[best] : null;
+}
+
 /**
  * Hex del color, o null si el nombre no se puede resolver a un color conocido.
  * Null significa "no sé de qué color es", que es información distinta de "es
  * gris" y hay que poder mostrarla distinto.
+ *
+ * Orden: propio exacto → mapa exacto → propio parcial → mapa parcial. El propio
+ * le gana siempre al mapa: si la empresa dice que su "Rosso" es bordó, es bordó.
  */
 export function resolveColorHex(colorName: string | null | undefined): string | null {
   if (!colorName) return null;
@@ -167,21 +278,11 @@ export function resolveColorHex(colorName: string | null | undefined): string | 
   if (!name || SENTINELS.has(name)) return null;
 
   // 1. Exact match
-  const exact = COLOR_MAP[name];
+  const exact = customColors[name] ?? COLOR_MAP[name];
   if (exact) return exact;
 
-  // 2. Partial match — find any color name that appears as a substring
-  // Prefer the longest matching key so "azul marino" beats "azul".
-  let best: string | undefined;
-  for (const key of Object.keys(COLOR_MAP)) {
-    if (name.includes(key) || key.includes(name)) {
-      if (!best || key.length > best.length) best = key;
-    }
-  }
-  if (best) return COLOR_MAP[best];
-
-  // 3. No lo conocemos.
-  return null;
+  // 2. Partial match
+  return bestPartial(name, customColors) ?? bestPartial(name, COLOR_MAP);
 }
 
 /**
@@ -196,5 +297,5 @@ export function getColorHex(colorName: string | null | undefined): string {
   if (!colorName) return FALLBACK_HEX;
   const name = normalize(colorName);
   if (!name) return FALLBACK_HEX;
-  return COLOR_MAP[name] ?? resolveColorHex(colorName) ?? FALLBACK_HEX;
+  return customColors[name] ?? COLOR_MAP[name] ?? resolveColorHex(colorName) ?? FALLBACK_HEX;
 }

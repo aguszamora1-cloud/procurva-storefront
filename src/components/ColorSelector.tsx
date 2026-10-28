@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { resolveColorHex } from '@/lib/colorHelper';
+import { useCustomColorsVersion } from '@/hooks/useCompanyColors';
 import { SELECTED_CHIP } from '@/components/SizeSelector';
 
 /**
@@ -59,6 +60,7 @@ interface Props {
  * lector de pantalla, sin implementar nada a mano.
  */
 export function ColorSelector({ colors, selected, isDisabled, onSelect, hideHeading, ariaLabel }: Props) {
+  useCustomColorsVersion(); // repinta cuando llegan los colores propios del comercio
   // `name` único por instancia: en modo escalón hay un ColorSelector por unidad
   // y se pisarían la selección entre ellos si compartieran el name.
   const groupName = `color-${useId()}`;

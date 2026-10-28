@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { colorToHex, formatPrice } from '@/lib/utils';
 import { useTypography } from '@/hooks/useTypography';
+import { useCustomColorsVersion } from '@/hooks/useCompanyColors';
 
 export interface ProductFiltersProps {
   categories: string[];
@@ -90,6 +91,7 @@ function CheckboxRow({
  */
 export function ProductFilters(props: ProductFiltersProps) {
   const { ty } = useTypography();
+  useCustomColorsVersion(); // repinta cuando llegan los colores propios del comercio
   const {
     categories,
     segments,
