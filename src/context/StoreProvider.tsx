@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useLoadCompanyColors } from '@/hooks/useCompanyColors';
 import { resolveTenant } from '@/lib/tenant';
 import { normalizeStoreConfig } from '@/lib/storeConfig';
 import { applyDocumentMeta, applyTheme, loadFonts } from '@/lib/theme';
@@ -326,6 +327,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Colores propios del comercio para los circulitos de color.
+  useLoadCompanyColors(config?.companyId ?? null);
 
   return (
     <StoreContext.Provider

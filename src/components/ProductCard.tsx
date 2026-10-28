@@ -12,6 +12,7 @@ import { CardBadge } from './CardBadge';
 import { RatingLine } from './RatingLine';
 import { colorToHex, mainImage } from '@/lib/utils';
 import { useTypography } from '@/hooks/useTypography';
+import { useCustomColorsVersion } from '@/hooks/useCompanyColors';
 
 // Clases del contenedor de badges según la esquina elegida. En las esquinas
 // inferiores se apila hacia arriba (flex-col-reverse) para no desbordar la card.
@@ -25,6 +26,7 @@ const BADGE_POSITION_CLASSES: Record<'top-left' | 'top-right' | 'bottom-left' | 
 
 export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
   const { ty, version: typoVersion } = useTypography();
+  useCustomColorsVersion(); // repinta cuando llegan los colores propios del comercio
   const image = mainImage(product);
   // Virtual card por color: el link al detalle pre-selecciona ese color.
   const detailHref = product.variant_color

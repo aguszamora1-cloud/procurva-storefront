@@ -4,6 +4,7 @@ import { AlertCircle, Minus, Plus } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useWholesalePricing } from '@/context/WholesalePricingContext';
 import { colorToHex, formatPrice, mainImage } from '@/lib/utils';
+import { useCustomColorsVersion } from '@/hooks/useCompanyColors';
 import {
   colorsOf,
   curveCompositionText,
@@ -54,6 +55,7 @@ export function WholesalePurchasePanel({
   onColorChange?: (color: string | null) => void;
 }) {
   const { addItem, close } = useCart();
+  useCustomColorsVersion(); // repinta cuando llegan los colores propios del comercio
   // v2: el precio mayorista con la misma presencia que el minorista de la ficha
   // (PriceHierarchy 'detail': 30-34px, 800). Mismo color que ya tenía (texto,
   // o accent con promo): sólo cambia tamaño, peso y números de ancho fijo.
