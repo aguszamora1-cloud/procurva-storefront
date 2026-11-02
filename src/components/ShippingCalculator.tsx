@@ -112,7 +112,11 @@ export function ShippingCalculator({ productId }: { productId?: string } = {}) {
       ) : config.freeShippingFrom > 0 && (
         <p className={ink.aa ? 'mb-3 flex items-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-[color:var(--color-success-ink)]' : 'mb-3 flex items-center gap-1.5 text-[calc(12px_*_var(--font-scale,1))] font-semibold text-[#1e8449]'}>
           <Truck className="h-3.5 w-3.5 shrink-0" />
-          Envío gratis en compras desde {formatPrice(config.freeShippingFrom)}
+          {/* Umbral 1 = "Hacer gratis todos los envíos" del panel: cualquier compra
+              lo alcanza, así que "desde $1" se leía raro (LAS POPAS, 02/11/2026). */}
+          {config.freeShippingFrom <= 1
+            ? 'Envío gratis en todas las compras'
+            : `Envío gratis en compras desde ${formatPrice(config.freeShippingFrom)}`}
         </p>
       )}
 
