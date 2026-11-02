@@ -333,6 +333,15 @@ export function ProductDetail() {
     if (shownColors.length === 1 && !selectedColor) setSelectedColor(shownColors[0]);
   }, [hideVariants, shownColors, selectedColor]);
 
+  // Lo mismo con el talle: si queda uno solo a la vista ("Único", o el único con
+  // stock cuando se ocultan los agotados) y tiene stock, viene elegido. Un clic
+  // menos para el cliente (LAS POPAS, 02/11/2026). Agotado no se elige: ahí el
+  // botón tiene que seguir diciendo "Sin stock".
+  const onlySize = shownSizes.length === 1 && !sizeDisabled(shownSizes[0]) ? shownSizes[0] : null;
+  useEffect(() => {
+    if (onlySize && !selectedSize) setSelectedSize(onlySize);
+  }, [onlySize, selectedSize]);
+
   // Volume tiers: mantener `tierSelections` con exactamente `tierUnits` slots (uno
   // por unidad), preservando lo ya elegido al cambiar de escalón.
   //

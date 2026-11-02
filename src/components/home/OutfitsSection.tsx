@@ -290,6 +290,23 @@ function OutfitBuyModal({ outfit, onClose }: { outfit: OutfitWithProducts; onClo
     });
   }, [colorsByProduct, enriched, pinnedColorByProduct]);
 
+  // Pre-selección de talle: si la prenda tiene un solo talle ("Único") y hay
+  // stock, viene elegido, igual que el color único (LAS POPAS, 02/11/2026).
+  useEffect(() => {
+    setSelectedSizes((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const p of enriched) {
+        const ss = sizesByProduct[p.id] ?? [];
+        if (ss.length === 1 && !next[p.id] && p.product_variants.some((v) => v.size === ss[0] && (v.stock ?? 0) > 0)) {
+          next[p.id] = ss[0];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [sizesByProduct, enriched]);
+
   // Cerrar con Escape y bloquear el scroll de fondo mientras el modal está abierto.
   // En iOS / navegadores embebidos (Instagram, in-app webview) poner solo
   // `overflow: hidden` NO alcanza: el fondo sigue haciendo rubber-band y, como el
