@@ -1,4 +1,5 @@
-import type { CartItem } from './types';
+import type { CartItem, StoreType } from './types';
+import { applyPromoToPrice, type QtyPromoLineResult } from './promotions';
 
 /**
  * Clave de línea del carrito. En mayorista, una misma variante puede estar como
@@ -16,6 +17,37 @@ export function cartLineKey(
   // de distintos escalones; dentro del mismo grupo, misma variante suma qty.
   if (item.source === 'tier') return `tier::${item.tierGroupId ?? item.product_id}::${item.variant_id}`;
   return `${item.variant_id}::${item.source ?? 'suelto'}`;
+}
+
+/**
+ * Items con la promo POR CANTIDAD ya aplicada al precio (lo que se cobra y se
+ * serializa en la orden). Las líneas activas bajan unit_price/unit_price_cash y
+ * guardan el tracking en los campos promo_* existentes (sin migración). Lo usan
+ * el checkout y el carrito (total con cupón), para que den el mismo número.
+ */
+export function priceCartItems(
+  items: CartItem[],
+  byLine: Map<string, QtyPromoLineResult>,
+  storeType: StoreType,
+): CartItem[] {
+  return items.map((it) => {
+    const r = byLine.get(cartLineKey(it));
+    if (!r?.active || !r.promo) return it;
+    const cardBase = it.unit_price_original ?? it.unit_price;
+    const newCard = Math.min(it.unit_price, applyPromoToPrice(cardBase, r.promo, storeType));
+    const hasCash = typeof it.unit_price_cash === 'number';
+    const cashBase = hasCash ? (it.unit_price_cash as number) : cardBase;
+    const newCash = Math.min(cashBase, applyPromoToPrice(cashBase, r.promo, storeType));
+    return {
+      ...it,
+      unit_price: newCard,
+      ...(hasCash ? { unit_price_cash: newCash } : {}),
+      unit_price_original: cardBase,
+      promo_id: r.promo.id,
+      promo_name: r.promo.name,
+      promo_stackable: r.promo.stackable_with_coupons !== false,
+    };
+  });
 }
 
 /**

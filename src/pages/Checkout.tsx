@@ -10,8 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { Seo } from '@/components/Seo';
 import { Spinner } from '@/components/Spinner';
 import { formatPrice, whatsappLink } from '@/lib/utils';
-import { cartLineKey, groupCartItems, evalMinOrder } from '@/lib/cart';
-import { applyPromoToPrice } from '@/lib/promotions';
+import { groupCartItems, evalMinOrder, priceCartItems } from '@/lib/cart';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, checkCartStock, CouponError, StockError, type CouponErrorCode, type CustomerInfo, type StockShortfall, type PriceBreakdown } from '@/lib/orders';
 import { effectiveShippingCost, evalFreeShipping, expandMethod, hasOwnZoneCoverage, isFreeByPromo, methodAvailableForChannel, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption, type StoreChannel } from '@/lib/shipping';
@@ -186,32 +185,10 @@ export function Checkout() {
   // a los ítems del pedido, ya con su precio especial (ver OrderBumpOffer).
   const [bumpLine, setBumpLine] = useState<CartItem | null>(null);
 
-  // Items con la promo POR CANTIDAD ya aplicada al precio (lo que se cobra y se
-  // serializa en la orden). Las líneas activas bajan unit_price/unit_price_cash y
-  // guardan el tracking en los campos promo_* existentes (sin migración).
+  // Items con la promo POR CANTIDAD ya aplicada al precio (ver priceCartItems).
   // La oferta antes de pagar va al final y SIN promo: ya tiene su precio.
   const pricedItems = useMemo(
-    () => [
-      ...items.map((it) => {
-        const r = byLine.get(cartLineKey(it));
-        if (!r?.active || !r.promo) return it;
-        const cardBase = it.unit_price_original ?? it.unit_price;
-        const newCard = Math.min(it.unit_price, applyPromoToPrice(cardBase, r.promo, effStoreType));
-        const hasCash = typeof it.unit_price_cash === 'number';
-        const cashBase = hasCash ? (it.unit_price_cash as number) : cardBase;
-        const newCash = Math.min(cashBase, applyPromoToPrice(cashBase, r.promo, effStoreType));
-        return {
-          ...it,
-          unit_price: newCard,
-          ...(hasCash ? { unit_price_cash: newCash } : {}),
-          unit_price_original: cardBase,
-          promo_id: r.promo.id,
-          promo_name: r.promo.name,
-          promo_stackable: r.promo.stackable_with_coupons !== false,
-        };
-      }),
-      ...(bumpLine ? [bumpLine] : []),
-    ],
+    () => [...priceCartItems(items, byLine, effStoreType), ...(bumpLine ? [bumpLine] : [])],
     [items, byLine, effStoreType, bumpLine],
   );
   // Subtotal a precio de lista CON la oferta (a su precio de lista): el desglose

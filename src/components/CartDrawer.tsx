@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
+import { useCartCoupon } from '@/hooks/useCartCoupon';
 import { StoreImage } from './StoreImage';
 import { ComplementaryBlock } from './ComplementaryBlock';
 import { FreeShippingProgress } from './FreeShippingProgress';
@@ -23,12 +24,15 @@ export function CartDrawer() {
   const hasCashSubtotal = cashSubtotal > 0 && cashSubtotal < adjustedSubtotal;
   const config = useStore();
   const storeType = useStoreType() ?? 'retail';
-  // Promo automática NO acumulable en el carrito → bloquea el cupón.
-  const hasNonStackablePromo = [...byLine.values()].some(
-    (r) => r?.active && r.promo?.stackable_with_coupons === false,
-  );
   // Subtotal según lo que la tienda muestra (contado, tarjeta o los dos).
   const subtotalPair = resolvePricePair(config, hasCashSubtotal ? cashSubtotal : null, adjustedSubtotal);
+  // Cupón aplicado: el subtotal se muestra con el descuento (mismo cálculo que el
+  // checkout) y el de antes queda tachado.
+  const coupon = useCartCoupon();
+  const couponActive = coupon.discountCash > 0 || coupon.discountCard > 0;
+  const beforeCoupon = resolvePricePair(config, coupon.cashSubtotal, coupon.cardSubtotal);
+  const withCoupon = resolvePricePair(config, coupon.cashSubtotal - coupon.discountCash, coupon.cardSubtotal - coupon.discountCard);
+  const shownPair = couponActive ? withCoupon : subtotalPair;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -173,10 +177,15 @@ export function CartDrawer() {
             <div className="mb-4 flex items-start justify-between">
               <span className="mt-1 text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1.5px] text-muted">Subtotal</span>
               <div className="text-right">
-                <span className="text-[calc(20px_*_var(--font-scale,1))] font-extrabold text-accent">{formatPrice(subtotalPair.primary)}</span>
-                {subtotalPair.cardLine != null && (
+                <span className="flex items-baseline justify-end gap-2">
+                  {couponActive && (
+                    <span className="text-[calc(13px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(beforeCoupon.primary)}</span>
+                  )}
+                  <span className="text-[calc(20px_*_var(--font-scale,1))] font-extrabold text-accent">{formatPrice(shownPair.primary)}</span>
+                </span>
+                {shownPair.cardLine != null && (
                   <p className="mt-0.5 text-[calc(11px_*_var(--font-scale,1))] text-subtle">
-                    <span className="font-semibold">{formatPrice(subtotalPair.cardLine)}</span> con tarjeta
+                    <span className="font-semibold">{formatPrice(shownPair.cardLine)}</span> con tarjeta
                   </p>
                 )}
               </div>
@@ -189,9 +198,9 @@ export function CartDrawer() {
             <FreeShippingProgress subtotal={subtotalPair.primary} className="mb-4" />
             {/* Cupón: se puede cargar acá y llega aplicado al checkout. */}
             <CouponCartBox
-              items={items}
+              items={coupon.pricedItems}
               storeType={storeType}
-              hasNonStackablePromo={hasNonStackablePromo}
+              hasNonStackablePromo={coupon.hasNonStackablePromo}
               className="mb-4"
             />
             <Link
