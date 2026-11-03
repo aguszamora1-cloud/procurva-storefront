@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
+import { useCartCoupon } from '@/hooks/useCartCoupon';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { StoreImage } from '@/components/StoreImage';
 import { CouponCartBox } from '@/components/CouponCartBox';
@@ -16,10 +17,6 @@ export function Cart() {
   const config = useStore();
   const storeType = useStoreType() ?? 'retail';
   const isWholesale = storeType === 'wholesale';
-  // Promo automática NO acumulable en el carrito → bloquea el cupón.
-  const hasNonStackablePromo = [...byLine.values()].some(
-    (r) => r?.active && r.promo?.stackable_with_coupons === false,
-  );
   // El monto del mínimo se mide sobre el subtotal de mercadería (con promos por
   // cantidad, a precio de lista, sin envío) — el mismo número del "Subtotal".
   const min = evalMinOrder(config, isWholesale, itemCount, adjustedSubtotal);
@@ -30,6 +27,13 @@ export function Cart() {
   const hasCashSubtotal = cashSubtotal > 0 && cashSubtotal < adjustedSubtotal;
   // Subtotal según lo que la tienda muestra (contado, tarjeta o los dos).
   const subtotalPair = resolvePricePair(config, hasCashSubtotal ? cashSubtotal : null, adjustedSubtotal);
+  // Cupón aplicado: el subtotal se muestra con el descuento (mismo cálculo que el
+  // checkout) y el de antes queda tachado.
+  const coupon = useCartCoupon();
+  const couponActive = coupon.discountCash > 0 || coupon.discountCard > 0;
+  const beforeCoupon = resolvePricePair(config, coupon.cashSubtotal, coupon.cardSubtotal);
+  const withCoupon = resolvePricePair(config, coupon.cashSubtotal - coupon.discountCash, coupon.cardSubtotal - coupon.discountCard);
+  const shownPair = couponActive ? withCoupon : subtotalPair;
   const seo = <Seo title={`Carrito · ${config.name}`} slug={config.slug} noindex />;
 
   if (items.length === 0) {
@@ -147,10 +151,13 @@ export function Cart() {
           <div className="flex items-center justify-between border-b border-line pb-4">
             <span className="text-[calc(14px_*_var(--font-scale,1))] text-muted">Subtotal</span>
             <span className="text-right">
-              <span className="block text-[calc(20px_*_var(--font-scale,1))] font-extrabold text-accent">{formatPrice(subtotalPair.primary)}</span>
-              {subtotalPair.cardLine != null && (
+              {couponActive && (
+                <span className="block text-[calc(13px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(beforeCoupon.primary)}</span>
+              )}
+              <span className="block text-[calc(20px_*_var(--font-scale,1))] font-extrabold text-accent">{formatPrice(shownPair.primary)}</span>
+              {shownPair.cardLine != null && (
                 <span className="mt-0.5 block text-[calc(12px_*_var(--font-scale,1))] text-subtle">
-                  <span className="font-semibold">{formatPrice(subtotalPair.cardLine)}</span> con tarjeta
+                  <span className="font-semibold">{formatPrice(shownPair.cardLine)}</span> con tarjeta
                 </span>
               )}
             </span>
@@ -164,9 +171,9 @@ export function Cart() {
           <FreeShippingProgress subtotal={subtotalPair.primary} className="pt-4" />
           {/* Cupón: chip del guardado + campo para escribirlo sin esperar al checkout. */}
           <CouponCartBox
-            items={items}
+            items={coupon.pricedItems}
             storeType={storeType}
-            hasNonStackablePromo={hasNonStackablePromo}
+            hasNonStackablePromo={coupon.hasNonStackablePromo}
             className="mt-4"
           />
           {min.active && (
