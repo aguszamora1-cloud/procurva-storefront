@@ -12,7 +12,10 @@ export type CouponErrorCode =
   | 'COUPON_EXHAUSTED'
   | 'COUPON_MIN_NOT_MET'
   | 'COUPON_WRONG_CHANNEL'
-  | 'COUPON_DISCOUNT_MISMATCH';
+  | 'COUPON_DISCOUNT_MISMATCH'
+  // Respuesta única que va a usar la RPC endurecida (C2b, sin aplicar todavía) para
+  // no revelar si un código existe. La tienda ya la entiende desde ahora.
+  | 'COUPON_REJECTED';
 
 /** Error específico de cupón al crear la orden: lleva el código crudo (`COUPON_*`)
  * para que el checkout muestre el mensaje correcto y limpie el cupón aplicado. */

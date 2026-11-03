@@ -1,6 +1,5 @@
 import { supabase } from './supabase';
 import type { CartItem, StoreType } from './types';
-import { formatMoney } from './regional';
 
 /** Alcance del cupón (mismo criterio que ecommerce_promotions: ids = nombres de
  * categoría o UUIDs de producto, según applies_to). */
@@ -8,41 +7,22 @@ export type CouponAppliesTo = 'all' | 'products' | 'categories';
 /** Canal habilitado para el cupón. */
 export type CouponChannel = 'minorista' | 'mayorista' | 'ambos';
 
-/** Cupón tal como vive en `ecommerce_coupons` (las columnas que necesita el checkout). */
+/**
+ * Cupón tal como lo devuelve storefront_coupon_lookup: sólo lo necesario para
+ * mostrar el descuento. Sin id, usos, vigencia ni descripción (eso lo chequea y se
+ * lo guarda el servidor).
+ */
 export interface CouponRecord {
-  id: string;
   code: string;
   discount_type: 'percent' | 'fixed';
   discount_value: number;
   min_subtotal: number | null;
-  max_uses: number | null;
-  current_uses: number | null;
-  valid_from: string | null;
-  valid_until: string | null;
-  active: boolean;
-  // Alcance del descuento. Cupones viejos sin la columna llegan como undefined
-  // -> se tratan como 'all'.
+  // Alcance del descuento: ids = UUIDs de producto o NOMBRES de categoría.
   applies_to?: CouponAppliesTo | null;
-  // IDs del alcance: UUIDs de producto o NOMBRES de categoría. Puede venir null.
   applies_to_ids?: string[] | null;
   // Canal habilitado. undefined/null -> 'ambos'.
   sales_channel?: CouponChannel | null;
 }
-
-/** Cupón aplicado en el checkout: el registro + el monto en $ que descuenta. */
-export interface AppliedCoupon {
-  coupon: CouponRecord;
-  discountAmount: number;
-  // true si el cupón sólo alcanza a algunos productos del carrito (alcance acotado).
-  partial: boolean;
-  // Nombres de los productos del carrito a los que se les aplicó el descuento
-  // (para mostrar el desglose). Vacío cuando el alcance es 'all'.
-  eligibleNames: string[];
-}
-
-export type CouponValidation =
-  | { ok: true; applied: AppliedCoupon }
-  | { ok: false; error: string };
 
 /** Canal de la tienda actual mapeado al vocabulario del cupón. */
 export function channelOfStore(storeType: StoreType): Exclude<CouponChannel, 'ambos'> {
@@ -111,153 +91,81 @@ export function computeDiscount(coupon: CouponRecord, subtotal: number): number 
   return Math.min(Math.max(0, raw), subtotal);
 }
 
-/** Contexto del carrito necesario para validar alcance y canal del cupón. */
-export interface CouponContext {
-  /** Tipo de tienda actual (para el canal habilitado del cupón). */
-  storeType: StoreType;
-  /** Items del carrito (con precios y categorías) para el alcance acotado. */
-  items: CartItem[];
-  /** Modo de pago vigente: define qué precio unitario usa el subtotal elegible. */
-  mode: 'cash' | 'card';
+/** Qué respondió el servidor cuando el código no sirve (ver storefront_coupon_lookup). */
+export type CouponLookupReason =
+  | 'invalido'
+  | 'vencido'
+  | 'no_vigente'
+  | 'agotado'
+  | 'otro_canal'
+  | 'demasiados_intentos'
+  | 'error';
+
+export type CouponLookup =
+  | { ok: true; coupon: CouponRecord }
+  | { ok: false; reason: CouponLookupReason; error: string };
+
+const LOOKUP_MESSAGES: Record<CouponLookupReason, string> = {
+  invalido: 'El código no es válido.',
+  vencido: 'El cupón está vencido.',
+  no_vigente: 'El cupón todavía no está vigente.',
+  agotado: 'El cupón alcanzó su límite de usos.',
+  otro_canal: 'Este cupón no es válido para esta tienda.',
+  demasiados_intentos: 'Probaste muchos códigos. Esperá unos minutos y volvé a intentar.',
+  error: 'No pudimos validar el cupón. Probá de nuevo.',
+};
+
+/**
+ * ¿El cupón guardado hay que descartarlo? Sí cuando el servidor dice que no sirve;
+ * no cuando el problema es pasajero (red, demasiados intentos): ahí se conserva y
+ * se vuelve a consultar en la próxima carga.
+ */
+export function isPermanentLookupFailure(reason: CouponLookupReason): boolean {
+  return reason !== 'error' && reason !== 'demasiados_intentos';
 }
 
 /**
- * Valida un cupón contra Supabase para el checkout público (rol anon).
- * Reglas: existe + activo + vigente + no agotado + alcanza la compra mínima +
- * el canal coincide + el alcance toca al menos un item del carrito.
- * El descuento se calcula sobre el SUBTOTAL ELEGIBLE (sólo los items alcanzados).
+ * Consulta UN código exacto de esta tienda (RPC storefront_coupon_lookup). El
+ * servidor chequea tienda publicada, existencia, activo, vigencia, tope de usos y
+ * canal, con límite de intentos, y devuelve sólo lo necesario para MOSTRAR el
+ * descuento. No hay lectura directa de ecommerce_coupons ni búsqueda por patrón.
+ *
+ * Es sólo para la interfaz: la autoridad es create_catalog_order_dedup, que vuelve
+ * a validar y redime el cupón al crear el pedido. El mínimo de compra y el alcance
+ * dependen del carrito y se evalúan aparte con evaluateCouponForCart().
  */
-export async function validateCoupon(
-  companyId: string,
-  rawCode: string,
-  _subtotal: number,
-  ctx: CouponContext,
-): Promise<CouponValidation> {
-  const code = rawCode.trim().toUpperCase();
-  if (!code) return { ok: false, error: 'Ingresá un código.' };
-
-  // anon puede leer cupones activos (policy anon_read_active_coupons). Filtramos
-  // por empresa + código (case-insensitive) en la query.
-  const { data, error } = await supabase
-    .from('ecommerce_coupons')
-    .select('id, code, discount_type, discount_value, min_subtotal, max_uses, current_uses, valid_from, valid_until, active, applies_to, applies_to_ids, sales_channel')
-    .eq('company_id', companyId)
-    .eq('active', true)
-    .ilike('code', code)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error('[coupons] error validando cupón', error);
-    return { ok: false, error: 'No pudimos validar el cupón. Probá de nuevo.' };
-  }
-  const coupon = data as CouponRecord | null;
-  if (!coupon) return { ok: false, error: 'El código no es válido.' };
-
-  // Canal: si el cupón es exclusivo de un canal, debe coincidir con esta tienda.
-  const channel = coupon.sales_channel ?? 'ambos';
-  if (channel !== 'ambos' && channel !== channelOfStore(ctx.storeType)) {
-    return { ok: false, error: 'Este cupón no es válido para esta tienda.' };
-  }
-
-  const now = Date.now();
-  if (coupon.valid_from && new Date(coupon.valid_from).getTime() > now) {
-    return { ok: false, error: 'El cupón todavía no está vigente.' };
-  }
-  if (coupon.valid_until && new Date(coupon.valid_until).getTime() <= now) {
-    return { ok: false, error: 'El cupón está vencido.' };
-  }
-  if (coupon.max_uses != null && (coupon.current_uses ?? 0) >= coupon.max_uses) {
-    return { ok: false, error: 'El cupón alcanzó su límite de usos.' };
-  }
-
-  // Alcance: items del carrito alcanzados por el cupón y su subtotal elegible.
-  const matched = eligibleItems(coupon, ctx.items);
-  const scope = coupon.applies_to ?? 'all';
-  if (scope !== 'all' && matched.length === 0) {
-    return {
-      ok: false,
-      error: scope === 'categories'
-        ? 'El cupón no aplica a ningún producto de tu carrito (categorías no incluidas).'
-        : 'El cupón no aplica a ningún producto de tu carrito.',
-    };
-  }
-
-  const elig = eligibleSubtotal(coupon, ctx.items, ctx.mode);
-
-  // La compra mínima se mide sobre todo el carrito a precio de lista (minimumBase),
-  // igual que la RPC create_catalog_order_dedup server-side. El descuento, en
-  // cambio, se calcula sobre el subtotal elegible.
-  if (coupon.min_subtotal && minimumBase(ctx.items) < coupon.min_subtotal) {
-    return {
-      ok: false,
-      error: `Compra mínima de ${formatMoney(Number(coupon.min_subtotal))} para usar este cupón.`,
-    };
-  }
-
-  const discountAmount = computeDiscount(coupon, elig);
-  if (discountAmount <= 0) return { ok: false, error: 'El cupón no aplica a este pedido.' };
-
-  const partial = scope !== 'all' && matched.length < ctx.items.length;
-  // Nombres únicos de los productos alcanzados (para el desglose en el checkout).
-  const eligibleNames = scope === 'all' ? [] : Array.from(new Set(matched.map((it) => it.name)));
-
-  return { ok: true, applied: { coupon, discountAmount, partial, eligibleNames } };
-}
-
-// NOTA: la validación de este cupón es solo para MOSTRAR el descuento (UX). La
-// redención REAL (incrementar current_uses + insertar en ecommerce_coupon_uses)
-// ahora ocurre server-side, dentro de la RPC create_catalog_order_dedup, en la
-// misma transacción que inserta el pedido. Esto cierra el agujero de gastar un
-// cupón max_uses:1 abriendo pestañas en paralelo. La antigua registerCouponUse()
-// (client-side, post-orden, sin atomicidad) se eliminó; la RPC increment_coupon_use
-// quedó huérfana y puede dropearse en una limpieza futura.
-
-/**
- * Trae el registro crudo de un cupón por código (case-insensitive), solo activos.
- * NO valida contra el carrito: es la lectura que usa el store del cupón guardado
- * (CouponContext) para tener los datos del cupón sin depender del carrito.
- */
-export async function fetchCoupon(companyId: string, rawCode: string): Promise<CouponRecord | null> {
+export async function lookupCoupon(companyId: string, rawCode: string, storeType: StoreType): Promise<CouponLookup> {
   const code = rawCode.trim();
-  if (!code) return null;
-  const { data, error } = await supabase
-    .from('ecommerce_coupons')
-    .select('id, code, discount_type, discount_value, min_subtotal, max_uses, current_uses, valid_from, valid_until, active, applies_to, applies_to_ids, sales_channel')
-    .eq('company_id', companyId)
-    .eq('active', true)
-    .ilike('code', code)
-    .limit(1)
-    .maybeSingle();
-  if (error) {
-    console.error('[coupons] fetchCoupon', error);
-    return null;
-  }
-  return (data as CouponRecord | null) ?? null;
-}
+  if (!code) return { ok: false, reason: 'invalido', error: 'Ingresá un código.' };
+  if (!companyId) return { ok: false, reason: 'error', error: LOOKUP_MESSAGES.error };
 
-/**
- * Validez CART-INDEPENDIENTE de un cupón: canal + vigencia + tope de usos. Es lo
- * que se puede chequear sin carrito (para guardar el cupón, magic link, revalidar
- * el guardado). El mínimo de compra y el alcance dependen del carrito y se evalúan
- * aparte con evaluateCouponForCart().
- */
-export function couponBasicValidity(coupon: CouponRecord, storeType: StoreType): { ok: boolean; error?: string } {
-  const channel = coupon.sales_channel ?? 'ambos';
-  if (channel !== 'ambos' && channel !== channelOfStore(storeType)) {
-    return { ok: false, error: 'Este cupón no es válido para esta tienda.' };
+  const { data, error } = await supabase.rpc('storefront_coupon_lookup', {
+    p_company_id: companyId,
+    p_code: code,
+    p_store_type: storeType === 'wholesale' ? 'wholesale' : 'retail',
+  });
+  if (error || !data || typeof data !== 'object') {
+    if (error) console.error('[coupons] lookupCoupon', error);
+    return { ok: false, reason: 'error', error: LOOKUP_MESSAGES.error };
   }
-  const now = Date.now();
-  if (coupon.valid_from && new Date(coupon.valid_from).getTime() > now) {
-    return { ok: false, error: 'El cupón todavía no está vigente.' };
+  const r = data as Record<string, unknown>;
+  if (r.estado !== 'ok') {
+    const reason = (typeof r.estado === 'string' && r.estado in LOOKUP_MESSAGES ? r.estado : 'invalido') as CouponLookupReason;
+    return { ok: false, reason, error: LOOKUP_MESSAGES[reason] };
   }
-  if (coupon.valid_until && new Date(coupon.valid_until).getTime() <= now) {
-    return { ok: false, error: 'El cupón está vencido.' };
-  }
-  if (coupon.max_uses != null && (coupon.current_uses ?? 0) >= coupon.max_uses) {
-    return { ok: false, error: 'El cupón alcanzó su límite de usos.' };
-  }
-  return { ok: true };
+  const discountType = r.discount_type === 'fixed' ? 'fixed' : 'percent';
+  return {
+    ok: true,
+    coupon: {
+      code: String(r.code ?? code),
+      discount_type: discountType,
+      discount_value: Number(r.discount_value) || 0,
+      min_subtotal: r.min_subtotal == null ? null : Number(r.min_subtotal),
+      applies_to: (r.applies_to as CouponAppliesTo | null) ?? 'all',
+      applies_to_ids: Array.isArray(r.applies_to_ids) ? (r.applies_to_ids as unknown[]).map(String) : [],
+      sales_channel: (r.sales_channel as CouponChannel | null) ?? 'ambos',
+    },
+  };
 }
 
 /** Resultado de evaluar un cupón contra el carrito actual (para el chip tri-estado). */

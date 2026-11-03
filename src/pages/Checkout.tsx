@@ -38,6 +38,7 @@ const COUPON_ERROR_MESSAGES: Record<CouponErrorCode, string> = {
   COUPON_MIN_NOT_MET: 'No alcanzás el mínimo de compra para este cupón.',
   COUPON_WRONG_CHANNEL: 'El cupón no aplica a esta tienda.',
   COUPON_DISCOUNT_MISMATCH: 'Hubo un problema con el descuento. Recargá la página e intentá de nuevo.',
+  COUPON_REJECTED: 'El cupón ya no se puede usar en este pedido. Quitalo o probá con otro.',
 };
 
 /** "BUZO NIKE AIR — Talle M / Negro": el detalle de una línea sin stock. */
