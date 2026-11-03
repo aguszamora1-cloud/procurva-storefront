@@ -41,6 +41,12 @@ export function CouponChip({ items, mode, storeType, hasNonStackablePromo, showA
   if (!ev.channelOk) return null; // canal equivocado → no mostrar
 
   const code = couponRecord.code.toUpperCase();
+  // Sin monto exacto (carrito): el descuento nominal del cupón, que no depende
+  // del medio de pago ni de las promos por cantidad.
+  const nominal =
+    couponRecord.discount_type === 'percent'
+      ? `-${couponRecord.discount_value}%`
+      : `-${formatPrice(couponRecord.discount_value)}`;
 
   // ── Aplicado ───────────────────────────────────────────────────────────────
   if (savedCoupon.applied) {
@@ -55,7 +61,7 @@ export function CouponChip({ items, mode, storeType, hasNonStackablePromo, showA
           <Check size={16} className={`shrink-0 ${active ? 'text-accent' : 'text-amber-600'}`} />
           {active ? (
             <p className="truncate text-[calc(12px_*_var(--font-scale,1))] font-bold text-accent">
-              Cupón {code} aplicado{showAmount ? ` — -${formatPrice(ev.discount)}` : ''}
+              Cupón {code} aplicado — {showAmount ? `-${formatPrice(ev.discount)}` : nominal}
             </p>
           ) : (
             <p className="truncate text-[calc(12px_*_var(--font-scale,1))] font-semibold text-amber-700">
@@ -102,7 +108,7 @@ export function CouponChip({ items, mode, storeType, hasNonStackablePromo, showA
     >
       <Tag size={15} className="shrink-0" />
       <span className="truncate">Tenés un cupón: {code} — Tocá para aplicar</span>
-      {showAmount && <span className="ml-auto shrink-0 font-bold">-{formatPrice(ev.discount)}</span>}
+      <span className="ml-auto shrink-0 font-bold">{showAmount ? `-${formatPrice(ev.discount)}` : nominal}</span>
     </button>
   );
 }

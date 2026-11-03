@@ -4,7 +4,7 @@ import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
 import { useStore, useStoreType } from '@/context/StoreProvider';
 import { StoreImage } from '@/components/StoreImage';
-import { CouponChip } from '@/components/CouponChip';
+import { CouponCartBox } from '@/components/CouponCartBox';
 import { FreeShippingProgress } from '@/components/FreeShippingProgress';
 import { Seo } from '@/components/Seo';
 import { formatPrice, resolvePricePair } from '@/lib/utils';
@@ -162,15 +162,11 @@ export function Cart() {
               se muestra arriba (el de contado si existe, que es el más chico):
               lo que promete el carrito es lo que después cumple el checkout. */}
           <FreeShippingProgress subtotal={subtotalPair.primary} className="pt-4" />
-          {/* Cupón guardado: chip tri-estado. Sin monto exacto (showAmount=false):
-              depende de promos por cantidad y del modo de pago, que se resuelven en
-              el checkout; acá solo indicamos que está aplicado. */}
-          <CouponChip
+          {/* Cupón: chip del guardado + campo para escribirlo sin esperar al checkout. */}
+          <CouponCartBox
             items={items}
-            mode="card"
             storeType={storeType}
             hasNonStackablePromo={hasNonStackablePromo}
-            showAmount={false}
             className="mt-4"
           />
           {min.active && (
