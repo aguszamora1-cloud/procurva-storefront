@@ -446,12 +446,17 @@ export function ProductDetail() {
   // Producto totalmente agotado: ninguna variante con stock.
   const outOfStock = variants.length > 0 && variants.every((v) => (v.stock ?? 0) <= 0);
   const canAdd = Boolean(variant && (variant.stock ?? 0) > 0 && displayPrice > 0);
+  // El botón pide SOLO lo que falta. Con el talle único ya elegido de entrada,
+  // "ELEGÍ COLOR Y TALLE" hacía creer que el talle seguía sin elegir (LAS POPAS,
+  // Camisa Pía, 03/11/2026).
+  const missingColor = needColor && !selectedColor;
+  const missingSize = needSize && !selectedSize;
   const ctaLabel = outOfStock
     ? 'SIN STOCK'
     : !variant
-      ? needColor && needSize
+      ? missingColor && missingSize
         ? 'ELEGÍ COLOR Y TALLE'
-        : needColor
+        : missingColor
           ? 'ELEGÍ UN COLOR'
           : 'ELEGÍ UN TALLE'
       : (variant.stock ?? 0) <= 0
@@ -1199,7 +1204,7 @@ export function ProductDetail() {
             disabled={primaryDisabled}
             className="inline-flex flex-shrink-0 items-center justify-center rounded-md bg-primary px-5 py-3 text-[calc(13px_*_var(--font-scale,1))] font-bold text-on-primary disabled:opacity-40"
           >
-            {inTierMode ? (tierValid ? `Agregar ${tierUnits}` : 'Elegí variantes') : outOfStock ? 'Sin stock' : !variant ? 'Elegí opción' : (variant.stock ?? 0) <= 0 ? 'Sin stock' : 'Agregar'}
+            {inTierMode ? (tierValid ? `Agregar ${tierUnits}` : 'Elegí variantes') : outOfStock ? 'Sin stock' : !variant ? (missingColor && !missingSize ? 'Elegí color' : !missingColor && missingSize ? 'Elegí talle' : 'Elegí opción') : (variant.stock ?? 0) <= 0 ? 'Sin stock' : 'Agregar'}
           </button>
         </div>
       )}
