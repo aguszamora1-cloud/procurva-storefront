@@ -6,7 +6,8 @@ import { useCartPromos } from '@/hooks/useCartPromos';
 import { StoreImage } from './StoreImage';
 import { ComplementaryBlock } from './ComplementaryBlock';
 import { FreeShippingProgress } from './FreeShippingProgress';
-import { useStore } from '@/context/StoreProvider';
+import { CouponCartBox } from './CouponCartBox';
+import { useStore, useStoreType } from '@/context/StoreProvider';
 import { formatPrice, resolvePricePair } from '@/lib/utils';
 import { groupCartItems } from '@/lib/cart';
 
@@ -21,6 +22,11 @@ export function CartDrawer() {
   const cashSubtotal = items.reduce((s, i) => s + (typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price) * i.qty, 0);
   const hasCashSubtotal = cashSubtotal > 0 && cashSubtotal < adjustedSubtotal;
   const config = useStore();
+  const storeType = useStoreType() ?? 'retail';
+  // Promo automática NO acumulable en el carrito → bloquea el cupón.
+  const hasNonStackablePromo = [...byLine.values()].some(
+    (r) => r?.active && r.promo?.stackable_with_coupons === false,
+  );
   // Subtotal según lo que la tienda muestra (contado, tarjeta o los dos).
   const subtotalPair = resolvePricePair(config, hasCashSubtotal ? cashSubtotal : null, adjustedSubtotal);
 
@@ -181,6 +187,13 @@ export function CartDrawer() {
             {/* Cuánto falta para el envío gratis: acá es donde el cliente decide
                 si suma una prenda más o si cierra el pedido. */}
             <FreeShippingProgress subtotal={subtotalPair.primary} className="mb-4" />
+            {/* Cupón: se puede cargar acá y llega aplicado al checkout. */}
+            <CouponCartBox
+              items={items}
+              storeType={storeType}
+              hasNonStackablePromo={hasNonStackablePromo}
+              className="mb-4"
+            />
             <Link
               to="/carrito"
               onClick={close}
