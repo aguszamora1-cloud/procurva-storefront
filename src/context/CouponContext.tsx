@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useStore, useStoreType } from '@/context/StoreProvider';
-import { fetchCoupon, couponBasicValidity, type CouponRecord } from '@/lib/coupons';
+import { lookupCoupon, isPermanentLookupFailure, type CouponRecord } from '@/lib/coupons';
 
 /**
  * Cupón guardado en el dispositivo. Hay UNO solo a la vez. `applied` distingue
@@ -20,8 +20,8 @@ interface CouponContextValue {
   couponRecord: CouponRecord | null;
   loading: boolean;
   /**
-   * Valida (cart-independiente: existe + activo + vigencia + canal) y guarda el
-   * cupón. `applied` por defecto false (queda "disponible"). Devuelve ok/error.
+   * Valida en el servidor (cart-independiente: existe + activo + vigencia + usos +
+   * canal) y guarda el cupón. `applied` por defecto false (queda "disponible").
    */
   saveCoupon: (code: string, opts?: { applied?: boolean }) => Promise<{ ok: boolean; error?: string }>;
   /** Marca el cupón guardado como aplicado / no aplicado (sin borrarlo). */
@@ -66,32 +66,40 @@ export function CouponProvider({ children }: { children: ReactNode }) {
   const [couponRecord, setCouponRecord] = useState<CouponRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const magicHandled = useRef(false);
+  // Código que saveCoupon acaba de validar: la revalidación no lo vuelve a consultar.
+  const justValidated = useRef<string | null>(null);
 
   // Persistimos cada cambio del cupón guardado (sobrevive reload y navegación).
   useEffect(() => {
     persistSaved(companyId, savedCoupon);
   }, [companyId, savedCoupon]);
 
-  // Traer/revalidar el registro del cupón guardado (cart-independiente). Si quedó
-  // hard-inválido (no existe / vencido / agotado / canal equivocado), lo
-  // descartamos en silencio para no ofrecer un cupón muerto.
+  // Traer/revalidar el registro del cupón guardado (cart-independiente). Si el
+  // servidor dice que ya no sirve (responde "invalido": no existe, vencido, agotado,
+  // otro canal...), lo descartamos en silencio para no ofrecer un cupón muerto. Si la
+  // falla es pasajera (red, demasiados intentos) lo conservamos sin aplicarlo.
   useEffect(() => {
     let cancelled = false;
     const code = savedCoupon?.code;
     if (!code) {
+      justValidated.current = null;
       setCouponRecord(null);
       return;
     }
+    if (justValidated.current === code) {
+      justValidated.current = null;
+      return;
+    }
     setLoading(true);
-    fetchCoupon(companyId, code).then((rec) => {
+    lookupCoupon(companyId, code, storeType).then((res) => {
       if (cancelled) return;
       setLoading(false);
-      if (!rec || !couponBasicValidity(rec, storeType).ok) {
+      if (!res.ok) {
         setCouponRecord(null);
-        setSavedCoupon(null);
+        if (isPermanentLookupFailure(res.reason)) setSavedCoupon(null);
         return;
       }
-      setCouponRecord(rec);
+      setCouponRecord(res.coupon);
     });
     return () => {
       cancelled = true;
@@ -103,13 +111,12 @@ export function CouponProvider({ children }: { children: ReactNode }) {
       const clean = code.trim().toUpperCase();
       if (!clean) return { ok: false, error: 'Ingresá un código.' };
       setLoading(true);
-      const rec = await fetchCoupon(companyId, clean);
+      const res = await lookupCoupon(companyId, clean, storeType);
       setLoading(false);
-      if (!rec) return { ok: false, error: 'El código no es válido.' };
-      const basic = couponBasicValidity(rec, storeType);
-      if (!basic.ok) return { ok: false, error: basic.error };
-      setCouponRecord(rec);
-      setSavedCoupon({ code: rec.code, applied: opts?.applied ?? false });
+      if (!res.ok) return { ok: false, error: res.error };
+      justValidated.current = res.coupon.code;
+      setCouponRecord(res.coupon);
+      setSavedCoupon({ code: res.coupon.code, applied: opts?.applied ?? false });
       return { ok: true };
     },
     [companyId, storeType],

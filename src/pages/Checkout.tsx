@@ -28,16 +28,23 @@ import type { CartItem } from '@/lib/types';
 import { useFreeShippingProducts } from '@/hooks/useFreeShippingProducts';
 import { carrierWithAgency, correoPostalCode, type CorreoAgency } from '@/lib/micorreo';
 
-/** Mensaje en español para cada código de error de cupón que puede lanzar la RPC. */
+/**
+ * Mensaje en español para cada código de error de cupón que puede lanzar la RPC.
+ * Inexistente, pausado, vencido, no vigente, agotado y de otro canal dicen lo mismo:
+ * no revelamos si el código existe ni qué condición falla (después de C2b la RPC ya
+ * manda sólo COUPON_REJECTED).
+ */
+const COUPON_NO_DISPONIBLE = 'El cupón no es válido o no está disponible.';
 const COUPON_ERROR_MESSAGES: Record<CouponErrorCode, string> = {
-  COUPON_NOT_FOUND: 'El cupón no es válido.',
-  COUPON_INACTIVE: 'El cupón no es válido.',
-  COUPON_EXPIRED: 'El cupón está vencido.',
-  COUPON_NOT_YET_VALID: 'El cupón está vencido.',
-  COUPON_EXHAUSTED: 'Este cupón ya fue utilizado.',
+  COUPON_NOT_FOUND: COUPON_NO_DISPONIBLE,
+  COUPON_INACTIVE: COUPON_NO_DISPONIBLE,
+  COUPON_EXPIRED: COUPON_NO_DISPONIBLE,
+  COUPON_NOT_YET_VALID: COUPON_NO_DISPONIBLE,
+  COUPON_EXHAUSTED: COUPON_NO_DISPONIBLE,
   COUPON_MIN_NOT_MET: 'No alcanzás el mínimo de compra para este cupón.',
-  COUPON_WRONG_CHANNEL: 'El cupón no aplica a esta tienda.',
+  COUPON_WRONG_CHANNEL: COUPON_NO_DISPONIBLE,
   COUPON_DISCOUNT_MISMATCH: 'Hubo un problema con el descuento. Recargá la página e intentá de nuevo.',
+  COUPON_REJECTED: 'El cupón ya no se puede usar en este pedido. Quitalo o probá con otro.',
 };
 
 /** "BUZO NIKE AIR — Talle M / Negro": el detalle de una línea sin stock. */
