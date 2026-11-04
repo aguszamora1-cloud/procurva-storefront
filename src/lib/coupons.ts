@@ -91,26 +91,20 @@ export function computeDiscount(coupon: CouponRecord, subtotal: number): number 
   return Math.min(Math.max(0, raw), subtotal);
 }
 
-/** Qué respondió el servidor cuando el código no sirve (ver storefront_coupon_lookup). */
-export type CouponLookupReason =
-  | 'invalido'
-  | 'vencido'
-  | 'no_vigente'
-  | 'agotado'
-  | 'otro_canal'
-  | 'demasiados_intentos'
-  | 'error';
+/**
+ * Qué respondió el servidor cuando el código no sirve (ver storefront_coupon_lookup).
+ * Inexistente, pausado, vencido, no vigente, agotado y de otro canal llegan todos como
+ * 'invalido', a propósito: la respuesta pública no revela si el código existe ni qué
+ * condición no cumple.
+ */
+export type CouponLookupReason = 'invalido' | 'demasiados_intentos' | 'error';
 
 export type CouponLookup =
   | { ok: true; coupon: CouponRecord }
   | { ok: false; reason: CouponLookupReason; error: string };
 
 const LOOKUP_MESSAGES: Record<CouponLookupReason, string> = {
-  invalido: 'El código no es válido.',
-  vencido: 'El cupón está vencido.',
-  no_vigente: 'El cupón todavía no está vigente.',
-  agotado: 'El cupón alcanzó su límite de usos.',
-  otro_canal: 'Este cupón no es válido para esta tienda.',
+  invalido: 'El código no es válido o no está disponible.',
   demasiados_intentos: 'Probaste muchos códigos. Esperá unos minutos y volvé a intentar.',
   error: 'No pudimos validar el cupón. Probá de nuevo.',
 };
@@ -150,7 +144,9 @@ export async function lookupCoupon(companyId: string, rawCode: string, storeType
   }
   const r = data as Record<string, unknown>;
   if (r.estado !== 'ok') {
-    const reason = (typeof r.estado === 'string' && r.estado in LOOKUP_MESSAGES ? r.estado : 'invalido') as CouponLookupReason;
+    // Cualquier estado desconocido cuenta como inválido (mensaje genérico).
+    const reason: CouponLookupReason =
+      r.estado === 'demasiados_intentos' || r.estado === 'error' ? r.estado : 'invalido';
     return { ok: false, reason, error: LOOKUP_MESSAGES[reason] };
   }
   const discountType = r.discount_type === 'fixed' ? 'fixed' : 'percent';

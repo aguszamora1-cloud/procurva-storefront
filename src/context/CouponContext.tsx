@@ -75,8 +75,8 @@ export function CouponProvider({ children }: { children: ReactNode }) {
   }, [companyId, savedCoupon]);
 
   // Traer/revalidar el registro del cupón guardado (cart-independiente). Si el
-  // servidor dice que ya no sirve (no existe / vencido / agotado / canal
-  // equivocado), lo descartamos en silencio para no ofrecer un cupón muerto. Si la
+  // servidor dice que ya no sirve (responde "invalido": no existe, vencido, agotado,
+  // otro canal...), lo descartamos en silencio para no ofrecer un cupón muerto. Si la
   // falla es pasajera (red, demasiados intentos) lo conservamos sin aplicarlo.
   useEffect(() => {
     let cancelled = false;
