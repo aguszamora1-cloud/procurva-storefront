@@ -14,6 +14,7 @@ import { applyDocumentMeta, applyTheme, loadFonts } from '@/lib/theme';
 import type { ResolvedStorefront, StoreConfig, StoreType } from '@/lib/types';
 import { setStoreCountry } from '@/lib/regional';
 import { ALL_PRODUCTS, normalizeProductFilter, type ProductFilter } from '@/lib/productFilter';
+import { getPreviewChannel } from '@/lib/previewChannel';
 
 type StoreStatus =
   | 'loading'
@@ -330,6 +331,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Colores propios del comercio para los circulitos de color.
   useLoadCompanyColors(config?.companyId ?? null);
+
+  // EDITOR E2.0a: le dice al diseñador qué tienda es ESTE iframe (datos públicos
+  // que la tienda ya tiene; ninguna consulta nueva). Fuera de la vista previa el
+  // canal no está armado y esto no hace nada.
+  const previewCompanyId = config?.companyId ?? null;
+  useEffect(() => {
+    const ch = getPreviewChannel();
+    if (!ch) return;
+    ch.setIdentity(
+      previewCompanyId && storeKey ? { companyId: previewCompanyId, storeKey, slug: slug ?? '' } : null,
+    );
+  }, [previewCompanyId, storeKey, slug]);
 
   return (
     <StoreContext.Provider
