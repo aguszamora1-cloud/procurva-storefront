@@ -12,6 +12,7 @@ import {
   PREVIEW_NS,
   MAX_MESSAGE_BYTES,
 } from '../src/lib/previewChannel.ts';
+import { classifyFrame } from '../src/lib/designerFrame.ts';
 
 const ERP = 'https://procurva.app';
 const CH = 'a'.repeat(32);
@@ -80,14 +81,20 @@ test('hello válido del padre y del origen exacto: preview + ready con la identi
   ch.stop();
 });
 
-test('identidad después del hello: el ready sale cuando la tienda resuelve', () => {
+test('E2.0c: ready apenas llega el hello (store null) y otra vez al resolver la identidad', () => {
   const win = fakeWindow();
   const ch = mk(win);
   ch.start();
   win.emit(hello());
-  assert.equal(win.sent.filter((s) => s.msg.type === 'ready').length, 0);
-  ch.setIdentity(ID);
+  const r1 = win.sent.filter((s) => s.msg.type === 'ready');
+  assert.equal(r1.length, 1);
+  assert.equal(r1[0].msg.store, null);
+  ch.setIdentity(null); // sin cambios: no repite
   assert.equal(win.sent.filter((s) => s.msg.type === 'ready').length, 1);
+  ch.setIdentity(ID);
+  const r2 = win.sent.filter((s) => s.msg.type === 'ready');
+  assert.equal(r2.length, 2);
+  assert.deepEqual(r2[1].msg.store, ID);
   ch.stop();
 });
 
@@ -207,4 +214,38 @@ test('producción: sólo https://procurva.app, sin importar el entorno', async (
   assert.match(src, /PROD_PARENT_ORIGINS: readonly string\[\] = \['https:\/\/procurva\.app'\]/);
   assert.match(src, /import\.meta\.env\.MODE === 'production'\s*\?\s*\[\]/);
   assert.doesNotMatch(src, /postMessage\([^)]*['"]\*['"]/);
+});
+
+// ---- E2.0c · quién enmarca la tienda (señales del navegador, no de la URL) ----
+const ERPS = ['https://procurva.app'];
+const sig = (o) => ({ framed: true, ancestorOrigins: null, referrer: '', marked: false, erpOrigins: ERPS, ...o });
+
+test('E2.0c: pestaña normal (con o sin pc_preview) = top, nunca diseñador', () => {
+  assert.equal(classifyFrame(sig({ framed: false, ancestorOrigins: ['https://procurva.app'], marked: true, referrer: 'https://procurva.app/' })), 'top');
+});
+
+test('E2.0c: ancestorOrigins manda (Chromium/Safari)', () => {
+  assert.equal(classifyFrame(sig({ ancestorOrigins: ['https://procurva.app'] })), 'designer');
+  assert.equal(classifyFrame(sig({ ancestorOrigins: ['https://evil.example'], marked: true, referrer: 'https://procurva.app/' })), 'other');
+  assert.equal(classifyFrame(sig({ ancestorOrigins: ['https://www.procurva.app'] })), 'other');
+  assert.equal(classifyFrame(sig({ ancestorOrigins: ['https://procurva.app.evil.example'] })), 'other');
+  assert.equal(classifyFrame(sig({ ancestorOrigins: ['http://procurva.app'] })), 'other');
+  assert.equal(classifyFrame(sig({ ancestorOrigins: ['https://tienda.procurva.app', 'https://procurva.app'] })), 'other', 'sólo el padre directo');
+});
+
+test('E2.0c: sin ancestorOrigins (Firefox): referrer del documento inicial y marca del marco', () => {
+  assert.equal(classifyFrame(sig({ referrer: 'https://procurva.app/' })), 'designer');
+  assert.equal(classifyFrame(sig({ referrer: 'https://evil.example/pagina' })), 'other');
+  assert.equal(classifyFrame(sig({ referrer: 'https://tienda.procurva.app/checkout', marked: true })), 'designer', 'navegación dentro del marco del diseñador');
+  assert.equal(classifyFrame(sig({ referrer: 'https://tienda.procurva.app/checkout' })), 'other');
+  assert.equal(classifyFrame(sig({ referrer: '' })), 'unknown', 'referrer suprimido: no se adivina');
+  assert.equal(classifyFrame(sig({ ancestorOrigins: ['null'], referrer: '' })), 'unknown');
+  assert.equal(classifyFrame(sig({ referrer: 'no es url' })), 'unknown');
+});
+
+test('E2.0c: pc_preview no participa de la detección', async () => {
+  const src = (await import('node:fs')).readFileSync(new URL('../src/lib/designerFrame.ts', import.meta.url), 'utf8');
+  // Fuera de los comentarios (que explican por qué NO se usa).
+  const codigo = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  assert.doesNotMatch(codigo, /pc_preview|isPreviewMode/);
 });

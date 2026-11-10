@@ -3,6 +3,7 @@ import { useStore } from '@/context/StoreProvider';
 import { useCoupon } from '@/context/CouponContext';
 import { subscribeNewsletter } from '@/lib/newsletter';
 import { getPreviewChannel } from '@/lib/previewChannel';
+import { isDesignerFrame } from '@/lib/designerFrame';
 import { PREVIEW_BLOCKED_MESSAGES } from '@/lib/previewGuard';
 
 /** ¿El color es claro? (para elegir color de texto legible encima). */
@@ -78,6 +79,7 @@ export function NewsletterPopup() {
     // pendiente, se espera a que se resuelva; una visita pública se abre como siempre.
     const reveal = () => {
       if (shownRef.current) return;
+      if (isDesignerFrame()) return; // E2.0c: enmarcada por el ERP, aunque el canal falle
       const ch = getPreviewChannel();
       if (!ch || ch.state === 'public') return show();
       if (ch.state === 'preview') return;

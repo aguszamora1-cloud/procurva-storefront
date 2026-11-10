@@ -21,7 +21,8 @@
  * Contrato (v1), todos los mensajes `{ ns: 'procurva.preview', v: 1, type, ... }`:
  *   tienda → ERP  probe  { doc }                          "estoy, ¿quién sos?"
  *   ERP → tienda  hello  { channel, expect }              canal de ESTE iframe
- *   tienda → ERP  ready  { channel, doc, store }          identidad pública
+ *   tienda → ERP  ready  { channel, doc, store }          "estoy protegida" + identidad
+ *                                                         pública (null hasta resolverla)
  *   ERP → tienda  ack    { channel, doc }                 identidad aceptada
  * `channel`: 32 hex al azar del ERP, nuevo en cada montaje del iframe.
  * `doc`: 32 hex al azar de la tienda, nuevo en cada documento (cada recarga).
@@ -171,12 +172,17 @@ export function createPreviewChannel(deps: ChannelDeps) {
     win.parent.postMessage({ ns: PREVIEW_NS, v: PREVIEW_VERSION, ...msg }, origin);
   };
 
+  // E2.0c: el ready sale apenas llega el hello (la tienda ya bloqueó sus
+  // operaciones), con la identidad en null si todavía no la resolvió (mayorista
+  // con contraseña, en construcción, cargando); se repite cuando la resuelve.
   const sendReady = () => {
-    if (!channel || !parentOrigin || !identity) return;
-    const key = `${channel}|${identity.companyId}|${identity.storeKey}|${identity.slug}`;
-    if (key === lastReadyFor) return; // duplicado: misma identidad ya anunciada en este canal
+    if (!channel || !parentOrigin) return;
+    const key = identity
+      ? `${channel}|${identity.companyId}|${identity.storeKey}|${identity.slug}`
+      : `${channel}|null`;
+    if (key === lastReadyFor) return; // duplicado: lo mismo ya anunciado en este canal
     lastReadyFor = key;
-    post({ type: 'ready', channel, doc, store: { ...identity } }, parentOrigin);
+    post({ type: 'ready', channel, doc, store: identity ? { ...identity } : null }, parentOrigin);
   };
 
   const onMessage = (ev: MessageEvent) => {

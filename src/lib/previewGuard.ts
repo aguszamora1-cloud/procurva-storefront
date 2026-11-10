@@ -5,16 +5,20 @@
  * crear un pedido (y una venta), iniciar un cobro, suscribirse al newsletter o
  * gastar créditos del probador desde su propia vista previa.
  *
- * Cuándo se bloquea: SÓLO cuando el canal de la vista previa (lib/previewChannel)
- * quedó en 'preview', o sea cuando el diseñador de procurva.app le habló a ESTE
- * documento. Ni estar enmarcada ni `?pc_preview=1` bastan: un cliente que llega
- * con un link que trae `pc_preview=1` (sin marco, o enmarcado por otro sitio)
- * compra como siempre.
+ * Cuándo se bloquea (E2.0c), con cualquiera de dos señales que un sitio ajeno no
+ * puede falsificar:
+ *  1. El NAVEGADOR dice que el padre es el ERP (lib/designerFrame:
+ *     ancestorOrigins, o el referrer del documento inicial y su marca). Bloquea
+ *     desde el arranque, aunque el handshake falle, tarde o nunca llegue.
+ *  2. El canal quedó en 'preview': el ERP (origen exacto) le habló a este documento.
+ * Ni estar enmarcada ni `?pc_preview=1` bastan: un cliente que llega con un link
+ * que trae `pc_preview=1` (sin marco, o enmarcado por otro sitio) compra como
+ * siempre.
  *
- * Antes del handshake: la operación ESPERA a que se resuelva (hello del ERP o
- * vencimiento del plazo, 2,5 s como máximo) y recién ahí decide. Una pestaña
- * pública desde el arranque no espera nada. Cada recarga del iframe empieza de
- * nuevo en 'pending', así que también espera.
+ * Señal desconocida (navegador sin ancestorOrigins y sin referrer, por ejemplo
+ * un marco con referrerpolicy=no-referrer): se espera el handshake (2,5 s como
+ * máximo) y se decide con él. Para ese caso el ERP además no deja usar la vista
+ * previa hasta que la tienda confirma que está protegida (StoreEditorPreview).
  *
  * Bloquear acá es fallar hacia lo seguro para el comercio, no autorizar: esto
  * evita acciones accidentales en la vista previa; no es un control contra
@@ -22,6 +26,7 @@
  */
 import { useEffect, useState } from 'react';
 import { getPreviewChannel, type PreviewState } from './previewChannel';
+import { isDesignerFrame } from './designerFrame';
 
 export type PreviewAction = 'pedido' | 'pago' | 'newsletter' | 'probador' | 'resena';
 
@@ -51,8 +56,9 @@ export function settledPreviewState(): Promise<PreviewState> {
   return ch ? ch.settled() : Promise.resolve('public');
 }
 
-/** ¿Esta pestaña es la vista previa acreditada del diseñador? */
+/** ¿Esta pestaña es la vista previa del diseñador? (enmarcada por el ERP o acreditada por el canal) */
 export async function isConfirmedPreview(): Promise<boolean> {
+  if (isDesignerFrame()) return true; // sin esperar: no depende del handshake
   return (await settledPreviewState()) === 'preview';
 }
 
@@ -61,7 +67,13 @@ export async function assertRealVisit(action: PreviewAction): Promise<void> {
   if (await isConfirmedPreview()) throw new PreviewBlockedError(action);
 }
 
-/** Estado actual para la interfaz (avisos). En una visita pública es siempre 'public'. */
+/** Para la interfaz (avisos): ¿las operaciones reales están desactivadas en esta pestaña? */
+export function usePreviewProtected(): boolean {
+  const state = usePreviewState();
+  return isDesignerFrame() || state === 'preview';
+}
+
+/** Estado del canal para la interfaz. En una visita pública es siempre 'public'. */
 export function usePreviewState(): PreviewState {
   const ch = getPreviewChannel();
   const [state, setState] = useState<PreviewState>(ch ? ch.state : 'public');
