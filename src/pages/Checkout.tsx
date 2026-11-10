@@ -27,6 +27,7 @@ import { OrderBumpOffer } from '@/components/OrderBumpOffer';
 import type { CartItem } from '@/lib/types';
 import { useFreeShippingProducts } from '@/hooks/useFreeShippingProducts';
 import { carrierWithAgency, correoPostalCode, type CorreoAgency } from '@/lib/micorreo';
+import { PREVIEW_BLOCKED_MESSAGES, usePreviewProtected } from '@/lib/previewGuard';
 
 /**
  * Mensaje en español para cada código de error de cupón que puede lanzar la RPC.
@@ -184,6 +185,7 @@ export function Checkout() {
   const { byLine } = useCartPromos();
   const { trackInitiateCheckout } = useMetaPixel();
   const config = useStore();
+  const previewProtected = usePreviewProtected();
   const storeType = useStoreType();
   const { storeKey } = useStoreStatus();
   const isWholesale = storeType === 'wholesale';
@@ -1665,6 +1667,13 @@ export function Checkout() {
                   Ajustar el carrito
                 </Link>
               </div>
+            )}
+
+            {/* EDITOR E2.0b: en la vista previa del diseñador el checkout se recorre pero no crea pedidos. */}
+            {previewProtected && (
+              <p role="status" data-testid="preview-checkout-notice" className="mb-3 rounded-lg border border-line bg-background px-3 py-2 text-[calc(13px_*_var(--font-scale,1))] font-medium text-text">
+                {PREVIEW_BLOCKED_MESSAGES.pedido}
+              </p>
             )}
 
             {error && (

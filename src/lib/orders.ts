@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { getAttribution } from './attribution';
+import { assertRealVisit } from './previewGuard';
 import type { CartItem, StoreConfig } from './types';
 
 /** Códigos de error de cupón que ahora emite la RPC create_catalog_order_dedup
@@ -266,6 +267,9 @@ export async function createCatalogOrder(
     priceBreakdown?: PriceBreakdown | null;
   },
 ): Promise<string> {
+  // EDITOR E2.0b: en la vista previa del diseñador no se crea el pedido (ni la
+  // venta que generaría). Corta ANTES de cualquier request.
+  await assertRealVisit('pedido');
   const orderId = crypto.randomUUID();
   const attribution = getAttribution();
 
@@ -469,6 +473,7 @@ export async function startMercadoPagoCheckout(
   onlyAccountMoney = false,
 ): Promise<string> {
   const baseUrl = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
+  await assertRealVisit('pago'); // EDITOR E2.0b: sin cobros desde la vista previa
   const res = await fetch(`${baseUrl}/functions/v1/create-preference`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -504,6 +509,7 @@ export async function startMercadoPagoCheckout(
  * createCatalogOrder NO auto-confirma cuando el pago va por una pasarela online).
  */
 export async function startGoCuotasCheckout(catalogOrderId: string): Promise<string> {
+  await assertRealVisit('pago'); // EDITOR E2.0b: sin cobros desde la vista previa
   const baseUrl = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
   const res = await fetch(`${baseUrl}/functions/v1/gocuotas-checkout`, {
     method: 'POST',

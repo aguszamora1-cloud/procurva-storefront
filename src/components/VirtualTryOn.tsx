@@ -3,6 +3,7 @@ import { AlertCircle, Camera, Download, Loader2, RefreshCw, Shirt, Sparkles, X }
 import { supabase } from '@/lib/supabase';
 import { isFromFrame, requestTryonToken, tryonFrameOrigin, tryonFrameSrc, waitFrameReady, type FrameMessage } from '@/lib/turnstileFrame';
 import { tryonAvailable } from '@/lib/tryonAvailability';
+import { isConfirmedPreview, PREVIEW_BLOCKED_MESSAGES } from '@/lib/previewGuard';
 
 type FashnCategory = 'auto' | 'tops' | 'bottoms' | 'one-pieces';
 type Status = 'idle' | 'uploading' | 'processing' | 'completed' | 'error';
@@ -172,6 +173,13 @@ export function VirtualTryOn({ garmentImageUrl, garmentName, garmentCategory = '
     if (!userImage) return;
     setStatus('processing');
     setErrorMsg('');
+    // EDITOR E2.0b: en la vista previa del diseñador no se pide token ni se llama al
+    // proveedor (no consume créditos). Corta antes de cualquier request.
+    if (await isConfirmedPreview()) {
+      setErrorMsg(PREVIEW_BLOCKED_MESSAGES.probador);
+      setStatus('error');
+      return;
+    }
     // Un token nuevo por intento: el servidor no acepta uno ya usado.
     let turnstileToken: string;
     try {

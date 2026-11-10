@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { isConfirmedPreview, PREVIEW_BLOCKED_MESSAGES } from '@/lib/previewGuard';
 
 /**
  * Reseñas verificadas de clientes (Extra PRO).
@@ -117,6 +118,8 @@ export async function submitReviews(input: {
   displayName: string;
   reviews: ReviewDraft[];
 }): Promise<SubmitResult> {
+  // EDITOR E2.0b: en la vista previa del diseñador las opiniones no se envían.
+  if (await isConfirmedPreview()) return { ok: false, error: PREVIEW_BLOCKED_MESSAGES.resena };
   const baseUrl = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
   try {
