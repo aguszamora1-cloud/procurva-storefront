@@ -1,7 +1,9 @@
 import { supabase } from './supabase';
+import { isConfirmedPreview } from './previewGuard';
 
 export interface NewsletterResult {
-  status: 'done' | 'duplicate' | 'error';
+  /** 'preview': vista previa del diseñador, no se suscribió a nadie (EDITOR E2.0b). */
+  status: 'done' | 'duplicate' | 'error' | 'preview';
   /** Código de cupón único generado para este suscriptor (si la tienda lo tiene activado). */
   couponCode?: string;
 }
@@ -21,6 +23,9 @@ export async function subscribeNewsletter(
   name: string,
   source: 'popup' | 'section' | 'footer',
 ): Promise<NewsletterResult> {
+  // EDITOR E2.0b: en la vista previa del diseñador no se inserta el suscriptor ni
+  // se manda el mail de bienvenida (ni se genera su cupón).
+  if (await isConfirmedPreview()) return { status: 'preview' };
   try {
     const { data, error } = await supabase.functions.invoke('newsletter-welcome', {
       body: { company_id: companyId, email, name: name || null, source },

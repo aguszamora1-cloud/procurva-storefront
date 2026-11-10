@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '@/context/StoreProvider';
 import { useCoupon } from '@/context/CouponContext';
 import { subscribeNewsletter } from '@/lib/newsletter';
+import { getPreviewChannel } from '@/lib/previewChannel';
+import { PREVIEW_BLOCKED_MESSAGES } from '@/lib/previewGuard';
 
 /** ¿El color es claro? (para elegir color de texto legible encima). */
 function isLight(hex: string): boolean {
@@ -44,7 +46,7 @@ export function NewsletterPopup() {
   const [entered, setEntered] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'duplicate' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'duplicate' | 'error' | 'preview'>('idle');
   const [copied, setCopied] = useState(false);
   // Cupón único devuelto por la edge function al suscribirse (si la tienda lo
   // tiene activado). Tiene prioridad sobre el código fijo configurado.
@@ -66,10 +68,22 @@ export function NewsletterPopup() {
     let scrollIdle: number | undefined;
     let armed = false;
 
-    const reveal = () => {
-      if (shownRef.current) return;
+    let cancelled = false;
+    const show = () => {
+      if (shownRef.current || cancelled) return;
       shownRef.current = true;
       setVisible(true);
+    };
+    // EDITOR E2.0b: dentro del diseñador el popup no se abre solo. Si el canal está
+    // pendiente, se espera a que se resuelva; una visita pública se abre como siempre.
+    const reveal = () => {
+      if (shownRef.current) return;
+      const ch = getPreviewChannel();
+      if (!ch || ch.state === 'public') return show();
+      if (ch.state === 'preview') return;
+      void ch.settled().then((s) => {
+        if (s === 'public') show();
+      });
     };
     const attempt = () => {
       const isMobile = window.matchMedia('(max-width: 767px)').matches;
@@ -91,6 +105,7 @@ export function NewsletterPopup() {
     window.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
+      cancelled = true;
       window.clearTimeout(delayTimer);
       window.clearTimeout(scrollIdle);
       window.removeEventListener('scroll', onScroll);
@@ -124,8 +139,8 @@ export function NewsletterPopup() {
       popup.askName ? name.trim() : '',
       'popup',
     );
-    if (res.status === 'error') {
-      setStatus('error');
+    if (res.status === 'error' || res.status === 'preview') {
+      setStatus(res.status);
       return;
     }
     writeFlag(storageKey, 'subscribed');
@@ -253,6 +268,7 @@ export function NewsletterPopup() {
             </form>
 
             {status === 'error' && <p className="mt-2 text-center text-xs text-red-500">Hubo un error. Probá de nuevo.</p>}
+            {status === 'preview' && <p className="mt-2 text-center text-xs" role="status" data-testid="preview-blocked">{PREVIEW_BLOCKED_MESSAGES.newsletter}</p>}
             {popup.footerText && <p className="mt-3 text-center text-[calc(11px_*_var(--font-scale,1))] opacity-50">{popup.footerText}</p>}
           </>
         )}

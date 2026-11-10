@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '@/context/StoreProvider';
 import { useCoupon } from '@/context/CouponContext';
 import { subscribeNewsletter } from '@/lib/newsletter';
+import { PREVIEW_BLOCKED_MESSAGES } from '@/lib/previewGuard';
 import { contrastColor, rgba, safeFill, safeText } from '@/lib/theme';
 import { accentInk, readableFill } from '@/lib/contrast';
 import { useTypography } from '@/hooks/useTypography';
@@ -51,7 +52,7 @@ export function NewsletterSection() {
   const [name, setName] = useState('');
   // El nombre es opcional y arranca oculto: un solo campo baja la fricción.
   const [showName, setShowName] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'duplicate' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'duplicate' | 'error' | 'preview'>('idle');
   const [generatedCoupon, setGeneratedCoupon] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -61,8 +62,8 @@ export function NewsletterSection() {
     setStatus('loading');
 
     const res = await subscribeNewsletter(config.companyId, email.trim().toLowerCase(), name.trim(), 'section');
-    if (res.status === 'error') {
-      setStatus('error');
+    if (res.status === 'error' || res.status === 'preview') {
+      setStatus(res.status);
       return;
     }
     if (res.couponCode) setGeneratedCoupon(res.couponCode);
@@ -167,6 +168,11 @@ export function NewsletterSection() {
           </div>
         )}
 
+        {status === 'preview' && (
+          <p className="mt-3 text-sm font-semibold text-[var(--color-on-primary)]" role="status" data-testid="preview-blocked">
+            {PREVIEW_BLOCKED_MESSAGES.newsletter}
+          </p>
+        )}
         {status === 'error' && (
           // v2 (C5): sobre el primario, un rojo claro no se lee si el primario es
           // rojo; el error va en el color de texto del primario, en negrita.
