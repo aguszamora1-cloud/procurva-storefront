@@ -436,3 +436,35 @@ test('E3.0 previewInspect: secciones seleccionables, páginas y etiquetas', asyn
   m.initPreviewInspect(null);
   m.initPreviewInspect({ state: 'public', onInspect: () => assert.fail('no debería suscribirse') });
 });
+
+test('E3.1.1 etiquetas permanentes: sólo las 5 secciones de E3.1 (sin Distintivos de confianza)', async () => {
+  const m = await import('../src/lib/previewInspect.ts');
+  assert.deepEqual([...m.LABELED_SECTIONS], ['hero', 'categories', 'featured', 'new_arrivals', 'offers']);
+  assert.equal(m.LABELED_SECTIONS.includes('trust_badges'), false);
+  for (const k of m.LABELED_SECTIONS) {
+    assert.ok(m.isSelectableSection(k), k);
+    assert.ok(m.SECTION_LABELS[k], k);
+  }
+  // Distintivos de confianza conserva su hover de E3.0 (sigue seleccionable en la tienda).
+  assert.equal(m.isSelectableSection('trust_badges'), true);
+});
+
+test('E3.1.1 posición de la etiqueta: esquina de la parte visible, debajo del encabezado y dentro de la ventana', async () => {
+  const m = await import('../src/lib/previewInspect.ts');
+  const box = (left, top, right, bottom) => ({ left, top, right, bottom });
+  // Sección entera visible: esquina + 8 px.
+  assert.deepEqual(m.tagPosition(box(0, 200, 1200, 600), 60, 1200, 800), { x: 8, y: 208 });
+  // Borde superior detrás del encabezado fijo (60 px): baja a la parte visible.
+  assert.deepEqual(m.tagPosition(box(0, -300, 1200, 400), 60, 1200, 800), { x: 8, y: 68 });
+  // Carrusel con diapositivas fuera de pantalla a la izquierda: la etiqueta no se va afuera.
+  assert.deepEqual(m.tagPosition(box(-2400, 100, 3600, 500), 0, 1200, 800), { x: 8, y: 108 });
+  // Fuera de la ventana (arriba, abajo o tapada por el encabezado): no se dibuja.
+  assert.equal(m.tagPosition(box(0, -500, 1200, -10), 60, 1200, 800), null);
+  assert.equal(m.tagPosition(box(0, 900, 1200, 1300), 60, 1200, 800), null);
+  assert.equal(m.tagPosition(box(0, -500, 1200, 70), 60, 1200, 800), null); // sólo 10 px visibles
+  // Sección vacía o sin geometría: no se dibuja.
+  assert.equal(m.tagPosition(null, 0, 1200, 800), null);
+  assert.equal(m.tagPosition(box(0, 100, 40, 500), 0, 1200, 800), null); // demasiado angosta
+  // Celular (390 px): misma regla.
+  assert.deepEqual(m.tagPosition(box(0, 120, 390, 700), 56, 390, 844), { x: 8, y: 128 });
+});
