@@ -5,8 +5,9 @@ import './styles/globals.css';
 import './styles/modals.css';
 import { captureAttribution } from './lib/attribution';
 import { isPreviewMode } from './lib/previewMode';
-import { initPreviewChannel, parentOrigins } from './lib/previewChannel';
+import { getPreviewChannel, initPreviewChannel, parentOrigins } from './lib/previewChannel';
 import { initDesignerFrame } from './lib/designerFrame';
+import { initPreviewInspect } from './lib/previewInspect';
 
 // Antes del router: la URL de aterrizaje (utm_*, fbclid...) se pierde en el primer
 // click de la SPA. La guardamos ya para atribuir el pedido a la campaña que lo trajo.
@@ -19,6 +20,9 @@ initPreviewChannel(window.parent !== window && isPreviewMode());
 // EDITOR E2.0c: quién enmarca la tienda, según el navegador (no según la URL).
 // Si es el ERP, las operaciones reales quedan bloqueadas aunque el canal falle.
 initDesignerFrame(parentOrigins());
+// EDITOR E3.0: selección visual de secciones. No instala nada hasta que el ERP la
+// activa por el canal (con el handshake completo); en una visita pública, nada.
+initPreviewInspect(getPreviewChannel());
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

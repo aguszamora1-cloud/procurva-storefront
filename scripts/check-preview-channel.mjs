@@ -249,3 +249,190 @@ test('E2.0c: pc_preview no participa de la detección', async () => {
   const codigo = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
   assert.doesNotMatch(codigo, /pc_preview|isPreviewMode/);
 });
+
+// ───────── EDITOR E3.0 · selección visual: inspect / reveal / select ─────────
+
+const ack = (channel, doc) => ({ ns: PREVIEW_NS, v: 1, type: 'ack', channel, doc });
+const inspect = (channel, doc, on = true) => ({ ns: PREVIEW_NS, v: 1, type: 'inspect', channel, doc, on });
+const reveal = (channel, doc, section) => ({ ns: PREVIEW_NS, v: 1, type: 'reveal', channel, doc, section });
+const UUIDK = 'custom:11111111-2222-4333-8444-555555555555';
+
+/** Canal con handshake completo (hello + ready + ack) y registro de eventos de selección. */
+function conectado({ conAck = true } = {}) {
+  const win = fakeWindow();
+  const ch = mk(win);
+  ch.start();
+  ch.setIdentity(ID);
+  win.emit(hello());
+  if (conAck) win.emit(ack(CH, ch.doc));
+  const eventos = [];
+  ch.onInspect((e) => eventos.push(e));
+  return { win, ch, eventos };
+}
+
+test('E3.0 parseo: inspect y reveal válidos', () => {
+  const D = 'd'.repeat(32);
+  assert.deepEqual(parseInbound(inspect(CH, D, true)), { type: 'inspect', channel: CH, doc: D, on: true });
+  assert.deepEqual(parseInbound(inspect(CH, D, false)), { type: 'inspect', channel: CH, doc: D, on: false });
+  assert.deepEqual(parseInbound(reveal(CH, D, 'featured')), { type: 'reveal', channel: CH, doc: D, section: 'featured' });
+  assert.deepEqual(parseInbound(reveal(CH, D, null)), { type: 'reveal', channel: CH, doc: D, section: null });
+  assert.deepEqual(parseInbound(reveal(CH, D, UUIDK)), { type: 'reveal', channel: CH, doc: D, section: UUIDK });
+});
+
+test('E3.0 parseo: mensajes inválidos se descartan', () => {
+  const D = 'd'.repeat(32);
+  const malos = [
+    { ...inspect(CH, D), extra: 1 },
+    { ...inspect(CH, D), on: 'true' },
+    { ...inspect(CH, D), on: 1 },
+    { ns: PREVIEW_NS, v: 1, type: 'inspect', channel: CH, doc: D },
+    { ...inspect(CH, D), v: 2 },
+    { ...inspect(CH, D), ns: 'otro' },
+    { ...inspect('x'.repeat(32), D) },
+    { ...inspect(CH, 'corto') },
+    { ...reveal(CH, D, 'featured'), extra: 1 },
+    reveal(CH, D, 'Featured'),
+    reveal(CH, D, 'feat ured'),
+    reveal(CH, D, 'a'.repeat(33)),
+    reveal(CH, D, 'custom:no-uuid'),
+    reveal(CH, D, '[data-x]'),
+    reveal(CH, D, 'hero"]'),
+    reveal(CH, D, 7),
+    reveal(CH, D, { k: 'hero' }),
+    { ns: PREVIEW_NS, v: 1, type: 'reveal', channel: CH, doc: D },
+    { ns: PREVIEW_NS, v: 1, type: 'select', channel: CH, doc: D, page: 'home', section: 'hero' }, // eco: la tienda no acepta su propio select
+    { ns: PREVIEW_NS, v: 1, type: 'config', channel: CH, doc: D, settings: {} },
+    { ...reveal(CH, D, 'hero'), section: 'h'.repeat(3000) },
+  ];
+  for (const m of malos) assert.equal(parseInbound(m), null, JSON.stringify(m).slice(0, 100));
+});
+
+test('E3.0 inspect con handshake completo: activa, y select sale sólo al origen exacto', () => {
+  const { win, ch, eventos } = conectado();
+  win.emit(inspect(CH, ch.doc, true));
+  assert.equal(ch.inspecting, true);
+  assert.deepEqual(eventos, [{ type: 'inspect', on: true }]);
+  const antes = win.sent.length;
+  assert.equal(ch.select('featured', 'home'), true);
+  const sel = win.sent.slice(antes);
+  assert.equal(sel.length, 1);
+  assert.equal(sel[0].origin, ERP);
+  assert.deepEqual(sel[0].msg, { ns: PREVIEW_NS, v: 1, type: 'select', channel: CH, doc: ch.doc, page: 'home', section: 'featured' });
+  assert.ok(win.sent.every((s) => s.origin !== '*'));
+});
+
+test('E3.0 sin ack (ERP viejo o handshake incompleto): inspect se ignora y no hay select', () => {
+  const { win, ch, eventos } = conectado({ conAck: false });
+  win.emit(inspect(CH, ch.doc, true));
+  assert.equal(ch.inspecting, false);
+  assert.deepEqual(eventos, []);
+  const antes = win.sent.length;
+  assert.equal(ch.select('featured', 'home'), false);
+  assert.equal(win.sent.length, antes);
+});
+
+test('E3.0 ERP viejo (hello + ack, nunca inspect): la selección nunca se activa', () => {
+  const { ch, eventos } = conectado();
+  assert.equal(ch.inspecting, false);
+  assert.equal(ch.select('hero', 'home'), false);
+  assert.deepEqual(eventos, []);
+});
+
+test('E3.0 inspect de otro canal, otro documento, otro origen o no del padre: se ignora', () => {
+  const { win, ch, eventos } = conectado();
+  win.emit(inspect(CH2, ch.doc, true));
+  win.emit(inspect(CH, 'e'.repeat(32), true));
+  win.emit(inspect(CH, ch.doc, true), { origin: 'https://evil.com' });
+  win.emit(inspect(CH, ch.doc, true), { origin: 'http://localhost:5314' });
+  win.emit(inspect(CH, ch.doc, true), { source: {} });
+  assert.equal(ch.inspecting, false);
+  assert.deepEqual(eventos, []);
+});
+
+test('E3.0 reveal: sólo con la selección activa, canal y documento vigentes', () => {
+  const { win, ch, eventos } = conectado();
+  win.emit(reveal(CH, ch.doc, 'featured')); // todavía apagada
+  assert.deepEqual(eventos, []);
+  win.emit(inspect(CH, ch.doc, true));
+  win.emit(reveal(CH, ch.doc, 'featured'));
+  win.emit(reveal(CH2, ch.doc, 'hero'));
+  win.emit(reveal(CH, 'e'.repeat(32), 'hero'));
+  win.emit(reveal(CH, ch.doc, null));
+  assert.deepEqual(eventos, [
+    { type: 'inspect', on: true },
+    { type: 'reveal', section: 'featured' },
+    { type: 'reveal', section: null },
+  ]);
+});
+
+test('E3.0 desconexión: un hello de canal nuevo apaga la selección en el acto', () => {
+  const { win, ch, eventos } = conectado();
+  win.emit(inspect(CH, ch.doc, true));
+  win.emit(hello(CH2));
+  assert.equal(ch.inspecting, false);
+  assert.equal(ch.acked, false);
+  assert.deepEqual(eventos.at(-1), { type: 'inspect', on: false });
+  // El inspect del canal viejo ya no vale; el del nuevo exige su propio ack.
+  win.emit(inspect(CH, ch.doc, true));
+  win.emit(inspect(CH2, ch.doc, true));
+  assert.equal(ch.inspecting, false);
+  assert.equal(ch.select('hero', 'home'), false);
+  win.emit(ack(CH2, ch.doc));
+  win.emit(inspect(CH2, ch.doc, true));
+  assert.equal(ch.inspecting, true);
+  const antes = win.sent.length;
+  ch.select('hero', 'home');
+  assert.equal(win.sent.slice(antes)[0].msg.channel, CH2);
+});
+
+test('E3.0 inspect off, repetidos y stop(): apaga una sola vez y no manda select', () => {
+  const { win, ch, eventos } = conectado();
+  win.emit(inspect(CH, ch.doc, true));
+  win.emit(inspect(CH, ch.doc, true)); // repetido
+  win.emit(inspect(CH, ch.doc, false));
+  win.emit(inspect(CH, ch.doc, false)); // repetido
+  assert.deepEqual(eventos, [{ type: 'inspect', on: true }, { type: 'inspect', on: false }]);
+  assert.equal(ch.select('hero', 'home'), false);
+  win.emit(inspect(CH, ch.doc, true));
+  ch.stop();
+  assert.equal(ch.inspecting, false);
+  assert.deepEqual(eventos.at(-1), { type: 'inspect', on: false });
+});
+
+test('E3.0 select: sólo claves de sección y páginas válidas', () => {
+  const { win, ch } = conectado();
+  win.emit(inspect(CH, ch.doc, true));
+  const antes = win.sent.length;
+  for (const [s, p] of [['Hero', 'home'], ['hero', 'inicio'], ['hero"]', 'home'], ['', 'home'], [null, 'home'], ['a'.repeat(40), 'home']]) {
+    assert.equal(ch.select(s, p), false, `${s} ${p}`);
+  }
+  assert.equal(win.sent.length, antes);
+  assert.equal(ch.select(UUIDK, 'home'), true);
+});
+
+test('E3.0 visita pública: la selección no existe (ni listeners ni select)', () => {
+  const win = fakeWindow({ framed: false });
+  const ch = mk(win);
+  ch.start();
+  assert.equal(ch.inspecting, false);
+  assert.equal(ch.select('hero', 'home'), false);
+  assert.equal(win.listeners.size, 0);
+  assert.equal(win.sent.length, 0);
+});
+
+test('E3.0 previewInspect: secciones seleccionables, páginas y etiquetas', async () => {
+  const m = await import('../src/lib/previewInspect.ts');
+  assert.deepEqual([...m.SELECTABLE_SECTIONS].sort(), ['categories', 'featured', 'hero', 'new_arrivals', 'offers', 'trust_badges']);
+  for (const k of m.SELECTABLE_SECTIONS) assert.ok(m.SECTION_LABELS[k], k);
+  for (const k of ['newsletter', 'outfits', 'social_proof', 'reels', 'stories', UUIDK, 'checkout', '', null, undefined]) {
+    assert.equal(m.isSelectableSection(k), false, String(k));
+  }
+  assert.equal(m.pageOf('/'), 'home');
+  assert.equal(m.pageOf('/producto/abc'), 'producto');
+  assert.equal(m.pageOf('/checkout'), 'checkout');
+  assert.equal(m.pageOf('/categoria/remeras'), 'other');
+  assert.equal(m.pageOf('/productos'), 'other');
+  // La capa no hace nada en una visita pública (sin canal o canal público).
+  m.initPreviewInspect(null);
+  m.initPreviewInspect({ state: 'public', onInspect: () => assert.fail('no debería suscribirse') });
+});
