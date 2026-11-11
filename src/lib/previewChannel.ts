@@ -68,7 +68,31 @@ export interface StoreIdentity {
 
 export type InboundMessage =
   | { type: 'hello'; channel: string; expect: StoreIdentity }
-  | { type: 'ack'; channel: string; doc: string };
+  | { type: 'ack'; channel: string; doc: string }
+  | { type: 'inspect'; channel: string; doc: string; on: boolean }
+  | { type: 'reveal'; channel: string; doc: string; section: string | null };
+
+/**
+ * EDITOR E3.0 · selección visual. Tipos NUEVOS sobre el mismo contrato v1 (los
+ * existentes no cambian): un ERP o una tienda que no los conocen los descartan.
+ *   ERP → tienda  inspect { channel, doc, on }        activa/desactiva la selección
+ *   ERP → tienda  reveal  { channel, doc, section }   resalta y lleva a una sección (null = limpiar)
+ *   tienda → ERP  select  { channel, doc, page, section }  el comercio hizo clic en una sección
+ * Sólo viajan CLAVES de sección: nada de configuración, borradores ni datos.
+ */
+const SECTION_KEY = /^[a-z][a-z_]{0,31}$/;
+const CUSTOM_SECTION_KEY = /^custom:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export type PreviewPage = 'home' | 'producto' | 'checkout' | 'other';
+const PAGES: readonly PreviewPage[] = ['home', 'producto', 'checkout', 'other'];
+
+/** ¿Es una clave de sección con forma válida? (no dice si existe ni si es seleccionable) */
+export function isSectionKey(k: unknown): k is string {
+  return typeof k === 'string' && (SECTION_KEY.test(k) || CUSTOM_SECTION_KEY.test(k));
+}
+
+export function isPreviewPage(p: unknown): p is PreviewPage {
+  return typeof p === 'string' && (PAGES as readonly string[]).includes(p);
+}
 
 function exactKeys(o: Record<string, unknown>, keys: string[]): boolean {
   const k = Object.keys(o);
@@ -113,8 +137,26 @@ export function parseInbound(data: unknown): InboundMessage | null {
     if (typeof data.doc !== 'string' || !HEX32.test(data.doc)) return null;
     return { type: 'ack', channel: data.channel, doc: data.doc };
   }
+  if (data.type === 'inspect') {
+    if (!exactKeys(data, ['ns', 'v', 'type', 'channel', 'doc', 'on'])) return null;
+    if (typeof data.channel !== 'string' || !HEX32.test(data.channel)) return null;
+    if (typeof data.doc !== 'string' || !HEX32.test(data.doc)) return null;
+    if (typeof data.on !== 'boolean') return null;
+    return { type: 'inspect', channel: data.channel, doc: data.doc, on: data.on };
+  }
+  if (data.type === 'reveal') {
+    if (!exactKeys(data, ['ns', 'v', 'type', 'channel', 'doc', 'section'])) return null;
+    if (typeof data.channel !== 'string' || !HEX32.test(data.channel)) return null;
+    if (typeof data.doc !== 'string' || !HEX32.test(data.doc)) return null;
+    if (data.section !== null && !isSectionKey(data.section)) return null;
+    return { type: 'reveal', channel: data.channel, doc: data.doc, section: data.section as string | null };
+  }
   return null;
 }
+
+/** Evento de selección para la capa de inspección (lib/previewInspect). */
+export type InspectEvent = { type: 'inspect'; on: boolean } | { type: 'reveal'; section: string | null };
+type InspectListener = (e: InspectEvent) => void;
 
 export function randomHex32(): string {
   const b = new Uint8Array(16);
@@ -160,6 +202,16 @@ export function createPreviewChannel(deps: ChannelDeps) {
   let lastReadyFor: string | null = null;
   const listeners = new Set<Listener>();
   let timer: ReturnType<typeof setTimeout> | null = null;
+  // E3.0: selección visual. Sólo en memoria de ESTE documento (nunca en storage):
+  // un documento nuevo arranca siempre apagado.
+  let inspecting = false;
+  const inspectListeners = new Set<InspectListener>();
+  const emitInspect = (e: InspectEvent) => inspectListeners.forEach((l) => l(e));
+  const stopInspecting = () => {
+    if (!inspecting) return;
+    inspecting = false;
+    emitInspect({ type: 'inspect', on: false });
+  };
 
   const set = (s: PreviewState) => {
     if (state === s) return;
@@ -193,6 +245,9 @@ export function createPreviewChannel(deps: ChannelDeps) {
     if (!msg) return;
     if (msg.type === 'hello') {
       if (msg.channel !== channel) {
+        // Canal nuevo (el ERP reinició el handshake): la selección del canal anterior
+        // se apaga en el acto y no vuelve sin un ack y un inspect del canal nuevo.
+        stopInspecting();
         channel = msg.channel;
         acked = false;
         lastReadyFor = null;
@@ -207,8 +262,27 @@ export function createPreviewChannel(deps: ChannelDeps) {
       sendReady();
       return;
     }
-    // ack: sólo el del canal vigente y para ESTE documento.
-    if (msg.channel === channel && msg.doc === doc && ev.origin === parentOrigin) acked = true;
+    if (msg.type === 'ack') {
+      // ack: sólo el del canal vigente y para ESTE documento.
+      if (msg.channel === channel && msg.doc === doc && ev.origin === parentOrigin) acked = true;
+      return;
+    }
+    // E3.0 inspect / reveal: sólo con el handshake COMPLETO de este documento
+    // (ack recibido), del canal vigente, para ESTE documento y desde el mismo
+    // origen que dio el hello. Un ERP viejo nunca los manda: la selección no se activa.
+    if (!acked || msg.channel !== channel || msg.doc !== doc || ev.origin !== parentOrigin) return;
+    if (msg.type === 'inspect') {
+      if (msg.on === inspecting) return; // repetido
+      if (msg.on) {
+        inspecting = true;
+        emitInspect({ type: 'inspect', on: true });
+      } else {
+        stopInspecting();
+      }
+      return;
+    }
+    // reveal: sólo con la selección activa.
+    if (inspecting) emitInspect({ type: 'reveal', section: msg.section });
   };
 
   const start = () => {
@@ -228,6 +302,26 @@ export function createPreviewChannel(deps: ChannelDeps) {
     },
     get acked() {
       return acked;
+    },
+    /** E3.0: ¿el diseñador activó la selección visual para este documento y canal? */
+    get inspecting() {
+      return inspecting;
+    },
+    /** E3.0: avisa cuando la selección se activa/desactiva o el ERP pide resaltar una sección. */
+    onInspect(l: InspectListener) {
+      inspectListeners.add(l);
+      return () => inspectListeners.delete(l);
+    },
+    /**
+     * E3.0: el comercio hizo clic en una sección. Sólo con la selección activa (y por
+     * lo tanto con el handshake completo), sólo al origen exacto que dio el hello y
+     * sólo con una clave de sección. Devuelve si se mandó.
+     */
+    select(section: string, page: PreviewPage): boolean {
+      if (!inspecting || !acked || !channel || !parentOrigin) return false;
+      if (!isSectionKey(section) || !isPreviewPage(page)) return false;
+      post({ type: 'select', channel, doc, page, section }, parentOrigin);
+      return true;
     },
     doc,
     subscribe(l: Listener) {
@@ -255,6 +349,7 @@ export function createPreviewChannel(deps: ChannelDeps) {
       });
     },
     stop() {
+      stopInspecting();
       win.removeEventListener('message', onMessage);
       if (timer) clearTimeout(timer);
       timer = null;

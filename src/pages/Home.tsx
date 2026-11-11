@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useStore } from '@/context/StoreProvider';
 import { useTypography } from '@/hooks/useTypography';
 import { useProducts } from '@/hooks/useProducts';
@@ -35,6 +35,7 @@ import { PromoBannerAuto } from '@/components/PromoBannerAuto';
 import { useCustomSections } from '@/hooks/useCustomSections';
 import { ProductGridSkeleton } from '@/components/ProductGrid';
 import { Reveal } from '@/components/Reveal';
+import { PreviewSection } from '@/components/PreviewSection';
 
 /**
  * Orden por defecto de las secciones del home. Es también el ORDEN DE DISEÑO que
@@ -251,10 +252,20 @@ export function Home() {
         // Hero y trust badges van arriba del fold: se muestran de una, sin fade
         // (animarlos perjudicaría la carga inicial y el LCP). Las franjas finas
         // (barras de anuncios, separadores) tampoco: ver `noReveal`.
+        // EDITOR E3.0: PreviewSection marca la sección para la selección visual
+        // SÓLO dentro del diseñador; en la tienda pública devuelve el nodo tal cual.
         if (key === 'hero' || key === 'trust_badges' || noReveal.has(key)) {
-          return <Fragment key={key}>{node}</Fragment>;
+          return (
+            <PreviewSection key={key} id={key}>
+              {node}
+            </PreviewSection>
+          );
         }
-        return <Reveal key={key}>{node}</Reveal>;
+        return (
+          <PreviewSection key={key} id={key}>
+            <Reveal>{node}</Reveal>
+          </PreviewSection>
+        );
       })}
     </div>
   );
