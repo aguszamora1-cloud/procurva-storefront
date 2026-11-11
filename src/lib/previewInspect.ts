@@ -11,8 +11,10 @@
  *    listeners, capa ni marcas (las marcas del DOM sólo existen en el diseñador,
  *    ver components/PreviewSection).
  *  - No transmite configuración ni contenido: sólo la clave de la sección.
- *  - Mientras está activa, NINGÚN clic llega a la tienda: no navega, no agrega al
- *    carrito, no compra. Con la selección apagada la tienda se comporta como hoy
+ *  - Mientras está activa, NINGÚN clic, toque, puntero ni Enter/Espacio llega a
+ *    los componentes de la tienda: no navega, no agrega al carrito, no envía
+ *    formularios, no compra. El scroll (rueda y táctil), Tab, Escape y las flechas
+ *    siguen como siempre. Con la selección apagada la tienda se comporta como hoy
  *    (y las operaciones reales siguen bloqueadas por E2.0).
  *
  * La capa se dibuja en un nodo propio colgado de <html>, fuera del árbol de React,
@@ -126,11 +128,11 @@ function makeOverlay(doc: Document): Overlay {
   return { root, hover, selected, label };
 }
 
-function place(div: HTMLDivElement, el: Element | null) {
+function place(div: HTMLDivElement, el: Element | null): DOMRect | null {
   const b = el ? boxOf(el) : null;
   if (!b) {
     div.style.display = 'none';
-    return;
+    return null;
   }
   Object.assign(div.style, {
     display: 'block',
@@ -139,14 +141,46 @@ function place(div: HTMLDivElement, el: Element | null) {
     width: `${b.width}px`,
     height: `${b.height}px`,
   });
+  return b;
+}
+
+/**
+ * Borde inferior del encabezado fijo, en px del viewport. Es el contenedor sticky
+ * de Layout, que mide su alto real (offsetHeight, con ResizeObserver) y lo publica
+ * como `--header-h`; como está pegado a `top: 0`, su borde inferior es ese alto.
+ * Sin la variable (otra página, encabezado no montado) no se recorta nada.
+ */
+function headerBottomOf(win: Window): number {
+  const h = parseFloat(win.getComputedStyle(win.document.documentElement).getPropertyValue('--header-h'));
+  return Number.isFinite(h) && h > 0 ? Math.min(h, win.innerHeight) : 0;
 }
 
 /**
  * Eventos que en modo selección no deben llegar a la tienda (navegar, comprar,
- * enviar, arrastrar carruseles). `touchstart` NO: bloquearlo impediría hacer
- * scroll táctil dentro de la vista previa; el `click` que sigue al toque sí se corta.
+ * enviar, menú contextual con "abrir en pestaña nueva"): se cancelan
+ * (preventDefault) y no se propagan. `pointerup`/`mouseup` no tienen acción por
+ * defecto, pero un componente podría actuar en ellos; cancelarlos no impide el
+ * `click` que selecciona.
  */
-const BLOCKED_EVENTS = ['click', 'auxclick', 'dblclick', 'submit', 'mousedown', 'pointerdown'] as const;
+const BLOCKED_EVENTS = ['click', 'auxclick', 'dblclick', 'submit', 'mousedown', 'pointerdown', 'pointerup', 'mouseup', 'contextmenu'] as const;
+
+/**
+ * Toques: sólo se corta la PROPAGACIÓN (ningún componente los recibe), sin
+ * preventDefault y en modo pasivo. Así el scroll táctil sigue siendo el del
+ * navegador y el `click` que el navegador genera al final del toque llega a la
+ * captura de arriba, que selecciona la sección y lo cancela.
+ */
+const TOUCH_EVENTS = ['touchstart', 'touchmove', 'touchend', 'touchcancel'] as const;
+
+/**
+ * Teclado: Enter y Espacio no llegan a los componentes (atajos tipo "Enter aplica
+ * el cupón"). Tampoco acá se cancela la acción por defecto: activar un enlace o
+ * botón con el teclado produce un `click` (y un formulario, un `submit`), que la
+ * captura de arriba bloquea, y escribir un espacio en un campo sigue funcionando.
+ * Tab, Escape, flechas y el resto de las teclas pasan sin tocar.
+ */
+const KEY_EVENTS = ['keydown', 'keyup', 'keypress'] as const;
+const isActivationKey = (e: KeyboardEvent) => e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar';
 
 /**
  * Conecta la capa con el canal de esta pestaña. Se llama una vez (main.tsx). No
@@ -171,9 +205,18 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
   const paint = () => {
     raf = 0;
     if (!overlay) return;
+    // Nada de la capa se dibuja encima del encabezado fijo: se recorta en su borde
+    // inferior real, que se vuelve a medir en cada redibujado (scroll, resize, cambios de alto).
+    const clipTop = headerBottomOf(win);
+    overlay.root.style.clipPath = clipTop > 0 ? `inset(${clipTop}px 0 0 0)` : '';
     place(overlay.hover, hoverKey && hoverKey !== selectedKey ? elementOf(hoverKey) : null);
-    place(overlay.selected, elementOf(selectedKey));
+    const b = place(overlay.selected, elementOf(selectedKey));
     overlay.label.textContent = selectedKey ? SECTION_LABELS[selectedKey] || '' : '';
+    // Sección con el borde superior detrás del encabezado: la etiqueta baja hasta
+    // la parte visible (sin salirse de la caja; si la sección quedó toda debajo
+    // del encabezado, el recorte la oculta junto con el contorno).
+    const shift = b ? Math.max(0, Math.min(clipTop - b.top, b.height - overlay.label.offsetHeight)) : 0;
+    overlay.label.style.top = `${shift}px`;
   };
   const schedule = () => {
     if (!raf) raf = win.requestAnimationFrame(paint);
@@ -204,6 +247,20 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
     schedule();
     channel.select(key, pageOf(win.location.pathname));
   };
+  const onTouch = (e: Event) => {
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (!isActivationKey(e)) return;
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  };
+  // iOS: mantener apretado un enlace abre el menú del sistema ("Abrir en pestaña
+  // nueva") sin disparar `contextmenu`. Se apaga sólo mientras se selecciona (los
+  // motores que no conocen la propiedad la ignoran) y se restaura tal cual estaba.
+  const CALLOUT = '-webkit-touch-callout';
+  let prevCallout: [string, string] = ['', ''];
 
   const reveal = (section: string | null) => {
     selectedKey = section && isSelectableSection(section) ? section : null;
@@ -221,6 +278,11 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
     overlay = makeOverlay(doc);
     doc.documentElement.dataset.pcInspect = 'on';
     for (const t of BLOCKED_EVENTS) win.addEventListener(t, onBlocked, { capture: true, passive: false });
+    for (const t of TOUCH_EVENTS) win.addEventListener(t, onTouch, { capture: true, passive: true });
+    for (const t of KEY_EVENTS) win.addEventListener(t, onKey as EventListener, true);
+    const rs = doc.documentElement.style;
+    prevCallout = [rs.getPropertyValue(CALLOUT), rs.getPropertyPriority(CALLOUT)];
+    rs.setProperty(CALLOUT, 'none');
     win.addEventListener('mouseover', onMove, true);
     doc.addEventListener('mouseout', onLeave, true);
     win.addEventListener('scroll', schedule, true);
@@ -236,6 +298,10 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
   function uninstall() {
     if (!overlay) return;
     for (const t of BLOCKED_EVENTS) win.removeEventListener(t, onBlocked, { capture: true });
+    for (const t of TOUCH_EVENTS) win.removeEventListener(t, onTouch, { capture: true });
+    for (const t of KEY_EVENTS) win.removeEventListener(t, onKey as EventListener, true);
+    if (prevCallout[0]) doc.documentElement.style.setProperty(CALLOUT, prevCallout[0], prevCallout[1]);
+    else doc.documentElement.style.removeProperty(CALLOUT);
     win.removeEventListener('mouseover', onMove, true);
     doc.removeEventListener('mouseout', onLeave, true);
     win.removeEventListener('scroll', schedule, true);
