@@ -37,7 +37,7 @@ import { UnitVariantRows, type UnitSelection } from '@/components/UnitVariantRow
 import { VirtualTryOn, mapFashnCategory } from '@/components/VirtualTryOn';
 import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSections';
 import { useProductBadges } from '@/hooks/useProductBadges';
-import { formatPrice, getPriceInfo, productImages, sortSizes } from '@/lib/utils';
+import { formatPrice, getPriceInfo, productImages, resolvePricePair, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
 import { track } from '@/lib/tracking';
 import {
@@ -1170,15 +1170,24 @@ export function ProductDetail() {
           style={{ boxShadow: '0 -2px 10px rgba(0,0,0,0.08)' }}
         >
           <div className="min-w-0 flex-1">
-            {/* Contado protagonista + tarjeta chica al lado (si hay descuento de contado). */}
-            <p className="flex flex-wrap items-baseline gap-x-1.5 leading-none">
-              <span className={typoVersion === 'v2' ? 'text-[calc(18px_*_var(--font-scale,1))] font-extrabold tabular-nums text-accent' : 'text-[calc(18px_*_var(--font-scale,1))] font-extrabold text-accent'}>
-                {formatPrice(finalCash != null && finalCash < displayPrice ? finalCash : displayPrice)}
-              </span>
-              {finalCash != null && finalCash < displayPrice && (
-                <span className={ty('text-[calc(11px_*_var(--font-scale,1))] font-medium text-subtle', 'caption', 'text-subtle')}>{formatPrice(displayPrice)} tarjeta</span>
-              )}
-            </p>
+            {/* Precio grande + el otro chico al lado, con la misma regla que la
+                ficha (resolvePricePair): respeta "Solo contado"/"Solo tarjeta" y
+                cuál va grande. La etiqueta corta "tarjeta" es por el ancho. */}
+            {(() => {
+              const bar = resolvePricePair(config, finalCash, displayPrice);
+              return (
+                <p className="flex flex-wrap items-baseline gap-x-1.5 leading-none">
+                  <span className={typoVersion === 'v2' ? 'text-[calc(18px_*_var(--font-scale,1))] font-extrabold tabular-nums text-accent' : 'text-[calc(18px_*_var(--font-scale,1))] font-extrabold text-accent'}>
+                    {formatPrice(bar.big)}
+                  </span>
+                  {bar.small != null && (
+                    <span className={ty('text-[calc(11px_*_var(--font-scale,1))] font-medium text-subtle', 'caption', 'text-subtle')}>
+                      {formatPrice(bar.small)} {bar.cardFirst ? bar.smallLabel : 'tarjeta'}
+                    </span>
+                  )}
+                </p>
+              );
+            })()}
             {inTierMode ? (
               // Cuando las N unidades comparten variante la barra puede nombrarla
               // de verdad en vez de quedarse en "Lleva N". Con las filas por unidad
