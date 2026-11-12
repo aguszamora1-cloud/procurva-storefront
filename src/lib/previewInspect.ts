@@ -38,6 +38,14 @@ export const SECTION_LABELS: Record<string, string> = {
 export const isSelectableSection = (k: string | null | undefined): k is string =>
   !!k && SELECTABLE_SECTIONS.includes(k);
 
+/**
+ * EDITOR E3.1.1 · secciones con etiqueta PERMANENTE mientras la selección está activa:
+ * sólo las que el diseñador del ERP abre con un clic (E3.1). Distintivos de confianza
+ * sigue marcándose al pasar el puntero, pero no lleva etiqueta: todavía no se edita
+ * con un clic y la etiqueta lo sugeriría.
+ */
+export const LABELED_SECTIONS: readonly string[] = ['hero', 'categories', 'featured', 'new_arrivals', 'offers'];
+
 /** Qué página del diseñador es esta ruta (el ERP la usa para validar la sección). */
 export function pageOf(pathname: string): PreviewPage {
   if (pathname === '/' || pathname === '') return 'home';
@@ -80,7 +88,17 @@ interface Overlay {
   hover: HTMLDivElement;
   selected: HTMLDivElement;
   label: HTMLDivElement;
+  /** E3.1.1: una etiqueta permanente por sección de LABELED_SECTIONS (creadas una sola vez). */
+  tags: Map<string, HTMLDivElement>;
 }
+
+/** E3.1.1: separación de la etiqueta respecto de la esquina visible de su sección. */
+const TAG_INSET = 8;
+/** Alto de la etiqueta (fijo por su line-height): se usa sin medir el DOM. */
+const TAG_H = 18;
+/** Parte visible mínima de la sección para mostrar su etiqueta (si no, taparía casi todo). */
+const TAG_MIN_VISIBLE_H = TAG_H + TAG_INSET * 2;
+const TAG_MIN_VISIBLE_W = 64;
 
 function makeOverlay(doc: Document): Overlay {
   const root = doc.createElement('div');
@@ -124,15 +142,44 @@ function makeOverlay(doc: Document): Overlay {
     whiteSpace: 'nowrap',
   } satisfies Partial<CSSStyleDeclaration>);
   selected.appendChild(label);
+  // E3.1.1: etiquetas permanentes, discretas (fondo claro, texto del acento), sin borde
+  // alrededor de la sección. Fuera del flujo y sin eventos, como el resto de la capa.
+  const tags = new Map<string, HTMLDivElement>();
+  for (const key of LABELED_SECTIONS) {
+    const t = doc.createElement('div');
+    t.setAttribute('data-pc-inspect', 'tag');
+    t.setAttribute('data-pc-tag', key);
+    t.textContent = SECTION_LABELS[key] || '';
+    Object.assign(t.style, {
+      position: 'absolute',
+      display: 'none',
+      top: '0',
+      left: '0',
+      height: `${TAG_H}px`,
+      padding: '0 7px',
+      boxSizing: 'border-box',
+      background: 'rgba(255, 255, 255, 0.94)',
+      color: ACCENT,
+      border: `1px solid ${ACCENT}38`,
+      borderRadius: '4px',
+      boxShadow: '0 1px 2px rgba(15, 23, 42, 0.12)',
+      font: '600 11px/16px system-ui, -apple-system, "Segoe UI", sans-serif',
+      letterSpacing: '0.01em',
+      whiteSpace: 'nowrap',
+      pointerEvents: 'none',
+    } satisfies Partial<CSSStyleDeclaration>);
+    root.insertBefore(t, hover); // debajo de los contornos y de la etiqueta de la selección
+    tags.set(key, t);
+  }
   doc.documentElement.appendChild(root);
-  return { root, hover, selected, label };
+  return { root, hover, selected, label, tags };
 }
 
-function place(div: HTMLDivElement, el: Element | null): DOMRect | null {
-  const b = el ? boxOf(el) : null;
+/** Escribe una caja medida antes (o la oculta). Separado de la medición: no fuerza layout. */
+function applyBox(div: HTMLDivElement, b: DOMRect | null): void {
   if (!b) {
     div.style.display = 'none';
-    return null;
+    return;
   }
   Object.assign(div.style, {
     display: 'block',
@@ -141,7 +188,26 @@ function place(div: HTMLDivElement, el: Element | null): DOMRect | null {
     width: `${b.width}px`,
     height: `${b.height}px`,
   });
-  return b;
+}
+
+/**
+ * E3.1.1: dónde va la etiqueta permanente de una sección: en la esquina superior
+ * izquierda de su parte VISIBLE (debajo del encabezado fijo y dentro de la ventana; un
+ * carrusel tiene diapositivas fuera de pantalla). null si casi no se ve.
+ */
+export function tagPosition(
+  b: { left: number; top: number; right: number; bottom: number } | null,
+  clipTop: number,
+  viewW: number,
+  viewH: number,
+): { x: number; y: number } | null {
+  if (!b) return null;
+  const top = Math.max(b.top, clipTop);
+  const left = Math.max(b.left, 0);
+  const bottom = Math.min(b.bottom, viewH);
+  const right = Math.min(b.right, viewW);
+  if (bottom - top < TAG_MIN_VISIBLE_H || right - left < TAG_MIN_VISIBLE_W) return null;
+  return { x: left + TAG_INSET, y: top + TAG_INSET };
 }
 
 /**
@@ -198,6 +264,11 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
   let selectedKey: string | null = null;
   let raf = 0;
   let ro: ResizeObserver | null = null;
+  // E3.1.1: las etiquetas permanentes dependen de qué secciones hay pintadas. Una sección
+  // puede aparecer o cambiar sin que cambie el alto del body (lo único que ve `ro`):
+  // nodos agregados o quitados y imágenes que terminan de cargar también redibujan.
+  // Todo pasa por `schedule`: a lo sumo un redibujado por cuadro.
+  let mo: MutationObserver | null = null;
 
   const elementOf = (key: string | null) => (key ? doc.querySelector(`[${SECTION_ATTR}="${key}"]`) : null);
   const keyOf = (el: Element | null) => (el ? el.getAttribute(SECTION_ATTR) : null);
@@ -205,18 +276,44 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
   const paint = () => {
     raf = 0;
     if (!overlay) return;
+    // 1) Medir todo (sin escribir nada en el medio: un solo cálculo de layout por cuadro).
     // Nada de la capa se dibuja encima del encabezado fijo: se recorta en su borde
     // inferior real, que se vuelve a medir en cada redibujado (scroll, resize, cambios de alto).
     const clipTop = headerBottomOf(win);
+    const viewW = win.innerWidth;
+    const viewH = win.innerHeight;
+    const boxOfKey = (key: string | null) => {
+      const el = elementOf(key);
+      return el ? boxOf(el) : null;
+    };
+    const hoverBox = hoverKey && hoverKey !== selectedKey ? boxOfKey(hoverKey) : null;
+    const selBox = boxOfKey(selectedKey);
+    const labelH = selBox ? overlay.label.offsetHeight : 0;
+    const tagSpots = LABELED_SECTIONS.map((key) => [
+      key,
+      // La seleccionada ya muestra su etiqueta sólida: la permanente se oculta.
+      key === selectedKey ? null : tagPosition(boxOfKey(key), clipTop, viewW, viewH),
+    ] as const);
+
+    // 2) Escribir.
     overlay.root.style.clipPath = clipTop > 0 ? `inset(${clipTop}px 0 0 0)` : '';
-    place(overlay.hover, hoverKey && hoverKey !== selectedKey ? elementOf(hoverKey) : null);
-    const b = place(overlay.selected, elementOf(selectedKey));
+    applyBox(overlay.hover, hoverBox);
+    applyBox(overlay.selected, selBox);
     overlay.label.textContent = selectedKey ? SECTION_LABELS[selectedKey] || '' : '';
     // Sección con el borde superior detrás del encabezado: la etiqueta baja hasta
     // la parte visible (sin salirse de la caja; si la sección quedó toda debajo
     // del encabezado, el recorte la oculta junto con el contorno).
-    const shift = b ? Math.max(0, Math.min(clipTop - b.top, b.height - overlay.label.offsetHeight)) : 0;
+    const shift = selBox ? Math.max(0, Math.min(clipTop - selBox.top, selBox.height - labelH)) : 0;
     overlay.label.style.top = `${shift}px`;
+    for (const [key, spot] of tagSpots) {
+      const t = overlay.tags.get(key)!;
+      if (!spot) {
+        t.style.display = 'none';
+        continue;
+      }
+      t.style.display = 'block';
+      t.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y)}px)`;
+    }
   };
   const schedule = () => {
     if (!raf) raf = win.requestAnimationFrame(paint);
@@ -293,6 +390,16 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
       ro = new ResizeObserver(schedule);
       ro.observe(doc.body);
     }
+    if (typeof MutationObserver !== 'undefined' && doc.body) {
+      mo = new MutationObserver(schedule);
+      mo.observe(doc.body, { childList: true, subtree: true });
+    }
+    win.addEventListener('load', schedule, true); // imágenes (load no burbujea: captura)
+    // Animaciones de entrada (fade/slide al aparecer): mueven la sección sin cambiar el
+    // DOM ni su tamaño; al terminar se redibuja para que la etiqueta quede en su lugar.
+    win.addEventListener('animationend', schedule, true);
+    win.addEventListener('transitionend', schedule, true);
+    schedule(); // primer dibujado: las etiquetas aparecen sin esperar un movimiento
   };
 
   function uninstall() {
@@ -309,6 +416,11 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
     win.removeEventListener('pagehide', uninstall);
     ro?.disconnect();
     ro = null;
+    mo?.disconnect();
+    mo = null;
+    win.removeEventListener('load', schedule, true);
+    win.removeEventListener('animationend', schedule, true);
+    win.removeEventListener('transitionend', schedule, true);
     if (raf) win.cancelAnimationFrame(raf);
     raf = 0;
     overlay.root.remove();
