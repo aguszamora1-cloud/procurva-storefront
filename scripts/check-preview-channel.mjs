@@ -274,9 +274,9 @@ test('E3.0 parseo: inspect y reveal válidos', () => {
   const D = 'd'.repeat(32);
   assert.deepEqual(parseInbound(inspect(CH, D, true)), { type: 'inspect', channel: CH, doc: D, on: true });
   assert.deepEqual(parseInbound(inspect(CH, D, false)), { type: 'inspect', channel: CH, doc: D, on: false });
-  assert.deepEqual(parseInbound(reveal(CH, D, 'featured')), { type: 'reveal', channel: CH, doc: D, section: 'featured' });
-  assert.deepEqual(parseInbound(reveal(CH, D, null)), { type: 'reveal', channel: CH, doc: D, section: null });
-  assert.deepEqual(parseInbound(reveal(CH, D, UUIDK)), { type: 'reveal', channel: CH, doc: D, section: UUIDK });
+  assert.deepEqual(parseInbound(reveal(CH, D, 'featured')), { type: 'reveal', channel: CH, doc: D, section: 'featured', req: null });
+  assert.deepEqual(parseInbound(reveal(CH, D, null)), { type: 'reveal', channel: CH, doc: D, section: null, req: null });
+  assert.deepEqual(parseInbound(reveal(CH, D, UUIDK)), { type: 'reveal', channel: CH, doc: D, section: UUIDK, req: null });
 });
 
 test('E3.0 parseo: mensajes inválidos se descartan', () => {
@@ -360,8 +360,8 @@ test('E3.0 reveal: sólo con la selección activa, canal y documento vigentes', 
   win.emit(reveal(CH, ch.doc, null));
   assert.deepEqual(eventos, [
     { type: 'inspect', on: true },
-    { type: 'reveal', section: 'featured' },
-    { type: 'reveal', section: null },
+    { type: 'reveal', section: 'featured', ticket: null }, // E3.2 B2: sin req, sin ticket
+    { type: 'reveal', section: null, ticket: null },
   ]);
 });
 
@@ -506,4 +506,76 @@ test('E3.2 B1 plan del reveal: no desplaza si ya está en su lugar o en la franj
   // Franja mínima de 48 px en una ventana muy baja.
   assert.equal(m.revealPlan({ clipTop: 61, viewH: 150, maxScroll: 5000, docTop: 1600, scrollY: 1500 }), null); // a 39 px
   assert.equal(m.revealPlan({ clipTop: 61, viewH: 150, maxScroll: 5000, docTop: 1600, scrollY: 1480 }), 1531); // a 59 px
+});
+
+/* ───────────── E3.2 B2 · confirmación del reveal (revealed) ───────────── */
+const revealReq = (channel, doc, section, req) => ({ ns: PREVIEW_NS, v: 1, type: 'reveal', channel, doc, section, req });
+
+test('E3.2 B2 parseo: reveal con req válido; req inválido, con section null o con claves de más se descarta', () => {
+  const D = 'd'.repeat(32);
+  assert.deepEqual(parseInbound(revealReq(CH, D, 'featured', 1)), { type: 'reveal', channel: CH, doc: D, section: 'featured', req: 1 });
+  assert.deepEqual(parseInbound(revealReq(CH, D, 'hero', 2147483647)).req, 2147483647);
+  for (const req of [0, -1, 1.5, 2147483648, Number.NaN, Infinity, '1', null, true, [], {}]) {
+    assert.equal(parseInbound(revealReq(CH, D, 'featured', req)), null, String(req));
+  }
+  assert.equal(parseInbound(revealReq(CH, D, null, 3)), null); // limpiar no se confirma
+  assert.equal(parseInbound({ ...revealReq(CH, D, 'featured', 3), x: 1 }), null);
+  assert.equal(parseInbound({ ...revealReq(CH, D, 'featured', 3), section: 'Featured!' }), null);
+  // Sin req: la forma de E3.0 sigue igual.
+  assert.deepEqual(parseInbound(reveal(CH, D, 'featured')).req, null);
+});
+
+test('E3.2 B2 reveal con req: el evento lleva el ticket (canal + req); sin req, ticket null', () => {
+  const { win, ch, eventos } = conectado();
+  win.emit(inspect(CH, ch.doc, true));
+  win.emit(revealReq(CH, ch.doc, 'featured', 7));
+  win.emit(reveal(CH, ch.doc, 'hero'));
+  win.emit(revealReq(CH2, ch.doc, 'hero', 8)); // otro canal: nada
+  win.emit(revealReq(CH, 'e'.repeat(32), 'hero', 9)); // otro documento: nada
+  win.emit(revealReq(CH, ch.doc, 'hero', 10), { origin: 'https://evil.com' }); // otro origen: nada
+  win.emit(revealReq(CH, ch.doc, 'hero', 11), { source: {} }); // no es el padre: nada
+  assert.deepEqual(eventos.slice(1), [
+    { type: 'reveal', section: 'featured', ticket: { channel: CH, req: 7 } },
+    { type: 'reveal', section: 'hero', ticket: null },
+  ]);
+});
+
+test('E3.2 B2 revealed: sólo con la selección activa, al origen exacto, del canal vigente y con forma válida', () => {
+  const { win, ch } = conectado();
+  const t = { channel: CH, req: 7 };
+  const n0 = win.sent.length;
+  assert.equal(ch.revealed(t, 'featured', true), false); // selección apagada
+  win.emit(inspect(CH, ch.doc, true));
+  assert.equal(ch.revealed(t, 'featured', true), true);
+  assert.equal(ch.revealed(t, 'hero', false), true);
+  const out = win.sent.slice(n0);
+  assert.deepEqual(out, [
+    { msg: { ns: PREVIEW_NS, v: 1, type: 'revealed', channel: CH, doc: ch.doc, section: 'featured', req: 7, found: true }, origin: ERP },
+    { msg: { ns: PREVIEW_NS, v: 1, type: 'revealed', channel: CH, doc: ch.doc, section: 'hero', req: 7, found: false }, origin: ERP },
+  ]);
+  // Ticket de otro canal, req inválido, sección inválida o found no booleano: no sale.
+  assert.equal(ch.revealed({ channel: CH2, req: 7 }, 'featured', true), false);
+  assert.equal(ch.revealed({ channel: CH, req: 0 }, 'featured', true), false);
+  assert.equal(ch.revealed(t, 'Featured!', true), false);
+  assert.equal(ch.revealed(t, 'featured', 'si'), false);
+  // Canal nuevo (hello): la selección se apaga y un ticket del canal anterior ya no vale.
+  win.emit(hello(CH2));
+  win.emit(ack(CH2, ch.doc));
+  win.emit(inspect(CH2, ch.doc, true));
+  assert.equal(ch.revealed(t, 'featured', true), false);
+  assert.equal(ch.revealed({ channel: CH2, req: 1 }, 'featured', true), true);
+  assert.ok(JSON.stringify(win.sent.at(-1).msg).length <= MAX_MESSAGE_BYTES);
+});
+
+test('E3.2 B2 tienda pública o sin ack: revealed nunca sale', () => {
+  const pub = fakeWindow({ framed: false });
+  const chp = mk(pub);
+  chp.start();
+  assert.equal(chp.revealed({ channel: CH, req: 1 }, 'featured', true), false);
+  assert.deepEqual(pub.sent, []);
+  const { win, ch } = conectado({ conAck: false });
+  win.emit(inspect(CH, ch.doc, true)); // sin ack: no activa
+  const n0 = win.sent.length;
+  assert.equal(ch.revealed({ channel: CH, req: 1 }, 'featured', true), false);
+  assert.equal(win.sent.length, n0);
 });

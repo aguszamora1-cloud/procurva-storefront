@@ -20,7 +20,7 @@
  * La capa se dibuja en un nodo propio colgado de <html>, fuera del árbol de React,
  * con `pointer-events: none`: no cambia el layout ni intercepta nada por sí misma.
  */
-import type { PreviewChannel, PreviewPage } from './previewChannel';
+import type { PreviewChannel, PreviewPage, RevealTicket } from './previewChannel';
 
 /** Secciones que E3.0 deja seleccionar (Inicio). Misma clave que el ERP. */
 export const SELECTABLE_SECTIONS: readonly string[] = ['hero', 'categories', 'featured', 'new_arrivals', 'offers', 'trust_badges'];
@@ -389,11 +389,19 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
   // `force`: el pedido interrumpió un desplazamiento en curso. Ese scroll suave sigue
   // hacia la sección ANTERIOR si no se lo reemplaza, y a mitad de camino la nueva puede
   // pasar por la franja de arriba: en ese caso se desplaza igual, al destino exacto.
-  type Pending = { key: string; phase: 'wait' | 'scroll'; target: number; settle: number; force: boolean };
+  // `ticket` (E3.2 B2): el ERP pidió confirmación. Se confirma UNA vez, sólo si el pedido
+  // termina (ubicada: found true; venció la espera: found false); cancelado, nunca.
+  type Pending = { key: string; phase: 'wait' | 'scroll'; target: number; settle: number; force: boolean; ticket: RevealTicket | null };
   let pend: Pending | null = null;
   let waitTimer = 0;
   const maxScrollOf = () => doc.documentElement.scrollHeight - win.innerHeight;
   const onUserScroll = () => cancelReveal();
+  /** E3.2 B2: termina el pedido vigente confirmando el resultado (si lo pidieron). */
+  const finishReveal = (found: boolean) => {
+    const p = pend;
+    cancelReveal();
+    if (p?.ticket) channel.revealed(p.ticket, p.key, found);
+  };
   function cancelReveal() {
     if (!pend) return;
     win.clearTimeout(waitTimer);
@@ -414,11 +422,17 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
     if (!p) return;
     const el = elementOf(p.key);
     const docTop = el ? docTopOf(el) : null;
-    if (docTop !== null && Math.abs(win.scrollY - p.target) <= REVEAL_TOLERANCE) {
-      const target = revealTarget(docTop, headerBottomOf(win), maxScrollOf());
-      if (Math.abs(target - win.scrollY) > REVEAL_TOLERANCE) win.scrollTo({ top: target, behavior: 'auto' });
+    if (Math.abs(win.scrollY - p.target) > REVEAL_TOLERANCE) {
+      cancelReveal(); // lo movió el comercio: ni corrección ni confirmación (E3.2 B2)
+      return;
     }
-    cancelReveal();
+    if (docTop === null) {
+      cancelReveal(); // la sección se fue a mitad de camino (se remontó o se ocultó)
+      return;
+    }
+    const target = revealTarget(docTop, headerBottomOf(win), maxScrollOf());
+    if (Math.abs(target - win.scrollY) > REVEAL_TOLERANCE) win.scrollTo({ top: target, behavior: 'auto' });
+    finishReveal(true);
   }
   /** Lleva a la sección pendiente si ya está pintada; si no, sigue esperando. */
   function tryReveal() {
@@ -431,7 +445,7 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
     let target = revealPlan({ docTop, scrollY: win.scrollY, clipTop, viewH: win.innerHeight, maxScroll: maxScrollOf() });
     if (target === null && p.force) target = revealTarget(docTop, clipTop, maxScrollOf());
     if (target === null) {
-      cancelReveal(); // ya está en su lugar: sólo se marca
+      finishReveal(true); // ya está en su lugar: sólo se marca
       return;
     }
     win.clearTimeout(waitTimer);
@@ -489,16 +503,22 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
   const CALLOUT = '-webkit-touch-callout';
   let prevCallout: [string, string] = ['', ''];
 
-  const reveal = (section: string | null) => {
+  const reveal = (section: string | null, ticket: RevealTicket | null = null) => {
     const force = pend?.phase === 'scroll';
     cancelReveal(); // gana el último pedido
     selectedKey = section && isSelectableSection(section) ? section : null;
     schedule();
-    if (!selectedKey) return;
+    if (!selectedKey) {
+      // E3.2 B2: una clave que esta tienda no marca nunca va a aparecer: no hay espera.
+      if (ticket && section) channel.revealed(ticket, section, false);
+      return;
+    }
     // E3.2 B1: si la sección no está pintada todavía, se espera (acotado) a que aparezca;
     // si no aparece en el plazo (oculta, sin datos, otra página) no se desplaza nada.
-    pend = { key: selectedKey, phase: 'wait', target: 0, settle: 0, force };
-    waitTimer = win.setTimeout(cancelReveal, REVEAL_WAIT_MS);
+    pend = { key: selectedKey, phase: 'wait', target: 0, settle: 0, force, ticket };
+    // Venció la espera sin que la sección aparezca: no se desplaza y, si lo pidieron, se
+    // confirma que no se encontró (oculta, vacía, sin datos u otra página).
+    waitTimer = win.setTimeout(() => finishReveal(false), REVEAL_WAIT_MS);
     win.addEventListener('wheel', onUserScroll, { capture: true, passive: true });
     tryReveal();
   };
@@ -570,6 +590,6 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
       else uninstall();
       return;
     }
-    if (overlay) reveal(e.section);
+    if (overlay) reveal(e.section, e.ticket);
   });
 }
