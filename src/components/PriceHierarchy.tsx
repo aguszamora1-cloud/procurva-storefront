@@ -11,6 +11,8 @@ interface Props {
   card: number;
   /** Qué precios mostrar. Lo pasa el caller desde la config de la tienda. */
   priceDisplay?: StoreConfig['priceDisplay'];
+  /** Cuál va grande cuando se ven los dos ('card' = precio de lista arriba). */
+  priceEmphasis?: StoreConfig['priceEmphasis'];
   /** Precio anterior tachado (lista o pre-promo). */
   strike?: number | null;
   /** % de descuento de contado (badge, sólo variant 'detail'). */
@@ -50,6 +52,7 @@ export function PriceHierarchy({
   cash,
   card,
   priceDisplay = 'all',
+  priceEmphasis = 'cash',
   strike,
   discountPct = 0,
   savings = 0,
@@ -66,7 +69,7 @@ export function PriceHierarchy({
   // lateral, y el carrito está fuera del alcance de v2 (Fase 1).
   const { version } = useTypography();
   const v2 = version === 'v2' && !compact;
-  const pair = resolvePricePair({ priceDisplay, cashLabel: cashLabelProp ?? 'efectivo o transferencia' }, cash, card);
+  const pair = resolvePricePair({ priceDisplay, priceEmphasis, cashLabel: cashLabelProp ?? 'efectivo o transferencia' }, cash, card);
   const { primary, cardLine } = pair;
   const hasCash = pair.isCash;
   const cashLabel = pair.cashLabel;
@@ -90,6 +93,44 @@ export function PriceHierarchy({
     ? detail ? 'text-[calc(16px_*_var(--font-scale,1))]' : 'text-[length:max(12px,calc(12px_*_var(--font-scale,1)))] md:text-[calc(15px_*_var(--font-scale,1))]'
     : (detail ? 'text-[calc(16px_*_var(--font-scale,1))]' : compact ? 'text-[calc(11px_*_var(--font-scale,1))]' : 'text-[calc(13px_*_var(--font-scale,1))] md:text-[calc(15px_*_var(--font-scale,1))]');
 
+  const badgeCls = v2
+    ? 'shrink-0 rounded bg-accent px-2 py-0.5 ty-badge tabular-nums text-on-accent shadow-sm'
+    : 'shrink-0 rounded bg-accent px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold leading-none text-on-accent shadow-sm';
+  const savingsEl = savings > 0 && (
+    <p className={v2 ? `mt-1 font-semibold text-accent ${labelCls}` : `mt-1 font-semibold text-accent ${detail ? 'text-[calc(13px_*_var(--font-scale,1))]' : 'text-[calc(11px_*_var(--font-scale,1))] md:text-[calc(12px_*_var(--font-scale,1))]'}`}>
+      Ahorrás {formatPrice(savings)}
+    </p>
+  );
+  const installmentsEl = priceDisplay !== 'contado' && installments && (
+    <p className={v2 ? `mt-1 font-medium text-muted ${labelCls}` : `mt-1 font-medium text-muted ${detail ? 'text-[calc(14px_*_var(--font-scale,1))]' : 'text-[calc(12px_*_var(--font-scale,1))] md:text-[calc(13px_*_var(--font-scale,1))]'}`}>
+      {installments}
+    </p>
+  );
+
+  // Precio de LISTA arriba (priceEmphasis 'card', elegido por el comercio): la
+  // tarjeta grande con sus cuotas pegadas debajo, y el contado como renglón
+  // chico con el badge de % (que acá sí tiene contra qué comparar: el de arriba).
+  if (pair.cardFirst && pair.small != null) {
+    return (
+      <div>
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          {pricePrefix && <span className={`font-medium text-muted ${labelCls}`}>{pricePrefix}</span>}
+          <span className={primaryCls}>{formatPrice(pair.big)}</span>
+          {strike != null && strike > 0 && (
+            <span className={`font-medium text-subtle line-through ${strikeCls}`}>{formatPrice(strike)}</span>
+          )}
+        </div>
+        {savingsEl}
+        {installmentsEl}
+        <p className={`mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-muted ${labelCls}`}>
+          <span className="font-bold text-text tabular-nums">{formatPrice(pair.small)}</span>
+          {pair.smallLabel && <span className="font-medium">{pair.smallLabel}</span>}
+          {detail && discountPct > 0 && <span className={badgeCls}>-{discountPct}%</span>}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -97,7 +138,7 @@ export function PriceHierarchy({
         <span className={primaryCls}>{formatPrice(primary)}</span>
         {hasCash && cashLabel && <span className={`font-medium text-muted ${labelCls}`}>{cashLabel}</span>}
         {cardLine != null && detail && discountPct > 0 && (
-          <span className={v2 ? 'shrink-0 rounded bg-accent px-2 py-0.5 ty-badge tabular-nums text-on-accent shadow-sm' : 'shrink-0 rounded bg-accent px-2 py-0.5 text-[calc(10px_*_var(--font-scale,1))] font-bold leading-none text-on-accent shadow-sm'}>
+          <span className={badgeCls}>
             -{discountPct}%
           </span>
         )}
@@ -106,11 +147,7 @@ export function PriceHierarchy({
         )}
       </div>
 
-      {savings > 0 && (
-        <p className={v2 ? `mt-1 font-semibold text-accent ${labelCls}` : `mt-1 font-semibold text-accent ${detail ? 'text-[calc(13px_*_var(--font-scale,1))]' : 'text-[calc(11px_*_var(--font-scale,1))] md:text-[calc(12px_*_var(--font-scale,1))]'}`}>
-          Ahorrás {formatPrice(savings)}
-        </p>
-      )}
+      {savingsEl}
 
       {cardLine != null && (
         <p className={`mt-1 text-subtle ${labelCls}`}>
@@ -118,11 +155,7 @@ export function PriceHierarchy({
         </p>
       )}
 
-      {priceDisplay !== 'contado' && installments && (
-        <p className={v2 ? `mt-1 font-medium text-muted ${labelCls}` : `mt-1 font-medium text-muted ${detail ? 'text-[calc(14px_*_var(--font-scale,1))]' : 'text-[calc(12px_*_var(--font-scale,1))] md:text-[calc(13px_*_var(--font-scale,1))]'}`}>
-          {installments}
-        </p>
-      )}
+      {installmentsEl}
     </div>
   );
 }

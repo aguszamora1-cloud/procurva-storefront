@@ -114,16 +114,16 @@ export function CartDrawer() {
                       // Volume tiers: contado protagonista, tarjeta secundaria; tachado = lista.
                       if (row.source === 'tier') {
                         const showStrike = row.originalTotal != null && row.originalTotal > row.lineTotal;
-                        const { primary, cardLine } = resolvePricePair(config, row.cashTotal, row.lineTotal);
+                        const { big, small, smallLabel } = resolvePricePair(config, row.cashTotal, row.lineTotal);
                         return (
                           <div className="text-right">
                             <span className="flex items-baseline justify-end gap-1.5">
                               {showStrike && <span className="text-[calc(12px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(row.originalTotal as number)}</span>}
-                              <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(primary)}</span>
+                              <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(big)}</span>
                             </span>
-                            {cardLine != null && (
+                            {small != null && (
                               <span className="mt-0.5 block text-[calc(11px_*_var(--font-scale,1))] text-subtle">
-                                <span className="font-semibold">{formatPrice(cardLine)}</span> con tarjeta
+                                <span className="font-semibold">{formatPrice(small)}</span> {smallLabel}
                               </span>
                             )}
                           </div>
@@ -144,16 +144,16 @@ export function CartDrawer() {
                       if (line.isCash) {
                         return (
                           <div className="text-right">
-                            <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(line.primary)}</span>
-                            {line.cardLine != null && (
+                            <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(line.big)}</span>
+                            {line.small != null && (
                               <span className="mt-0.5 block text-[calc(11px_*_var(--font-scale,1))] text-subtle">
-                                <span className="font-semibold">{formatPrice(line.cardLine)}</span> con tarjeta
+                                <span className="font-semibold">{formatPrice(line.small)}</span> {line.smallLabel}
                               </span>
                             )}
                           </div>
                         );
                       }
-                      return <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-text">{formatPrice(line.primary)}</span>;
+                      return <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-text">{formatPrice(line.big)}</span>;
                     })()}
                   </div>
                 </div>
@@ -179,13 +179,13 @@ export function CartDrawer() {
               <div className="text-right">
                 <span className="flex items-baseline justify-end gap-2">
                   {couponActive && (
-                    <span className="text-[calc(13px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(beforeCoupon.primary)}</span>
+                    <span className="text-[calc(13px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(beforeCoupon.big)}</span>
                   )}
-                  <span className="text-[calc(20px_*_var(--font-scale,1))] font-extrabold text-accent">{formatPrice(shownPair.primary)}</span>
+                  <span className="text-[calc(20px_*_var(--font-scale,1))] font-extrabold text-accent">{formatPrice(shownPair.big)}</span>
                 </span>
-                {shownPair.cardLine != null && (
+                {shownPair.small != null && (
                   <p className="mt-0.5 text-[calc(11px_*_var(--font-scale,1))] text-subtle">
-                    <span className="font-semibold">{formatPrice(shownPair.cardLine)}</span> con tarjeta
+                    <span className="font-semibold">{formatPrice(shownPair.small)}</span> {shownPair.smallLabel}
                   </p>
                 )}
               </div>

@@ -723,6 +723,8 @@ export interface RawCatalogSettings {
   price_display?: 'all' | 'contado' | 'card';
   /** Cómo se llama el precio de contado: 'both' (default) | 'cash' | 'transfer'. */
   cash_label?: 'both' | 'cash' | 'transfer';
+  /** Qué precio va grande cuando se muestran los dos: 'cash' (default) | 'card'. */
+  price_emphasis?: 'cash' | 'card';
   banner_url?: string;
   banner_url_mobile?: string;
   banner_text?: string;
@@ -1145,6 +1147,13 @@ export interface StoreConfig {
   priceDisplay: 'all' | 'contado' | 'card';
   /** Ya resuelto a texto: "efectivo o transferencia" | "efectivo" | "transferencia". */
   cashLabel: string;
+  /**
+   * Con los dos precios visibles (`priceDisplay: 'all'`), cuál va GRANDE:
+   *  'cash' → contado grande, "$X con tarjeta" chico debajo (default, lo de siempre)
+   *  'card' → tarjeta (precio de lista) grande + cuotas, y el contado chico debajo
+   * Sólo cambia el orden visual: los montos y el checkout no cambian.
+   */
+  priceEmphasis: 'cash' | 'card';
   // Hero
   heroEnabled: boolean;
   heroImageUrl: string;

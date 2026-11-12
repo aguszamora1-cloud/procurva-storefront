@@ -63,6 +63,7 @@ export function PriceStack({ product, variant = 'card', color, size }: Props) {
       cash={hasCashDiscount ? (shownCash as number) : null}
       card={shownCard}
       priceDisplay={config.priceDisplay}
+      priceEmphasis={config.priceEmphasis}
       cashLabel={config.cashLabel}
       strike={onPromo ? mainPrice : comparePrice}
       discountPct={cashDiscountPct}
