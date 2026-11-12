@@ -468,3 +468,42 @@ test('E3.1.1 posición de la etiqueta: esquina de la parte visible, debajo del e
   // Celular (390 px): misma regla.
   assert.deepEqual(m.tagPosition(box(0, 120, 390, 700), 56, 390, 844), { x: 8, y: 128 });
 });
+
+test('E3.2 B1 destino del reveal: 8 px debajo del encabezado, dentro de lo que la página permite', async () => {
+  const m = await import('../src/lib/previewInspect.ts');
+  assert.equal(m.REVEAL_INSET, 8);
+  // Sección a 1600 px del documento, encabezado de 61 px: 1600 - 61 - 8.
+  assert.equal(m.revealTarget(1600, 61, 5000), 1531);
+  // Arriba de todo (Banner principal debajo del encabezado): nunca negativo.
+  assert.equal(m.revealTarget(61, 61, 5000), 0);
+  // Cerca del pie: la página no baja más que su máximo.
+  assert.equal(m.revealTarget(4800, 61, 4200), 4200);
+  // Página que no se desplaza.
+  assert.equal(m.revealTarget(300, 0, -20), 0);
+  // Redondeo a px enteros.
+  assert.equal(m.revealTarget(1600.6, 61.2, 5000), 1531);
+});
+
+test('E3.2 B1 plan del reveal: no desplaza si ya está en su lugar o en la franja de arriba', async () => {
+  const m = await import('../src/lib/previewInspect.ts');
+  const base = { clipTop: 61, viewH: 800, maxScroll: 5000 };
+  // Fuera de pantalla (abajo): va al destino.
+  assert.equal(m.revealPlan({ ...base, docTop: 1600, scrollY: 0 }), 1531);
+  // Fuera de pantalla (arriba, ya pasada): vuelve.
+  assert.equal(m.revealPlan({ ...base, docTop: 600, scrollY: 2000 }), 531);
+  // Ya en su lugar (±2 px): nada.
+  assert.equal(m.revealPlan({ ...base, docTop: 1600, scrollY: 1530 }), null);
+  // Banner principal con la página arriba: nada.
+  assert.equal(m.revealPlan({ ...base, docTop: 61, scrollY: 0 }), null);
+  // Borde superior visible en la franja de arriba (35 % de 739 px ≈ 258 px bajo el encabezado): nada.
+  assert.equal(m.revealPlan({ ...base, docTop: 1600, scrollY: 1400 }), null); // queda a 200 px
+  // Visible pero más abajo de la franja: se acomoda.
+  assert.equal(m.revealPlan({ ...base, docTop: 1600, scrollY: 1100 }), 1531); // a 500 px
+  // Borde superior escondido detrás del encabezado: se acomoda aunque se vea el resto.
+  assert.equal(m.revealPlan({ ...base, docTop: 1600, scrollY: 1580 }), 1531);
+  // Al fondo: la página no puede acercarla más, ya está todo lo arriba posible.
+  assert.equal(m.revealPlan({ ...base, docTop: 4900, scrollY: 4200, maxScroll: 4200 }), null);
+  // Franja mínima de 48 px en una ventana muy baja.
+  assert.equal(m.revealPlan({ clipTop: 61, viewH: 150, maxScroll: 5000, docTop: 1600, scrollY: 1500 }), null); // a 39 px
+  assert.equal(m.revealPlan({ clipTop: 61, viewH: 150, maxScroll: 5000, docTop: 1600, scrollY: 1480 }), 1531); // a 59 px
+});
