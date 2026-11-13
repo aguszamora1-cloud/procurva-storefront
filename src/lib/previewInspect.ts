@@ -20,7 +20,7 @@
  * La capa se dibuja en un nodo propio colgado de <html>, fuera del árbol de React,
  * con `pointer-events: none`: no cambia el layout ni intercepta nada por sí misma.
  */
-import type { PreviewChannel, PreviewPage } from './previewChannel';
+import type { PreviewChannel, PreviewPage, RevealTicket } from './previewChannel';
 
 /** Secciones que E3.0 deja seleccionar (Inicio). Misma clave que el ERP. */
 export const SELECTABLE_SECTIONS: readonly string[] = ['hero', 'categories', 'featured', 'new_arrivals', 'offers', 'trust_badges'];
@@ -210,6 +210,65 @@ export function tagPosition(
   return { x: left + TAG_INSET, y: top + TAG_INSET };
 }
 
+/* ───────────────────── EDITOR E3.2 · B1 · desplazamiento preciso de reveal ─────────────────────
+ * Sólo cambia CÓMO la tienda lleva a la sección que pide el ERP (mismo mensaje
+ * `reveal`, mismas validaciones): no desplaza si ya está en su lugar, espera de forma
+ * acotada una sección que todavía no se pintó, corrige una sola vez al terminar y
+ * cualquier selección nueva o intervención del comercio cancela lo pendiente.
+ */
+
+/** Distancia entre el encabezado fijo y el borde superior de la sección revelada (px). */
+export const REVEAL_INSET = 8;
+/** Tope de espera de una sección que todavía no se pintó (productos que llegan, etc.). */
+export const REVEAL_WAIT_MS = 2500;
+/** Sin eventos de scroll durante este tiempo, el desplazamiento terminó. */
+export const REVEAL_SETTLE_MS = 180;
+/** Diferencia tolerada antes de corregir (px). */
+export const REVEAL_TOLERANCE = 2;
+
+/** scrollY que deja la sección `REVEAL_INSET` px debajo del encabezado (dentro de lo que la página permite). */
+export function revealTarget(docTop: number, clipTop: number, maxScroll: number): number {
+  return Math.round(Math.min(Math.max(docTop - clipTop - REVEAL_INSET, 0), Math.max(maxScroll, 0)));
+}
+
+/**
+ * ¿Hay que desplazar? null = no: ya está en su lugar (o la página no permite
+ * acercarla más), o su borde superior ya se ve en la franja de arriba (debajo del
+ * encabezado, dentro del 35 % superior del área útil, mínimo 48 px). Si no, el
+ * scrollY destino.
+ */
+export function revealPlan(p: { docTop: number; scrollY: number; clipTop: number; viewH: number; maxScroll: number }): number | null {
+  const target = revealTarget(p.docTop, p.clipTop, p.maxScroll);
+  if (Math.abs(target - p.scrollY) <= REVEAL_TOLERANCE) return null;
+  const viewTop = p.docTop - p.scrollY;
+  const band = Math.max(48, (p.viewH - p.clipTop) * 0.35);
+  if (viewTop >= p.clipTop && viewTop <= p.clipTop + band) return null;
+  return target;
+}
+
+/** Teclas con las que el comercio desplaza la página: cancelan un reveal en curso. */
+const SCROLL_KEYS = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ', 'Spacebar']);
+
+/**
+ * Posición de una sección en el DOCUMENTO sin transformaciones: la entrada animada
+ * (Reveal: translate-y + fade) se mide donde va a quedar, no a mitad de camino. Se
+ * toma el primer hijo con caja (el envoltorio es `display: contents`) y se suman los
+ * offsetTop de su cadena, que ignoran `transform`.
+ */
+function docTopOf(el: Element): number | null {
+  for (const c of Array.from(el.children)) {
+    if (!(c instanceof HTMLElement) || !c.getClientRects().length) continue;
+    let y = 0;
+    let n: HTMLElement | null = c;
+    while (n) {
+      y += n.offsetTop;
+      n = n.offsetParent as HTMLElement | null;
+    }
+    return y;
+  }
+  return null;
+}
+
 /**
  * Borde inferior del encabezado fijo, en px del viewport. Es el contenedor sticky
  * de Layout, que mide su alto real (offsetHeight, con ResizeObserver) y lo publica
@@ -314,9 +373,91 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
       t.style.display = 'block';
       t.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y)}px)`;
     }
+    // E3.2 B1: una sección pedida que todavía no estaba pintada se busca de nuevo en el
+    // mismo redibujado (lo disparan los observadores de E3.1.1: nodos nuevos, cargas,
+    // cambios de alto). Sólo mientras hay un reveal esperando.
+    if (pend?.phase === 'wait') tryReveal();
   };
   const schedule = () => {
     if (!raf) raf = win.requestAnimationFrame(paint);
+  };
+
+  // E3.2 B1 · reveal en curso. 'wait': la sección todavía no se pintó (tope
+  // REVEAL_WAIT_MS); 'scroll': se la está llevando a su lugar y, al terminar el
+  // desplazamiento, se corrige una sola vez. Un reveal nuevo, un clic que selecciona,
+  // la rueda, un toque, las teclas de desplazamiento o apagar la selección lo cancelan.
+  // `force`: el pedido interrumpió un desplazamiento en curso. Ese scroll suave sigue
+  // hacia la sección ANTERIOR si no se lo reemplaza, y a mitad de camino la nueva puede
+  // pasar por la franja de arriba: en ese caso se desplaza igual, al destino exacto.
+  // `ticket` (E3.2 B2): el ERP pidió confirmación. Se confirma UNA vez, sólo si el pedido
+  // termina (ubicada: found true; venció la espera: found false); cancelado, nunca.
+  type Pending = { key: string; phase: 'wait' | 'scroll'; target: number; settle: number; force: boolean; ticket: RevealTicket | null };
+  let pend: Pending | null = null;
+  let waitTimer = 0;
+  const maxScrollOf = () => doc.documentElement.scrollHeight - win.innerHeight;
+  const onUserScroll = () => cancelReveal();
+  /** E3.2 B2: termina el pedido vigente confirmando el resultado (si lo pidieron). */
+  const finishReveal = (found: boolean) => {
+    const p = pend;
+    cancelReveal();
+    if (p?.ticket) channel.revealed(p.ticket, p.key, found);
+  };
+  function cancelReveal() {
+    if (!pend) return;
+    win.clearTimeout(waitTimer);
+    win.clearTimeout(pend.settle);
+    win.removeEventListener('wheel', onUserScroll, { capture: true });
+    pend = null;
+  }
+  const armSettle = () => {
+    if (!pend) return;
+    win.clearTimeout(pend.settle);
+    pend.settle = win.setTimeout(settled, REVEAL_SETTLE_MS);
+  };
+  /** Terminó el desplazamiento: se vuelve a medir y, si algo se movió (imágenes de arriba
+   * que cargaron, secciones que crecieron), se corrige UNA vez, sin animación. Si el scroll
+   * no quedó donde se lo mandó, lo movió el comercio (barra de desplazamiento): no se corrige. */
+  function settled() {
+    const p = pend;
+    if (!p) return;
+    const el = elementOf(p.key);
+    const docTop = el ? docTopOf(el) : null;
+    if (Math.abs(win.scrollY - p.target) > REVEAL_TOLERANCE) {
+      cancelReveal(); // lo movió el comercio: ni corrección ni confirmación (E3.2 B2)
+      return;
+    }
+    if (docTop === null) {
+      cancelReveal(); // la sección se fue a mitad de camino (se remontó o se ocultó)
+      return;
+    }
+    const target = revealTarget(docTop, headerBottomOf(win), maxScrollOf());
+    if (Math.abs(target - win.scrollY) > REVEAL_TOLERANCE) win.scrollTo({ top: target, behavior: 'auto' });
+    finishReveal(true);
+  }
+  /** Lleva a la sección pendiente si ya está pintada; si no, sigue esperando. */
+  function tryReveal() {
+    const p = pend;
+    if (!p || p.phase !== 'wait') return;
+    const el = elementOf(p.key);
+    const docTop = el && boxOf(el) ? docTopOf(el) : null;
+    if (docTop === null) return; // todavía no se pintó (o está vacía): sigue esperando hasta el tope
+    const clipTop = headerBottomOf(win);
+    let target = revealPlan({ docTop, scrollY: win.scrollY, clipTop, viewH: win.innerHeight, maxScroll: maxScrollOf() });
+    if (target === null && p.force) target = revealTarget(docTop, clipTop, maxScrollOf());
+    if (target === null) {
+      finishReveal(true); // ya está en su lugar: sólo se marca
+      return;
+    }
+    win.clearTimeout(waitTimer);
+    p.phase = 'scroll';
+    p.target = target;
+    const reduce = win.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    win.scrollTo({ top: target, behavior: reduce ? 'auto' : 'smooth' });
+    armSettle(); // por si no hay ningún evento de scroll (destino igual al actual)
+  }
+  const onScroll = () => {
+    schedule();
+    if (pend?.phase === 'scroll') armSettle();
   };
 
   const onMove = (e: Event) => {
@@ -340,15 +481,18 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
     if (e.type !== 'click') return;
     const key = keyOf(sectionElementOf(e.target));
     if (!key) return;
+    cancelReveal(); // E3.2 B1: el comercio eligió otra cosa
     selectedKey = key;
     schedule();
     channel.select(key, pageOf(win.location.pathname));
   };
   const onTouch = (e: Event) => {
+    if (pend) cancelReveal(); // E3.2 B1: el comercio toca o desliza la vista previa
     e.stopPropagation();
     e.stopImmediatePropagation();
   };
   const onKey = (e: KeyboardEvent) => {
+    if (pend && e.type === 'keydown' && SCROLL_KEYS.has(e.key)) cancelReveal(); // E3.2 B1
     if (!isActivationKey(e)) return;
     e.stopPropagation();
     e.stopImmediatePropagation();
@@ -359,15 +503,24 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
   const CALLOUT = '-webkit-touch-callout';
   let prevCallout: [string, string] = ['', ''];
 
-  const reveal = (section: string | null) => {
+  const reveal = (section: string | null, ticket: RevealTicket | null = null) => {
+    const force = pend?.phase === 'scroll';
+    cancelReveal(); // gana el último pedido
     selectedKey = section && isSelectableSection(section) ? section : null;
     schedule();
-    const el = elementOf(selectedKey);
-    const b = el ? boxOf(el) : null;
-    if (!b) return; // no está en esta página o no se pinta (apagada, sin datos)
-    const headerH = parseFloat(getComputedStyle(doc.documentElement).getPropertyValue('--header-h')) || 0;
-    const reduce = win.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    win.scrollTo({ top: Math.max(0, b.top + win.scrollY - headerH - 8), behavior: reduce ? 'auto' : 'smooth' });
+    if (!selectedKey) {
+      // E3.2 B2: una clave que esta tienda no marca nunca va a aparecer: no hay espera.
+      if (ticket && section) channel.revealed(ticket, section, false);
+      return;
+    }
+    // E3.2 B1: si la sección no está pintada todavía, se espera (acotado) a que aparezca;
+    // si no aparece en el plazo (oculta, sin datos, otra página) no se desplaza nada.
+    pend = { key: selectedKey, phase: 'wait', target: 0, settle: 0, force, ticket };
+    // Venció la espera sin que la sección aparezca: no se desplaza y, si lo pidieron, se
+    // confirma que no se encontró (oculta, vacía, sin datos u otra página).
+    waitTimer = win.setTimeout(() => finishReveal(false), REVEAL_WAIT_MS);
+    win.addEventListener('wheel', onUserScroll, { capture: true, passive: true });
+    tryReveal();
   };
 
   const install = () => {
@@ -382,7 +535,7 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
     rs.setProperty(CALLOUT, 'none');
     win.addEventListener('mouseover', onMove, true);
     doc.addEventListener('mouseout', onLeave, true);
-    win.addEventListener('scroll', schedule, true);
+    win.addEventListener('scroll', onScroll, true);
     win.addEventListener('resize', schedule);
     win.addEventListener('pagehide', uninstall);
     // El contenido cambia de alto sin scroll (imágenes que terminan de cargar): se redibuja.
@@ -404,6 +557,7 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
 
   function uninstall() {
     if (!overlay) return;
+    cancelReveal();
     for (const t of BLOCKED_EVENTS) win.removeEventListener(t, onBlocked, { capture: true });
     for (const t of TOUCH_EVENTS) win.removeEventListener(t, onTouch, { capture: true });
     for (const t of KEY_EVENTS) win.removeEventListener(t, onKey as EventListener, true);
@@ -411,7 +565,7 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
     else doc.documentElement.style.removeProperty(CALLOUT);
     win.removeEventListener('mouseover', onMove, true);
     doc.removeEventListener('mouseout', onLeave, true);
-    win.removeEventListener('scroll', schedule, true);
+    win.removeEventListener('scroll', onScroll, true);
     win.removeEventListener('resize', schedule);
     win.removeEventListener('pagehide', uninstall);
     ro?.disconnect();
@@ -436,6 +590,6 @@ export function initPreviewInspect(channel: PreviewChannel | null, w?: Window): 
       else uninstall();
       return;
     }
-    if (overlay) reveal(e.section);
+    if (overlay) reveal(e.section, e.ticket);
   });
 }

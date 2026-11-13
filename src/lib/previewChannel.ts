@@ -70,7 +70,7 @@ export type InboundMessage =
   | { type: 'hello'; channel: string; expect: StoreIdentity }
   | { type: 'ack'; channel: string; doc: string }
   | { type: 'inspect'; channel: string; doc: string; on: boolean }
-  | { type: 'reveal'; channel: string; doc: string; section: string | null };
+  | { type: 'reveal'; channel: string; doc: string; section: string | null; req: number | null };
 
 /**
  * EDITOR E3.0 · selección visual. Tipos NUEVOS sobre el mismo contrato v1 (los
@@ -79,7 +79,19 @@ export type InboundMessage =
  *   ERP → tienda  reveal  { channel, doc, section }   resalta y lleva a una sección (null = limpiar)
  *   tienda → ERP  select  { channel, doc, page, section }  el comercio hizo clic en una sección
  * Sólo viajan CLAVES de sección: nada de configuración, borradores ni datos.
+ *
+ * EDITOR E3.2 · B2 · confirmación del reveal (aditivo, mismo v1):
+ *   ERP → tienda  reveal   { channel, doc, section, req }        `req` OPCIONAL: pide confirmación
+ *   tienda → ERP  revealed { channel, doc, section, req, found } una sola vez por pedido con `req`
+ * `req` (entero 1…2³¹−1, lo numera el ERP) distingue dos pedidos de la MISMA sección
+ * en el mismo canal y documento (A, B, A: una confirmación tardía del primer A no se
+ * confunde con la del segundo). Sin `req` (ERP anterior, o `section: null`) la tienda
+ * se comporta como antes y no confirma nada. Un pedido cancelado (otro pedido, el
+ * comercio scrolleó o tocó, se apagó la selección) no se confirma.
  */
+export const MAX_REVEAL_REQ = 2147483647;
+export const isRevealReq = (n: unknown): n is number =>
+  typeof n === 'number' && Number.isSafeInteger(n) && n >= 1 && n <= MAX_REVEAL_REQ;
 const SECTION_KEY = /^[a-z][a-z_]{0,31}$/;
 const CUSTOM_SECTION_KEY = /^custom:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export type PreviewPage = 'home' | 'producto' | 'checkout' | 'other';
@@ -145,17 +157,32 @@ export function parseInbound(data: unknown): InboundMessage | null {
     return { type: 'inspect', channel: data.channel, doc: data.doc, on: data.on };
   }
   if (data.type === 'reveal') {
-    if (!exactKeys(data, ['ns', 'v', 'type', 'channel', 'doc', 'section'])) return null;
+    // E3.2 B2: con o sin `req` (exactamente una de las dos formas). `req` sólo con una
+    // sección: limpiar (`section: null`) no se confirma.
+    const conReq = exactKeys(data, ['ns', 'v', 'type', 'channel', 'doc', 'section', 'req']);
+    if (!conReq && !exactKeys(data, ['ns', 'v', 'type', 'channel', 'doc', 'section'])) return null;
     if (typeof data.channel !== 'string' || !HEX32.test(data.channel)) return null;
     if (typeof data.doc !== 'string' || !HEX32.test(data.doc)) return null;
     if (data.section !== null && !isSectionKey(data.section)) return null;
-    return { type: 'reveal', channel: data.channel, doc: data.doc, section: data.section as string | null };
+    if (conReq && (data.section === null || !isRevealReq(data.req))) return null;
+    return {
+      type: 'reveal',
+      channel: data.channel,
+      doc: data.doc,
+      section: data.section as string | null,
+      req: conReq ? (data.req as number) : null,
+    };
   }
   return null;
 }
 
 /** Evento de selección para la capa de inspección (lib/previewInspect). */
-export type InspectEvent = { type: 'inspect'; on: boolean } | { type: 'reveal'; section: string | null };
+export type InspectEvent =
+  | { type: 'inspect'; on: boolean }
+  /** `ticket` (E3.2 B2): sólo si el ERP pidió confirmación; se devuelve tal cual en `revealed`. */
+  | { type: 'reveal'; section: string | null; ticket: RevealTicket | null };
+/** Pedido de reveal con confirmación: canal en el que llegó y su número. */
+export type RevealTicket = { channel: string; req: number };
 type InspectListener = (e: InspectEvent) => void;
 
 export function randomHex32(): string {
@@ -282,7 +309,13 @@ export function createPreviewChannel(deps: ChannelDeps) {
       return;
     }
     // reveal: sólo con la selección activa.
-    if (inspecting) emitInspect({ type: 'reveal', section: msg.section });
+    if (inspecting) {
+      emitInspect({
+        type: 'reveal',
+        section: msg.section,
+        ticket: msg.req !== null ? { channel: msg.channel, req: msg.req } : null,
+      });
+    }
   };
 
   const start = () => {
@@ -321,6 +354,18 @@ export function createPreviewChannel(deps: ChannelDeps) {
       if (!inspecting || !acked || !channel || !parentOrigin) return false;
       if (!isSectionKey(section) || !isPreviewPage(page)) return false;
       post({ type: 'select', channel, doc, page, section }, parentOrigin);
+      return true;
+    },
+    /**
+     * E3.2 B2: resultado de un reveal con `req`. Mismas condiciones que `select` y,
+     * además, el canal del pedido tiene que seguir siendo el vigente: una confirmación
+     * de un canal anterior nunca sale. Devuelve si se mandó.
+     */
+    revealed(ticket: RevealTicket, section: string, found: boolean): boolean {
+      if (!inspecting || !acked || !channel || !parentOrigin) return false;
+      if (ticket.channel !== channel || !isRevealReq(ticket.req)) return false;
+      if (!isSectionKey(section) || typeof found !== 'boolean') return false;
+      post({ type: 'revealed', channel, doc, section, req: ticket.req, found }, parentOrigin);
       return true;
     },
     doc,
