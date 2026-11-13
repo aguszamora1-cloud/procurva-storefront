@@ -438,6 +438,8 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     // sólo cómo se llama ese precio, no un precio distinto.
     cashLabel:
       s.cash_label === 'cash' ? 'efectivo' : s.cash_label === 'transfer' ? 'transferencia' : 'efectivo o transferencia',
+    // Qué precio va grande cuando se ven los dos. Ausente = 'cash' = lo de siempre.
+    priceEmphasis: s.price_emphasis === 'card' ? 'card' : 'cash',
 
     // Hero: la IMAGEN puede reusar banner_url (es sólo una imagen), pero el
     // TEXTO sale SÓLO de las claves del storefront (hero_title/hero_subtitle).

@@ -42,6 +42,22 @@ export interface PricePair {
   cashLabel: string;
   /** El protagonista es el precio de contado (hay diferencia real y se muestra). */
   isCash: boolean;
+  /**
+   * ORDEN VISUAL (lo que se pinta), separado de la semántica de arriba.
+   * `primary`/`cardLine` siguen diciendo cuál es el contado y cuál la tarjeta
+   * (el envío gratis, por ejemplo, mide contra `primary`); `big`/`small` dicen
+   * cuál va grande y cuál chico debajo. Sólo difieren con `priceEmphasis: 'card'`
+   * y los dos precios visibles: ahí la tarjeta (precio de lista) va grande.
+   */
+  cardFirst: boolean;
+  /** Precio grande. */
+  big: number;
+  /** Etiqueta al lado del precio grande ('' = sin etiqueta). */
+  bigLabel: string;
+  /** Precio chico debajo. null = no va. */
+  small: number | null;
+  /** Etiqueta del precio chico ("con tarjeta" o la del contado). */
+  smallLabel: string;
 }
 
 /**
@@ -56,19 +72,30 @@ export interface PricePair {
  * contado): en ese caso hay un solo precio y es `card`.
  */
 export function resolvePricePair(
-  config: Pick<StoreConfig, 'priceDisplay' | 'cashLabel'>,
+  config: Pick<StoreConfig, 'priceDisplay' | 'cashLabel'> & Partial<Pick<StoreConfig, 'priceEmphasis'>>,
   cash: number | null | undefined,
   card: number,
 ): PricePair {
   const hasCash = cash != null && cash > 0 && cash < card;
   if (!hasCash || config.priceDisplay === 'card') {
-    return { primary: card, cardLine: null, cashLabel: '', isCash: false };
+    return {
+      primary: card, cardLine: null, cashLabel: '', isCash: false,
+      cardFirst: false, big: card, bigLabel: '', small: null, smallLabel: '',
+    };
   }
+  const cashPrice = cash as number;
+  const cardLine = config.priceDisplay === 'contado' ? null : card;
+  const cardFirst = config.priceEmphasis === 'card' && cardLine != null;
   return {
-    primary: cash as number,
-    cardLine: config.priceDisplay === 'contado' ? null : card,
+    primary: cashPrice,
+    cardLine,
     cashLabel: config.cashLabel,
     isCash: true,
+    cardFirst,
+    big: cardFirst ? card : cashPrice,
+    bigLabel: cardFirst ? '' : config.cashLabel,
+    small: cardFirst ? cashPrice : cardLine,
+    smallLabel: cardFirst ? config.cashLabel : 'con tarjeta',
   };
 }
 

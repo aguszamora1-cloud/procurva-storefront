@@ -101,7 +101,10 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // v21: suma `typographyVersion` y `titleCase` (lib/typography). Sin el bump, una
 // tienda que active v2 pintaría el primer frame en v1 y saltaría al resolver el
 // fetch. Para las tiendas v1 la entrada nueva pinta igual que la vieja.
-const cacheKey = (slug: string) => `procurva_store_config_v21:${slug}`;
+// v22: suma `priceEmphasis` (tarjeta grande arriba). Con una entrada v21 una
+// tienda en 'card' pintaría el primer frame con el contado grande y daría vuelta
+// los precios al resolver el fetch.
+const cacheKey = (slug: string) => `procurva_store_config_v22:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 

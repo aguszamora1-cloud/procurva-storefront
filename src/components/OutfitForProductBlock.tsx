@@ -44,16 +44,20 @@ export function OutfitForProductBlock({ product, className }: Props) {
   const hero = outfitImages(outfit)[0] ?? null;
   const combo = resolvePricePair(config, pricing.comboCash, pricing.comboCard);
 
-  // Precio (contado protagonista, tarjeta secundaria) + ahorro del combo.
+  // Precio (el grande según priceEmphasis, el otro chico) + ahorro del combo.
+  // El tachado acompaña al precio grande: suma de tarjeta si arriba va la tarjeta.
+  const strikeSum = combo.cardFirst
+    ? (pricing.cardSaving > 0 ? pricing.cardSum : null)
+    : (pricing.cashSaving > 0 ? pricing.cashSum : null);
   const priceEl = (
     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-      {pricing.hasCombo && pricing.cashSaving > 0 && (
-        <span className="text-xs text-subtle line-through">{formatPrice(pricing.cashSum)}</span>
+      {pricing.hasCombo && strikeSum != null && (
+        <span className="text-xs text-subtle line-through">{formatPrice(strikeSum)}</span>
       )}
-      <span className="text-base font-bold text-accent">{formatPrice(combo.primary)}</span>
-      {combo.cardLine != null && (
+      <span className="text-base font-bold text-accent">{formatPrice(combo.big)}</span>
+      {combo.small != null && (
         <span className="text-[calc(11px_*_var(--font-scale,1))] text-subtle">
-          <span className="font-semibold">{formatPrice(combo.cardLine)}</span> con tarjeta
+          <span className="font-semibold">{formatPrice(combo.small)}</span> {combo.smallLabel}
         </span>
       )}
     </div>
