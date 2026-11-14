@@ -200,6 +200,8 @@ export function randomHex32(): string {
 export type PreviewState = 'public' | 'pending' | 'preview';
 
 type Listener = (s: PreviewState) => void;
+/** P0-1: true = handshake completo (ack recibido); false = cayó (canal nuevo). */
+type HandshakeListener = (complete: boolean) => void;
 
 interface ChannelDeps {
   win: Window;
@@ -228,6 +230,15 @@ export function createPreviewChannel(deps: ChannelDeps) {
   let acked = false;
   let lastReadyFor: string | null = null;
   const listeners = new Set<Listener>();
+  // P0-1 (plantillas): aviso de handshake COMPLETO de este documento (ack del canal
+  // vigente) y de su caída (hello con canal nuevo). Lo lee lib/templatePreview para
+  // autorizar la vista previa de una plantilla; no cambia el contrato ni los mensajes.
+  const handshakeListeners = new Set<HandshakeListener>();
+  const setAcked = (v: boolean) => {
+    if (acked === v) return;
+    acked = v;
+    handshakeListeners.forEach((l) => l(v));
+  };
   let timer: ReturnType<typeof setTimeout> | null = null;
   // E3.0: selección visual. Sólo en memoria de ESTE documento (nunca en storage):
   // un documento nuevo arranca siempre apagado.
@@ -276,7 +287,7 @@ export function createPreviewChannel(deps: ChannelDeps) {
         // se apaga en el acto y no vuelve sin un ack y un inspect del canal nuevo.
         stopInspecting();
         channel = msg.channel;
-        acked = false;
+        setAcked(false);
         lastReadyFor = null;
       }
       parentOrigin = ev.origin;
@@ -291,7 +302,7 @@ export function createPreviewChannel(deps: ChannelDeps) {
     }
     if (msg.type === 'ack') {
       // ack: sólo el del canal vigente y para ESTE documento.
-      if (msg.channel === channel && msg.doc === doc && ev.origin === parentOrigin) acked = true;
+      if (msg.channel === channel && msg.doc === doc && ev.origin === parentOrigin) setAcked(true);
       return;
     }
     // E3.0 inspect / reveal: sólo con el handshake COMPLETO de este documento
@@ -335,6 +346,19 @@ export function createPreviewChannel(deps: ChannelDeps) {
     },
     get acked() {
       return acked;
+    },
+    /**
+     * P0-1: handshake COMPLETO de ESTE documento: el ERP (origen exacto, padre
+     * directo) mandó `hello` y aceptó la identidad de la tienda con `ack` del canal
+     * vigente. Es la condición con la que ya se aceptan `inspect` y `reveal`.
+     */
+    get handshakeComplete() {
+      return state === 'preview' && acked;
+    },
+    /** P0-1: avisa cuando el handshake se completa (true) o cae por un canal nuevo (false). */
+    onHandshake(l: HandshakeListener) {
+      handshakeListeners.add(l);
+      return () => handshakeListeners.delete(l);
     },
     /** E3.0: ¿el diseñador activó la selección visual para este documento y canal? */
     get inspecting() {

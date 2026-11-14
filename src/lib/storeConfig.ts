@@ -10,6 +10,7 @@ import type {
 import { resolveProductLayoutOrNull } from './productLayout';
 import { resolveTitleCase, savedTypographyVersion } from './typography';
 import { TYPOGRAPHY_V2_STAGE } from './typographyRollout';
+import { resolveTemplateRef } from './storeTemplates';
 import { resolveQuantityTiersSettings } from '../components/QuantityTierSelector';
 
 /** Pasos por defecto del flujo de compra (si el comercio no configuró los suyos). */
@@ -365,6 +366,10 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     // por tienda; 'v2' guardado o empresa en la etapa = v2; si no, v1.
     typographyVersion: savedTypographyVersion(s.typography_version, resolved.company_id, TYPOGRAPHY_V2_STAGE),
     titleCase: resolveTitleCase(s.typography_title_case),
+    // Plantilla (lib/storeTemplates): sólo si existe en el registro. Cualquier
+    // otra cosa —clave ausente, basura, id o versión desconocidos— es null, el
+    // aspecto de siempre. No toca ninguna otra clave de la config.
+    template: resolveTemplateRef(s.template),
 
     // Alineación de títulos de secciones: key nueva (section_title_align) con
     // fallback a la vieja (category_title_align) para no romper configs viejas.

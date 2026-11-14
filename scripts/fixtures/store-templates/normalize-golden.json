@@ -1,0 +1,2293 @@
+{
+  "minorista-vacia": {
+    "companyId": "00000000-0000-4000-8000-000000000001",
+    "country": "AR",
+    "name": "Tienda Vacia",
+    "plan": "TIENDA",
+    "isPro": false,
+    "isPaid": true,
+    "slug": "vacia",
+    "storeType": "retail",
+    "saleMode": "retail",
+    "minOrderQuantity": 0,
+    "minOrderAmount": 0,
+    "minOrderMode": "units",
+    "freeShippingFrom": 0,
+    "requireDeliveryTime": true,
+    "giftWrap": {
+      "enabled": false,
+      "label": "Sumar packaging de regalo",
+      "name": "Packaging de regalo",
+      "description": "",
+      "price": 0
+    },
+    "reviewsDisplayMode": null,
+    "policyShipping": "",
+    "policyReturns": "",
+    "policyPayments": "",
+    "menuItems": [],
+    "logoUrl": "",
+    "logoHeight": 40,
+    "faviconUrl": "",
+    "colorPrimary": "#000000",
+    "colorSecondary": "#f5f5f5",
+    "colorAccent": "#16a34a",
+    "colorBackground": "#ffffff",
+    "colorText": "#111111",
+    "headerBackground": null,
+    "fontHeading": "Urbanist",
+    "fontBody": "Urbanist",
+    "fontScale": 1,
+    "typographyVersion": "v1",
+    "titleCase": "upper",
+    "sectionTitleAlign": "left",
+    "categoriesDisplayMode": "grid",
+    "showVariantColors": true,
+    "categoriesSection": {
+      "columns": 3,
+      "cardStyle": "overlay"
+    },
+    "corners": "rounded",
+    "buttonCorners": "rounded",
+    "topBarAnimated": false,
+    "tagline": "",
+    "announcement": "",
+    "cardPaymentText": "",
+    "installmentsCount": 3,
+    "priceDisplay": "all",
+    "cashLabel": "efectivo o transferencia",
+    "priceEmphasis": "cash",
+    "heroEnabled": true,
+    "heroImageUrl": "",
+    "heroImageMobileUrl": "",
+    "heroTitle": "",
+    "heroSubtitle": "",
+    "heroCtaText": "",
+    "heroCtaLink": "/productos",
+    "heroCta": {
+      "shape": "rounded",
+      "size": "md",
+      "variant": "accent"
+    },
+    "heroMode": "auto",
+    "heroFit": "cover",
+    "sections": {
+      "categories": true,
+      "featured": true,
+      "newArrivals": true,
+      "offers": true,
+      "outfits": false,
+      "upsell": false,
+      "probador": false,
+      "virtualTryon": false,
+      "stories": false,
+      "reels": false,
+      "socialProof": false,
+      "productReviews": false,
+      "newsletter": false,
+      "trustBadges": true
+    },
+    "sectionsOrder": [],
+    "sectionMaxItems": 12,
+    "productsDisplayMode": "grid",
+    "sectionDisplayModes": {
+      "featured": "grid",
+      "new_arrivals": "grid",
+      "offers": "grid"
+    },
+    "reelsTitle": "Videos",
+    "sectionHeadings": {
+      "categories": {
+        "label": "Explorá",
+        "title": "Categorías"
+      },
+      "featured": {
+        "label": "Lo más buscado",
+        "title": "Destacados"
+      },
+      "new_arrivals": {
+        "label": "Recién llegados",
+        "title": "Nuevos ingresos"
+      },
+      "offers": {
+        "label": "Aprovechá",
+        "title": "Ofertas"
+      },
+      "outfits": {
+        "label": "Combiná tu look",
+        "title": "Outfits"
+      },
+      "social_proof": {
+        "label": "Lo que dicen",
+        "title": "Reseñas de clientes"
+      }
+    },
+    "productLayout": null,
+    "complementaryBlock": {
+      "titulo": "Combinalo con",
+      "maximoVisible": 3,
+      "ocultarSinStock": true,
+      "mostrarOtrosColores": true,
+      "mostrarOutfit": true,
+      "outfitPresentacion": "card_destacada",
+      "outfitDesempate": "orden_manual"
+    },
+    "orderBump": null,
+    "quantityTiersLayout": "cards",
+    "quantityTiersShowSavings": false,
+    "quantityTiersShowCardPrice": true,
+    "shippingPromiseEnabled": true,
+    "shippingPromiseTitle": "Envío rápido",
+    "shippingPromiseSubtitle": "",
+    "shippingPromiseColor": "#00a650",
+    "shippingMessage": "",
+    "trustBadgeLabels": [
+      "Envío rápido",
+      "Abonás al recibir",
+      "Pagás como quieras",
+      "Compra protegida"
+    ],
+    "trustBadgesBgColor": "",
+    "trustBadgesTextColor": "#000000",
+    "trustBadgesTextColorCustom": "",
+    "hideOutOfStock": false,
+    "hideOutOfStockVariants": false,
+    "badges": {
+      "style": "solid",
+      "position": "top-left",
+      "showIcons": true,
+      "lowStock": {
+        "enabled": true,
+        "color": "#EF4444",
+        "label": "Últimas unidades",
+        "threshold": 5
+      },
+      "new": {
+        "enabled": false,
+        "color": "#2563EB",
+        "label": "Nuevo",
+        "windowDays": 14
+      },
+      "freeShipping": {
+        "enabled": true,
+        "color": "#16A34A",
+        "label": "Envío gratis"
+      },
+      "discount": {
+        "enabled": true,
+        "color": "",
+        "label": "% OFF"
+      },
+      "custom": {
+        "color": "#EF4444"
+      }
+    },
+    "purchaseFlowEnabled": true,
+    "purchaseFlowSteps": [
+      {
+        "name": "Comprás online",
+        "detail": "Pagás con tarjeta, transferencia o efectivo",
+        "state": "done"
+      },
+      {
+        "name": "Preparamos tu pedido",
+        "detail": "En 24hs hábiles",
+        "state": "done"
+      },
+      {
+        "name": "Te lo enviamos",
+        "detail": "Envío gratis · 2-5 días al interior",
+        "state": "current"
+      },
+      {
+        "name": "Recibís en tu casa",
+        "detail": "Con seguimiento en tiempo real",
+        "state": "pending"
+      }
+    ],
+    "whatsapp": "",
+    "instagramUrl": "",
+    "facebookUrl": "",
+    "tiktokUrl": "",
+    "contactEmail": "",
+    "footerText": "",
+    "showPoweredBy": true,
+    "paymentMethods": [],
+    "mercadopagoEnabled": false,
+    "gocuotasEnabled": false,
+    "transferAccount": null,
+    "metaTitle": "Tienda Vacia",
+    "metaDescription": "",
+    "ogImageUrl": "",
+    "gaId": "",
+    "metaPixelId": "",
+    "newsletterConfig": {
+      "title": "Suscribite a nuestras novedades",
+      "subtitle": "Recibí ofertas exclusivas y nuevos ingresos",
+      "buttonText": "Suscribirme",
+      "successMessage": "¡Gracias por suscribirte!"
+    },
+    "newsletterPopup": {
+      "enabled": false,
+      "title": "10% OFF EN TU PRIMERA COMPRA",
+      "subtitle": "Sumate a la comunidad",
+      "buttonText": "QUIERO MI 10% OFF",
+      "successMessage": "¡Listo! Revisá tu email",
+      "askName": true,
+      "delaySeconds": 5,
+      "once": true,
+      "bgColor": "#FFFFFF",
+      "buttonColor": "#000000",
+      "footerText": "Vas a recibir un correo para validar tu email",
+      "couponCode": ""
+    },
+    "promoBanner": {
+      "enabled": false,
+      "text": "",
+      "bgColor": "#E53E3E",
+      "textColor": "#FFFFFF",
+      "countdownEnabled": false,
+      "countdownEnd": "",
+      "endedText": "",
+      "position": "top",
+      "textSize": "md"
+    }
+  },
+  "minorista-settings-null": {
+    "companyId": "00000000-0000-4000-8000-000000000002",
+    "country": "AR",
+    "name": "Sin Settings",
+    "plan": "TIENDA",
+    "isPro": false,
+    "isPaid": true,
+    "slug": "sin-settings",
+    "storeType": "retail",
+    "saleMode": "retail",
+    "minOrderQuantity": 0,
+    "minOrderAmount": 0,
+    "minOrderMode": "units",
+    "freeShippingFrom": 0,
+    "requireDeliveryTime": true,
+    "giftWrap": {
+      "enabled": false,
+      "label": "Sumar packaging de regalo",
+      "name": "Packaging de regalo",
+      "description": "",
+      "price": 0
+    },
+    "reviewsDisplayMode": null,
+    "policyShipping": "",
+    "policyReturns": "",
+    "policyPayments": "",
+    "menuItems": [],
+    "logoUrl": "https://example.com/logo.png",
+    "logoHeight": 40,
+    "faviconUrl": "",
+    "colorPrimary": "#000000",
+    "colorSecondary": "#f5f5f5",
+    "colorAccent": "#16a34a",
+    "colorBackground": "#ffffff",
+    "colorText": "#111111",
+    "headerBackground": null,
+    "fontHeading": "Urbanist",
+    "fontBody": "Urbanist",
+    "fontScale": 1,
+    "typographyVersion": "v1",
+    "titleCase": "upper",
+    "sectionTitleAlign": "left",
+    "categoriesDisplayMode": "grid",
+    "showVariantColors": true,
+    "categoriesSection": {
+      "columns": 3,
+      "cardStyle": "overlay"
+    },
+    "corners": "rounded",
+    "buttonCorners": "rounded",
+    "topBarAnimated": false,
+    "tagline": "",
+    "announcement": "",
+    "cardPaymentText": "",
+    "installmentsCount": 3,
+    "priceDisplay": "all",
+    "cashLabel": "efectivo o transferencia",
+    "priceEmphasis": "cash",
+    "heroEnabled": true,
+    "heroImageUrl": "",
+    "heroImageMobileUrl": "",
+    "heroTitle": "",
+    "heroSubtitle": "",
+    "heroCtaText": "",
+    "heroCtaLink": "/productos",
+    "heroCta": {
+      "shape": "rounded",
+      "size": "md",
+      "variant": "accent"
+    },
+    "heroMode": "auto",
+    "heroFit": "cover",
+    "sections": {
+      "categories": true,
+      "featured": true,
+      "newArrivals": true,
+      "offers": true,
+      "outfits": false,
+      "upsell": false,
+      "probador": false,
+      "virtualTryon": false,
+      "stories": false,
+      "reels": false,
+      "socialProof": false,
+      "productReviews": false,
+      "newsletter": false,
+      "trustBadges": true
+    },
+    "sectionsOrder": [],
+    "sectionMaxItems": 12,
+    "productsDisplayMode": "grid",
+    "sectionDisplayModes": {
+      "featured": "grid",
+      "new_arrivals": "grid",
+      "offers": "grid"
+    },
+    "reelsTitle": "Videos",
+    "sectionHeadings": {
+      "categories": {
+        "label": "Explorá",
+        "title": "Categorías"
+      },
+      "featured": {
+        "label": "Lo más buscado",
+        "title": "Destacados"
+      },
+      "new_arrivals": {
+        "label": "Recién llegados",
+        "title": "Nuevos ingresos"
+      },
+      "offers": {
+        "label": "Aprovechá",
+        "title": "Ofertas"
+      },
+      "outfits": {
+        "label": "Combiná tu look",
+        "title": "Outfits"
+      },
+      "social_proof": {
+        "label": "Lo que dicen",
+        "title": "Reseñas de clientes"
+      }
+    },
+    "productLayout": null,
+    "complementaryBlock": {
+      "titulo": "Combinalo con",
+      "maximoVisible": 3,
+      "ocultarSinStock": true,
+      "mostrarOtrosColores": true,
+      "mostrarOutfit": true,
+      "outfitPresentacion": "card_destacada",
+      "outfitDesempate": "orden_manual"
+    },
+    "orderBump": null,
+    "quantityTiersLayout": "cards",
+    "quantityTiersShowSavings": false,
+    "quantityTiersShowCardPrice": true,
+    "shippingPromiseEnabled": true,
+    "shippingPromiseTitle": "Envío rápido",
+    "shippingPromiseSubtitle": "",
+    "shippingPromiseColor": "#00a650",
+    "shippingMessage": "Envios a todo el pais",
+    "trustBadgeLabels": [
+      "Envío rápido",
+      "Abonás al recibir",
+      "Pagás como quieras",
+      "Compra protegida"
+    ],
+    "trustBadgesBgColor": "",
+    "trustBadgesTextColor": "#000000",
+    "trustBadgesTextColorCustom": "",
+    "hideOutOfStock": false,
+    "hideOutOfStockVariants": false,
+    "badges": {
+      "style": "solid",
+      "position": "top-left",
+      "showIcons": true,
+      "lowStock": {
+        "enabled": true,
+        "color": "#EF4444",
+        "label": "Últimas unidades",
+        "threshold": 5
+      },
+      "new": {
+        "enabled": false,
+        "color": "#2563EB",
+        "label": "Nuevo",
+        "windowDays": 14
+      },
+      "freeShipping": {
+        "enabled": true,
+        "color": "#16A34A",
+        "label": "Envío gratis"
+      },
+      "discount": {
+        "enabled": true,
+        "color": "",
+        "label": "% OFF"
+      },
+      "custom": {
+        "color": "#EF4444"
+      }
+    },
+    "purchaseFlowEnabled": true,
+    "purchaseFlowSteps": [
+      {
+        "name": "Comprás online",
+        "detail": "Pagás con tarjeta, transferencia o efectivo",
+        "state": "done"
+      },
+      {
+        "name": "Preparamos tu pedido",
+        "detail": "En 24hs hábiles",
+        "state": "done"
+      },
+      {
+        "name": "Te lo enviamos",
+        "detail": "Envío gratis · 2-5 días al interior",
+        "state": "current"
+      },
+      {
+        "name": "Recibís en tu casa",
+        "detail": "Con seguimiento en tiempo real",
+        "state": "pending"
+      }
+    ],
+    "whatsapp": "",
+    "instagramUrl": "",
+    "facebookUrl": "",
+    "tiktokUrl": "",
+    "contactEmail": "",
+    "footerText": "",
+    "showPoweredBy": true,
+    "paymentMethods": [],
+    "mercadopagoEnabled": false,
+    "gocuotasEnabled": false,
+    "transferAccount": null,
+    "metaTitle": "Sin Settings",
+    "metaDescription": "",
+    "ogImageUrl": "",
+    "gaId": "",
+    "metaPixelId": "",
+    "newsletterConfig": {
+      "title": "Suscribite a nuestras novedades",
+      "subtitle": "Recibí ofertas exclusivas y nuevos ingresos",
+      "buttonText": "Suscribirme",
+      "successMessage": "¡Gracias por suscribirte!"
+    },
+    "newsletterPopup": {
+      "enabled": false,
+      "title": "10% OFF EN TU PRIMERA COMPRA",
+      "subtitle": "Sumate a la comunidad",
+      "buttonText": "QUIERO MI 10% OFF",
+      "successMessage": "¡Listo! Revisá tu email",
+      "askName": true,
+      "delaySeconds": 5,
+      "once": true,
+      "bgColor": "#FFFFFF",
+      "buttonColor": "#000000",
+      "footerText": "Vas a recibir un correo para validar tu email",
+      "couponCode": ""
+    },
+    "promoBanner": {
+      "enabled": false,
+      "text": "",
+      "bgColor": "#E53E3E",
+      "textColor": "#FFFFFF",
+      "countdownEnabled": false,
+      "countdownEnd": "",
+      "endedText": "",
+      "position": "top",
+      "textSize": "md"
+    }
+  },
+  "minorista-completa-v1": {
+    "companyId": "00000000-0000-4000-8000-000000000003",
+    "country": "AR",
+    "name": "Completa V1",
+    "plan": "PROFESIONAL",
+    "isPro": true,
+    "isPaid": true,
+    "slug": "completa",
+    "storeType": "retail",
+    "saleMode": "retail",
+    "minOrderQuantity": 0,
+    "minOrderAmount": 0,
+    "minOrderMode": "units",
+    "freeShippingFrom": 0,
+    "requireDeliveryTime": true,
+    "giftWrap": {
+      "enabled": false,
+      "label": "Sumar packaging de regalo",
+      "name": "Packaging de regalo",
+      "description": "",
+      "price": 0
+    },
+    "reviewsDisplayMode": null,
+    "policyShipping": "",
+    "policyReturns": "",
+    "policyPayments": "",
+    "menuItems": [],
+    "logoUrl": "",
+    "logoHeight": 40,
+    "faviconUrl": "",
+    "colorPrimary": "#111111",
+    "colorSecondary": "#f4efe6",
+    "colorAccent": "#b5452b",
+    "colorBackground": "#ffffff",
+    "colorText": "#1a1a1a",
+    "headerBackground": "#000000",
+    "fontHeading": "Playfair Display",
+    "fontBody": "Inter",
+    "fontScale": 1.1,
+    "typographyVersion": "v1",
+    "titleCase": "original",
+    "sectionTitleAlign": "center",
+    "categoriesDisplayMode": "carousel",
+    "showVariantColors": false,
+    "categoriesSection": {
+      "columns": 4,
+      "cardStyle": "circle"
+    },
+    "corners": "square",
+    "buttonCorners": "pill",
+    "topBarAnimated": false,
+    "tagline": "",
+    "announcement": "3 cuotas sin interes",
+    "cardPaymentText": "",
+    "installmentsCount": 3,
+    "priceDisplay": "all",
+    "cashLabel": "transferencia",
+    "priceEmphasis": "cash",
+    "heroEnabled": true,
+    "heroImageUrl": "",
+    "heroImageMobileUrl": "",
+    "heroTitle": "Nueva coleccion",
+    "heroSubtitle": "Otono invierno",
+    "heroCtaText": "Ver todo",
+    "heroCtaLink": "/productos",
+    "heroCta": {
+      "shape": "pill",
+      "size": "lg",
+      "variant": "outline"
+    },
+    "heroMode": "image_with_text",
+    "heroFit": "contain",
+    "sections": {
+      "categories": true,
+      "featured": true,
+      "newArrivals": true,
+      "offers": true,
+      "outfits": false,
+      "upsell": false,
+      "probador": false,
+      "virtualTryon": false,
+      "stories": false,
+      "reels": false,
+      "socialProof": false,
+      "productReviews": false,
+      "newsletter": true,
+      "trustBadges": false
+    },
+    "sectionsOrder": [
+      "hero",
+      "categories",
+      "custom:11111111-1111-4111-8111-111111111111",
+      "featured"
+    ],
+    "sectionMaxItems": 8,
+    "productsDisplayMode": "carousel",
+    "sectionDisplayModes": {
+      "featured": "grid",
+      "new_arrivals": "carousel",
+      "offers": "carousel"
+    },
+    "reelsTitle": "Videos",
+    "sectionHeadings": {
+      "categories": {
+        "label": "Explorá",
+        "title": "Categorías"
+      },
+      "featured": {
+        "label": "Lo más buscado",
+        "title": "Destacados"
+      },
+      "new_arrivals": {
+        "label": "Recién llegados",
+        "title": "Nuevos ingresos"
+      },
+      "offers": {
+        "label": "Aprovechá",
+        "title": "Ofertas"
+      },
+      "outfits": {
+        "label": "Combiná tu look",
+        "title": "Outfits"
+      },
+      "social_proof": {
+        "label": "Lo que dicen",
+        "title": "Reseñas de clientes"
+      }
+    },
+    "productLayout": null,
+    "complementaryBlock": {
+      "titulo": "Combinalo con",
+      "maximoVisible": 3,
+      "ocultarSinStock": true,
+      "mostrarOtrosColores": true,
+      "mostrarOutfit": true,
+      "outfitPresentacion": "card_destacada",
+      "outfitDesempate": "orden_manual"
+    },
+    "orderBump": null,
+    "quantityTiersLayout": "cards",
+    "quantityTiersShowSavings": false,
+    "quantityTiersShowCardPrice": true,
+    "shippingPromiseEnabled": true,
+    "shippingPromiseTitle": "Envío rápido",
+    "shippingPromiseSubtitle": "",
+    "shippingPromiseColor": "#00a650",
+    "shippingMessage": "",
+    "trustBadgeLabels": [
+      "Envío rápido",
+      "Abonás al recibir",
+      "Pagás como quieras",
+      "Compra protegida"
+    ],
+    "trustBadgesBgColor": "",
+    "trustBadgesTextColor": "#000000",
+    "trustBadgesTextColorCustom": "",
+    "hideOutOfStock": false,
+    "hideOutOfStockVariants": false,
+    "badges": {
+      "style": "glass",
+      "position": "top-right",
+      "showIcons": false,
+      "lowStock": {
+        "enabled": true,
+        "color": "#EF4444",
+        "label": "Últimas unidades",
+        "threshold": 5
+      },
+      "new": {
+        "enabled": true,
+        "color": "#2563EB",
+        "label": "Nuevo",
+        "windowDays": 14
+      },
+      "freeShipping": {
+        "enabled": true,
+        "color": "#16A34A",
+        "label": "Envío gratis"
+      },
+      "discount": {
+        "enabled": true,
+        "color": "",
+        "label": "% OFF"
+      },
+      "custom": {
+        "color": "#EF4444"
+      }
+    },
+    "purchaseFlowEnabled": true,
+    "purchaseFlowSteps": [
+      {
+        "name": "Comprás online",
+        "detail": "Pagás con tarjeta, transferencia o efectivo",
+        "state": "done"
+      },
+      {
+        "name": "Preparamos tu pedido",
+        "detail": "En 24hs hábiles",
+        "state": "done"
+      },
+      {
+        "name": "Te lo enviamos",
+        "detail": "Envío gratis · 2-5 días al interior",
+        "state": "current"
+      },
+      {
+        "name": "Recibís en tu casa",
+        "detail": "Con seguimiento en tiempo real",
+        "state": "pending"
+      }
+    ],
+    "whatsapp": "",
+    "instagramUrl": "",
+    "facebookUrl": "",
+    "tiktokUrl": "",
+    "contactEmail": "",
+    "footerText": "",
+    "showPoweredBy": true,
+    "paymentMethods": [],
+    "mercadopagoEnabled": false,
+    "gocuotasEnabled": false,
+    "transferAccount": null,
+    "metaTitle": "Completa V1",
+    "metaDescription": "",
+    "ogImageUrl": "",
+    "gaId": "",
+    "metaPixelId": "",
+    "newsletterConfig": {
+      "title": "Suscribite a nuestras novedades",
+      "subtitle": "Recibí ofertas exclusivas y nuevos ingresos",
+      "buttonText": "Suscribirme",
+      "successMessage": "¡Gracias por suscribirte!"
+    },
+    "newsletterPopup": {
+      "enabled": false,
+      "title": "10% OFF EN TU PRIMERA COMPRA",
+      "subtitle": "Sumate a la comunidad",
+      "buttonText": "QUIERO MI 10% OFF",
+      "successMessage": "¡Listo! Revisá tu email",
+      "askName": true,
+      "delaySeconds": 5,
+      "once": true,
+      "bgColor": "#FFFFFF",
+      "buttonColor": "#000000",
+      "footerText": "Vas a recibir un correo para validar tu email",
+      "couponCode": ""
+    },
+    "promoBanner": {
+      "enabled": false,
+      "text": "",
+      "bgColor": "#E53E3E",
+      "textColor": "#FFFFFF",
+      "countdownEnabled": false,
+      "countdownEnd": "",
+      "endedText": "",
+      "position": "top",
+      "textSize": "md"
+    }
+  },
+  "minorista-etapa-v2": {
+    "companyId": "71ee0d15-57c6-4f9d-9f3e-0585e2479d71",
+    "country": "AR",
+    "name": "Etapa V2",
+    "plan": "PROFESIONAL",
+    "isPro": true,
+    "isPaid": true,
+    "slug": "etapa",
+    "storeType": "retail",
+    "saleMode": "retail",
+    "minOrderQuantity": 0,
+    "minOrderAmount": 0,
+    "minOrderMode": "units",
+    "freeShippingFrom": 0,
+    "requireDeliveryTime": true,
+    "giftWrap": {
+      "enabled": false,
+      "label": "Sumar packaging de regalo",
+      "name": "Packaging de regalo",
+      "description": "",
+      "price": 0
+    },
+    "reviewsDisplayMode": null,
+    "policyShipping": "",
+    "policyReturns": "",
+    "policyPayments": "",
+    "menuItems": [],
+    "logoUrl": "",
+    "logoHeight": 40,
+    "faviconUrl": "",
+    "colorPrimary": "#0b1f3a",
+    "colorSecondary": "#f5f5f5",
+    "colorAccent": "#16a34a",
+    "colorBackground": "#ffffff",
+    "colorText": "#111111",
+    "headerBackground": null,
+    "fontHeading": "Urbanist",
+    "fontBody": "Urbanist",
+    "fontScale": 1,
+    "typographyVersion": "v2",
+    "titleCase": "upper",
+    "sectionTitleAlign": "left",
+    "categoriesDisplayMode": "grid",
+    "showVariantColors": true,
+    "categoriesSection": {
+      "columns": 3,
+      "cardStyle": "overlay"
+    },
+    "corners": "soft",
+    "buttonCorners": "rounded",
+    "topBarAnimated": false,
+    "tagline": "",
+    "announcement": "",
+    "cardPaymentText": "",
+    "installmentsCount": 3,
+    "priceDisplay": "all",
+    "cashLabel": "efectivo o transferencia",
+    "priceEmphasis": "cash",
+    "heroEnabled": true,
+    "heroImageUrl": "",
+    "heroImageMobileUrl": "",
+    "heroTitle": "",
+    "heroSubtitle": "",
+    "heroCtaText": "",
+    "heroCtaLink": "/productos",
+    "heroCta": {
+      "shape": "rounded",
+      "size": "md",
+      "variant": "accent"
+    },
+    "heroMode": "auto",
+    "heroFit": "cover",
+    "sections": {
+      "categories": true,
+      "featured": true,
+      "newArrivals": true,
+      "offers": true,
+      "outfits": false,
+      "upsell": false,
+      "probador": false,
+      "virtualTryon": false,
+      "stories": false,
+      "reels": false,
+      "socialProof": false,
+      "productReviews": false,
+      "newsletter": false,
+      "trustBadges": true
+    },
+    "sectionsOrder": [],
+    "sectionMaxItems": 12,
+    "productsDisplayMode": "grid",
+    "sectionDisplayModes": {
+      "featured": "grid",
+      "new_arrivals": "grid",
+      "offers": "grid"
+    },
+    "reelsTitle": "Videos",
+    "sectionHeadings": {
+      "categories": {
+        "label": "Explorá",
+        "title": "Categorías"
+      },
+      "featured": {
+        "label": "Lo más buscado",
+        "title": "Destacados"
+      },
+      "new_arrivals": {
+        "label": "Recién llegados",
+        "title": "Nuevos ingresos"
+      },
+      "offers": {
+        "label": "Aprovechá",
+        "title": "Ofertas"
+      },
+      "outfits": {
+        "label": "Combiná tu look",
+        "title": "Outfits"
+      },
+      "social_proof": {
+        "label": "Lo que dicen",
+        "title": "Reseñas de clientes"
+      }
+    },
+    "productLayout": null,
+    "complementaryBlock": {
+      "titulo": "Combinalo con",
+      "maximoVisible": 3,
+      "ocultarSinStock": true,
+      "mostrarOtrosColores": true,
+      "mostrarOutfit": true,
+      "outfitPresentacion": "card_destacada",
+      "outfitDesempate": "orden_manual"
+    },
+    "orderBump": null,
+    "quantityTiersLayout": "cards",
+    "quantityTiersShowSavings": false,
+    "quantityTiersShowCardPrice": true,
+    "shippingPromiseEnabled": true,
+    "shippingPromiseTitle": "Envío rápido",
+    "shippingPromiseSubtitle": "",
+    "shippingPromiseColor": "#00a650",
+    "shippingMessage": "",
+    "trustBadgeLabels": [
+      "Envío rápido",
+      "Abonás al recibir",
+      "Pagás como quieras",
+      "Compra protegida"
+    ],
+    "trustBadgesBgColor": "",
+    "trustBadgesTextColor": "#000000",
+    "trustBadgesTextColorCustom": "",
+    "hideOutOfStock": false,
+    "hideOutOfStockVariants": false,
+    "badges": {
+      "style": "solid",
+      "position": "top-left",
+      "showIcons": true,
+      "lowStock": {
+        "enabled": true,
+        "color": "#EF4444",
+        "label": "Últimas unidades",
+        "threshold": 5
+      },
+      "new": {
+        "enabled": false,
+        "color": "#2563EB",
+        "label": "Nuevo",
+        "windowDays": 14
+      },
+      "freeShipping": {
+        "enabled": true,
+        "color": "#16A34A",
+        "label": "Envío gratis"
+      },
+      "discount": {
+        "enabled": true,
+        "color": "",
+        "label": "% OFF"
+      },
+      "custom": {
+        "color": "#EF4444"
+      }
+    },
+    "purchaseFlowEnabled": true,
+    "purchaseFlowSteps": [
+      {
+        "name": "Comprás online",
+        "detail": "Pagás con tarjeta, transferencia o efectivo",
+        "state": "done"
+      },
+      {
+        "name": "Preparamos tu pedido",
+        "detail": "En 24hs hábiles",
+        "state": "done"
+      },
+      {
+        "name": "Te lo enviamos",
+        "detail": "Envío gratis · 2-5 días al interior",
+        "state": "current"
+      },
+      {
+        "name": "Recibís en tu casa",
+        "detail": "Con seguimiento en tiempo real",
+        "state": "pending"
+      }
+    ],
+    "whatsapp": "",
+    "instagramUrl": "",
+    "facebookUrl": "",
+    "tiktokUrl": "",
+    "contactEmail": "",
+    "footerText": "",
+    "showPoweredBy": true,
+    "paymentMethods": [],
+    "mercadopagoEnabled": false,
+    "gocuotasEnabled": false,
+    "transferAccount": null,
+    "metaTitle": "Etapa V2",
+    "metaDescription": "",
+    "ogImageUrl": "",
+    "gaId": "",
+    "metaPixelId": "",
+    "newsletterConfig": {
+      "title": "Suscribite a nuestras novedades",
+      "subtitle": "Recibí ofertas exclusivas y nuevos ingresos",
+      "buttonText": "Suscribirme",
+      "successMessage": "¡Gracias por suscribirte!"
+    },
+    "newsletterPopup": {
+      "enabled": false,
+      "title": "10% OFF EN TU PRIMERA COMPRA",
+      "subtitle": "Sumate a la comunidad",
+      "buttonText": "QUIERO MI 10% OFF",
+      "successMessage": "¡Listo! Revisá tu email",
+      "askName": true,
+      "delaySeconds": 5,
+      "once": true,
+      "bgColor": "#FFFFFF",
+      "buttonColor": "#000000",
+      "footerText": "Vas a recibir un correo para validar tu email",
+      "couponCode": ""
+    },
+    "promoBanner": {
+      "enabled": false,
+      "text": "",
+      "bgColor": "#E53E3E",
+      "textColor": "#FFFFFF",
+      "countdownEnabled": false,
+      "countdownEnd": "",
+      "endedText": "",
+      "position": "top",
+      "textSize": "md"
+    }
+  },
+  "minorista-etapa-rollback-v1": {
+    "companyId": "71ee0d15-57c6-4f9d-9f3e-0585e2479d71",
+    "country": "AR",
+    "name": "Rollback V1",
+    "plan": "PROFESIONAL",
+    "isPro": true,
+    "isPaid": true,
+    "slug": "rollback",
+    "storeType": "retail",
+    "saleMode": "retail",
+    "minOrderQuantity": 0,
+    "minOrderAmount": 0,
+    "minOrderMode": "units",
+    "freeShippingFrom": 0,
+    "requireDeliveryTime": true,
+    "giftWrap": {
+      "enabled": false,
+      "label": "Sumar packaging de regalo",
+      "name": "Packaging de regalo",
+      "description": "",
+      "price": 0
+    },
+    "reviewsDisplayMode": null,
+    "policyShipping": "",
+    "policyReturns": "",
+    "policyPayments": "",
+    "menuItems": [],
+    "logoUrl": "",
+    "logoHeight": 40,
+    "faviconUrl": "",
+    "colorPrimary": "#000000",
+    "colorSecondary": "#f5f5f5",
+    "colorAccent": "#16a34a",
+    "colorBackground": "#ffffff",
+    "colorText": "#111111",
+    "headerBackground": null,
+    "fontHeading": "Urbanist",
+    "fontBody": "Urbanist",
+    "fontScale": 1,
+    "typographyVersion": "v1",
+    "titleCase": "upper",
+    "sectionTitleAlign": "left",
+    "categoriesDisplayMode": "grid",
+    "showVariantColors": true,
+    "categoriesSection": {
+      "columns": 3,
+      "cardStyle": "overlay"
+    },
+    "corners": "rounded",
+    "buttonCorners": "rounded",
+    "topBarAnimated": false,
+    "tagline": "",
+    "announcement": "",
+    "cardPaymentText": "",
+    "installmentsCount": 3,
+    "priceDisplay": "all",
+    "cashLabel": "efectivo o transferencia",
+    "priceEmphasis": "cash",
+    "heroEnabled": true,
+    "heroImageUrl": "",
+    "heroImageMobileUrl": "",
+    "heroTitle": "",
+    "heroSubtitle": "",
+    "heroCtaText": "",
+    "heroCtaLink": "/productos",
+    "heroCta": {
+      "shape": "rounded",
+      "size": "md",
+      "variant": "accent"
+    },
+    "heroMode": "auto",
+    "heroFit": "cover",
+    "sections": {
+      "categories": true,
+      "featured": true,
+      "newArrivals": true,
+      "offers": true,
+      "outfits": false,
+      "upsell": false,
+      "probador": false,
+      "virtualTryon": false,
+      "stories": false,
+      "reels": false,
+      "socialProof": false,
+      "productReviews": false,
+      "newsletter": false,
+      "trustBadges": true
+    },
+    "sectionsOrder": [],
+    "sectionMaxItems": 12,
+    "productsDisplayMode": "grid",
+    "sectionDisplayModes": {
+      "featured": "grid",
+      "new_arrivals": "grid",
+      "offers": "grid"
+    },
+    "reelsTitle": "Videos",
+    "sectionHeadings": {
+      "categories": {
+        "label": "Explorá",
+        "title": "Categorías"
+      },
+      "featured": {
+        "label": "Lo más buscado",
+        "title": "Destacados"
+      },
+      "new_arrivals": {
+        "label": "Recién llegados",
+        "title": "Nuevos ingresos"
+      },
+      "offers": {
+        "label": "Aprovechá",
+        "title": "Ofertas"
+      },
+      "outfits": {
+        "label": "Combiná tu look",
+        "title": "Outfits"
+      },
+      "social_proof": {
+        "label": "Lo que dicen",
+        "title": "Reseñas de clientes"
+      }
+    },
+    "productLayout": null,
+    "complementaryBlock": {
+      "titulo": "Combinalo con",
+      "maximoVisible": 3,
+      "ocultarSinStock": true,
+      "mostrarOtrosColores": true,
+      "mostrarOutfit": true,
+      "outfitPresentacion": "card_destacada",
+      "outfitDesempate": "orden_manual"
+    },
+    "orderBump": null,
+    "quantityTiersLayout": "cards",
+    "quantityTiersShowSavings": false,
+    "quantityTiersShowCardPrice": true,
+    "shippingPromiseEnabled": true,
+    "shippingPromiseTitle": "Envío rápido",
+    "shippingPromiseSubtitle": "",
+    "shippingPromiseColor": "#00a650",
+    "shippingMessage": "",
+    "trustBadgeLabels": [
+      "Envío rápido",
+      "Abonás al recibir",
+      "Pagás como quieras",
+      "Compra protegida"
+    ],
+    "trustBadgesBgColor": "",
+    "trustBadgesTextColor": "#000000",
+    "trustBadgesTextColorCustom": "",
+    "hideOutOfStock": false,
+    "hideOutOfStockVariants": false,
+    "badges": {
+      "style": "solid",
+      "position": "top-left",
+      "showIcons": true,
+      "lowStock": {
+        "enabled": true,
+        "color": "#EF4444",
+        "label": "Últimas unidades",
+        "threshold": 5
+      },
+      "new": {
+        "enabled": false,
+        "color": "#2563EB",
+        "label": "Nuevo",
+        "windowDays": 14
+      },
+      "freeShipping": {
+        "enabled": true,
+        "color": "#16A34A",
+        "label": "Envío gratis"
+      },
+      "discount": {
+        "enabled": true,
+        "color": "",
+        "label": "% OFF"
+      },
+      "custom": {
+        "color": "#EF4444"
+      }
+    },
+    "purchaseFlowEnabled": true,
+    "purchaseFlowSteps": [
+      {
+        "name": "Comprás online",
+        "detail": "Pagás con tarjeta, transferencia o efectivo",
+        "state": "done"
+      },
+      {
+        "name": "Preparamos tu pedido",
+        "detail": "En 24hs hábiles",
+        "state": "done"
+      },
+      {
+        "name": "Te lo enviamos",
+        "detail": "Envío gratis · 2-5 días al interior",
+        "state": "current"
+      },
+      {
+        "name": "Recibís en tu casa",
+        "detail": "Con seguimiento en tiempo real",
+        "state": "pending"
+      }
+    ],
+    "whatsapp": "",
+    "instagramUrl": "",
+    "facebookUrl": "",
+    "tiktokUrl": "",
+    "contactEmail": "",
+    "footerText": "",
+    "showPoweredBy": true,
+    "paymentMethods": [],
+    "mercadopagoEnabled": false,
+    "gocuotasEnabled": false,
+    "transferAccount": null,
+    "metaTitle": "Rollback V1",
+    "metaDescription": "",
+    "ogImageUrl": "",
+    "gaId": "",
+    "metaPixelId": "",
+    "newsletterConfig": {
+      "title": "Suscribite a nuestras novedades",
+      "subtitle": "Recibí ofertas exclusivas y nuevos ingresos",
+      "buttonText": "Suscribirme",
+      "successMessage": "¡Gracias por suscribirte!"
+    },
+    "newsletterPopup": {
+      "enabled": false,
+      "title": "10% OFF EN TU PRIMERA COMPRA",
+      "subtitle": "Sumate a la comunidad",
+      "buttonText": "QUIERO MI 10% OFF",
+      "successMessage": "¡Listo! Revisá tu email",
+      "askName": true,
+      "delaySeconds": 5,
+      "once": true,
+      "bgColor": "#FFFFFF",
+      "buttonColor": "#000000",
+      "footerText": "Vas a recibir un correo para validar tu email",
+      "couponCode": ""
+    },
+    "promoBanner": {
+      "enabled": false,
+      "text": "",
+      "bgColor": "#E53E3E",
+      "textColor": "#FFFFFF",
+      "countdownEnabled": false,
+      "countdownEnd": "",
+      "endedText": "",
+      "position": "top",
+      "textSize": "md"
+    }
+  },
+  "mayorista": {
+    "companyId": "71ee0d15-57c6-4f9d-9f3e-0585e2479d71",
+    "country": "AR",
+    "name": "Mayorista",
+    "plan": "PROFESIONAL",
+    "isPro": true,
+    "isPaid": true,
+    "slug": "mayorista",
+    "storeType": "wholesale",
+    "saleMode": "wholesale",
+    "minOrderQuantity": 0,
+    "minOrderAmount": 0,
+    "minOrderMode": "units",
+    "freeShippingFrom": 0,
+    "requireDeliveryTime": true,
+    "giftWrap": {
+      "enabled": false,
+      "label": "Sumar packaging de regalo",
+      "name": "Packaging de regalo",
+      "description": "",
+      "price": 0
+    },
+    "reviewsDisplayMode": null,
+    "policyShipping": "",
+    "policyReturns": "",
+    "policyPayments": "",
+    "menuItems": [],
+    "logoUrl": "",
+    "logoHeight": 40,
+    "faviconUrl": "",
+    "colorPrimary": "#222222",
+    "colorSecondary": "#f5f5f5",
+    "colorAccent": "#16a34a",
+    "colorBackground": "#ffffff",
+    "colorText": "#111111",
+    "headerBackground": null,
+    "fontHeading": "Urbanist",
+    "fontBody": "Urbanist",
+    "fontScale": 1,
+    "typographyVersion": "v2",
+    "titleCase": "upper",
+    "sectionTitleAlign": "left",
+    "categoriesDisplayMode": "grid",
+    "showVariantColors": true,
+    "categoriesSection": {
+      "columns": 3,
+      "cardStyle": "overlay"
+    },
+    "corners": "rounded",
+    "buttonCorners": "square",
+    "topBarAnimated": false,
+    "tagline": "",
+    "announcement": "",
+    "cardPaymentText": "",
+    "installmentsCount": 3,
+    "priceDisplay": "all",
+    "cashLabel": "efectivo o transferencia",
+    "priceEmphasis": "cash",
+    "heroEnabled": true,
+    "heroImageUrl": "",
+    "heroImageMobileUrl": "",
+    "heroTitle": "",
+    "heroSubtitle": "",
+    "heroCtaText": "",
+    "heroCtaLink": "/productos",
+    "heroCta": {
+      "shape": "rounded",
+      "size": "md",
+      "variant": "accent"
+    },
+    "heroMode": "auto",
+    "heroFit": "cover",
+    "sections": {
+      "categories": true,
+      "featured": true,
+      "newArrivals": true,
+      "offers": true,
+      "outfits": false,
+      "upsell": false,
+      "probador": false,
+      "virtualTryon": false,
+      "stories": false,
+      "reels": false,
+      "socialProof": false,
+      "productReviews": false,
+      "newsletter": false,
+      "trustBadges": true
+    },
+    "sectionsOrder": [],
+    "sectionMaxItems": 12,
+    "productsDisplayMode": "grid",
+    "sectionDisplayModes": {
+      "featured": "grid",
+      "new_arrivals": "grid",
+      "offers": "grid"
+    },
+    "reelsTitle": "Videos",
+    "sectionHeadings": {
+      "categories": {
+        "label": "Explorá",
+        "title": "Categorías"
+      },
+      "featured": {
+        "label": "Lo más buscado",
+        "title": "Destacados"
+      },
+      "new_arrivals": {
+        "label": "Recién llegados",
+        "title": "Nuevos ingresos"
+      },
+      "offers": {
+        "label": "Aprovechá",
+        "title": "Ofertas"
+      },
+      "outfits": {
+        "label": "Combiná tu look",
+        "title": "Outfits"
+      },
+      "social_proof": {
+        "label": "Lo que dicen",
+        "title": "Reseñas de clientes"
+      }
+    },
+    "productLayout": null,
+    "complementaryBlock": {
+      "titulo": "Combinalo con",
+      "maximoVisible": 3,
+      "ocultarSinStock": true,
+      "mostrarOtrosColores": true,
+      "mostrarOutfit": true,
+      "outfitPresentacion": "card_destacada",
+      "outfitDesempate": "orden_manual"
+    },
+    "orderBump": null,
+    "quantityTiersLayout": "cards",
+    "quantityTiersShowSavings": false,
+    "quantityTiersShowCardPrice": true,
+    "shippingPromiseEnabled": true,
+    "shippingPromiseTitle": "Envío rápido",
+    "shippingPromiseSubtitle": "",
+    "shippingPromiseColor": "#00a650",
+    "shippingMessage": "",
+    "trustBadgeLabels": [
+      "Envío rápido",
+      "Abonás al recibir",
+      "Pagás como quieras",
+      "Compra protegida"
+    ],
+    "trustBadgesBgColor": "",
+    "trustBadgesTextColor": "#000000",
+    "trustBadgesTextColorCustom": "",
+    "hideOutOfStock": false,
+    "hideOutOfStockVariants": false,
+    "badges": {
+      "style": "solid",
+      "position": "top-left",
+      "showIcons": true,
+      "lowStock": {
+        "enabled": true,
+        "color": "#EF4444",
+        "label": "Últimas unidades",
+        "threshold": 5
+      },
+      "new": {
+        "enabled": false,
+        "color": "#2563EB",
+        "label": "Nuevo",
+        "windowDays": 14
+      },
+      "freeShipping": {
+        "enabled": true,
+        "color": "#16A34A",
+        "label": "Envío gratis"
+      },
+      "discount": {
+        "enabled": true,
+        "color": "",
+        "label": "% OFF"
+      },
+      "custom": {
+        "color": "#EF4444"
+      }
+    },
+    "purchaseFlowEnabled": true,
+    "purchaseFlowSteps": [
+      {
+        "name": "Comprás online",
+        "detail": "Pagás con tarjeta, transferencia o efectivo",
+        "state": "done"
+      },
+      {
+        "name": "Preparamos tu pedido",
+        "detail": "En 24hs hábiles",
+        "state": "done"
+      },
+      {
+        "name": "Te lo enviamos",
+        "detail": "Envío gratis · 2-5 días al interior",
+        "state": "current"
+      },
+      {
+        "name": "Recibís en tu casa",
+        "detail": "Con seguimiento en tiempo real",
+        "state": "pending"
+      }
+    ],
+    "whatsapp": "",
+    "instagramUrl": "",
+    "facebookUrl": "",
+    "tiktokUrl": "",
+    "contactEmail": "",
+    "footerText": "",
+    "showPoweredBy": true,
+    "paymentMethods": [],
+    "mercadopagoEnabled": false,
+    "gocuotasEnabled": false,
+    "transferAccount": null,
+    "metaTitle": "Mayorista",
+    "metaDescription": "",
+    "ogImageUrl": "",
+    "gaId": "",
+    "metaPixelId": "",
+    "newsletterConfig": {
+      "title": "Suscribite a nuestras novedades",
+      "subtitle": "Recibí ofertas exclusivas y nuevos ingresos",
+      "buttonText": "Suscribirme",
+      "successMessage": "¡Gracias por suscribirte!"
+    },
+    "newsletterPopup": {
+      "enabled": false,
+      "title": "10% OFF EN TU PRIMERA COMPRA",
+      "subtitle": "Sumate a la comunidad",
+      "buttonText": "QUIERO MI 10% OFF",
+      "successMessage": "¡Listo! Revisá tu email",
+      "askName": true,
+      "delaySeconds": 5,
+      "once": true,
+      "bgColor": "#FFFFFF",
+      "buttonColor": "#000000",
+      "footerText": "Vas a recibir un correo para validar tu email",
+      "couponCode": ""
+    },
+    "promoBanner": {
+      "enabled": false,
+      "text": "",
+      "bgColor": "#E53E3E",
+      "textColor": "#FFFFFF",
+      "countdownEnabled": false,
+      "countdownEnd": "",
+      "endedText": "",
+      "position": "top",
+      "textSize": "md"
+    }
+  },
+  "claves-legacy": {
+    "companyId": "00000000-0000-4000-8000-000000000004",
+    "country": "AR",
+    "name": "Legacy",
+    "plan": "TIENDA",
+    "isPro": false,
+    "isPaid": true,
+    "slug": "legacy",
+    "storeType": "retail",
+    "saleMode": "retail",
+    "minOrderQuantity": 0,
+    "minOrderAmount": 0,
+    "minOrderMode": "units",
+    "freeShippingFrom": 0,
+    "requireDeliveryTime": true,
+    "giftWrap": {
+      "enabled": false,
+      "label": "Sumar packaging de regalo",
+      "name": "Packaging de regalo",
+      "description": "",
+      "price": 0
+    },
+    "reviewsDisplayMode": null,
+    "policyShipping": "",
+    "policyReturns": "",
+    "policyPayments": "",
+    "menuItems": [],
+    "logoUrl": "",
+    "logoHeight": 40,
+    "faviconUrl": "",
+    "colorPrimary": "#000000",
+    "colorSecondary": "#f5f5f5",
+    "colorAccent": "#ff6600",
+    "colorBackground": "#ffffff",
+    "colorText": "#111111",
+    "headerBackground": null,
+    "fontHeading": "Urbanist",
+    "fontBody": "Urbanist",
+    "fontScale": 1,
+    "typographyVersion": "v1",
+    "titleCase": "upper",
+    "sectionTitleAlign": "right",
+    "categoriesDisplayMode": "grid",
+    "showVariantColors": true,
+    "categoriesSection": {
+      "columns": 3,
+      "cardStyle": "overlay"
+    },
+    "corners": "rounded",
+    "buttonCorners": "rounded",
+    "topBarAnimated": false,
+    "tagline": "",
+    "announcement": "",
+    "cardPaymentText": "",
+    "installmentsCount": 3,
+    "priceDisplay": "all",
+    "cashLabel": "efectivo o transferencia",
+    "priceEmphasis": "cash",
+    "heroEnabled": true,
+    "heroImageUrl": "https://example.com/banner.jpg",
+    "heroImageMobileUrl": "https://example.com/banner-m.jpg",
+    "heroTitle": "",
+    "heroSubtitle": "",
+    "heroCtaText": "",
+    "heroCtaLink": "/productos",
+    "heroCta": {
+      "shape": "rounded",
+      "size": "md",
+      "variant": "accent"
+    },
+    "heroMode": "auto",
+    "heroFit": "cover",
+    "sections": {
+      "categories": true,
+      "featured": true,
+      "newArrivals": true,
+      "offers": true,
+      "outfits": false,
+      "upsell": false,
+      "probador": false,
+      "virtualTryon": false,
+      "stories": false,
+      "reels": false,
+      "socialProof": false,
+      "productReviews": false,
+      "newsletter": false,
+      "trustBadges": true
+    },
+    "sectionsOrder": [],
+    "sectionMaxItems": 12,
+    "productsDisplayMode": "grid",
+    "sectionDisplayModes": {
+      "featured": "grid",
+      "new_arrivals": "grid",
+      "offers": "grid"
+    },
+    "reelsTitle": "Videos",
+    "sectionHeadings": {
+      "categories": {
+        "label": "Explorá",
+        "title": "Categorías"
+      },
+      "featured": {
+        "label": "Lo más buscado",
+        "title": "Destacados"
+      },
+      "new_arrivals": {
+        "label": "Recién llegados",
+        "title": "Nuevos ingresos"
+      },
+      "offers": {
+        "label": "Aprovechá",
+        "title": "Ofertas"
+      },
+      "outfits": {
+        "label": "Combiná tu look",
+        "title": "Outfits"
+      },
+      "social_proof": {
+        "label": "Lo que dicen",
+        "title": "Reseñas de clientes"
+      }
+    },
+    "productLayout": null,
+    "complementaryBlock": {
+      "titulo": "Combinalo con",
+      "maximoVisible": 3,
+      "ocultarSinStock": true,
+      "mostrarOtrosColores": true,
+      "mostrarOutfit": true,
+      "outfitPresentacion": "card_destacada",
+      "outfitDesempate": "orden_manual"
+    },
+    "orderBump": null,
+    "quantityTiersLayout": "cards",
+    "quantityTiersShowSavings": false,
+    "quantityTiersShowCardPrice": true,
+    "shippingPromiseEnabled": true,
+    "shippingPromiseTitle": "Envío rápido",
+    "shippingPromiseSubtitle": "",
+    "shippingPromiseColor": "#00a650",
+    "shippingMessage": "",
+    "trustBadgeLabels": [
+      "Envío rápido",
+      "Abonás al recibir",
+      "Pagás como quieras",
+      "Compra protegida"
+    ],
+    "trustBadgesBgColor": "",
+    "trustBadgesTextColor": "#000000",
+    "trustBadgesTextColorCustom": "",
+    "hideOutOfStock": false,
+    "hideOutOfStockVariants": false,
+    "badges": {
+      "style": "solid",
+      "position": "top-left",
+      "showIcons": true,
+      "lowStock": {
+        "enabled": true,
+        "color": "#EF4444",
+        "label": "Últimas unidades",
+        "threshold": 5
+      },
+      "new": {
+        "enabled": false,
+        "color": "#2563EB",
+        "label": "Nuevo",
+        "windowDays": 14
+      },
+      "freeShipping": {
+        "enabled": true,
+        "color": "#16A34A",
+        "label": "Envío gratis"
+      },
+      "discount": {
+        "enabled": true,
+        "color": "",
+        "label": "% OFF"
+      },
+      "custom": {
+        "color": "#EF4444"
+      }
+    },
+    "purchaseFlowEnabled": true,
+    "purchaseFlowSteps": [
+      {
+        "name": "Comprás online",
+        "detail": "Pagás con tarjeta, transferencia o efectivo",
+        "state": "done"
+      },
+      {
+        "name": "Preparamos tu pedido",
+        "detail": "En 24hs hábiles",
+        "state": "done"
+      },
+      {
+        "name": "Te lo enviamos",
+        "detail": "Envío gratis · 2-5 días al interior",
+        "state": "current"
+      },
+      {
+        "name": "Recibís en tu casa",
+        "detail": "Con seguimiento en tiempo real",
+        "state": "pending"
+      }
+    ],
+    "whatsapp": "",
+    "instagramUrl": "",
+    "facebookUrl": "",
+    "tiktokUrl": "",
+    "contactEmail": "",
+    "footerText": "",
+    "showPoweredBy": true,
+    "paymentMethods": [],
+    "mercadopagoEnabled": false,
+    "gocuotasEnabled": false,
+    "transferAccount": null,
+    "metaTitle": "Legacy",
+    "metaDescription": "",
+    "ogImageUrl": "https://example.com/banner.jpg",
+    "gaId": "",
+    "metaPixelId": "",
+    "newsletterConfig": {
+      "title": "Suscribite a nuestras novedades",
+      "subtitle": "Recibí ofertas exclusivas y nuevos ingresos",
+      "buttonText": "Suscribirme",
+      "successMessage": "¡Gracias por suscribirte!"
+    },
+    "newsletterPopup": {
+      "enabled": false,
+      "title": "10% OFF EN TU PRIMERA COMPRA",
+      "subtitle": "Sumate a la comunidad",
+      "buttonText": "QUIERO MI 10% OFF",
+      "successMessage": "¡Listo! Revisá tu email",
+      "askName": true,
+      "delaySeconds": 5,
+      "once": true,
+      "bgColor": "#FFFFFF",
+      "buttonColor": "#000000",
+      "footerText": "Vas a recibir un correo para validar tu email",
+      "couponCode": ""
+    },
+    "promoBanner": {
+      "enabled": false,
+      "text": "",
+      "bgColor": "#E53E3E",
+      "textColor": "#FFFFFF",
+      "countdownEnabled": false,
+      "countdownEnd": "",
+      "endedText": "",
+      "position": "top",
+      "textSize": "md"
+    }
+  },
+  "valores-basura": {
+    "companyId": "00000000-0000-4000-8000-000000000005",
+    "country": "AR",
+    "name": "Basura",
+    "plan": "TIENDA",
+    "isPro": false,
+    "isPaid": true,
+    "slug": "basura",
+    "storeType": "retail",
+    "saleMode": "retail",
+    "minOrderQuantity": 0,
+    "minOrderAmount": 0,
+    "minOrderMode": "units",
+    "freeShippingFrom": 0,
+    "requireDeliveryTime": true,
+    "giftWrap": {
+      "enabled": false,
+      "label": "Sumar packaging de regalo",
+      "name": "Packaging de regalo",
+      "description": "",
+      "price": 0
+    },
+    "reviewsDisplayMode": null,
+    "policyShipping": "",
+    "policyReturns": "",
+    "policyPayments": "",
+    "menuItems": [],
+    "logoUrl": "",
+    "logoHeight": 40,
+    "faviconUrl": "",
+    "colorPrimary": "#000000",
+    "colorSecondary": "#f5f5f5",
+    "colorAccent": "#16a34a",
+    "colorBackground": "#ffffff",
+    "colorText": "#111111",
+    "headerBackground": null,
+    "fontHeading": "Urbanist",
+    "fontBody": "Urbanist",
+    "fontScale": 1,
+    "typographyVersion": "v1",
+    "titleCase": "upper",
+    "sectionTitleAlign": "left",
+    "categoriesDisplayMode": "grid",
+    "showVariantColors": true,
+    "categoriesSection": {
+      "columns": 3,
+      "cardStyle": "overlay"
+    },
+    "corners": "rounded",
+    "buttonCorners": "rounded",
+    "topBarAnimated": false,
+    "tagline": "",
+    "announcement": "",
+    "cardPaymentText": "",
+    "installmentsCount": 3,
+    "priceDisplay": "all",
+    "cashLabel": "efectivo o transferencia",
+    "priceEmphasis": "cash",
+    "heroEnabled": true,
+    "heroImageUrl": "",
+    "heroImageMobileUrl": "",
+    "heroTitle": "",
+    "heroSubtitle": "",
+    "heroCtaText": "",
+    "heroCtaLink": "/productos",
+    "heroCta": {
+      "shape": "rounded",
+      "size": "md",
+      "variant": "accent"
+    },
+    "heroMode": "auto",
+    "heroFit": "cover",
+    "sections": {
+      "categories": true,
+      "featured": true,
+      "newArrivals": true,
+      "offers": true,
+      "outfits": false,
+      "upsell": false,
+      "probador": false,
+      "virtualTryon": false,
+      "stories": false,
+      "reels": false,
+      "socialProof": false,
+      "productReviews": false,
+      "newsletter": false,
+      "trustBadges": true
+    },
+    "sectionsOrder": [],
+    "sectionMaxItems": 12,
+    "productsDisplayMode": "grid",
+    "sectionDisplayModes": {
+      "featured": "grid",
+      "new_arrivals": "grid",
+      "offers": "grid"
+    },
+    "reelsTitle": "Videos",
+    "sectionHeadings": {
+      "categories": {
+        "label": "Explorá",
+        "title": "Categorías"
+      },
+      "featured": {
+        "label": "Lo más buscado",
+        "title": "Destacados"
+      },
+      "new_arrivals": {
+        "label": "Recién llegados",
+        "title": "Nuevos ingresos"
+      },
+      "offers": {
+        "label": "Aprovechá",
+        "title": "Ofertas"
+      },
+      "outfits": {
+        "label": "Combiná tu look",
+        "title": "Outfits"
+      },
+      "social_proof": {
+        "label": "Lo que dicen",
+        "title": "Reseñas de clientes"
+      }
+    },
+    "productLayout": null,
+    "complementaryBlock": {
+      "titulo": "Combinalo con",
+      "maximoVisible": 3,
+      "ocultarSinStock": true,
+      "mostrarOtrosColores": true,
+      "mostrarOutfit": true,
+      "outfitPresentacion": "card_destacada",
+      "outfitDesempate": "orden_manual"
+    },
+    "orderBump": null,
+    "quantityTiersLayout": "cards",
+    "quantityTiersShowSavings": false,
+    "quantityTiersShowCardPrice": true,
+    "shippingPromiseEnabled": true,
+    "shippingPromiseTitle": "Envío rápido",
+    "shippingPromiseSubtitle": "",
+    "shippingPromiseColor": "#00a650",
+    "shippingMessage": "",
+    "trustBadgeLabels": [
+      "Envío rápido",
+      "Abonás al recibir",
+      "Pagás como quieras",
+      "Compra protegida"
+    ],
+    "trustBadgesBgColor": "",
+    "trustBadgesTextColor": "#000000",
+    "trustBadgesTextColorCustom": "",
+    "hideOutOfStock": false,
+    "hideOutOfStockVariants": false,
+    "badges": {
+      "style": "solid",
+      "position": "top-left",
+      "showIcons": true,
+      "lowStock": {
+        "enabled": true,
+        "color": "#EF4444",
+        "label": "Últimas unidades",
+        "threshold": 5
+      },
+      "new": {
+        "enabled": false,
+        "color": "#2563EB",
+        "label": "Nuevo",
+        "windowDays": 14
+      },
+      "freeShipping": {
+        "enabled": true,
+        "color": "#16A34A",
+        "label": "Envío gratis"
+      },
+      "discount": {
+        "enabled": true,
+        "color": "",
+        "label": "% OFF"
+      },
+      "custom": {
+        "color": "#EF4444"
+      }
+    },
+    "purchaseFlowEnabled": true,
+    "purchaseFlowSteps": [
+      {
+        "name": "Comprás online",
+        "detail": "Pagás con tarjeta, transferencia o efectivo",
+        "state": "done"
+      },
+      {
+        "name": "Preparamos tu pedido",
+        "detail": "En 24hs hábiles",
+        "state": "done"
+      },
+      {
+        "name": "Te lo enviamos",
+        "detail": "Envío gratis · 2-5 días al interior",
+        "state": "current"
+      },
+      {
+        "name": "Recibís en tu casa",
+        "detail": "Con seguimiento en tiempo real",
+        "state": "pending"
+      }
+    ],
+    "whatsapp": "",
+    "instagramUrl": "",
+    "facebookUrl": "",
+    "tiktokUrl": "",
+    "contactEmail": "",
+    "footerText": "",
+    "showPoweredBy": true,
+    "paymentMethods": [],
+    "mercadopagoEnabled": false,
+    "gocuotasEnabled": false,
+    "transferAccount": null,
+    "metaTitle": "Basura",
+    "metaDescription": "",
+    "ogImageUrl": "",
+    "gaId": "",
+    "metaPixelId": "",
+    "newsletterConfig": {
+      "title": "Suscribite a nuestras novedades",
+      "subtitle": "Recibí ofertas exclusivas y nuevos ingresos",
+      "buttonText": "Suscribirme",
+      "successMessage": "¡Gracias por suscribirte!"
+    },
+    "newsletterPopup": {
+      "enabled": false,
+      "title": "10% OFF EN TU PRIMERA COMPRA",
+      "subtitle": "Sumate a la comunidad",
+      "buttonText": "QUIERO MI 10% OFF",
+      "successMessage": "¡Listo! Revisá tu email",
+      "askName": true,
+      "delaySeconds": 5,
+      "once": true,
+      "bgColor": "#FFFFFF",
+      "buttonColor": "#000000",
+      "footerText": "Vas a recibir un correo para validar tu email",
+      "couponCode": ""
+    },
+    "promoBanner": {
+      "enabled": false,
+      "text": "",
+      "bgColor": "#E53E3E",
+      "textColor": "#FFFFFF",
+      "countdownEnabled": false,
+      "countdownEnd": "",
+      "endedText": "",
+      "position": "top",
+      "textSize": "md"
+    }
+  },
+  "precio-destacado-tarjeta": {
+    "companyId": "00000000-0000-4000-8000-000000000006",
+    "country": "AR",
+    "name": "Tarjeta Grande",
+    "plan": "TIENDA",
+    "isPro": false,
+    "isPaid": true,
+    "slug": "tarjeta",
+    "storeType": "retail",
+    "saleMode": "retail",
+    "minOrderQuantity": 0,
+    "minOrderAmount": 0,
+    "minOrderMode": "units",
+    "freeShippingFrom": 0,
+    "requireDeliveryTime": true,
+    "giftWrap": {
+      "enabled": false,
+      "label": "Sumar packaging de regalo",
+      "name": "Packaging de regalo",
+      "description": "",
+      "price": 0
+    },
+    "reviewsDisplayMode": null,
+    "policyShipping": "",
+    "policyReturns": "",
+    "policyPayments": "",
+    "menuItems": [],
+    "logoUrl": "",
+    "logoHeight": 40,
+    "faviconUrl": "",
+    "colorPrimary": "#334455",
+    "colorSecondary": "#f5f5f5",
+    "colorAccent": "#16a34a",
+    "colorBackground": "#ffffff",
+    "colorText": "#111111",
+    "headerBackground": null,
+    "fontHeading": "Urbanist",
+    "fontBody": "Urbanist",
+    "fontScale": 1,
+    "typographyVersion": "v1",
+    "titleCase": "upper",
+    "sectionTitleAlign": "left",
+    "categoriesDisplayMode": "grid",
+    "showVariantColors": true,
+    "categoriesSection": {
+      "columns": 3,
+      "cardStyle": "overlay"
+    },
+    "corners": "soft",
+    "buttonCorners": "rounded",
+    "topBarAnimated": false,
+    "tagline": "",
+    "announcement": "",
+    "cardPaymentText": "",
+    "installmentsCount": 3,
+    "priceDisplay": "all",
+    "cashLabel": "efectivo o transferencia",
+    "priceEmphasis": "card",
+    "heroEnabled": true,
+    "heroImageUrl": "",
+    "heroImageMobileUrl": "",
+    "heroTitle": "",
+    "heroSubtitle": "",
+    "heroCtaText": "",
+    "heroCtaLink": "/productos",
+    "heroCta": {
+      "shape": "rounded",
+      "size": "md",
+      "variant": "accent"
+    },
+    "heroMode": "auto",
+    "heroFit": "cover",
+    "sections": {
+      "categories": true,
+      "featured": true,
+      "newArrivals": true,
+      "offers": true,
+      "outfits": false,
+      "upsell": false,
+      "probador": false,
+      "virtualTryon": false,
+      "stories": false,
+      "reels": false,
+      "socialProof": false,
+      "productReviews": false,
+      "newsletter": false,
+      "trustBadges": true
+    },
+    "sectionsOrder": [],
+    "sectionMaxItems": 12,
+    "productsDisplayMode": "grid",
+    "sectionDisplayModes": {
+      "featured": "grid",
+      "new_arrivals": "grid",
+      "offers": "grid"
+    },
+    "reelsTitle": "Videos",
+    "sectionHeadings": {
+      "categories": {
+        "label": "Explorá",
+        "title": "Categorías"
+      },
+      "featured": {
+        "label": "Lo más buscado",
+        "title": "Destacados"
+      },
+      "new_arrivals": {
+        "label": "Recién llegados",
+        "title": "Nuevos ingresos"
+      },
+      "offers": {
+        "label": "Aprovechá",
+        "title": "Ofertas"
+      },
+      "outfits": {
+        "label": "Combiná tu look",
+        "title": "Outfits"
+      },
+      "social_proof": {
+        "label": "Lo que dicen",
+        "title": "Reseñas de clientes"
+      }
+    },
+    "productLayout": null,
+    "complementaryBlock": {
+      "titulo": "Combinalo con",
+      "maximoVisible": 3,
+      "ocultarSinStock": true,
+      "mostrarOtrosColores": true,
+      "mostrarOutfit": true,
+      "outfitPresentacion": "card_destacada",
+      "outfitDesempate": "orden_manual"
+    },
+    "orderBump": null,
+    "quantityTiersLayout": "cards",
+    "quantityTiersShowSavings": false,
+    "quantityTiersShowCardPrice": true,
+    "shippingPromiseEnabled": true,
+    "shippingPromiseTitle": "Envío rápido",
+    "shippingPromiseSubtitle": "",
+    "shippingPromiseColor": "#00a650",
+    "shippingMessage": "",
+    "trustBadgeLabels": [
+      "Envío rápido",
+      "Abonás al recibir",
+      "Pagás como quieras",
+      "Compra protegida"
+    ],
+    "trustBadgesBgColor": "",
+    "trustBadgesTextColor": "#000000",
+    "trustBadgesTextColorCustom": "",
+    "hideOutOfStock": false,
+    "hideOutOfStockVariants": false,
+    "badges": {
+      "style": "solid",
+      "position": "top-left",
+      "showIcons": true,
+      "lowStock": {
+        "enabled": true,
+        "color": "#EF4444",
+        "label": "Últimas unidades",
+        "threshold": 5
+      },
+      "new": {
+        "enabled": false,
+        "color": "#2563EB",
+        "label": "Nuevo",
+        "windowDays": 14
+      },
+      "freeShipping": {
+        "enabled": true,
+        "color": "#16A34A",
+        "label": "Envío gratis"
+      },
+      "discount": {
+        "enabled": true,
+        "color": "",
+        "label": "% OFF"
+      },
+      "custom": {
+        "color": "#EF4444"
+      }
+    },
+    "purchaseFlowEnabled": true,
+    "purchaseFlowSteps": [
+      {
+        "name": "Comprás online",
+        "detail": "Pagás con tarjeta, transferencia o efectivo",
+        "state": "done"
+      },
+      {
+        "name": "Preparamos tu pedido",
+        "detail": "En 24hs hábiles",
+        "state": "done"
+      },
+      {
+        "name": "Te lo enviamos",
+        "detail": "Envío gratis · 2-5 días al interior",
+        "state": "current"
+      },
+      {
+        "name": "Recibís en tu casa",
+        "detail": "Con seguimiento en tiempo real",
+        "state": "pending"
+      }
+    ],
+    "whatsapp": "",
+    "instagramUrl": "",
+    "facebookUrl": "",
+    "tiktokUrl": "",
+    "contactEmail": "",
+    "footerText": "",
+    "showPoweredBy": true,
+    "paymentMethods": [],
+    "mercadopagoEnabled": false,
+    "gocuotasEnabled": false,
+    "transferAccount": null,
+    "metaTitle": "Tarjeta Grande",
+    "metaDescription": "",
+    "ogImageUrl": "",
+    "gaId": "",
+    "metaPixelId": "",
+    "newsletterConfig": {
+      "title": "Suscribite a nuestras novedades",
+      "subtitle": "Recibí ofertas exclusivas y nuevos ingresos",
+      "buttonText": "Suscribirme",
+      "successMessage": "¡Gracias por suscribirte!"
+    },
+    "newsletterPopup": {
+      "enabled": false,
+      "title": "10% OFF EN TU PRIMERA COMPRA",
+      "subtitle": "Sumate a la comunidad",
+      "buttonText": "QUIERO MI 10% OFF",
+      "successMessage": "¡Listo! Revisá tu email",
+      "askName": true,
+      "delaySeconds": 5,
+      "once": true,
+      "bgColor": "#FFFFFF",
+      "buttonColor": "#000000",
+      "footerText": "Vas a recibir un correo para validar tu email",
+      "couponCode": ""
+    },
+    "promoBanner": {
+      "enabled": false,
+      "text": "",
+      "bgColor": "#E53E3E",
+      "textColor": "#FFFFFF",
+      "countdownEnabled": false,
+      "countdownEnd": "",
+      "endedText": "",
+      "position": "top",
+      "textSize": "md"
+    }
+  }
+}

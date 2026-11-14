@@ -1,0 +1,4 @@
+{
+  "_comment": "Huella (sha256 del JSON canónico) de cada versión PUBLICADA de src/lib/storeTemplates.ts. Una entrada no se cambia ni se borra nunca: para modificar una plantilla se agrega una versión nueva. Lo verifica scripts/store-templates.test.mjs; las nuevas se agregan con --lock-new.",
+  "versions": {}
+}

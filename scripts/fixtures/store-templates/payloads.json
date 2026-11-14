@@ -1,0 +1,153 @@
+{
+  "_comment": "Payloads de ejemplo de get_storefront_by_slug para el golden de normalizeStoreConfig (scripts/store-templates.test.mjs). Sinteticos: no son datos de ningun comercio. 71ee0d15... esta en TYPOGRAPHY_V2_STAGE (v2 por etapa); 00000000... no.",
+  "payloads": {
+    "minorista-vacia": {
+      "company_id": "00000000-0000-4000-8000-000000000001",
+      "name": "Tienda Vacia",
+      "plan": "TIENDA",
+      "store_type": "retail",
+      "slug": "vacia",
+      "requires_password": false,
+      "shipping_message": null,
+      "settings": {}
+    },
+    "minorista-settings-null": {
+      "company_id": "00000000-0000-4000-8000-000000000002",
+      "name": "Sin Settings",
+      "plan": "TIENDA",
+      "store_type": "retail",
+      "slug": "sin-settings",
+      "requires_password": false,
+      "shipping_message": "Envios a todo el pais",
+      "logo_url": "https://example.com/logo.png",
+      "settings": null
+    },
+    "minorista-completa-v1": {
+      "company_id": "00000000-0000-4000-8000-000000000003",
+      "name": "Completa V1",
+      "plan": "PROFESIONAL",
+      "store_type": "retail",
+      "slug": "completa",
+      "requires_password": false,
+      "shipping_message": null,
+      "settings": {
+        "color_primary": "#111111",
+        "color_secondary": "#f4efe6",
+        "color_accent": "#b5452b",
+        "color_background": "#ffffff",
+        "color_text": "#1a1a1a",
+        "header_background": "#000000",
+        "font_heading": "Playfair Display",
+        "font_body": "Inter",
+        "font_scale": 1.1,
+        "corners": "square",
+        "button_corners": "pill",
+        "hero_cta_style": { "shape": "pill", "size": "lg", "variant": "outline" },
+        "hero_mode": "image_with_text",
+        "hero_fit": "contain",
+        "hero_title": "Nueva coleccion",
+        "hero_subtitle": "Otono invierno",
+        "hero_cta_text": "Ver todo",
+        "section_title_align": "center",
+        "categories_display_mode": "carousel",
+        "categories_section": { "columns": 4, "card_style": "circle" },
+        "show_variant_colors": false,
+        "products_display_mode": "carousel",
+        "section_display_modes": { "featured": "grid", "new_arrivals": "carousel" },
+        "sections_order": ["hero", "categories", "custom:11111111-1111-4111-8111-111111111111", "featured"],
+        "section_newsletter": true,
+        "section_trust_badges": false,
+        "section_max_items": 8,
+        "badges": { "style": "glass", "position": "top-right", "show_icons": false, "new": { "enabled": true, "days": 15 } },
+        "menu_items": [{ "label": "Guia de talles", "url": "/pagina/talles" }],
+        "top_bar_text": "3 cuotas sin interes",
+        "price_display": "cash",
+        "cash_label": "transfer",
+        "typography_title_case": "original"
+      }
+    },
+    "minorista-etapa-v2": {
+      "company_id": "71ee0d15-57c6-4f9d-9f3e-0585e2479d71",
+      "name": "Etapa V2",
+      "plan": "PROFESIONAL",
+      "store_type": "retail",
+      "slug": "etapa",
+      "requires_password": false,
+      "shipping_message": null,
+      "settings": { "color_primary": "#0b1f3a", "font_heading": "Urbanist", "corners": "soft" }
+    },
+    "minorista-etapa-rollback-v1": {
+      "company_id": "71ee0d15-57c6-4f9d-9f3e-0585e2479d71",
+      "name": "Rollback V1",
+      "plan": "PROFESIONAL",
+      "store_type": "retail",
+      "slug": "rollback",
+      "requires_password": false,
+      "shipping_message": null,
+      "settings": { "typography_version": "v1", "typography_title_case": "upper" }
+    },
+    "mayorista": {
+      "company_id": "71ee0d15-57c6-4f9d-9f3e-0585e2479d71",
+      "name": "Mayorista",
+      "plan": "PROFESIONAL",
+      "store_type": "wholesale",
+      "store_key": "wholesale",
+      "slug": "mayorista",
+      "requires_password": true,
+      "shipping_message": null,
+      "settings": { "color_primary": "#222222", "button_corners": "square", "sale_mode": "wholesale" }
+    },
+    "claves-legacy": {
+      "company_id": "00000000-0000-4000-8000-000000000004",
+      "name": "Legacy",
+      "plan": "TIENDA",
+      "store_type": "retail",
+      "slug": "legacy",
+      "requires_password": false,
+      "shipping_message": null,
+      "settings": {
+        "accent_color": "#ff6600",
+        "category_title_align": "right",
+        "banner_url": "https://example.com/banner.jpg",
+        "banner_url_mobile": "https://example.com/banner-m.jpg",
+        "theme": "dark"
+      }
+    },
+    "valores-basura": {
+      "company_id": "00000000-0000-4000-8000-000000000005",
+      "name": "Basura",
+      "plan": "TIENDA",
+      "store_type": "retail",
+      "slug": "basura",
+      "requires_password": false,
+      "shipping_message": null,
+      "settings": {
+        "font_scale": "abc",
+        "header_background": "red",
+        "corners": "triangular",
+        "button_corners": 7,
+        "categories_section": { "columns": 9, "card_style": "hexagon" },
+        "hero_cta_style": "grande",
+        "section_title_align": 3,
+        "sections_order": "hero,featured",
+        "show_variant_colors": "si"
+      }
+    },
+    "precio-destacado-tarjeta": {
+      "company_id": "00000000-0000-4000-8000-000000000006",
+      "name": "Tarjeta Grande",
+      "plan": "TIENDA",
+      "store_type": "retail",
+      "slug": "tarjeta",
+      "requires_password": false,
+      "shipping_message": null,
+      "settings": {
+        "color_primary": "#334455",
+        "corners": "soft",
+        "price_display": "all",
+        "price_emphasis": "card",
+        "card_installments": 3
+      }
+    }
+  }
+}

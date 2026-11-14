@@ -11,7 +11,9 @@ import { useLoadCompanyColors } from '@/hooks/useCompanyColors';
 import { resolveTenant } from '@/lib/tenant';
 import { normalizeStoreConfig } from '@/lib/storeConfig';
 import { applyDocumentMeta, applyTheme, loadFonts } from '@/lib/theme';
-import type { ResolvedStorefront, StoreConfig, StoreType } from '@/lib/types';
+import type { RawCatalogSettings, ResolvedStorefront, StoreConfig, StoreType } from '@/lib/types';
+import { applyTemplate } from '@/lib/storeTemplates';
+import { onTemplatePreviewChange, previewTemplate, requestedTemplate } from '@/lib/templatePreview';
 import { setStoreCountry } from '@/lib/regional';
 import { ALL_PRODUCTS, normalizeProductFilter, type ProductFilter } from '@/lib/productFilter';
 import { getPreviewChannel } from '@/lib/previewChannel';
@@ -104,6 +106,11 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // v22: suma `priceEmphasis` (tarjeta grande arriba). Con una entrada v21 una
 // tienda en 'card' pintaría el primer frame con el contado grande y daría vuelta
 // los precios al resolver el fetch.
+// `template` (plantillas, P0-1) NO sube la versión: se lee con guarda y una
+// entrada v22 sin la clave equivale a "sin plantilla", que es lo que tienen
+// todas las tiendas mientras el registro esté vacío. Subir a v23 en el mismo
+// cambio que publique la primera plantilla aplicable: si no, esa tienda pintaría
+// el primer frame sin plantilla y saltaría al resolver el fetch.
 const cacheKey = (slug: string) => `procurva_store_config_v22:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
@@ -182,21 +189,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // {slug}.procurva.app, o `d:${dominio}` para dominios propios (no conocemos el
   // slug real hasta que resuelve la RPC get_storefront_by_custom_domain).
   const cacheIdRef = useRef<string | null>(null);
+  // Último payload resuelto (público o desbloqueado): se vuelve a aplicar cuando
+  // cambia la autorización de la vista previa de plantilla (lib/templatePreview).
+  const resolvedRef = useRef<ResolvedStorefront | null>(null);
 
   /** Normaliza un payload resuelto y lo aplica como config activa. */
   function applyResolved(resolved: ResolvedStorefront): void {
+    resolvedRef.current = resolved;
     const cacheId = cacheIdRef.current ?? (resolved.slug || '').toLowerCase();
-    const normalized = normalizeStoreConfig(resolved);
+    // Vista previa de plantilla (lib/templatePreview): sólo con el handshake
+    // completo del canal del diseñador. Se combina con los settings EN MEMORIA y
+    // esa config nunca entra en la caché; recargar sin el parámetro vuelve a lo
+    // guardado y no se contagia a otra visita.
+    const template = previewTemplate();
+    const normalized = normalizeStoreConfig(
+      template
+        ? { ...resolved, settings: applyTemplate(resolved.settings as Record<string, unknown> | null, template) as RawCatalogSettings }
+        : resolved,
+    );
     const filter = normalizeProductFilter(resolved.product_filter);
     const key = resolved.store_key ?? resolved.store_type;
     applyConfig(normalized);
-    writeCache(cacheId, {
-      config: normalized,
-      storeType: resolved.store_type,
-      requiresPassword: resolved.requires_password,
-      storeKey: key,
-      productFilter: filter,
-    });
+    // Con un pedido de plantilla (autorizado o no) esta pestaña no escribe la
+    // caché: lo guardado y la plantilla nunca se mezclan en sessionStorage.
+    if (!requestedTemplate()) {
+      writeCache(cacheId, {
+        config: normalized,
+        storeType: resolved.store_type,
+        requiresPassword: resolved.requires_password,
+        storeKey: key,
+        productFilter: filter,
+      });
+    }
     setSlug(resolved.slug || null);
     setConfig(normalized);
     setStoreType(resolved.store_type);
@@ -239,8 +263,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ? { fn: 'get_storefront_by_slug', params: { p_slug: tenant.slug.toLowerCase() } }
         : { fn: 'get_storefront_by_custom_domain', params: { p_domain: tenant.domain.toLowerCase() } };
 
-    // 1) Servir desde cache para el primer paint (stale-while-revalidate).
-    const cached = readCache(cacheId);
+    // 1) Servir desde cache para el primer paint (stale-while-revalidate). Con un
+    // pedido de vista previa de plantilla no: la caché tiene lo guardado, sin la
+    // plantilla, y esta pestaña tampoco la escribe (ver applyResolved).
+    const cached = requestedTemplate() ? null : readCache(cacheId);
     if (cached) {
       applyConfig(cached.config);
       setConfig(cached.config);
@@ -329,6 +355,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // P0-1: la autorización de la vista previa de plantilla llega por el canal del
+  // diseñador (ack) DESPUÉS del primer pintado, y puede caer si el ERP reinicia el
+  // canal. En los dos casos se vuelve a aplicar el último payload resuelto: con la
+  // plantilla si está autorizada, lo guardado si no. Sin pedido de plantilla o en
+  // una visita pública, no escucha nada.
+  useEffect(() => {
+    return onTemplatePreviewChange(() => {
+      const last = resolvedRef.current;
+      if (last) applyResolved(last);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

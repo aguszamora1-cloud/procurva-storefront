@@ -206,6 +206,17 @@ export function applyTheme(config: StoreConfig): void {
   root.dataset.typography = typo.version;
   root.dataset.titleCase = typo.titleCase;
 
+  // Plantilla (lib/storeTemplates). El CSS de cada plantilla va bajo
+  // [data-template], así que sin plantilla resuelta no hay atributo y no puede
+  // aplicar nada. Con guarda: una config de caché anterior no trae `template`.
+  if (config.template) {
+    root.dataset.template = config.template.id;
+    root.dataset.templateVersion = String(config.template.version);
+  } else {
+    delete root.dataset.template;
+    delete root.dataset.templateVersion;
+  }
+
   // Esquinas. `rounded-full` NO sale de acá a propósito: es literal en el config
   // de Tailwind, para que elegir "recto" no convierta en cuadrados los swatches
   // de color ni los avatares.
