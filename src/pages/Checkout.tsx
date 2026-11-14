@@ -110,7 +110,7 @@ function saveCustomer(companyId: string, data: SavedCustomer): void {
 // el envío es "a coordinar" y todo se arregla por WhatsApp; no le sacamos el
 // efectivo a nadie por no haber cargado los métodos.
 const FALLBACK_METHODS: ShippingOption[] = [
-  { id: 'envio', name: 'Envío a domicilio', kind: 'home', requiresAddress: true, cost: null, icon: 'truck', description: 'Envío a todo el país', coversAllPostalCodes: true, postalCodeRanges: [], allowsCash: true, excludeFromFreeShipping: false, featured: false },
+  { id: 'envio', name: 'Envío a domicilio', kind: 'home', requiresAddress: true, cost: null, icon: 'truck', description: 'Envío a todo el país', coversAllPostalCodes: true, postalCodeRanges: [], allowsCash: true, excludeFromFreeShipping: false, featured: false, carrier: false },
 ];
 
 /** Etiqueta de precio por opción de entrega: 0 = "Gratis", null = "A coordinar", resto = precio. */
@@ -493,6 +493,11 @@ export function Checkout() {
   // Sólo es retiro en local cuando hay un método de retiro efectivamente elegido.
   // Si todavía no se calculó el envío (o el método es a domicilio) el horario es para RECIBIR.
   const isPickup = !!selectedMethod && !selectedMethod.requiresAddress;
+  // Despacho por empresa de transporte (Correo, Andreani, Vía Cargo…, a domicilio
+  // o a sucursal): la hora de entrega la decide la empresa, no el negocio. No se
+  // pide "horario para recibir" aunque el panel lo tenga como obligatorio, y si el
+  // cliente lo había escrito antes de cambiar de método no viaja en el pedido.
+  const deliveryTimeNotApplicable = !!selectedMethod && selectedMethod.requiresAddress && selectedMethod.carrier;
 
   // Un solo campo de CP (arriba de las opciones de envío): lo tipeado queda en form.zip
   // (va tal cual al pedido, aunque sea un CPA con letras) y el filtro se actualiza
@@ -689,7 +694,7 @@ export function Checkout() {
     const address = floor.trim()
       ? `${form.address}${form.address ? ', ' : ''}${floor.trim()}`
       : form.address;
-    return { ...form, address };
+    return { ...form, address, deliveryTime: deliveryTimeNotApplicable ? '' : form.deliveryTime };
   }
 
   function validate(requireEmail: boolean): string {
@@ -724,7 +729,7 @@ export function Checkout() {
     }
     if (quotingSelected) return 'Esperá un momento: estamos cotizando el envío con Correo Argentino.';
     if (agencyRequired && !selectedAgency) return 'Elegí la sucursal de Correo Argentino donde vas a retirar.';
-    if (config.requireDeliveryTime && !form.deliveryTime?.trim()) {
+    if (config.requireDeliveryTime && !deliveryTimeNotApplicable && !form.deliveryTime?.trim()) {
       return isPickup
         ? 'Indicá un horario para retirar el pedido.'
         : 'Indicá un horario para recibir el pedido.';
@@ -1325,18 +1330,25 @@ export function Checkout() {
                         inputCls={inputCls}
                       />
                     )}
-                    {/* Horario para recibir — junto a la dirección de envío */}
-                    <label className="flex flex-col gap-1.5 sm:col-span-2">
-                      <span className={labelCls}>
-                        Horario para recibir el pedido{config.requireDeliveryTime ? ' *' : ' (opcional)'}
-                      </span>
-                      <input
-                        className={inputCls}
-                        value={form.deliveryTime}
-                        onChange={set('deliveryTime')}
-                        placeholder="Ej: de 9 a 13 hs, o después de las 18"
-                      />
-                    </label>
+                    {/* Horario para recibir — junto a la dirección de envío. Con empresa
+                        de transporte no se pide: la hora la maneja la empresa, no el negocio. */}
+                    {deliveryTimeNotApplicable ? (
+                      <p className="sm:col-span-2 text-[calc(13px_*_var(--font-scale,1))] text-muted">
+                        El horario de entrega lo define la empresa de transporte.
+                      </p>
+                    ) : (
+                      <label className="flex flex-col gap-1.5 sm:col-span-2">
+                        <span className={labelCls}>
+                          Horario para recibir el pedido{config.requireDeliveryTime ? ' *' : ' (opcional)'}
+                        </span>
+                        <input
+                          className={inputCls}
+                          value={form.deliveryTime}
+                          onChange={set('deliveryTime')}
+                          placeholder="Ej: de 9 a 13 hs, o después de las 18"
+                        />
+                      </label>
+                    )}
                   </div>
                 )}
               </div>

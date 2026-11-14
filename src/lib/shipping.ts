@@ -91,6 +91,14 @@ export interface ShippingOption {
    * ausente = domicilio).
    */
   featured: boolean;
+  /**
+   * El paquete lo despacha una EMPRESA DE TRANSPORTE (Correo Argentino, Andreani,
+   * Vía Cargo, OCA…: `type === 'empresa'` en el panel, o un Correo cargado como
+   * método simple). El negocio no maneja la hora en que llega, así que el checkout
+   * no pide "horario para recibir": prometerlo era prometer algo que la empresa
+   * no cumple. Cadete propio y retiro en el local quedan en false.
+   */
+  carrier: boolean;
 }
 
 /** Transportadoras con cotización en vivo soportadas. */
@@ -363,6 +371,9 @@ export function toShippingOption(m: any, channel?: StoreChannel): ShippingOption
     allowsCash: parseAllowsCash(m, isPickup),
     excludeFromFreeShipping: m.excludeFromFreeShipping === true,
     featured: m.featured === true,
+    // Empresa de transporte sin expandir (llega acá si expandMethod no aplicó) o un
+    // Correo cargado como método simple: el horario de entrega no lo maneja el negocio.
+    carrier: !isPickup && (m.type === 'empresa' || !!liveCarrierFor(m)),
     // Un "Correo Argentino" cargado como método simple (no tipo empresa) también
     // cotiza en vivo: a domicilio, que es la opción única que muestra.
     ...(liveCarrierFor(m) ? { liveCarrier: 'correo-argentino' as const } : {}),
@@ -412,6 +423,7 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
         allowsCash,
         excludeFromFreeShipping,
         featured: featuredIn === 'home' || featuredIn === 'both',
+        carrier: true,
         ...live,
       },
       {
@@ -429,6 +441,7 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
         allowsCash,
         excludeFromFreeShipping,
         featured: featuredIn === 'branch' || featuredIn === 'both',
+        carrier: true,
         ...live,
       },
     ];
