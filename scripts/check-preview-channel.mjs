@@ -194,6 +194,52 @@ test('ack: sólo el del canal vigente y para este documento', () => {
   ch.stop();
 });
 
+test('P0-1 handshakeComplete / onHandshake: sólo tras el ack del canal vigente; cae con un canal nuevo', () => {
+  const win = fakeWindow();
+  const ch = mk(win);
+  const avisos = [];
+  const off = ch.onHandshake((c) => avisos.push(c));
+  ch.start();
+  ch.setIdentity(ID);
+  assert.equal(ch.handshakeComplete, false, 'pending');
+  win.emit(hello());
+  assert.equal(ch.handshakeComplete, false, 'hello sin ack');
+  win.emit({ ns: PREVIEW_NS, v: 1, type: 'ack', channel: CH2, doc: ch.doc });
+  win.emit({ ns: PREVIEW_NS, v: 1, type: 'ack', channel: CH, doc: 'c'.repeat(32) });
+  win.emit({ ns: PREVIEW_NS, v: 1, type: 'ack', channel: CH, doc: ch.doc }, { origin: 'https://evil.example' });
+  win.emit({ ns: PREVIEW_NS, v: 1, type: 'ack', channel: CH, doc: ch.doc }, { source: {} });
+  assert.equal(ch.handshakeComplete, false, 'acks de otro canal, documento, origen o fuente no cuentan');
+  assert.deepEqual(avisos, []);
+  win.emit({ ns: PREVIEW_NS, v: 1, type: 'ack', channel: CH, doc: ch.doc });
+  assert.equal(ch.handshakeComplete, true);
+  win.emit({ ns: PREVIEW_NS, v: 1, type: 'ack', channel: CH, doc: ch.doc });
+  assert.deepEqual(avisos, [true], 'ack repetido no avisa de nuevo');
+  win.emit(hello(CH2)); // el ERP reinició el canal: hasta el ack nuevo no hay autorización
+  assert.equal(ch.handshakeComplete, false);
+  assert.deepEqual(avisos, [true, false]);
+  win.emit({ ns: PREVIEW_NS, v: 1, type: 'ack', channel: CH, doc: ch.doc });
+  assert.equal(ch.handshakeComplete, false, 'ack del canal viejo no vale');
+  win.emit({ ns: PREVIEW_NS, v: 1, type: 'ack', channel: CH2, doc: ch.doc });
+  assert.equal(ch.handshakeComplete, true);
+  assert.deepEqual(avisos, [true, false, true]);
+  off();
+  win.emit(hello(CH));
+  assert.deepEqual(avisos, [true, false, true], 'dado de baja: no avisa más');
+  ch.stop();
+});
+
+test('P0-1 tienda pública: nunca handshakeComplete, y el listener no se dispara', () => {
+  const win = fakeWindow({ framed: false });
+  const ch = mk(win);
+  const avisos = [];
+  ch.onHandshake((c) => avisos.push(c));
+  ch.start();
+  win.emit(hello());
+  win.emit({ ns: PREVIEW_NS, v: 1, type: 'ack', channel: CH, doc: ch.doc });
+  assert.equal(ch.handshakeComplete, false);
+  assert.deepEqual(avisos, []);
+});
+
 test('stop: quita el listener (desmontaje / descarga)', () => {
   const win = fakeWindow();
   const ch = mk(win);

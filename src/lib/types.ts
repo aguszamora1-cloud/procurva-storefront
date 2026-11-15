@@ -1,6 +1,7 @@
 // Tipos del dominio leídos del Supabase de ProCurva. Sólo lectura.
 
 import type { ProductLayout } from './productLayout';
+import type { StoreTemplateRef } from './storeTemplates';
 
 /** Imagen de producto: en `products.images` puede venir string o {url}. */
 export type ProductImage = string | { url?: string };
@@ -659,6 +660,8 @@ export interface RawCatalogSettings {
   typography_version?: string;
   /** Sólo v2: 'original' respeta cómo se escribieron los títulos. Ausente = mayúsculas. */
   typography_title_case?: string;
+  /** Plantilla aplicada (lib/storeTemplates). Sin validar: la valida normalizeStoreConfig. */
+  template?: unknown;
   theme?: 'dark' | 'light';
   // Alineación de los títulos de todas las secciones del home.
   section_title_align?: 'left' | 'center' | 'right';
@@ -1105,6 +1108,12 @@ export interface StoreConfig {
   typographyVersion: 'v1' | 'v2';
   /** Capitalización de los títulos en v2 (en v1 no tiene efecto). */
   titleCase: 'upper' | 'original';
+  /**
+   * Plantilla que existe en el registro (lib/storeTemplates), o null = el
+   * aspecto de siempre. Una referencia guardada inválida o desconocida da null.
+   * Puede faltar en una entrada de caché anterior (v22 sin la clave): leer con guarda.
+   */
+  template: StoreTemplateRef | null;
   // Alineación de los títulos de todas las secciones del home.
   sectionTitleAlign: 'left' | 'center' | 'right';
   // Modo de visualización de la sección de categorías del home.
