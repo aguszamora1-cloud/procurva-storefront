@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
 import { instagramHref } from '@/lib/storeConfig';
+import { footerPolicyLinks, type FooterPolicyKey } from '@/lib/footerPolicies';
+import { PolicyDialog } from './PolicyDialog';
 import { whatsappLink } from '@/lib/utils';
 import { SILHOUETTE_CLASS, useLogoSilhouette } from '@/hooks/useLogoSilhouette';
 
@@ -54,6 +57,11 @@ export function Footer() {
   // El footer va sobre el color primario: siluetear el logo SÓLO si hace falta
   // (antes se filtraba siempre y un logo .jpg quedaba como un bloque blanco).
   const logoSilhouette = useLogoSilhouette(config.logoUrl, config.colorPrimary);
+  // Políticas cargadas en el editor («Pie de página»). Mismos textos que los
+  // acordeones de la ficha; cada enlace sólo si tiene contenido.
+  const policies = footerPolicyLinks(config);
+  const [openPolicy, setOpenPolicy] = useState<FooterPolicyKey | null>(null);
+  const activePolicy = policies.find((p) => p.key === openPolicy) ?? null;
 
   return (
     <footer className="bg-primary text-[var(--color-on-primary)]">
@@ -99,7 +107,31 @@ export function Footer() {
             {config.contactEmail && <li><a href={`mailto:${config.contactEmail}`} className="text-[var(--color-on-primary)]/85 transition-colors hover:text-accent">{config.contactEmail}</a></li>}
           </ul>
         </div>
+
+        {/* Información: políticas de la tienda (sólo las que tienen texto) */}
+        {policies.length > 0 && (
+          <div>
+            <p className="mb-4 text-[calc(11px_*_var(--font-scale,1))] font-semibold tracking-[1px] text-[var(--color-on-primary)]/50">INFORMACIÓN</p>
+            <ul className="space-y-2.5 text-[calc(14px_*_var(--font-scale,1))]">
+              {policies.map((p) => (
+                <li key={p.key}>
+                  <button
+                    type="button"
+                    aria-haspopup="dialog"
+                    onClick={() => setOpenPolicy(p.key)}
+                    className="text-left text-[var(--color-on-primary)]/85 transition-colors hover:text-accent"
+                  >
+                    {p.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
+      {activePolicy && (
+        <PolicyDialog title={activePolicy.label} text={activePolicy.text} onClose={() => setOpenPolicy(null)} />
+      )}
 
       {/* Métodos de pago */}
       <div className="border-t border-[var(--color-on-primary)]/10">

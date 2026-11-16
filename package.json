@@ -11,6 +11,7 @@
     "test:typography": "node scripts/check-typography.mjs",
     "test:ty-literals": "node scripts/check-ty-literals.mjs",
     "test:contrast": "node scripts/check-contrast.mjs",
+    "test:footer-policies": "node scripts/check-footer-policies.mjs",
     "test:preview-channel": "node --test scripts/check-preview-channel.mjs",
     "test:templates": "node --test scripts/store-templates.test.mjs",
     "check": "npm run check:mirrors && npm run check:opacity && npm run check:radius",
