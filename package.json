@@ -14,6 +14,7 @@
     "test:footer-policies": "node scripts/check-footer-policies.mjs",
     "test:preview-channel": "node --test scripts/check-preview-channel.mjs",
     "test:templates": "node --test scripts/store-templates.test.mjs",
+    "test:header-nav": "node --test scripts/nav-entries.test.mjs",
     "check": "npm run check:mirrors && npm run check:opacity && npm run check:radius",
     "prebuild": "npm run check",
     "build": "tsc -b && vite build && node scripts/spa-shell.mjs",
