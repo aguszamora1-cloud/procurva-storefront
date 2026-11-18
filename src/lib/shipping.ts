@@ -398,9 +398,14 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
     // Las dos modalidades (domicilio / sucursal) heredan el mismo criterio de
     // efectivo: es el mismo despacho, sólo cambia dónde termina el paquete.
     const allowsCash = parseAllowsCash(m, false);
-    // Domicilio y sucursal son el mismo despacho: si el comercio dejó a la
-    // transportadora afuera del envío gratis, las dos modalidades quedan afuera.
-    const excludeFromFreeShipping = m.excludeFromFreeShipping === true;
+    // Si el comercio dejó a la transportadora afuera del envío gratis, las dos
+    // modalidades quedan afuera. Si participa, puede acotarlo a una sola
+    // (`freeShippingModality`): típico, gratis el retiro en sucursal y a
+    // domicilio se cobra. Ausente o cualquier otro valor = las dos (histórico).
+    const excluded = m.excludeFromFreeShipping === true;
+    const freeIn = m.freeShippingModality === 'home' || m.freeShippingModality === 'branch' ? m.freeShippingModality : 'both';
+    const excludeHome = excluded || freeIn === 'branch';
+    const excludeBranch = excluded || freeIn === 'home';
     // Cotización en vivo: aplica a las dos modalidades (MiCorreo cotiza domicilio
     // y sucursal por separado). La clave sólo se agrega cuando corresponde, así
     // las opciones de siempre quedan idénticas.
@@ -421,7 +426,7 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
         coversAllPostalCodes,
         postalCodeRanges,
         allowsCash,
-        excludeFromFreeShipping,
+        excludeFromFreeShipping: excludeHome,
         featured: featuredIn === 'home' || featuredIn === 'both',
         carrier: true,
         ...live,
@@ -439,7 +444,7 @@ export function expandMethod(m: any, channel?: StoreChannel): ShippingOption[] {
         coversAllPostalCodes,
         postalCodeRanges,
         allowsCash,
-        excludeFromFreeShipping,
+        excludeFromFreeShipping: excludeBranch,
         featured: featuredIn === 'branch' || featuredIn === 'both',
         carrier: true,
         ...live,
