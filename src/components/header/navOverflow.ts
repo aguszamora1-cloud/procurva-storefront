@@ -1,4 +1,15 @@
 /**
+ * Columnas de una banda desplegable (Stacked): de a `perColumn` filas, hasta
+ * `maxColumns` columnas; con muchas, las filas crecen para no pasar del tope.
+ * El ancho de la banda lo define su contenido, así pocas no dejan un desierto.
+ */
+export function bandGrid(count: number, perColumn = 6, maxColumns = 4): { columns: number; rows: number } {
+  if (count <= 0) return { columns: 0, rows: 0 };
+  const columns = Math.min(maxColumns, Math.ceil(count / perColumn));
+  return { columns, rows: Math.ceil(count / columns) };
+}
+
+/**
  * Cuántas entradas de la navegación horizontal entran en `available` px.
  *
  * Si entran todas, todas. Si no, se reserva el lugar del botón "Más" y entran

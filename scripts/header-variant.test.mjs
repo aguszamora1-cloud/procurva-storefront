@@ -47,6 +47,7 @@ const {
   STORE_TEMPLATES,
   STORE_TEMPLATES_SCHEMA,
   fitCount,
+  bandGrid,
   classifyBackground,
   inkBox,
   logoLayout,
@@ -121,6 +122,23 @@ test('fitCount: todas si entran; si no, las que quepan delante de "Más"', () =>
   assert.equal(fitCount([100, 100], 0, 60, 20), 2);
   assert.equal(fitCount([100, 100], -5, 60, 20), 2);
   assert.equal(fitCount([100, 100], NaN, 60, 20), 2);
+});
+
+test('bandGrid (Stacked): columnas de 6, hasta 4; con muchas crecen las filas', () => {
+  assert.deepEqual(bandGrid(0), { columns: 0, rows: 0 });
+  assert.deepEqual(bandGrid(3), { columns: 1, rows: 3 }, 'pocas: una columna angosta');
+  assert.deepEqual(bandGrid(6), { columns: 1, rows: 6 });
+  assert.deepEqual(bandGrid(7), { columns: 2, rows: 4 }, 'se reparten parejo');
+  assert.deepEqual(bandGrid(18), { columns: 3, rows: 6 });
+  assert.deepEqual(bandGrid(24), { columns: 4, rows: 6 });
+  assert.deepEqual(bandGrid(40), { columns: 4, rows: 10 }, 'tope de 4 columnas');
+});
+
+test('Stacked sin la fila de secciones del teléfono (no aprobada) ni su parámetro', () => {
+  const src = readFileSync(resolve(repoRoot, 'src/components/header/variants/StackedHeader.tsx'), 'utf8');
+  assert.doesNotMatch(src, /aria-label="Secciones"|pc_dev_header_sections|devHeaderSections|h-\[42px\]/);
+  const hv = readFileSync(resolve(repoRoot, 'src/lib/headerVariant.ts'), 'utf8');
+  assert.doesNotMatch(hv, /pc_dev_header_sections|devHeaderSections/);
 });
 
 // ── Logo óptico (logoMetrics) con imágenes sintéticas ─────────────────────────
@@ -247,8 +265,13 @@ test('parseCssColor: sólo colores opacos', () => {
 });
 
 // ── Bundle de producción ──────────────────────────────────────────────────────
-/** Marcas que sólo existen en el código de Inline (no en Classic). */
+/** Marcas que sólo existen en el código de Inline y Stacked (no en Classic). */
 const INLINE_MARKS = ['data-logo-mode', 'pc_logo_metrics_v1:', '"Principal"', 'procurva:logo-analysis'];
+/**
+ * Marcas que sólo existen en StackedHeader. (`data-sticky-anchor` no: Layout,
+ * que está en el índice, lo busca para el sticky.)
+ */
+const STACKED_MARKS = ['grid-cols-[200px_minmax(0,1fr)_200px]', 'h-[112px]'];
 
 test('build de producción: sin pc_dev_header, e Inline en un chunk aparte (no en el índice)', (t) => {
   const dist = process.env.HEADER_DIST ? resolve(process.env.HEADER_DIST) : resolve(repoRoot, 'dist');
@@ -266,7 +289,18 @@ test('build de producción: sin pc_dev_header, e Inline en un chunk aparte (no e
   for (const mark of INLINE_MARKS) {
     assert.ok(!contenido[index[0]].includes(mark), `Inline entró al índice (${mark})`);
   }
-  const inlineChunks = js.filter((f) => f !== index[0] && INLINE_MARKS.every((m) => contenido[f].includes(m)));
-  assert.equal(inlineChunks.length, 1, `Inline tiene que estar en exactamente un chunk aparte: ${inlineChunks.join(', ')}`);
-  t.diagnostic(`chunk de Inline: ${inlineChunks[0]} (${(contenido[inlineChunks[0]].length / 1024).toFixed(1)} kB)`);
+  // Las piezas de Inline (logo óptico, navegación) pueden quedar en un chunk compartido
+  // con Stacked: lo que importa es que NINGUNA esté en el índice.
+  const conInline = js.filter((f) => f !== index[0] && INLINE_MARKS.every((m) => contenido[f].includes(m)));
+  assert.ok(conInline.length >= 1, 'las piezas de Inline tienen que estar en algún chunk aparte');
+  const inlineChunk = js.filter((f) => /^InlineHeader-[\w-]+\.js$/.test(f));
+  const stackedChunk = js.filter((f) => /^StackedHeader-[\w-]+\.js$/.test(f));
+  assert.equal(inlineChunk.length, 1, `un chunk propio de Inline: ${inlineChunk.join(', ')}`);
+  assert.equal(stackedChunk.length, 1, `un chunk propio de Stacked: ${stackedChunk.join(', ')}`);
+  for (const mark of STACKED_MARKS) {
+    const con = js.filter((f) => contenido[f].includes(mark));
+    assert.deepEqual(con, stackedChunk, `${mark} sólo en el chunk de Stacked`);
+  }
+  const kb = (f) => (contenido[f].length / 1024).toFixed(1);
+  t.diagnostic(`chunks: ${[...inlineChunk, ...stackedChunk, ...conInline.filter((f) => !inlineChunk.includes(f) && !stackedChunk.includes(f))].map((f) => `${f} ${kb(f)} kB`).join(' · ')}`);
 });
