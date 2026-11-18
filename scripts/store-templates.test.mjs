@@ -88,6 +88,15 @@ const {
   templatePatch,
   applyTemplate,
   canonicalTemplateJson,
+  STORE_TEMPLATES_SCHEMA,
+  HEADER_LAYOUTS,
+  DEFAULT_HEADER_LAYOUT,
+  isHeaderLayout,
+  isValidTemplateComponents,
+  isValidTemplateDefinition,
+  normalizeTemplateComponents,
+  templateHeaderLayout,
+  resolveTemplateHeader,
 } = mod;
 /** sha256 del JSON canónico de una definición: es lo que guarda el lock. */
 const templateHash = (def) => createHash('sha256').update(canonicalTemplateJson(def)).digest('hex');
@@ -185,6 +194,9 @@ test('registro: ids, versiones, nombres y claves válidos', () => {
     seen.add(key);
     for (const k of Object.keys(def.patch)) assert.ok(TEMPLATE_PATCH_KEYS.includes(k), `${key}: clave no permitida ${k}`);
     assert.deepEqual(clone(def.patch), def.patch, `${key}: el patch no es JSON puro`);
+    // P0-2 B2: la definición entera (con `components`) tiene que validar.
+    assert.ok(isValidTemplateDefinition(def), `${key}: definición inválida (esquema 2)`);
+    assert.ok(isHeaderLayout(templateHeaderLayout(def)), `${key}: encabezado no admitido`);
   }
 });
 
@@ -372,4 +384,171 @@ test('JSON canónico: claves ordenadas en todos los niveles', () => {
     canonicalTemplateJson({ version: 1, patch: { b: { y: 1, x: 2 }, a: [3, { d: 1, c: 2 }] }, name: 'X', id: 'x' }),
     '{"id":"x","name":"X","patch":{"a":[3,{"c":2,"d":1}],"b":{"x":2,"y":1}},"version":1}',
   );
+});
+
+// ── 7. Encabezados (P0-2 B2: contrato `components.header` y resolución) ────────
+/** Definiciones de prueba: NUNCA en el registro; se pasan explícitas. */
+const HDR = (id, version, components, extra = {}) => ({ id, version, name: id, patch: {}, ...extra, ...(components === undefined ? {} : { components }) });
+const HDR_REGISTRY = [
+  HDR('con-classic', 1, { header: { layout: 'classic' } }),
+  HDR('con-inline', 1, { header: { layout: 'inline' } }),
+  HDR('con-stacked', 1, { header: { layout: 'stacked' } }),
+  HDR('con-stacked', 2, { header: { layout: 'inline' } }),
+  HDR('esquema-1', 1, undefined),
+  HDR('sin-header', 1, {}),
+  HDR('con-patch', 1, { header: { layout: 'inline' } }, { patch: { corners: 'square' } }),
+];
+/** Lo que NO es un encabezado válido: cada uno tiene que dar Classic. */
+const BAD_COMPONENTS = [
+  null,
+  'inline',
+  42,
+  [],
+  [{ layout: 'inline' }],
+  { header: null },
+  { header: 'inline' },
+  { header: [] },
+  { header: {} },
+  { header: { layout: 'statement' } },
+  { header: { layout: 'Inline' } },
+  { header: { layout: ' inline' } },
+  { header: { layout: 42 } },
+  { header: { layout: null } },
+  { header: { layout: ['inline'] } },
+  { header: { layout: 'inline', tone: 'refined' } },
+  { header: { layout: 'stacked', tone: 'default' } },
+  { header: { layout: 'inline', extra: true } },
+  { header: { layout: 'inline' }, hero: { layout: 'band' } },
+  { header: { layout: 'inline' }, tone: 'refined' },
+  { headers: { layout: 'inline' } },
+];
+
+test('contrato: esquema 2, exactamente classic | inline | stacked, sin tonos ni statement', () => {
+  assert.equal(STORE_TEMPLATES_SCHEMA, 2);
+  assert.deepEqual([...HEADER_LAYOUTS], ['classic', 'inline', 'stacked']);
+  assert.equal(DEFAULT_HEADER_LAYOUT, 'classic');
+  for (const l of HEADER_LAYOUTS) assert.ok(isHeaderLayout(l));
+  for (const v of ['statement', 'Classic', 'CLASSIC', '', null, undefined, 1, ['inline'], { layout: 'inline' }]) assert.equal(isHeaderLayout(v), false, JSON.stringify(v));
+  const src = readFileSync(resolve(repoRoot, 'src/lib/storeTemplates.ts'), 'utf8');
+  assert.doesNotMatch(src, /statement|refined|\btone\b|HEADER_TONES|HeaderTone/i, 'statement / tone no forman parte del contrato');
+});
+
+test('contrato válido: cada definición resuelve el encabezado que pide', () => {
+  for (const def of HDR_REGISTRY) assert.ok(isValidTemplateDefinition(def), def.id);
+  assert.equal(templateHeaderLayout(HDR_REGISTRY[0]), 'classic');
+  assert.equal(templateHeaderLayout(HDR_REGISTRY[1]), 'inline');
+  assert.equal(templateHeaderLayout(HDR_REGISTRY[2]), 'stacked');
+  assert.equal(resolveTemplateHeader({ id: 'con-inline', version: 1 }, HDR_REGISTRY), 'inline');
+  assert.equal(resolveTemplateHeader({ id: 'con-stacked', version: 1 }, HDR_REGISTRY), 'stacked');
+  assert.equal(resolveTemplateHeader({ id: 'con-stacked', version: 2 }, HDR_REGISTRY), 'inline', 'cada versión tiene su encabezado');
+  assert.equal(resolveTemplateHeader({ id: 'con-patch', version: 1 }, HDR_REGISTRY), 'inline', 'patch y components conviven');
+  // Campos extra de la referencia guardada (snapshot para deshacer, fecha) no molestan.
+  assert.equal(resolveTemplateHeader({ id: 'con-inline', version: 1, applied_at: 'x', previous: { corners: 'soft' } }, HDR_REGISTRY), 'inline');
+  assert.deepEqual(normalizeTemplateComponents({ header: { layout: 'stacked' } }), { header: { layout: 'stacked' } });
+  assert.deepEqual(normalizeTemplateComponents(undefined), {});
+  assert.deepEqual(normalizeTemplateComponents({}), {});
+});
+
+test('fallback a Classic: sin plantilla, esquema 1 y sin encabezado', () => {
+  for (const raw of [undefined, null, '', 0, false, {}, []]) assert.equal(resolveTemplateHeader(raw, HDR_REGISTRY), 'classic', JSON.stringify(raw));
+  assert.equal(templateHeaderLayout(null), 'classic');
+  assert.equal(templateHeaderLayout(undefined), 'classic');
+  assert.equal(resolveTemplateHeader({ id: 'esquema-1', version: 1 }, HDR_REGISTRY), 'classic', 'definición del esquema 1 (sin components)');
+  assert.equal(resolveTemplateHeader({ id: 'sin-header', version: 1 }, HDR_REGISTRY), 'classic', 'components sin header');
+});
+
+test('identificadores desconocidos y referencias mal formadas: Classic', () => {
+  for (const bad of BAD_REFS) assert.equal(resolveTemplateHeader(bad, HDR_REGISTRY), 'classic', JSON.stringify(bad));
+  assert.equal(resolveTemplateHeader({ id: 'con-inline', version: 2 }, HDR_REGISTRY), 'classic', 'versión que no existe');
+  assert.equal(resolveTemplateHeader({ id: 'con-inline', version: null }, HDR_REGISTRY), 'classic', 'una referencia guardada necesita versión exacta');
+  assert.equal(resolveTemplateHeader({ id: 'CON-INLINE', version: 1 }, HDR_REGISTRY), 'classic');
+});
+
+test('encabezados desconocidos o mal formados: la definición es inválida y da Classic', () => {
+  for (const comp of BAD_COMPONENTS) {
+    const def = HDR('rara', 1, comp);
+    assert.equal(isValidTemplateComponents(comp), false, JSON.stringify(comp));
+    assert.equal(isValidTemplateDefinition(def), false, JSON.stringify(comp));
+    assert.equal(templateHeaderLayout(def), 'classic', JSON.stringify(comp));
+    assert.equal(resolveTemplateHeader({ id: 'rara', version: 1 }, [def]), 'classic', JSON.stringify(comp));
+    assert.deepEqual(normalizeTemplateComponents(comp), {}, JSON.stringify(comp));
+  }
+  // Un encabezado heredado por prototipo no es parte del contrato: se ignora (= sin header).
+  const heredado = { __proto__: { header: { layout: 'inline' } } };
+  assert.equal(isValidTemplateComponents(heredado), true, 'sin claves propias es {}');
+  assert.deepEqual(normalizeTemplateComponents(heredado), {});
+  assert.equal(templateHeaderLayout(HDR('heredada', 1, heredado)), 'classic');
+  const layoutHeredado = { header: { __proto__: { layout: 'inline' } } };
+  assert.equal(isValidTemplateComponents(layoutHeredado), false, 'layout heredado no vale');
+  assert.equal(templateHeaderLayout(HDR('heredada', 1, layoutHeredado)), 'classic');
+  // Definiciones rotas por fuera de components también caen a Classic.
+  const rotas = [
+    { ...HDR('ok', 1, { header: { layout: 'inline' } }), id: 'Con Mayus' },
+    { ...HDR('ok', 1, { header: { layout: 'inline' } }), version: 0 },
+    { ...HDR('ok', 1, { header: { layout: 'inline' } }), name: '' },
+    { ...HDR('ok', 1, { header: { layout: 'inline' } }), patch: null },
+    { ...HDR('ok', 1, { header: { layout: 'inline' } }), patch: { price_display: 'all' } },
+    null,
+    undefined,
+    'inline',
+    [],
+  ];
+  for (const def of rotas) {
+    assert.equal(isValidTemplateDefinition(def), false, JSON.stringify(def));
+    assert.equal(templateHeaderLayout(def), 'classic', JSON.stringify(def));
+  }
+});
+
+test('registro vacío: toda referencia da Classic con el registro real', () => {
+  assert.equal(STORE_TEMPLATES.length, 0);
+  for (const ref of [{ id: 'con-inline', version: 1 }, { id: 'con-stacked', version: 1 }, { id: 'prueba-f0', version: 1 }, null]) {
+    assert.equal(resolveTemplateHeader(ref), 'classic', JSON.stringify(ref));
+  }
+});
+
+test('las definiciones de prueba no están en el registro real ni en el archivo', () => {
+  const src = readFileSync(resolve(repoRoot, 'src/lib/storeTemplates.ts'), 'utf8');
+  for (const def of [...HDR_REGISTRY, ...FIXTURE_REGISTRY]) {
+    assert.equal(findTemplate({ id: def.id, version: def.version }), null, def.id);
+    assert.ok(!src.includes(`'${def.id}'`), `${def.id} aparece en storeTemplates.ts`);
+  }
+});
+
+test('ausencia de escrituras y efectos: funciones puras, entrada intacta, módulo sin acceso a red ni storage', () => {
+  const src = readFileSync(resolve(repoRoot, 'src/lib/storeTemplates.ts'), 'utf8');
+  const codigo = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  assert.doesNotMatch(codigo, /localStorage|sessionStorage|indexedDB|document\.|window\.|fetch\(|XMLHttpRequest|supabase|navigator\.|import\.meta/);
+  const deep = (v) => { if (v && typeof v === 'object') { Object.freeze(v); for (const k of Object.keys(v)) deep(v[k]); } return v; };
+  const registry = deep(clone(HDR_REGISTRY));
+  const ref = deep({ id: 'con-stacked', version: 1, previous: { a: 1 } });
+  const antes = JSON.stringify([registry, ref]);
+  assert.equal(resolveTemplateHeader(ref, registry), 'stacked');
+  assert.deepEqual(normalizeTemplateComponents(registry[2].components), { header: { layout: 'stacked' } });
+  assert.notEqual(normalizeTemplateComponents(registry[2].components).header, registry[2].components.header, 'devuelve una copia');
+  assert.equal(JSON.stringify([registry, ref]), antes, 'mutó la entrada');
+});
+
+test('compatibilidad: configs guardadas antes del esquema 2 normalizan igual y resuelven Classic', () => {
+  for (const [name, p] of Object.entries(payloads)) {
+    const config = normalizeStoreConfig(clone(p));
+    assert.deepEqual(withoutTemplate(config), golden[name], `${name}: la config normalizada cambió con el esquema 2`);
+    assert.equal(resolveTemplateHeader(config.template), 'classic', `${name}: config.template de la tienda`);
+    assert.equal(resolveTemplateHeader(p.settings?.template), 'classic', `${name}: settings.template crudo`);
+  }
+  // Una entrada de caché anterior puede no traer `template` (undefined): Classic, sin romper.
+  assert.equal(resolveTemplateHeader(undefined), 'classic');
+  // El JSON canónico (lock de versiones) incluye `components`: cambiar el encabezado cambia la huella.
+  const a = canonicalTemplateJson(HDR('x', 1, { header: { layout: 'inline' } }));
+  const b = canonicalTemplateJson(HDR('x', 1, { header: { layout: 'stacked' } }));
+  assert.notEqual(a, b);
+  assert.equal(canonicalTemplateJson(HDR('x', 1, undefined)), '{"id":"x","name":"x","patch":{},"version":1}', 'una definición del esquema 1 conserva su huella');
+});
+
+test('integridad del espejo: con PROCURVA2_DIR, el ERP tiene el mismo archivo byte a byte', () => {
+  const erp = process.env.PROCURVA2_DIR;
+  if (!erp) return;
+  const lf = (s) => s.replace(/\r\n/g, '\n');
+  const a = lf(readFileSync(resolve(repoRoot, 'src/lib/storeTemplates.ts'), 'utf8'));
+  const b = lf(readFileSync(resolve(erp, 'components/catalog/editor/storeTemplates.ts'), 'utf8'));
+  assert.equal(a, b, 'storeTemplates.ts divergió entre tienda y ERP');
 });
