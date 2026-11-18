@@ -41,7 +41,8 @@ const ICON_BUTTON = `relative inline-flex h-11 w-11 items-center justify-center 
  * escuchar el scroll) aparece el logo chico de la izquierda, sólo con opacidad.
  * Los tres logos (mástil, compacto, teléfono) se montan juntos desde el primer
  * render: comparten la medición y la descarga del archivo (un <img> creado más
- * tarde volvería a bajarlo, el almacenamiento responde no-cache).
+ * tarde volvería a pedirlo: con caché HTTP sale de la caché, Storage responde
+ * `public, max-age=3600`; sin caché, como en las pruebas con route(), se baja de nuevo).
  *
  * Teléfono y tablet: fila de 60px (ancla) con menú y búsqueda a la izquierda,
  * logo centrado y carrito a la derecha. El menú es el de Inline

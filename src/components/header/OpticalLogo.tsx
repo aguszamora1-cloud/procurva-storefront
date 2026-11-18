@@ -74,8 +74,10 @@ export function OpticalLogo({ slot, strictH, className = '' }: { slot: LogoSlot;
   const optical = ready && layout.mode === 'optical';
 
   // Un único <img> desde el primer render: al pasar de "pending" a su modo sólo
-  // cambian los estilos. Un nodo nuevo volvería a descargar el archivo entero,
-  // porque el almacenamiento responde "no-cache". Fuera del modo óptico la caja
+  // cambian los estilos. Un nodo nuevo volvería a pedir el archivo: con la caché
+  // HTTP del navegador sale de ahí sin bajar bytes (Storage responde
+  // `public, max-age=3600`), pero sin caché (las pruebas con route() la
+  // desactivan) se descarga entero otra vez. Fuera del modo óptico la caja
   // es "display: contents" y el <img> queda como hijo directo del link, igual que antes.
   return (
     <Link
