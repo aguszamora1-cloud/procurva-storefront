@@ -440,10 +440,6 @@ export function Checkout() {
   );
   const requiresAddress = selectedMethod?.requiresAddress ?? false;
 
-  // ¿La opción elegida está esperando su cotización en vivo? Mientras tanto el
-  // costo es el configurado (provisorio): no dejamos confirmar con ese número.
-  const quotingSelected = correoQuoting && !!selectedMethod?.liveCarrier;
-
   // Retiro en sucursal de Correo Argentino cotizado en vivo: el cliente elige la
   // sucursal (obligatorio) y queda escrita en el transporte del pedido.
   const needsCorreoAgency = !!selectedMethod && selectedMethod.kind === 'branch' && selectedMethod.liveCarrier === 'correo-argentino';
@@ -587,6 +583,21 @@ export function Checkout() {
   const selectedShippingCost = shippingCostFor(selectedMethod, priceMode);
   const shippingKnown = typeof selectedShippingCost === 'number';
   const shippingCost = shippingKnown ? (selectedShippingCost as number) : 0;
+
+  // ¿Esta opción sale gratis por la promo de envío gratis SEA CUAL SEA la
+  // cotización de Correo? Pasa si el costo provisorio (el configurado) ya está
+  // bonificado: si Correo responde, su tarifa (> 0) también se bonifica; si
+  // falla, queda el provisorio, bonificado. En los dos casos el envío es $0, así
+  // que no tiene sentido hacer esperar al cliente (medido: ~10 s en celular con
+  // el botón bloqueado; pedido de clienta, 20/11/2026). La cotización sigue en
+  // segundo plano: si el cliente cambia a tarjeta y deja de alcanzar el mínimo,
+  // vuelve a esperar como antes.
+  const freeRegardlessOfQuote = (m: ShippingOption | null) => !!m && isFreeByPromo(m, freeShipping);
+
+  // ¿La opción elegida está esperando su cotización en vivo? Mientras tanto el
+  // costo es el configurado (provisorio): no dejamos confirmar con ese número,
+  // salvo que el envío salga gratis igual.
+  const quotingSelected = correoQuoting && !!selectedMethod?.liveCarrier && !freeRegardlessOfQuote(selectedMethod);
 
   // Packaging de regalo: lo tilda el cliente. Puede valer 0 (gratis) y en ese
   // caso NO suma plata pero el pedido igual tiene que salir con el mono, por eso
@@ -1020,8 +1031,11 @@ export function Checkout() {
     // queda tachado al lado: que se vea el descuento que el carrito se ganó.
     // Cotización en vivo pendiente: el costo todavía es el provisorio, así que
     // no lo mostramos (ni tachado ni como precio) hasta tener la tarifa real.
-    const quoting = correoQuoting && !!m.liveCarrier;
-    const bonified = !quoting && isFreeByPromo(m, freeShipping);
+    // Gratis por promo pase lo que pase: se muestra "Gratis" ya, sin el tachado
+    // (el precio de lista real todavía no llegó; tacharíamos el provisorio).
+    const pendingQuote = correoQuoting && !!m.liveCarrier;
+    const quoting = pendingQuote && !freeRegardlessOfQuote(m);
+    const bonified = !pendingQuote && isFreeByPromo(m, freeShipping);
     const price = shippingPriceLabel(shippingCostFor(m, priceMode));
     return (
       <RadioCard
@@ -1128,7 +1142,7 @@ export function Checkout() {
         ) : shippingKnown ? (
           shippingCost === 0 ? (
             <span className="flex items-baseline gap-1.5">
-              {selectedMethod && isFreeByPromo(selectedMethod, freeShipping) && (
+              {selectedMethod && isFreeByPromo(selectedMethod, freeShipping) && !(correoQuoting && selectedMethod.liveCarrier) && (
                 <span className="text-[calc(12px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(selectedMethod.cost as number)}</span>
               )}
               <span className="text-[calc(13px_*_var(--font-scale,1))] font-medium text-[#27ae60]">Gratis</span>
