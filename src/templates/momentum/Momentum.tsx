@@ -11,7 +11,7 @@
  */
 import { useCallback, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ChevronRight, Home, LayoutGrid, Search, ShoppingBag, SlidersHorizontal, Truck, CreditCard, RefreshCcw, Banknote, X } from 'lucide-react';
+import { ChevronRight, Home, LayoutGrid, Search, ShoppingBag, SlidersHorizontal, Truck, CreditCard, X } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
 import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { useProducts } from '@/hooks/useProducts';
@@ -20,7 +20,7 @@ import { useHomeSections } from '@/hooks/useHomeSections';
 import { useCategories } from '@/hooks/useCategories';
 import { StoreImage } from '@/components/StoreImage';
 import { Seo } from '@/components/Seo';
-import { colorToHex, formatPrice, getPriceInfo, mainImage, productCategories } from '@/lib/utils';
+import { colorToHex, formatPrice, mainImage, productCategories } from '@/lib/utils';
 import type { Product } from '@/lib/types';
 import type { TemplateKit } from '../TemplateApp';
 import {
@@ -30,7 +30,9 @@ import {
   cardHref,
   categoryHref,
   categoryImage,
+  isNeutralColor,
   isSoldOut,
+  sameText,
   sizesInStock,
   useCatalog,
   useContact,
@@ -59,27 +61,20 @@ const PAYMENT_LABELS: Record<string, string> = {
 };
 
 /**
- * Beneficios REALES de la tienda: sólo lo que el comercio configuró. Nada de
- * "calidad garantizada" ni promesas que la tienda no hizo.
+ * Beneficios REALES de la tienda: sólo lo que el comercio configuró (envío
+ * gratis desde un monto y cuotas sin interés). La plantilla no calcula ni
+ * promete nada por su cuenta. Se muestran una sola vez, en la franja superior.
  */
-function useBenefits(products: Product[]) {
+function useBenefits() {
   const c = useStore();
-  const policies = usePolicies();
   return useMemo(() => {
-    const list: { icon: ReactNode; title: string; text: string }[] = [];
+    const list: { key: string; icon: ReactNode; title: string; text: string }[] = [];
     if (c.freeShippingFrom > 0)
-      list.push({ icon: <Truck />, title: 'Envío gratis', text: `En compras desde ${formatPrice(c.freeShippingFrom)}` });
+      list.push({ key: 'envio', icon: <Truck />, title: 'Envío gratis', text: `desde ${formatPrice(c.freeShippingFrom)}` });
     if (c.installmentsCount >= 2)
-      list.push({ icon: <CreditCard />, title: `${c.installmentsCount} cuotas sin interés`, text: 'Con tarjeta de crédito' });
-    const cashPcts = products.map((p) => getPriceInfo(p).cashDiscountPct).filter((n) => n > 0);
-    if (cashPcts.length > 0 && c.priceDisplay !== 'card') {
-      const pct = Math.max(...cashPcts);
-      list.push({ icon: <Banknote />, title: `Hasta ${pct}% menos`, text: `Pagando ${c.cashLabel || 'en efectivo o transferencia'}` });
-    }
-    if (policies.some((p) => p.key === 'cambios'))
-      list.push({ icon: <RefreshCcw />, title: 'Cambios', text: 'Mirá las condiciones en cada producto' });
+      list.push({ key: 'cuotas', icon: <CreditCard />, title: `${c.installmentsCount} cuotas sin interés`, text: 'con tarjeta de crédito' });
     return list;
-  }, [c.freeShippingFrom, c.installmentsCount, c.priceDisplay, c.cashLabel, products, policies]);
+  }, [c.freeShippingFrom, c.installmentsCount]);
 }
 
 // ── Búsqueda (siempre visible) ────────────────────────────────────────────────
@@ -110,16 +105,12 @@ function SearchField({ id }: { id: string }) {
 
 // ── Encabezado ────────────────────────────────────────────────────────────────
 function MomentumHeader() {
-  const config = useStore();
   const { itemCount, open } = useCartView();
   const { products } = useProducts();
   const { categories } = useCategories(products);
   const contact = useContact();
   const wa = contact.find((c) => c.label === 'WhatsApp');
-  const util = [
-    config.freeShippingFrom > 0 ? `Envío gratis desde ${formatPrice(config.freeShippingFrom)}` : null,
-    config.installmentsCount >= 2 ? `${config.installmentsCount} cuotas sin interés` : null,
-  ].filter(Boolean);
+  const util = useBenefits().map((b) => `${b.title} ${b.text}`);
   return (
     <header className="mo-header">
       {(util.length > 0 || wa) && (
@@ -268,7 +259,7 @@ function MomentumFooter() {
       <div className="mo-footer__grid">
         <div>
           <StoreMark className="mo-footer__logo" />
-          {config.tagline && config.tagline !== config.name && <p>{config.tagline}</p>}
+          {config.tagline && !sameText(config.tagline, config.name) && <p>{config.tagline}</p>}
         </div>
         {categories.length > 0 && (
           <nav aria-label="Categorías">
@@ -405,7 +396,7 @@ function CartSummary() {
 }
 
 function MomentumCart() {
-  const { isOpen, close, lines, itemCount } = useCartView();
+  const { isOpen, close, lines, itemCount, subtotal } = useCartView();
   const ref = useRef<HTMLDivElement>(null);
   useOverlay(isOpen, close, ref);
   useCloseOnRoute(close);
@@ -414,6 +405,7 @@ function MomentumCart() {
     <div className="mo-drawer" role="dialog" aria-modal="true" aria-label="Carrito">
       <button type="button" className="mo-scrim" aria-label="Cerrar el carrito" tabIndex={-1} onClick={close} />
       <div className="mo-drawer__panel" ref={ref}>
+        <span className="mo-drawer__grip" aria-hidden="true" />
         <div className="mo-drawer__head">
           <p>
             Tu carrito <span>({itemCount})</span>
@@ -432,9 +424,21 @@ function MomentumCart() {
           </div>
         ) : (
           <>
-            <ShipProgress />
-            <CartLines />
-            <CartSummary />
+            <div className="mo-drawer__top">
+              <p className="mo-summary__row">
+                <span>Subtotal</span>
+                <b>{formatPrice(subtotal)}</b>
+              </p>
+              <ShipProgress />
+              <Link to="/checkout" className="mo-btn mo-btn--block">
+                Iniciar compra
+              </Link>
+              <p className="mo-summary__note">El envío y los descuentos por medio de pago se calculan en el siguiente paso.</p>
+            </div>
+            <div className="mo-drawer__lines">
+              <p className="mo-drawer__label">Productos</p>
+              <CartLines />
+            </div>
           </>
         )}
       </div>
@@ -447,7 +451,9 @@ function MomentumShell({ children }: { children: ReactNode }) {
   const [cats, setCats] = useState(false);
   const closeCats = useCallback(() => setCats(false), []);
   useCloseOnRoute(closeCats);
-  const brand = brandOr(config.colorPrimary, '#ffffff', brandOr(config.colorAccent, '#ffffff', '#1546d6'));
+  const own = '#1546d6';
+  const pick = (c: string) => (isNeutralColor(c) ? null : brandOr(c, '#ffffff', ''));
+  const brand = pick(config.colorPrimary) || pick(config.colorAccent) || own;
   return (
     <div className="tpl-momentum" style={{ '--mo-brand': brand } as CSSProperties}>
       <a href="#mo-main" className="mo-skip">
@@ -524,7 +530,7 @@ function MomentumHome() {
   const { categories } = useCategories(products);
   useFirstPaintGate('tpl-home', isLoading);
   const hero = useHero();
-  const benefits = useBenefits(products);
+  const bannerMode = Boolean(hero.image && !hero.hasText);
   const titles: Record<TabKey, string> = {
     featured: useHeading('featured', 'Más vendidos'),
     new: useHeading('new_arrivals', 'Nuevos'),
@@ -550,15 +556,53 @@ function MomentumHome() {
   return (
     <>
       <Seo title={config.metaTitle || config.name} description={config.metaDescription || config.tagline || config.name} image={config.ogImageUrl} slug={config.slug} siteName={config.name} path="/" />
-      {hero.image && !hero.hasText ? (
-        <section className="mo-banner" aria-label="Portada">
+      {bannerMode ? (
+        <section className="mo-stage" aria-label="Portada">
           <h1 className="tpl-sr">{config.name}</h1>
-          <Link to={hero.ctaExternal ? '/productos' : hero.ctaLink}>
-            <picture>
-              {hero.mobile && <source media="(max-width: 899px)" srcSet={hero.mobile} />}
-              <img src={hero.image} alt="" fetchPriority="high" />
-            </picture>
-          </Link>
+          {categories.length > 0 && (
+            <nav className="mo-quick" aria-label="Categorías">
+              {categories.slice(0, 10).map((c) => {
+                const img = categoryImage(c, products);
+                return (
+                  <Link key={c.name} to={categoryHref(c.name)}>
+                    <span className="mo-quick__img">{img && <StoreImage src={img} alt="" transformWidth={160} width={64} height={64} />}</span>
+                    {c.name}
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
+          <div className="mo-stage__grid">
+            <div className="mo-banner">
+              <Link to={hero.ctaExternal ? '/productos' : hero.ctaLink} aria-label={hero.ctaText || 'Ver productos'}>
+                <picture>
+                  {hero.mobile && <source media="(max-width: 899px)" srcSet={hero.mobile} />}
+                  <img src={hero.image ?? ''} alt="" fetchPriority="high" />
+                </picture>
+              </Link>
+            </div>
+            {categories.length > 0 && (
+              <div className="mo-stage__side">
+                <p className="mo-stage__title">Comprá por categoría</p>
+                {categories.slice(0, 4).map((c) => {
+                  const img = categoryImage(c, products);
+                  return (
+                    <Link key={c.name} to={categoryHref(c.name)} className="mo-tile">
+                      <span className="mo-tile__img">{img && <StoreImage src={img} alt="" transformWidth={240} width={120} height={120} />}</span>
+                      <span className="mo-tile__text">
+                        <b>{c.name}</b>
+                        <span>{c.count} productos</span>
+                      </span>
+                      <ChevronRight aria-hidden="true" />
+                    </Link>
+                  );
+                })}
+                <Link to="/productos" className="mo-more">
+                  Ver todos los productos <ChevronRight aria-hidden="true" />
+                </Link>
+              </div>
+            )}
+          </div>
         </section>
       ) : (
         <section className="mo-hero" aria-labelledby="mo-hero-title">
@@ -578,21 +622,7 @@ function MomentumHome() {
         </section>
       )}
 
-      {benefits.length >= 2 && (
-        <ul className="mo-benefits" aria-label="Beneficios">
-          {benefits.map((b) => (
-            <li key={b.title}>
-              {b.icon}
-              <span>
-                <b>{b.title}</b>
-                {b.text}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {categories.length > 0 && (
+      {!bannerMode && categories.length > 0 && (
         <section className="mo-section" aria-labelledby="mo-cats">
           <div className="mo-head">
             <h2 id="mo-cats" className="mo-title">
@@ -718,6 +748,16 @@ function MomentumCatalog() {
           <div className="mo-catalog__top">
             <div>
               <h1 className="mo-display mo-display--page">{title}</h1>
+              <nav className="mo-pills mo-only-mobile" aria-label="Categorías">
+                <NavLink to="/productos" end>
+                  Todos <span>{view.all.length}</span>
+                </NavLink>
+                {view.categories.map((c) => (
+                  <NavLink key={c.name} to={categoryHref(c.name)}>
+                    {c.name} <span>{c.count}</span>
+                  </NavLink>
+                ))}
+              </nav>
               <p className="mo-catalog__count">{view.isLoading ? ' ' : `${view.count} ${view.count === 1 ? "producto" : "productos"}`}</p>
             </div>
             <label className="mo-sort mo-only-desktop">
@@ -836,7 +876,7 @@ function MomentumProductView({ product }: { product: Product }) {
   const policies = usePolicies();
   const cats = productCategories(product);
   const price = useTplPrice(product, { color: pdp.color, size: pdp.size });
-  const benefits = useBenefits([product]).filter((b) => b.title !== 'Cambios');
+  const benefits = useBenefits().filter((b) => b.key === 'envio');
   const cta = pdp.soldOut
     ? 'Sin stock'
     : pdp.canAdd

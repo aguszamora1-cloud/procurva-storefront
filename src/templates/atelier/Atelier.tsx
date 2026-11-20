@@ -35,10 +35,12 @@ import {
   usePolicies,
   useHero,
   buyAction,
+  sameText,
+  type CatalogView,
   type SortKey,
 } from '../shared/commerce';
 import { PriceView } from '../shared/Price';
-import { StoreMark, useCartView, useCloseOnRoute, useOverlay, useScrolled, useSearchSubmit } from '../shared/ui';
+import { StoreMark, useCartView, useCloseOnRoute, useFitText, useOverlay, useScrolled, useSearchSubmit } from '../shared/ui';
 import './atelier.css';
 
 // ── Encabezado ────────────────────────────────────────────────────────────────
@@ -186,7 +188,7 @@ function AtelierFooter() {
       <div className="at-footer__grid">
         <div>
           <p className="at-footer__name">{config.name}</p>
-          {config.tagline && config.tagline !== config.name && <p className="at-footer__tag">{config.tagline}</p>}
+          {config.tagline && !sameText(config.tagline, config.name) && <p className="at-footer__tag">{config.tagline}</p>}
         </div>
         <nav aria-label="Tienda">
           <p className="at-eyebrow">Tienda</p>
@@ -234,6 +236,8 @@ function AtelierFooter() {
 }
 
 // ── Bolsa ─────────────────────────────────────────────────────────────────────
+// Atelier no usa un cajón lateral: la bolsa despliega desde el encabezado como un
+// panel del alto de su contenido (sin huecos), con fotos grandes y el total en serif.
 function BagLines({ compact }: { compact?: boolean }) {
   const { lines, updateQty, removeItem } = useCartView();
   return (
@@ -241,18 +245,15 @@ function BagLines({ compact }: { compact?: boolean }) {
       {lines.map(({ key, item, unit, total, before }) => (
         <li key={key} className="at-bag__line">
           <Link to={`/producto/${item.product_id}`} className="at-bag__thumb">
-            {item.image_url ? <StoreImage src={item.image_url} alt="" transformWidth={200} width={120} height={160} /> : null}
+            {item.image_url ? <StoreImage src={item.image_url} alt="" transformWidth={300} width={150} height={200} /> : null}
           </Link>
           <div className="at-bag__info">
             <Link to={`/producto/${item.product_id}`} className="at-bag__name">
               {item.name}
             </Link>
             <p className="at-bag__meta">{[item.color, item.size && `Talle ${item.size}`].filter(Boolean).join(' · ')}</p>
-            <p className="at-bag__price">
-              {formatPrice(unit)}
-              {before != null && <s>{formatPrice(before)}</s>}
-            </p>
-            <div className="at-bag__qty">
+            <div className="at-bag__qty" role="group" aria-label={`Cantidad de ${item.name}`}>
+              <span className="at-bag__qlabel">Cantidad</span>
               <button type="button" onClick={() => updateQty(key, item.qty - 1)} aria-label={`Quitar una unidad de ${item.name}`}>
                 −
               </button>
@@ -260,19 +261,25 @@ function BagLines({ compact }: { compact?: boolean }) {
               <button type="button" onClick={() => updateQty(key, item.qty + 1)} aria-label={`Sumar una unidad de ${item.name}`}>
                 +
               </button>
-              <button type="button" className="at-link at-bag__remove" onClick={() => removeItem(key)}>
+            </div>
+            <div className="at-bag__foot">
+              <p className="at-bag__price">
+                {formatPrice(total)}
+                {before != null && <s>{formatPrice(before * item.qty)}</s>}
+                {item.qty > 1 && <small>{formatPrice(unit)} c/u</small>}
+              </p>
+              <button type="button" className="at-bag__remove" onClick={() => removeItem(key)}>
                 Quitar
               </button>
             </div>
           </div>
-          {!compact && <p className="at-bag__total">{formatPrice(total)}</p>}
         </li>
       ))}
     </ul>
   );
 }
 
-function BagSummary() {
+function BagSummary({ onContinue }: { onContinue?: () => void }) {
   const { subtotal, freeShippingLeft } = useCartView();
   return (
     <div className="at-bag__summary">
@@ -289,12 +296,17 @@ function BagSummary() {
       <Link to="/checkout" className="at-button">
         Finalizar compra
       </Link>
+      {onContinue && (
+        <button type="button" className="at-link at-link--line at-bag__continue" onClick={onContinue}>
+          Seguir comprando
+        </button>
+      )}
     </div>
   );
 }
 
 function AtelierBag() {
-  const { isOpen, close, lines } = useCartView();
+  const { isOpen, close, lines, itemCount } = useCartView();
   const ref = useRef<HTMLDivElement>(null);
   useOverlay(isOpen, close, ref);
   useCloseOnRoute(close);
@@ -304,24 +316,28 @@ function AtelierBag() {
       <button type="button" className="at-drawer__scrim" aria-label="Cerrar la bolsa" onClick={close} tabIndex={-1} />
       <div className="at-drawer__panel" ref={ref}>
         <div className="at-drawer__head">
-          <p className="at-drawer__title">Bolsa</p>
+          <p className="at-drawer__title">
+            Bolsa <span>{itemCount > 0 ? `(${itemCount})` : ''}</span>
+          </p>
           <button type="button" className="at-link" onClick={close}>
             Cerrar
           </button>
         </div>
-        {lines.length === 0 ? (
-          <div className="at-empty">
-            <p>Tu bolsa está vacía.</p>
-            <Link to="/productos" className="at-link at-link--line" onClick={close}>
-              Ver la tienda
-            </Link>
-          </div>
-        ) : (
-          <>
-            <BagLines compact />
-            <BagSummary />
-          </>
-        )}
+        <div className="at-drawer__body">
+          {lines.length === 0 ? (
+            <div className="at-empty">
+              <p>Tu bolsa está vacía.</p>
+              <Link to="/productos" className="at-link at-link--line" onClick={close}>
+                Ver la tienda
+              </Link>
+            </div>
+          ) : (
+            <>
+              <BagLines compact />
+              <BagSummary onContinue={close} />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -403,6 +419,7 @@ function AtelierHome() {
   const offersTitle = useHeading('offers', 'Precios especiales');
   const news = useMemo(() => newArrivals.filter((p) => mainImage(p)).slice(0, 5), [newArrivals]);
   const hero = useHero();
+  const coverName = useFitText<HTMLHeadingElement>(config.name, 32);
   const heroImg = hero.image ?? (news[0] ? mainImage(news[0]) : null);
   const heroMobile = hero.mobile ?? heroImg;
   const second = news.find((p) => mainImage(p) !== heroImg);
@@ -429,20 +446,41 @@ function AtelierHome() {
     <>
       <Seo title={config.metaTitle || config.name} description={config.metaDescription || config.tagline || config.name} image={config.ogImageUrl} slug={config.slug} siteName={config.name} path="/" />
       {hero.image && !hero.hasText ? (
-        // Portada con el texto dentro de la imagen: entera, en su proporción.
-        <section className="at-banner" aria-label="Portada">
-          <h1 className="tpl-sr">{config.name}</h1>
-          {config.heroCtaLink ? (
-            hero.ctaExternal ? (
-              <a href={hero.ctaLink} target="_blank" rel="noreferrer">
-                {bannerPicture}
-              </a>
+        // Portada con el texto dentro de la imagen: entera, en su proporción,
+        // enmarcada como una tapa (nombre e índice real de la tienda al costado).
+        <section className="at-cover" aria-labelledby="at-cover-title">
+          <div className="at-cover__mast">
+            <h1 id="at-cover-title" className="at-cover__name" ref={coverName}>
+              {config.name}
+            </h1>
+            {config.tagline && !sameText(config.tagline, config.name) && <p className="at-hero__sub">{config.tagline}</p>}
+            {categories.length > 0 && (
+              <nav className="at-cover__index" aria-label="Categorías">
+                {categories.slice(0, 6).map((c) => (
+                  <Link key={c.name} to={categoryHref(c.name)}>
+                    <span>{c.name}</span>
+                    <span className="at-cover__count">{c.count}</span>
+                  </Link>
+                ))}
+              </nav>
+            )}
+            <Link to="/productos" className="at-link at-link--line">
+              Ver toda la tienda
+            </Link>
+          </div>
+          <div className="at-cover__art">
+            {config.heroCtaLink ? (
+              hero.ctaExternal ? (
+                <a href={hero.ctaLink} target="_blank" rel="noreferrer" aria-label={hero.ctaText || 'Ver productos'}>
+                  {bannerPicture}
+                </a>
+              ) : (
+                <Link to={hero.ctaLink} aria-label={hero.ctaText || 'Ver productos'}>{bannerPicture}</Link>
+              )
             ) : (
-              <Link to={hero.ctaLink}>{bannerPicture}</Link>
-            )
-          ) : (
-            bannerPicture
-          )}
+              bannerPicture
+            )}
+          </div>
         </section>
       ) : (
         <section className="at-hero" aria-labelledby="at-hero-title">
@@ -564,17 +602,75 @@ function AtelierHome() {
 }
 
 // ── Catálogo ──────────────────────────────────────────────────────────────────
+function AtelierFilters({ open, close, view }: { open: boolean; close: () => void; view: CatalogView }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useOverlay(open, close, ref);
+  if (!open) return null;
+  return (
+    <div className="at-overlay" role="dialog" aria-modal="true" aria-label="Filtrar y ordenar" ref={ref}>
+      <div className="at-overlay__bar">
+        <span className="at-eyebrow">Filtrar y ordenar</span>
+        <button type="button" className="at-link" onClick={close}>
+          Listo
+        </button>
+      </div>
+      <nav className="at-menu at-menu--filters" aria-label="Categorías">
+        <NavLink to="/productos" end className="at-menu__item" onClick={close}>
+          Todo
+        </NavLink>
+        {view.categories.map((c) => (
+          <NavLink key={c.name} to={categoryHref(c.name)} className="at-menu__item" onClick={close}>
+            {c.name}
+            <sup>{c.count}</sup>
+          </NavLink>
+        ))}
+      </nav>
+      {view.sizes.length > 1 && (
+        <fieldset className="at-filterset">
+          <legend className="at-eyebrow">Talle</legend>
+          <div className="at-opt__sizes">
+            {view.sizes.map((s) => (
+              <button key={s} type="button" className="at-size" aria-pressed={view.size === s} onClick={() => view.setSize(view.size === s ? null : s)}>
+                {s}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
+      <fieldset className="at-filterset">
+        <legend className="at-eyebrow">Orden</legend>
+        <div className="at-filterset__sort">
+          {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+            <button key={k} type="button" className="at-link" aria-pressed={view.sort === k} onClick={() => view.setSort(k)}>
+              {SORT_LABELS[k]}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+    </div>
+  );
+}
+
 function AtelierCatalog() {
   const config = useStore();
   const view = useCatalog();
+  const [filters, setFilters] = useState(false);
+  const closeFilters = useCallback(() => setFilters(false), []);
   useFirstPaintGate('tpl-catalog', view.isLoading);
   const title = view.category ?? (view.query ? `“${view.query}”` : 'Tienda');
+  const active = [view.size && `Talle ${view.size}`, view.sort !== 'relevancia' && SORT_LABELS[view.sort]].filter(Boolean).join(' · ');
   return (
     <div className="at-catalog">
       <Seo title={`${view.category ?? 'Productos'} · ${config.name}`} description={config.metaDescription || config.name} slug={config.slug} siteName={config.name} path={view.category ? categoryHref(view.category) : '/productos'} />
       <div className="at-catalog__head">
         <h1 className="at-display at-display--page">{title}</h1>
-        <p className="at-catalog__count">{view.isLoading ? ' ' : `${view.count} ${view.count === 1 ? "producto" : "productos"}`}</p>
+        <p className="at-catalog__count">{view.isLoading ? ' ' : `${view.count} ${view.count === 1 ? 'producto' : 'productos'}`}</p>
+      </div>
+      <div className="at-catalog__mbar">
+        <button type="button" className="at-link at-link--line" onClick={() => setFilters(true)}>
+          Filtrar y ordenar
+        </button>
+        {active && <span>{active}</span>}
       </div>
       <div className="at-catalog__bar">
         <nav className="at-catalog__cats" aria-label="Categorías">
@@ -629,6 +725,7 @@ function AtelierCatalog() {
           ))}
         </div>
       )}
+      <AtelierFilters open={filters} close={closeFilters} view={view} />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
@@ -109,4 +109,28 @@ export function useCartView() {
   const subtotal = adjustedSubtotal;
   const freeShippingLeft = freeShippingFrom > 0 ? Math.max(0, freeShippingFrom - subtotal) : null;
   return { ...cart, lines, subtotal, freeShippingFrom, freeShippingLeft };
+}
+
+/**
+ * Achica la letra de un título hasta que entre en su renglón (nombres largos
+ * sin espacios, como "DESDEABAJO.IND"). Nunca la agranda ni corta el texto.
+ */
+export function useFitText<T extends HTMLElement>(text: string, min = 24) {
+  const ref = useRef<T>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.fontSize = '';
+      const max = parseFloat(getComputedStyle(el).fontSize);
+      const ratio = el.clientWidth / Math.max(1, el.scrollWidth);
+      if (ratio < 1) el.style.fontSize = `${Math.max(min, Math.floor(max * ratio * 0.98))}px`;
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    document.fonts?.ready.then(fit);
+    return () => ro.disconnect();
+  }, [text, min]);
+  return ref;
 }

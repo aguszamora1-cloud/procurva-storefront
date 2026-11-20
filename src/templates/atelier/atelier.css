@@ -1176,3 +1176,322 @@
 :where(.tpl-atelier) :is(h1, h2, h3, h4, h5, h6, p, input, select, button, legend, summary) {
   font-family: inherit;
 }
+
+/* ── P1.1b ─────────────────────────────────────────────────────────────────── */
+
+/* Tapa: nombre e índice de la tienda al costado del banner del comercio, que se
+   ve entero (contain) sobre el papel. Nada se recorta ni se escribe encima. */
+.at-cover {
+  display: grid;
+  grid-template-columns: minmax(260px, 4fr) 8fr;
+  gap: clamp(24px, 4vw, 64px);
+  padding: 24px var(--at-gutter) 0;
+  align-items: end;
+}
+.at-cover__mast {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  align-items: flex-start;
+  padding-bottom: 8px;
+}
+.at-cover__name {
+  font-family: var(--at-serif);
+  font-weight: 400;
+  font-size: clamp(40px, 4.6vw, 76px);
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.at-cover__index {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border-top: 1px solid var(--at-line);
+}
+.at-cover__index a {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--at-line);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.at-cover__index a:hover span:first-child {
+  font-style: italic;
+}
+.at-cover__count {
+  color: var(--at-ink-2);
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+.at-cover__art img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: calc(100vh - var(--at-head-h) - 48px);
+  object-fit: contain;
+  object-position: right bottom;
+}
+@media (max-width: 899px) {
+  .at-cover {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding-top: 20px;
+  }
+  .at-cover__mast {
+    gap: 14px;
+  }
+  .at-cover__name {
+    font-size: clamp(38px, 11vw, 56px);
+  }
+  .at-cover__index {
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-top: 0;
+    gap: 22px;
+    border-bottom: 1px solid var(--at-line);
+  }
+  .at-cover__index a {
+    flex-shrink: 0;
+    border: 0;
+    padding: 6px 0 10px;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .at-cover__mast > .at-link {
+    display: none;
+  }
+  /* Celular: el banner se ve entero pero no se adueña de la pantalla; queda
+     enmarcado en el papel y debajo asoman los ingresos. */
+  .at-cover__art {
+    margin: 0 8%;
+  }
+  .at-cover__art img {
+    max-height: 58vh;
+    object-position: center;
+  }
+}
+
+/* Bolsa: panel que baja desde el encabezado, del alto de su contenido */
+.at-drawer__scrim {
+  background: rgba(27, 25, 22, 0.18);
+}
+.at-drawer__panel {
+  top: var(--at-head-h);
+  right: var(--at-gutter);
+  bottom: auto;
+  width: min(460px, calc(100% - 2 * var(--at-gutter)));
+  max-height: calc(100vh - var(--at-head-h) - 24px);
+  border: 1px solid var(--at-line);
+  box-shadow: 0 18px 40px rgba(27, 25, 22, 0.12);
+  animation: at-drop 0.22s ease-out;
+}
+@keyframes at-drop {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+}
+.at-drawer__head {
+  height: auto;
+  padding: 18px 24px 14px;
+}
+.at-drawer__title span {
+  font-family: var(--at-sans);
+  font-size: 13px;
+  color: var(--at-ink-2);
+  vertical-align: middle;
+}
+.at-drawer__body {
+  overflow-y: auto;
+  min-height: 0;
+}
+.at-drawer .at-bag__lines {
+  flex: none;
+  overflow: visible;
+  padding: 0 24px;
+}
+.at-drawer .at-bag__summary {
+  border-top: 0;
+  padding: 20px 24px 24px;
+}
+.at-bag__line,
+.at-bag__lines--compact .at-bag__line {
+  grid-template-columns: 112px 1fr;
+  gap: 18px;
+  padding: 22px 0;
+}
+.at-bag__name {
+  font-family: var(--at-serif);
+  font-size: 20px;
+  line-height: 1.15;
+}
+.at-bag__qty {
+  gap: 10px;
+  margin-top: 14px;
+}
+.at-bag__qlabel {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--at-ink-2);
+  margin-right: 4px;
+}
+.at-bag__qty button:not(.at-link) {
+  width: 28px;
+  height: 28px;
+  border: 0 !important;
+  border-bottom: 1px solid var(--at-line) !important;
+}
+.at-bag__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 14px;
+}
+.at-bag__price {
+  color: var(--at-ink);
+  font-size: 15px;
+  margin: 0;
+}
+.at-bag__price small {
+  display: block;
+  font-size: 12px;
+  color: var(--at-ink-2);
+}
+.at-bag__remove {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--at-ink-2);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.at-bag__subtotal {
+  font-family: var(--at-serif);
+  font-size: 26px;
+  align-items: baseline;
+}
+.at-bag__subtotal span:first-child {
+  font-family: var(--at-sans);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--at-ink-2);
+}
+.at-bag__continue {
+  display: block;
+  margin: 16px auto 0;
+}
+.at-cartpage__grid .at-bag__line {
+  grid-template-columns: 140px 1fr;
+}
+@media (max-width: 899px) {
+  .at-drawer__panel {
+    left: 0;
+    right: 0;
+    width: 100%;
+    border-left: 0;
+    border-right: 0;
+    max-height: calc(100dvh - var(--at-head-h));
+  }
+  .at-bag__line,
+  .at-bag__lines--compact .at-bag__line,
+  .at-cartpage__grid .at-bag__line {
+    grid-template-columns: 96px 1fr;
+  }
+}
+
+/* Catálogo: ritmo de revista con las fotos reales (una grande cada tanto) */
+.at-grid--catalog {
+  grid-auto-flow: dense;
+}
+@media (min-width: 900px) {
+  .at-grid--catalog > :nth-child(7n + 1) {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+  .at-grid--catalog > :nth-child(7n + 1) .at-card__name {
+    font-family: var(--at-serif);
+    font-size: 22px;
+  }
+  .at-grid--catalog > :nth-child(7n + 1) {
+    display: flex;
+    flex-direction: column;
+  }
+  .at-grid--catalog > :nth-child(7n + 1) .at-card__media {
+    aspect-ratio: auto;
+    flex: 1;
+    min-height: 0;
+  }
+}
+.at-catalog__cats {
+  padding-bottom: 10px;
+  margin-bottom: -10px;
+}
+.at-catalog__mbar {
+  display: none;
+}
+.at-filterset {
+  border: 0;
+  padding: 0;
+  margin: 36px 0 0;
+}
+.at-filterset__sort {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+}
+.at-filterset__sort [aria-pressed='true'],
+.at-menu--filters .active {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 1px;
+}
+.at-menu--filters .at-menu__item {
+  font-size: clamp(30px, 8vw, 48px);
+}
+@media (max-width: 899px) {
+  .at-catalog__bar {
+    display: none;
+  }
+  .at-catalog__mbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin: 18px 0 26px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--at-line);
+    font-size: 12px;
+    color: var(--at-ink-2);
+  }
+  /* Celular: una foto a lo ancho cada cinco, el resto de a dos. */
+  .at-grid--catalog > :nth-child(5n + 1) {
+    grid-column: 1 / -1;
+  }
+  .at-grid--catalog > :nth-child(5n + 1) .at-card__media {
+    aspect-ratio: 4 / 5;
+  }
+  .at-grid--catalog > :nth-child(5n + 1) .at-card__name {
+    font-family: var(--at-serif);
+    font-size: 20px;
+  }
+}
+/* El nombre de la tapa va en un renglón por palabra: si no entra, se achica (useFitText). */
+.at-cover__name {
+  overflow-wrap: normal;
+  white-space: nowrap;
+  max-width: 100%;
+}
+@media (max-width: 899px) {
+  .at-cover__name {
+    white-space: normal;
+  }
+}

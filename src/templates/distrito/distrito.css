@@ -1341,3 +1341,298 @@
 :where(.tpl-distrito) :is(h1, h2, h3, h4, h5, h6, p, input, select, button, legend, summary) {
   font-family: inherit;
 }
+
+/* ── P1.1b ─────────────────────────────────────────────────────────────────── */
+
+/* Portada con el banner del comercio: entero, sobre una franja negra a sangre,
+   y sin ocupar toda la pantalla: debajo ya arranca la tira de ingresos. */
+.di-banner {
+  background: #000;
+  border-bottom: 1px solid var(--di-line);
+}
+.di-banner a {
+  display: block;
+}
+.di-banner img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 64vh;
+  object-fit: contain;
+  margin: 0 auto;
+}
+@media (max-width: 899px) {
+  .di-banner img {
+    max-height: 52vh;
+  }
+}
+
+/* Tira de ingresos */
+.di-drop {
+  padding: 18px 0 0;
+}
+.di-drop__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 0 var(--di-gutter) 12px;
+}
+.di-drop__rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 2 * var(--di-gutter)) / 5.4);
+  gap: 3px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding: 0 var(--di-gutter);
+  scroll-padding: 0 var(--di-gutter);
+}
+.di-drop__rail::-webkit-scrollbar {
+  display: none;
+}
+.di-drop__rail > * {
+  scroll-snap-align: start;
+}
+@media (max-width: 899px) {
+  .di-drop__rail {
+    grid-auto-columns: 42%;
+  }
+}
+
+/* Destacados: tres piezas grandes con el nombre sobre la foto (sin ranking) */
+.di-picks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+}
+.di-pick {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--di-black-2);
+}
+.di-pick img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s;
+}
+.di-pick:hover img {
+  transform: scale(1.03);
+}
+.di-pick::after {
+  content: '';
+  position: absolute;
+  inset: 45% 0 0;
+  background: linear-gradient(transparent, rgba(14, 14, 14, 0.88));
+}
+.di-pick__text {
+  position: absolute;
+  z-index: 1;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  display: grid;
+  gap: 6px;
+}
+.di-pick__name {
+  font-weight: 900;
+  font-stretch: 62%;
+  font-variation-settings: 'wdth' 62;
+  text-transform: uppercase;
+  font-size: clamp(30px, 3.2vw, 52px);
+  line-height: 0.9;
+}
+.di-price--pick .di-price__label,
+.di-price--pick .di-price__small {
+  color: #cfcbc3;
+}
+@media (max-width: 899px) {
+  .di-picks {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    margin: 0 calc(var(--di-gutter) * -1);
+    padding: 0 var(--di-gutter);
+  }
+  .di-pick {
+    flex: 0 0 82%;
+    scroll-snap-align: start;
+  }
+}
+
+/* Menú: cantidad real en lugar de numeración */
+.di-menu__list a {
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+/* Carrito: panel a toda altura; avance de envío arriba, filas densas, y debajo
+   accesos a las categorías (nada de hueco vacío). */
+.di-drawer__panel {
+  width: min(520px, 100%);
+}
+.di-drawer__panel .di-ship {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--di-signal);
+  color: #0e0e0e;
+  flex-shrink: 0;
+}
+.di-drawer__panel .di-ship__bar {
+  background: rgba(14, 14, 14, 0.2);
+}
+.di-drawer__panel .di-ship__bar span {
+  background: #0e0e0e;
+}
+.di-drawer__scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 0 16px;
+}
+.di-drawer .di-lines {
+  flex: none;
+  overflow: visible;
+  padding: 0;
+}
+.di-line {
+  grid-template-columns: 72px 1fr auto;
+  gap: 12px;
+  padding: 14px 0;
+  align-items: start;
+}
+.di-line__name {
+  font-size: 17px;
+}
+.di-line__row {
+  justify-content: flex-start;
+  gap: 16px;
+  margin-top: 10px;
+}
+.di-line__price {
+  white-space: nowrap;
+  text-align: right;
+}
+.di-line__price s {
+  display: block;
+  margin: 0;
+}
+.di-keep {
+  padding: 22px 0 24px;
+}
+.di-keep > div {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+.di-keep a {
+  font-weight: 900;
+  font-stretch: 62%;
+  font-variation-settings: 'wdth' 62;
+  text-transform: uppercase;
+  font-size: clamp(30px, 7vw, 42px);
+  line-height: 1.05;
+  border-bottom: 1px solid var(--di-line);
+  padding: 4px 0;
+}
+.di-keep a:hover {
+  color: var(--di-signal);
+}
+.di-drawer .di-summary {
+  flex-shrink: 0;
+  background: var(--di-black);
+}
+.di-cartpage__grid .di-ship {
+  margin: 0 0 14px;
+}
+
+/* Catálogo en celular: grilla a sangre, nombre y precio sobre la foto */
+@media (max-width: 899px) {
+  .di-catalog .di-grid {
+    margin: 0 calc(var(--di-gutter) * -1);
+    gap: 2px;
+  }
+  .di-catalog .di-card {
+    position: relative;
+  }
+  .di-catalog .di-card__media {
+    aspect-ratio: 3 / 4;
+  }
+  .di-catalog .di-card__body {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 36px 8px 8px;
+    background: linear-gradient(transparent, rgba(14, 14, 14, 0.92) 55%);
+  }
+  .di-catalog .di-card__name {
+    font-size: 17px;
+  }
+  /* La línea de tarjeta se ve en la ficha; la etiqueta del precio grande
+     ("efectivo o transferencia") se queda: sin ella el número engaña. */
+  .di-catalog .di-price__small {
+    display: none;
+  }
+  .di-catalog .di-price__label {
+    color: #cfcbc3;
+    font-size: 11px;
+  }
+  .di-catalog .di-card__sizes {
+    color: #cfcbc3;
+  }
+  .di-catalog .di-card__out {
+    top: 0;
+    bottom: auto;
+  }
+  .di-filters {
+    flex-wrap: wrap;
+  }
+}
+.di-keep__fresh {
+  padding: 20px 0 0;
+}
+.di-keep__rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 120px;
+  gap: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-top: 10px;
+}
+.di-keep__item {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+.di-keep__item img {
+  width: 120px;
+  height: 150px;
+  object-fit: cover;
+  background: var(--di-black-2);
+}
+.di-keep__item > span {
+  font-weight: 800;
+  font-stretch: 75%;
+  font-variation-settings: 'wdth' 75;
+  text-transform: uppercase;
+  font-size: 13px;
+  line-height: 1.05;
+}
+.di-price--mini .di-price__big {
+  font-size: 13px;
+}
+/* La etiqueta del precio grande se queda (sin ella el número engaña). */
+.di-price--mini .di-price__label {
+  display: block;
+  font-size: 10px;
+}
+.di-price--mini .di-price__small {
+  display: none;
+}

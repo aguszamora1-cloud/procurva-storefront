@@ -429,3 +429,29 @@ export function brandOr(brand: string | null | undefined, surface: string, fallb
   if (!a || !b) return fallback;
   return contrastRatio(a, b) >= min ? (brand as string) : fallback;
 }
+
+/** Mismo texto sin distinguir mayúsculas, acentos ni espacios de más. */
+export function sameText(a: string | null | undefined, b: string | null | undefined): boolean {
+  const n = (s: string | null | undefined) =>
+    (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es').replace(/\s+/g, ' ').trim();
+  return n(a) === n(b);
+}
+
+/** Color sin tono (negro, blanco o gris): no sirve como acento de una plantilla. */
+export function isNeutralColor(hex: string | null | undefined): boolean {
+  const rgb = parseHex(hex);
+  if (!rgb) return true;
+  const [r, g, b] = rgb.map((v) => v / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const s = max === min ? 0 : (max - min) / (1 - Math.abs(2 * l - 1));
+  return s < 0.18 || l < 0.1 || l > 0.94;
+}
+
+/** Redes de la tienda (para "Seguinos") separadas del contacto directo. */
+export function splitContact(list: { label: string; href: string }[]) {
+  const social = list.filter((c) => ['Instagram', 'TikTok', 'Facebook'].includes(c.label));
+  const direct = list.filter((c) => !social.includes(c));
+  return { social, direct };
+}

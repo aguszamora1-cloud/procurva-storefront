@@ -28,9 +28,11 @@ import {
   cardHref,
   categoryHref,
   categoryImage,
+  isNeutralColor,
   isSoldOut,
   secondImage,
   sizesInStock,
+  splitContact,
   useCatalog,
   useContact,
   useHeading,
@@ -42,10 +44,9 @@ import {
   type SortKey,
 } from '../shared/commerce';
 import { PriceView } from '../shared/Price';
-import { StoreMark, useCartView, useCloseOnRoute, useOverlay, useSearchSubmit } from '../shared/ui';
+import { StoreMark, useCartView, useCloseOnRoute, useFitText, useOverlay, useSearchSubmit } from '../shared/ui';
 import './distrito.css';
 
-const num = (i: number) => String(i + 1).padStart(3, '0');
 
 // ── Encabezado ────────────────────────────────────────────────────────────────
 function DistritoHeader({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void }) {
@@ -117,14 +118,15 @@ function DistritoMenu({ open, close }: { open: boolean; close: () => void }) {
         <ol className="di-menu__list">
           <li>
             <Link to="/productos" onClick={close}>
-              <small>000</small>Todo
+              Todo
+              <small>[{products.length}]</small>
             </Link>
           </li>
-          {categories.map((c, i) => (
+          {categories.map((c) => (
             <li key={c.name}>
               <Link to={categoryHref(c.name)} onClick={close}>
-                <small>{num(i)}</small>
                 {c.name}
+                <small>[{c.count}]</small>
               </Link>
             </li>
           ))}
@@ -181,16 +183,24 @@ function DistritoSearch({ open, close }: { open: boolean; close: () => void }) {
   );
 }
 
+/** Nombre gigante del pie: se achica hasta entrar en un renglón (nombres largos). */
+function FitName({ text }: { text: string }) {
+  const ref = useFitText<HTMLParagraphElement>(text);
+  return (
+    <p className="di-footer__name" aria-hidden="true" ref={ref}>
+      {text}
+    </p>
+  );
+}
+
 function DistritoFooter() {
   const config = useStore();
   const links = useMenuLinks();
-  const contact = useContact();
+  const { social, direct } = splitContact(useContact());
   const policies = usePolicies();
   return (
     <footer className="di-footer">
-      <p className="di-footer__name" aria-hidden="true">
-        {config.name}
-      </p>
+      <FitName text={config.name} />
       <div className="di-footer__cols">
         <nav aria-label="Tienda">
           <p className="di-meta">Tienda</p>
@@ -219,10 +229,20 @@ function DistritoFooter() {
             ))}
           </div>
         )}
-        {contact.length > 0 && (
+        {direct.length > 0 && (
+          <div>
+            <p className="di-meta">Contacto</p>
+            {direct.map((c) => (
+              <a key={c.href} href={c.href} target="_blank" rel="noreferrer">
+                {c.label}
+              </a>
+            ))}
+          </div>
+        )}
+        {social.length > 0 && (
           <div>
             <p className="di-meta">Seguinos</p>
-            {contact.map((c) => (
+            {social.map((c) => (
               <a key={c.href} href={c.href} target="_blank" rel="noreferrer">
                 {c.label}
               </a>
@@ -245,13 +265,16 @@ function CartLines() {
       {lines.map(({ key, item, unit, total, before }) => (
         <li key={key} className="di-line">
           <Link to={`/producto/${item.product_id}`} className="di-line__img">
-            {item.image_url && <StoreImage src={item.image_url} alt="" transformWidth={240} width={160} height={200} />}
+            {item.image_url && <StoreImage src={item.image_url} alt="" transformWidth={200} width={120} height={150} />}
           </Link>
           <div className="di-line__info">
             <Link to={`/producto/${item.product_id}`} className="di-line__name">
               {item.name}
             </Link>
-            <p className="di-meta">{[item.color, item.size].filter(Boolean).join(' / ')}</p>
+            <p className="di-meta">
+              {[item.color, item.size].filter(Boolean).join(' / ')}
+              {item.qty > 1 ? ` · ${formatPrice(unit)} c/u` : ''}
+            </p>
             <div className="di-line__row">
               <div className="di-qty">
                 <button type="button" onClick={() => updateQty(key, item.qty - 1)} aria-label={`Quitar una unidad de ${item.name}`}>
@@ -262,37 +285,39 @@ function CartLines() {
                   +
                 </button>
               </div>
-              <p className="di-line__price">
-                {before != null && <s>{formatPrice(before * item.qty)}</s>}
-                {formatPrice(total)}
-              </p>
-            </div>
-            <div className="di-line__foot">
-              {item.qty > 1 ? <p className="di-meta">{formatPrice(unit)} c/u</p> : <span />}
               <button type="button" className="di-line__remove" onClick={() => removeItem(key)}>
                 Quitar
               </button>
             </div>
           </div>
+          <p className="di-line__price">
+            {before != null && <s>{formatPrice(before * item.qty)}</s>}
+            {formatPrice(total)}
+          </p>
         </li>
       ))}
     </ul>
   );
 }
 
-function CartSummary() {
+function ShipBlock() {
   const { subtotal, freeShippingLeft, freeShippingFrom } = useCartView();
-  const pct = freeShippingFrom > 0 ? Math.min(100, Math.round((subtotal / freeShippingFrom) * 100)) : 0;
+  if (freeShippingLeft == null) return null;
+  const pct = Math.min(100, Math.round((subtotal / freeShippingFrom) * 100));
+  return (
+    <div className="di-ship">
+      <p>{freeShippingLeft > 0 ? `Sumá ${formatPrice(freeShippingLeft)} y el envío es gratis` : 'Envío gratis'}</p>
+      <div className="di-ship__bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Avance hacia el envío gratis">
+        <span style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function CartSummary() {
+  const { subtotal } = useCartView();
   return (
     <div className="di-summary">
-      {freeShippingLeft != null && (
-        <div className="di-ship">
-          <p>{freeShippingLeft > 0 ? `Sumá ${formatPrice(freeShippingLeft)} y el envío es gratis` : 'Envío gratis'}</p>
-          <div className="di-ship__bar" aria-hidden="true">
-            <span style={{ width: `${pct}%` }} />
-          </div>
-        </div>
-      )}
       <p className="di-summary__row">
         <span>Subtotal</span>
         <span>{formatPrice(subtotal)}</span>
@@ -302,6 +327,49 @@ function CartSummary() {
         Ir a pagar
       </Link>
     </div>
+  );
+}
+
+/** Debajo de los productos: los últimos ingresos que no están en el carrito y las categorías (datos reales). */
+function KeepLooking({ onPick }: { onPick: () => void }) {
+  const { products } = useProducts();
+  const { categories } = useCategories(products);
+  const { items } = useCartView();
+  const inCart = new Set(items.map((i) => i.product_id));
+  const fresh = products
+    .filter((p) => !inCart.has(p.id) && mainImage(p) && !isSoldOut(p))
+    .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+    .slice(0, 8);
+  if (categories.length === 0 && fresh.length === 0) return null;
+  return (
+    <>
+      {fresh.length > 0 && (
+        <section className="di-keep__fresh" aria-label="Últimos ingresos">
+          <p className="di-meta">Últimos ingresos</p>
+          <div className="di-keep__rail">
+            {fresh.map((p) => (
+              <Link key={p.id} to={cardHref(p)} onClick={onPick} className="di-keep__item">
+                <StoreImage src={mainImage(p)} alt="" transformWidth={240} width={120} height={150} />
+                <span>{p.name}</span>
+                <PriceView product={p} cls="di-price di-price--mini" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+      {categories.length > 0 && (
+    <nav className="di-keep" aria-label="Seguí mirando">
+      <p className="di-meta">Seguí mirando</p>
+      <div>
+        {categories.slice(0, 8).map((c) => (
+          <Link key={c.name} to={categoryHref(c.name)} onClick={onPick}>
+            {c.name}
+          </Link>
+        ))}
+      </div>
+    </nav>
+      )}
+    </>
   );
 }
 
@@ -322,15 +390,22 @@ function DistritoCart() {
           </button>
         </div>
         {lines.length === 0 ? (
-          <div className="di-empty">
-            <p className="di-empty__big">Vacío</p>
-            <Link to="/productos" className="di-cta di-cta--ghost" onClick={close}>
-              Ver productos
-            </Link>
+          <div className="di-drawer__scroll">
+            <div className="di-empty">
+              <p className="di-empty__big">Vacío</p>
+              <Link to="/productos" className="di-cta di-cta--ghost" onClick={close}>
+                Ver productos
+              </Link>
+            </div>
+            <KeepLooking onPick={close} />
           </div>
         ) : (
           <>
-            <CartLines />
+            <ShipBlock />
+            <div className="di-drawer__scroll">
+              <CartLines />
+              <KeepLooking onPick={close} />
+            </div>
             <CartSummary />
           </>
         )}
@@ -346,7 +421,9 @@ function DistritoShell({ children }: { children: ReactNode }) {
   const closeMenu = useCallback(() => setMenu(false), []);
   const closeSearch = useCallback(() => setSearch(false), []);
   useCloseOnRoute(closeMenu);
-  const signal = brandOr(config.colorAccent, '#0e0e0e', '#ff5b1f');
+  // Acento de señal: el del comercio si tiene tono y se lee sobre negro; si es
+  // blanco, negro o gris, el naranja propio de Distrito (si no, pierde identidad).
+  const signal = isNeutralColor(config.colorAccent) ? '#ff5b1f' : brandOr(config.colorAccent, '#0e0e0e', '#ff5b1f');
   return (
     <div className="tpl-distrito" style={{ '--di-signal': signal } as CSSProperties}>
       <a href="#di-main" className="di-skip">
@@ -365,7 +442,7 @@ function DistritoShell({ children }: { children: ReactNode }) {
 }
 
 // ── Tarjeta ───────────────────────────────────────────────────────────────────
-function DistritoCard({ product, index, priority }: { product: Product; index?: number; priority?: boolean }) {
+function DistritoCard({ product, priority }: { product: Product; priority?: boolean }) {
   const img = mainImage(product);
   const alt = secondImage(product);
   const soldOut = isSoldOut(product);
@@ -380,7 +457,6 @@ function DistritoCard({ product, index, priority }: { product: Product; index?: 
           <span className="di-card__noimg">Sin foto</span>
         )}
         {alt && <StoreImage src={alt} alt="" aria-hidden="true" transformWidth={600} width={600} height={750} className="di-card__alt" />}
-        {index != null && <span className="di-card__num">{num(index)}</span>}
         {price && price.offPct > 0 && <span className="di-card__off">−{price.offPct}%</span>}
         {soldOut && <span className="di-card__out">Agotado</span>}
       </Link>
@@ -404,6 +480,27 @@ function GridSkeleton({ n = 8 }: { n?: number }) {
 }
 
 // ── Home ──────────────────────────────────────────────────────────────────────
+/** Tira horizontal de productos (ingresos debajo del banner). */
+function DropRail({ products, title, id }: { products: Product[]; title: string; id: string }) {
+  return (
+    <section className="di-drop" aria-labelledby={id}>
+      <div className="di-drop__head">
+        <h2 id={id} className="di-title">
+          {title}
+        </h2>
+        <Link to="/productos?orden=nuevos" className="di-more">
+          Ver todo
+        </Link>
+      </div>
+      <div className="di-drop__rail">
+        {products.map((p, i) => (
+          <DistritoCard key={p.card_key ?? p.id} product={p} priority={i < 4} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function DistritoHome() {
   const config = useStore();
   const { products, isLoading } = useProducts();
@@ -412,24 +509,28 @@ function DistritoHome() {
   useFirstPaintGate('tpl-home', isLoading);
   const hero = useHero();
   const newTitle = useHeading('new_arrivals', 'Últimos ingresos');
-  const featTitle = useHeading('featured', 'Lo más vendido');
+  const featTitle = useHeading('featured', 'Destacados');
   const offersTitle = useHeading('offers', 'Ofertas');
-  const drop = useMemo(() => newArrivals.slice(0, 8), [newArrivals]);
+  const drop = useMemo(() => newArrivals.slice(0, 10), [newArrivals]);
   const fallbackImg = drop.find((p) => mainImage(p));
   const heroImg = hero.image ?? (fallbackImg ? mainImage(fallbackImg) : null);
-  const ranking = featured.slice(0, 5);
+  const bannerMode = Boolean(hero.image && !hero.hasText);
+  const featuredIds = new Set(drop.map((p) => p.card_key ?? p.id));
+  const picks = featured.filter((p) => !featuredIds.has(p.card_key ?? p.id)).slice(0, 3);
   const cta = hero.ctaText || 'Ver todo';
 
   return (
     <>
       <Seo title={config.metaTitle || config.name} description={config.metaDescription || config.tagline || config.name} image={config.ogImageUrl} slug={config.slug} siteName={config.name} path="/" />
-      {hero.image && !hero.hasText ? (
+      {bannerMode ? (
+        // Banner del comercio entero sobre una franja negra a sangre; debajo,
+        // en la misma pantalla, arranca la tira de ingresos.
         <section className="di-banner" aria-label="Portada">
           <h1 className="tpl-sr">{config.name}</h1>
-          <Link to={hero.ctaExternal ? '/productos' : hero.ctaLink}>
+          <Link to={hero.ctaExternal ? '/productos' : hero.ctaLink} aria-label={hero.ctaText || 'Ver productos'}>
             <picture>
               {hero.mobile && <source media="(max-width: 899px)" srcSet={hero.mobile} />}
-              <img src={hero.image} alt="" fetchPriority="high" />
+              <img src={hero.image ?? ''} alt="" fetchPriority="high" />
             </picture>
           </Link>
         </section>
@@ -465,23 +566,7 @@ function DistritoHome() {
         </section>
       ) : (
         <>
-          {drop.length > 0 && (
-            <section className="di-section" aria-labelledby="di-new">
-              <div className="di-head">
-                <h2 id="di-new" className="di-title">
-                  {newTitle}
-                </h2>
-                <Link to="/productos?orden=nuevos" className="di-more">
-                  Ver todo [{new Set(products.map((p) => p.id)).size}]
-                </Link>
-              </div>
-              <div className="di-grid">
-                {drop.map((p, i) => (
-                  <DistritoCard key={p.card_key ?? p.id} product={p} index={i} priority={i < 4} />
-                ))}
-              </div>
-            </section>
-          )}
+          {drop.length > 0 && <DropRail products={drop} title={newTitle} id="di-new" />}
 
           {categories.length > 0 && (
             <section className="di-section" aria-labelledby="di-cats">
@@ -505,6 +590,30 @@ function DistritoHome() {
             </section>
           )}
 
+          {picks.length > 0 && (
+            <section className="di-section" aria-labelledby="di-feat">
+              <div className="di-head">
+                <h2 id="di-feat" className="di-title">
+                  {featTitle}
+                </h2>
+                <Link to="/productos" className="di-more">
+                  Ver todo
+                </Link>
+              </div>
+              <div className="di-picks">
+                {picks.map((p) => (
+                  <Link key={p.card_key ?? p.id} to={cardHref(p)} className="di-pick">
+                    {mainImage(p) && <StoreImage src={mainImage(p)} alt="" transformWidth={900} width={900} height={1125} />}
+                    <span className="di-pick__text">
+                      <span className="di-pick__name">{p.name}</span>
+                      <PriceView product={p} cls="di-price di-price--pick" color={p.variant_color} />
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
           {offers.length > 0 && (
             <section className="di-band" aria-labelledby="di-off">
               <div className="di-head">
@@ -520,30 +629,6 @@ function DistritoHome() {
                   <DistritoCard key={p.card_key ?? p.id} product={p} />
                 ))}
               </div>
-            </section>
-          )}
-
-          {ranking.length > 2 && (
-            <section className="di-section" aria-labelledby="di-rank">
-              <div className="di-head">
-                <h2 id="di-rank" className="di-title">
-                  {featTitle}
-                </h2>
-              </div>
-              <ol className="di-rank">
-                {ranking.map((p, i) => (
-                  <li key={p.card_key ?? p.id}>
-                    <Link to={cardHref(p)} className="di-rank__item">
-                      <span className="di-rank__n">{i + 1}</span>
-                      <span className="di-rank__img">
-                        {mainImage(p) && <StoreImage src={mainImage(p)} alt="" transformWidth={300} width={200} height={250} />}
-                      </span>
-                      <span className="di-rank__name">{p.name}</span>
-                      <PriceView product={p} cls="di-price di-price--rank" color={p.variant_color} />
-                    </Link>
-                  </li>
-                ))}
-              </ol>
             </section>
           )}
         </>

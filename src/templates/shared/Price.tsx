@@ -21,9 +21,13 @@ export function PriceView({
   showInstallments?: boolean;
 }) {
   const p = useTplPrice(product, { color, size });
-  if (!p) return <p className={`${cls} ${cls}--ask`}>Consultar precio</p>;
+  // `cls` puede traer modificadores ("mo-price mo-price--pdp"): las partes usan
+  // sólo la clase base, y los modificadores van en el contenedor.
+  const root = cls;
+  cls = cls.split(" ")[0];
+  if (!p) return <p className={`${root} ${cls}--ask`}>Consultar precio</p>;
   return (
-    <div className={cls}>
+    <div className={root}>
       <p className={`${cls}__row`}>
         {p.from && <span className={`${cls}__from`}>Desde </span>}
         <span className={`${cls}__big`}>{formatPrice(p.big)}</span>
