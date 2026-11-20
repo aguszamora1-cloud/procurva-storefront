@@ -13,7 +13,7 @@ import { formatPrice, whatsappLink } from '@/lib/utils';
 import { groupCartItems, evalMinOrder, priceCartItems } from '@/lib/cart';
 import { buildWhatsappOrderWithCustomer } from '@/lib/checkout';
 import { createCatalogOrder, startMercadoPagoCheckout, startGoCuotasCheckout, checkCartStock, CouponError, StockError, type CouponErrorCode, type CustomerInfo, type StockShortfall, type PriceBreakdown } from '@/lib/orders';
-import { effectiveShippingCost, evalFreeShipping, expandMethod, hasOwnZoneCoverage, isFreeByPromo, methodAvailableForChannel, methodAvailableForPostalCode, normalizePostalCode, type ShippingOption, type StoreChannel } from '@/lib/shipping';
+import { effectiveShippingCost, evalFreeShipping, expandMethod, hasOwnZoneCoverage, isFreeByPromo, methodAvailableForChannel, methodAvailableForPostalCode, normalizePostalCode, type FreeShippingStatus, type ShippingOption, type StoreChannel } from '@/lib/shipping';
 import { looksLikePhone } from '@/lib/phone';
 import { computeDiscount, eligibleSubtotal, eligibleItems, minimumBase } from '@/lib/coupons';
 import { track } from '@/lib/tracking';
@@ -576,23 +576,31 @@ export function Checkout() {
   // Costo del envío YA bonificado. TODO lo que muestra o suma un envío pasa por
   // esta función: si la bonificación se aplicara sólo en el total, el cliente
   // vería "Gratis" en la opción y otro número abajo (o al revés).
-  const shippingCostFor = (m: ShippingOption | null, mode: 'cash' | 'card') =>
-    m ? effectiveShippingCost(m, freeShippingFor(mode)) : null;
+  //
+  // ¿Una opción cotizada en vivo sale gratis por la promo SEA CUAL SEA la
+  // cotización de Correo? Sí, si la promo la cubre (alcanzó el mínimo, es a
+  // domicilio y no está excluida): la tarifa que devuelva Correo se bonifica
+  // entera. No depende del costo configurado, que en los métodos cotizados en
+  // vivo suele estar vacío (LAS POPAS). Mientras cotiza se muestra "Gratis" y no
+  // se hace esperar al cliente (~10 s en celular con el botón bloqueado; pedido
+  // de clienta, 20/11/2026). La cotización sigue en segundo plano; si falla,
+  // queda el comportamiento de siempre (el costo configurado, bonificado). Si el
+  // cliente pasa a tarjeta y deja de alcanzar el mínimo, vuelve a esperar.
+  const promoCoversLive = (m: ShippingOption, promo: FreeShippingStatus) =>
+    !!m.liveCarrier && promo.active && promo.reached && m.requiresAddress && !m.excludeFromFreeShipping;
+  const shippingCostFor = (m: ShippingOption | null, mode: 'cash' | 'card') => {
+    if (!m) return null;
+    const promo = freeShippingFor(mode);
+    if (correoQuoting && promoCoversLive(m, promo)) return 0;
+    return effectiveShippingCost(m, promo);
+  };
 
   // Costo conocido (número) vs "a coordinar" (null/sin método).
   const selectedShippingCost = shippingCostFor(selectedMethod, priceMode);
   const shippingKnown = typeof selectedShippingCost === 'number';
   const shippingCost = shippingKnown ? (selectedShippingCost as number) : 0;
 
-  // ¿Esta opción sale gratis por la promo de envío gratis SEA CUAL SEA la
-  // cotización de Correo? Pasa si el costo provisorio (el configurado) ya está
-  // bonificado: si Correo responde, su tarifa (> 0) también se bonifica; si
-  // falla, queda el provisorio, bonificado. En los dos casos el envío es $0, así
-  // que no tiene sentido hacer esperar al cliente (medido: ~10 s en celular con
-  // el botón bloqueado; pedido de clienta, 20/11/2026). La cotización sigue en
-  // segundo plano: si el cliente cambia a tarjeta y deja de alcanzar el mínimo,
-  // vuelve a esperar como antes.
-  const freeRegardlessOfQuote = (m: ShippingOption | null) => !!m && isFreeByPromo(m, freeShipping);
+  const freeRegardlessOfQuote = (m: ShippingOption | null) => !!m && promoCoversLive(m, freeShipping);
 
   // ¿La opción elegida está esperando su cotización en vivo? Mientras tanto el
   // costo es el configurado (provisorio): no dejamos confirmar con ese número,
