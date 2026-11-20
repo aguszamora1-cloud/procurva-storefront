@@ -843,6 +843,7 @@ export interface RawCatalogSettings {
   // (reels, complementarios) en vez de mostrarlos tachados. Solo venta suelta:
   // las curvas y packs mayoristas necesitan ver la curva completa. Default false.
   hide_out_of_stock_variants?: boolean;
+  show_shipping_calculator?: boolean;
   // Badges de las product cards (Últimas unidades / Nuevo / Envío gratis /
   // Descuento). Cada uno: on/off, color de fondo (texto por contraste) y label;
   // low_stock/new con su parámetro propio. Lo escribe el panel Diseño → Badges.
@@ -1260,6 +1261,9 @@ export interface StoreConfig {
   // producto está agotado entero se muestran igual, tachados, para que la ficha
   // por link directo no quede sin opciones.
   hideOutOfStockVariants: boolean;
+  // "Calculá tu envío" en la ficha de producto. Default true (lo de siempre);
+  // el comercio lo apaga desde el editor (Promesa de envío). LAS POPAS, 20/11/2026.
+  showShippingCalculator: boolean;
   // Badges de las product cards, normalizados con defaults. El texto se resuelve
   // por contraste sobre `color`. `discount.color` vacío = usa el color de acento.
   badges: {

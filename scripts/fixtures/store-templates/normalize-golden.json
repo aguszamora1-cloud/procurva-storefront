@@ -152,6 +152,7 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -406,6 +407,7 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -665,6 +667,7 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
     "badges": {
       "style": "glass",
       "position": "top-right",
@@ -919,6 +922,7 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -1173,6 +1177,7 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -1427,6 +1432,7 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -1681,6 +1687,7 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -1935,6 +1942,7 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -2189,6 +2197,7 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
     "badges": {
       "style": "solid",
       "position": "top-left",
