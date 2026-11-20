@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronDown, Eye, Ruler, Tag, Truck } from 'lucide-react';
 import { useProduct } from '@/hooks/useProduct';
 import { useMetaPixel } from '@/hooks/useMetaPixel';
@@ -183,7 +183,8 @@ export function ProductDetail() {
   // Colores con contraste AA (v2 dentro del ámbito); afuera devuelve lo recibido.
   const ink = useInk();
   const isWholesale = useStoreType() === 'wholesale';
-  const { addItem } = useCart();
+  const { addItem, close: closeCart } = useCart();
+  const navigate = useNavigate();
   const { trackViewContent, trackAddToCart } = useMetaPixel();
   const { priceFor, promoForProduct, quantityPromoFor, quantityMessageFor } = usePromotions();
   const { tiersForProduct } = useCategoryTiers();
@@ -383,6 +384,25 @@ export function ProductDetail() {
       setSelectedColor(colorParam);
     }
   }, [colorParam, colors, selectedColor]);
+
+  // Sin ?color= y con varios colores: viene elegido el color de la FOTO PRINCIPAL
+  // (la misma que mostraba la tarjeta del listado), si esa foto es de una variante
+  // y ese color tiene stock. El cliente tocó la tarjeta viendo ese color; que no
+  // tenga que volver a elegirlo. Un clic menos (pedido de clienta, 19/11/2026).
+  // Solo minorista: en mayorista manda el WholesalePurchasePanel. Una vez por
+  // producto, para no volver a imponerlo si el cliente lo cambia.
+  const mainPhoto = images[0] ?? null;
+  const photoColorAppliedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!product || isWholesale || photoColorAppliedFor.current === product.id) return;
+    if (colorParam && colors.includes(colorParam)) return; // gana el del link
+    if (selectedColor || shownColors.length < 2 || !mainPhoto) return;
+    const photoColor = variants.find((v) => v.color && v.image_url === mainPhoto)?.color ?? null;
+    if (!photoColor || !shownColors.includes(photoColor) || colorDisabled(photoColor)) return;
+    photoColorAppliedFor.current = product.id;
+    setSelectedColor(photoColor);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id, isWholesale, colorParam, colors, selectedColor, shownColors, mainPhoto, variants]);
 
   // Meta Pixel: ViewContent al abrir el detalle (una vez por producto). Usamos
   // el precio prominente de lista; no-op si el tenant no tiene pixel.
@@ -656,6 +676,16 @@ export function ProductDetail() {
   const primaryAdd = inTierMode ? handleAddTier : handleAdd;
   const primaryDisabled = inTierMode ? !tierValid : !canAdd;
   const primaryLabel = inTierMode ? tierCtaLabel : ctaLabel;
+  // "Comprar ahora": agrega lo mismo que el botón principal y va directo al
+  // checkout, sin pasar por el carrito (pedido de clienta, 19/11/2026). Igual que
+  // el panel mayorista: addItem abre el carrito lateral, así que se cierra antes
+  // de navegar. Si ya había otras cosas en el carrito, el checkout las incluye.
+  const handleBuyNow = () => {
+    if (primaryDisabled) return;
+    primaryAdd();
+    closeCart();
+    navigate('/checkout');
+  };
   // Mostrar los selectores únicos (un talle y un color) salvo cuando están
   // abiertas las filas por unidad.
   const showSingleSelectors = !perUnitOpen;
@@ -800,20 +830,33 @@ export function ProductDetail() {
 
       case 'add_to_cart':
         return (
-          <button
-            ref={addBtnRef}
-            type="button"
-            onClick={primaryAdd}
-            disabled={primaryDisabled}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-button bg-primary px-6 py-[18px] text-[calc(16px_*_var(--font-scale,1))] font-bold text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent hover:scale-[1.01] active:scale-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:text-on-primary"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="9" cy="21" r="1" />
-              <circle cx="20" cy="21" r="1" />
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-            </svg>
-            {primaryLabel}
-          </button>
+          <div className="flex flex-col gap-2.5">
+            <button
+              ref={addBtnRef}
+              type="button"
+              onClick={primaryAdd}
+              disabled={primaryDisabled}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-button bg-primary px-6 py-[18px] text-[calc(16px_*_var(--font-scale,1))] font-bold text-on-primary transition-all duration-200 hover:bg-accent hover:text-on-accent hover:scale-[1.01] active:scale-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-primary disabled:hover:text-on-primary"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="9" cy="21" r="1" />
+                <circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+              </svg>
+              {primaryLabel}
+            </button>
+            {/* Secundario (outline), mismo estilo que el "Comprar ahora" mayorista.
+                Se muestra siempre (deshabilitado hasta que haya variante) para que
+                la ficha no salte de alto al elegir color y talle. */}
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              disabled={primaryDisabled}
+              className="w-full rounded-button border border-line bg-transparent px-6 py-[14px] text-center text-[calc(14px_*_var(--font-scale,1))] font-semibold text-text transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Comprar ahora
+            </button>
+          </div>
         );
 
       case 'whatsapp':
