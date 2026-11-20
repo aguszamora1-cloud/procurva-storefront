@@ -588,6 +588,8 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     // cartel y al final, que es el comportamiento de siempre.
     hideOutOfStock: bool(s.hide_out_of_stock, false),
     hideOutOfStockVariants: bool(s.hide_out_of_stock_variants, false),
+    // Default true: las tiendas existentes siguen mostrando la calculadora.
+    showShippingCalculator: bool(s.show_shipping_calculator, true),
 
     // Badges de las product cards. Defaults pensados para no cambiar el aspecto
     // de tiendas existentes: lowStock/discount/freeShipping activos (freeShipping
