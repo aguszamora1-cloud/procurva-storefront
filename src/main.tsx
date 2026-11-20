@@ -1,3 +1,6 @@
+// Plantillas P1.1: PRIMERO, para que la guarda de la vista previa (sólo DEV)
+// quede puesta antes de que se cree el cliente de Supabase. En producción no deja nada.
+import './lib/devTemplate';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';

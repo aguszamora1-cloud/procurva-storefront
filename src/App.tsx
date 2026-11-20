@@ -20,6 +20,7 @@ import { StoreNotFound } from '@/pages/StoreNotFound';
 import { RouteNotFound } from '@/pages/RouteNotFound';
 import { WholesalePasswordGate } from '@/pages/WholesalePasswordGate';
 import { PaginaEnConstruccion } from '@/pages/PaginaEnConstruccion';
+import { devTemplate } from '@/lib/devTemplate';
 
 // Code-splitting: cada página se carga bajo demanda (lazy) para reducir el
 // bundle inicial. La navegación dispara la descarga del chunk de la página.
@@ -36,6 +37,16 @@ const CheckoutPending = lazy(() => import('@/pages/CheckoutResult').then((m) => 
 const CustomPage = lazy(() => import('@/pages/CustomPage').then((m) => ({ default: m.CustomPage })));
 const PromoPage = lazy(() => import('@/pages/PromoPage').then((m) => ({ default: m.PromoPage })));
 const Resena = lazy(() => import('@/pages/Resena').then((m) => ({ default: m.Resena })));
+
+/**
+ * Plantillas P1.1: vista previa de plantillas comerciales SÓLO en vite DEV
+ * (`?pc_dev_tpl=`, lib/devTemplate). En producción `import.meta.env.DEV` es
+ * `false` literal: el import diferido desaparece del bundle y toda tienda ve
+ * Classic, sin cambios.
+ */
+const TemplateApp = import.meta.env.DEV
+  ? lazy(() => import('@/templates/TemplateApp').then((m) => ({ default: m.TemplateApp })))
+  : null;
 
 /** Fallback liviano mientras se descarga el chunk de la página. */
 function PageFallback() {
@@ -110,6 +121,12 @@ function Gate() {
       />
     );
   if (status === 'needs-password') return <WholesalePasswordGate />;
+  if (TemplateApp && devTemplate)
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <TemplateApp id={devTemplate} />
+      </Suspense>
+    );
   return <StoreRoutes />;
 }
 
