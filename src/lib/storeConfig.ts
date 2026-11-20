@@ -6,7 +6,9 @@ import type {
   ResolvedStorefront,
   StoreConfig,
   StoreMenuItem,
+  CheckoutPayMethod,
 } from './types';
+import { CHECKOUT_PAY_METHODS } from './types';
 import { resolveProductLayoutOrNull } from './productLayout';
 import { resolveTitleCase, savedTypographyVersion } from './typography';
 import { TYPOGRAPHY_V2_STAGE } from './typographyRollout';
@@ -590,6 +592,11 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     hideOutOfStockVariants: bool(s.hide_out_of_stock_variants, false),
     // Default true: las tiendas existentes siguen mostrando la calculadora.
     showShippingCalculator: bool(s.show_shipping_calculator, true),
+    // Default 'transferencia': las tiendas existentes siguen igual. Un valor
+    // desconocido (o mal escrito) también cae a transferencia.
+    defaultPayMethod: (CHECKOUT_PAY_METHODS as readonly string[]).includes(s.default_pay_method as string)
+      ? (s.default_pay_method as CheckoutPayMethod)
+      : 'transferencia',
 
     // Badges de las product cards. Defaults pensados para no cambiar el aspecto
     // de tiendas existentes: lowStock/discount/freeShipping activos (freeShipping
