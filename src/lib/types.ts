@@ -844,6 +844,9 @@ export interface RawCatalogSettings {
   // las curvas y packs mayoristas necesitan ver la curva completa. Default false.
   hide_out_of_stock_variants?: boolean;
   show_shipping_calculator?: boolean;
+  // Medio de pago que viene marcado al entrar al checkout. Ausente = 'transferencia'
+  // (lo de siempre). Si la tienda no ofrece ese medio, se usa el primero disponible.
+  default_pay_method?: string;
   // Badges de las product cards (Últimas unidades / Nuevo / Envío gratis /
   // Descuento). Cada uno: on/off, color de fondo (texto por contraste) y label;
   // low_stock/new con su parámetro propio. Lo escribe el panel Diseño → Badges.
@@ -1024,6 +1027,10 @@ export type StoreMenuItem =
       carriers: Array<{ name: string; url: string }>;
     }
   | { kind: 'page'; id: string; label: string; slug: string; body: string; imageUrl: string };
+
+/** Medios de pago del checkout (mismo orden en que se muestran). */
+export const CHECKOUT_PAY_METHODS = ['transferencia', 'efectivo', 'mp_cuenta', 'tarjeta', 'gocuotas'] as const;
+export type CheckoutPayMethod = (typeof CHECKOUT_PAY_METHODS)[number];
 
 export interface StoreConfig {
   companyId: string;
@@ -1264,6 +1271,10 @@ export interface StoreConfig {
   // "Calculá tu envío" en la ficha de producto. Default true (lo de siempre);
   // el comercio lo apaga desde el editor (Promesa de envío). LAS POPAS, 20/11/2026.
   showShippingCalculator: boolean;
+  // Medio de pago marcado de entrada en el checkout. Default 'transferencia'
+  // (sin comisión para el comercio); el comercio lo cambia desde el editor
+  // (Checkout). LAS POPAS, 20/11/2026.
+  defaultPayMethod: CheckoutPayMethod;
   // Badges de las product cards, normalizados con defaults. El texto se resuelve
   // por contraste sobre `color`. `discount.color` vacío = usa el color de acento.
   badges: {
