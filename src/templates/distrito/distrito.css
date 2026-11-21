@@ -828,24 +828,12 @@
   }
 }
 
-/* Ficha */
-.di-pdp {
-  display: grid;
-  grid-template-columns: 8fr 5fr;
-  gap: 0 clamp(16px, 3vw, 48px);
-  padding: 0 var(--di-gutter) 0 0;
-}
-.di-gallery__track {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3px;
-}
+/* Ficha
+   Escritorio: franja con el nombre, tira de fotos a sangre y compra en columnas.
+   Celular: fotos, nombre, opciones y barra fija (P1.1b). */
 .di-gallery__track figure {
   margin: 0;
   background: var(--di-black-2);
-}
-.di-gallery__track figure:first-child:nth-last-child(odd) {
-  grid-column: span 2;
 }
 .di-gallery__track img {
   width: 100%;
@@ -862,13 +850,6 @@
   background: var(--di-black-2);
   color: var(--di-gray);
 }
-.di-pdp__info {
-  padding-top: 32px;
-}
-.di-pdp__sticky {
-  position: sticky;
-  top: calc(var(--di-head-h) + 24px);
-}
 .di-pdp__cat {
   display: inline-block;
   margin-bottom: 10px;
@@ -883,10 +864,22 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+.di-pdp__promo {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--di-signal);
+  color: var(--di-bone);
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  font-stretch: 85%;
+  font-variation-settings: 'wdth' 85;
+}
 .di-opt {
   border: 0;
   padding: 0;
   margin: 0 0 22px;
+  min-width: 0;
 }
 .di-opt legend {
   font-stretch: 125%;
@@ -912,6 +905,9 @@
   font-stretch: 75%;
   font-variation-settings: 'wdth' 75;
   text-transform: uppercase;
+}
+.di-chipbtn:hover {
+  border-color: var(--di-gray) !important;
 }
 .di-chipbtn[aria-pressed='true'] {
   border-color: var(--di-bone) !important;
@@ -990,13 +986,187 @@
   font-size: 14px;
   margin: 0 0 16px;
 }
+
+@media (min-width: 900px) {
+  .di-pdp {
+    --di-strip: clamp(360px, calc(100vh - var(--di-head-h) - 360px), 640px);
+  }
+  .di-pdp__head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 16px clamp(24px, 4vw, 72px);
+    padding: 26px var(--di-gutter) 22px;
+  }
+  .di-pdp__name {
+    font-size: clamp(56px, 6.2vw, 112px);
+    line-height: 0.84;
+  }
+  .di-price--pdp {
+    margin: 0;
+    text-align: right;
+  }
+  .di-price--pdp .di-price__big {
+    font-size: 40px;
+    line-height: 1;
+  }
+  /* Tira de fotos a sangre: con 3 o más se recorre de costado. */
+  .di-gallery {
+    position: relative;
+  }
+  .di-gallery__track {
+    display: flex;
+    gap: 3px;
+    height: var(--di-strip);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .di-gallery__track::-webkit-scrollbar {
+    display: none;
+  }
+  .di-gallery__track figure {
+    flex: 0 0 auto;
+    height: 100%;
+    aspect-ratio: 4 / 5;
+    scroll-snap-align: start;
+  }
+  .di-gallery__track img {
+    height: 100%;
+    aspect-ratio: auto;
+  }
+  /* Con una o dos fotos: ocupan la tira enteras, sin recortarlas. */
+  .di-gallery[data-few] .di-gallery__track figure {
+    flex: 1 1 0;
+    aspect-ratio: auto;
+    min-width: 0;
+  }
+  .di-gallery[data-few] .di-gallery__track figure {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .di-gallery[data-few] .di-gallery__track figure::before {
+    content: '';
+    position: absolute;
+    inset: -40px;
+    z-index: -1;
+    background: var(--di-bg) center / cover no-repeat;
+    filter: blur(36px) brightness(0.42) saturate(0.9);
+  }
+  .di-gallery[data-few] .di-gallery__track img {
+    object-fit: contain;
+    position: relative;
+  }
+  .di-gallery--empty {
+    aspect-ratio: auto;
+    height: var(--di-strip);
+  }
+  .di-gallery__nav {
+    position: absolute;
+    right: var(--di-gutter);
+    bottom: 16px;
+    display: flex;
+    gap: 3px;
+  }
+  .di-gallery__nav button {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    background: var(--di-black) !important;
+    border: 1px solid var(--di-bone) !important;
+  }
+  .di-gallery__nav button:hover:not(:disabled) {
+    background: var(--di-bone) !important;
+    color: var(--di-black) !important;
+  }
+  .di-gallery__nav button:disabled {
+    border-color: var(--di-line) !important;
+    color: var(--di-line) !important;
+    cursor: default;
+  }
+  .di-gallery__nav svg {
+    width: 20px;
+    height: 20px;
+  }
+  /* Compra en columnas: color · talle · botón. */
+  .di-pdp__sticky {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+    gap: 0 clamp(24px, 4vw, 64px);
+    align-items: start;
+    padding: 22px var(--di-gutter) 26px;
+    border-bottom: 1px solid var(--di-line);
+  }
+  .di-pdp__pick {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0 clamp(24px, 3vw, 48px);
+  }
+  .di-pdp__pick[data-cols='1'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .di-pdp__pick .di-opt {
+    margin: 0;
+  }
+  .di-opt__sizes {
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  }
+  .di-opt__sizes button {
+    height: 64px;
+    font-size: 22px;
+  }
+  .di-pdp__act {
+    padding-top: 25px;
+  }
+  .di-pdp__act .di-low {
+    margin: 0 0 12px;
+  }
+  .di-pdp__act .di-cta {
+    min-height: 64px;
+    font-size: 16px;
+  }
+  /* Detalle: la descripción ancha y las políticas al costado. */
+  .di-pdp__more {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 0 clamp(32px, 6vw, 112px);
+    margin: 0;
+    padding: 40px var(--di-gutter) 72px;
+  }
+  .di-pdp__more > :only-child {
+    grid-column: 1 / -1;
+    max-width: 900px;
+  }
+  .di-acc--lead {
+    border: 0 !important;
+  }
+  .di-acc--lead summary {
+    font-size: 28px;
+    padding-top: 0;
+    justify-content: flex-start;
+    gap: 14px;
+  }
+  .di-acc--lead summary::after {
+    color: var(--di-signal);
+  }
+  .di-acc--lead p {
+    color: var(--di-bone);
+    font-size: 16px;
+    line-height: 1.6;
+    max-width: 70ch;
+  }
+}
+
 @media (max-width: 899px) {
   .di-pdp {
-    display: block;
-    padding: 0;
+    display: flex;
+    flex-direction: column;
   }
   .di-gallery {
     position: relative;
+    order: -1;
   }
   .di-gallery__track {
     display: flex;
@@ -1026,11 +1196,25 @@
   .di-gallery__progress span[data-on] {
     background: var(--di-bone);
   }
-  .di-pdp__info {
+  .di-pdp__head {
     padding: 18px var(--di-gutter) 0;
   }
-  .di-pdp__sticky {
-    position: static;
+  /* La barra de compra queda fija abajo en toda la ficha (desde la primera
+     pantalla): los contenedores no generan caja y la barra es hija directa
+     de .di-pdp a efectos del sticky. */
+  .di-pdp__col,
+  .di-pdp__info,
+  .di-pdp__sticky,
+  .di-pdp__pick,
+  .di-pdp__act {
+    display: contents;
+  }
+  .di-pdp .di-opt,
+  .di-pdp__promo,
+  .di-pdp .di-low,
+  .di-pdp__more {
+    margin-left: var(--di-gutter);
+    margin-right: var(--di-gutter);
   }
   .di-buy {
     position: sticky;
@@ -1040,7 +1224,7 @@
     grid-template-columns: auto 1fr;
     align-items: center;
     gap: 12px;
-    margin: 0 calc(var(--di-gutter) * -1);
+    margin: 0;
     padding: 8px var(--di-gutter) calc(8px + env(safe-area-inset-bottom));
     background: var(--di-black);
     border-top: 1px solid var(--di-line);

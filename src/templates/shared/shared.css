@@ -1,5 +1,12 @@
 /* Vista previa de plantillas (P1.1, sólo DEV): piezas comunes que no son de ninguna plantilla. */
 
+/* Pantallas de Classic dentro de una plantilla (ficha mayorista): con sus colores. */
+.tpl-classic-surface {
+  background: var(--color-background, #fff);
+  color: var(--color-text, #111);
+  flex: 1;
+}
+
 .tpl-route-wait {
   min-height: 70vh;
 }

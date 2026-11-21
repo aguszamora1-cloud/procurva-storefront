@@ -7,6 +7,7 @@ import { CartProvider } from '@/context/CartContext';
 import { CouponProvider } from '@/context/CouponContext';
 import { FirstPaintProvider } from '@/context/FirstPaintContext';
 import { ScrollToTop } from '@/components/ScrollToTop';
+import { ContrastScope } from '@/components/ContrastScope';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useStoreType } from '@/context/StoreProvider';
 import type { DevTemplateId } from '@/lib/devTemplate';
@@ -73,7 +74,19 @@ function KitRoutes({ kit, id }: { kit: TemplateKit; id: DevTemplateId }) {
           <Route path="/categorias" element={<Catalog />} />
           <Route path="/categoria/:name" element={<Catalog />} />
           {/* Mayorista: curvas, packs y escalones viven en la ficha de Classic. */}
-          <Route path="/producto/:id" element={isWholesale ? <ClassicProductDetail /> : <Product />} />
+          <Route path="/producto/:id" element={
+              isWholesale ? (
+                // Superficie propia de Classic: sobre el fondo oscuro de una plantilla su texto no se leía.
+                <div className="tpl-classic-surface">
+                  {/* Igual que en Classic (App.tsx): grises y acento con contraste AA. */}
+                  <ContrastScope>
+                    <ClassicProductDetail />
+                  </ContrastScope>
+                </div>
+              ) : (
+                <Product />
+              )
+            } />
           <Route path="/carrito" element={<Cart />} />
           <Route path="/pagina/:slug" element={<ClassicCustomPage />} />
           <Route

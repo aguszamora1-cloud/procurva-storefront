@@ -679,18 +679,9 @@
   }
 }
 
-/* Ficha */
-.at-pdp {
-  display: grid;
-  grid-template-columns: 7fr 5fr;
-  gap: 0 clamp(24px, 4vw, 72px);
-  padding: 0 var(--at-gutter);
-}
-.at-gallery__track {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+/* Ficha
+   Escritorio: compra a la izquierda (fija), fotos a la derecha en secuencia
+   editorial (ancha, corrida, par), descripción y políticas a todo el ancho. */
 .at-gallery__item {
   margin: 0;
   background: var(--at-paper-2);
@@ -710,14 +701,6 @@
   background: var(--at-paper-2);
   color: var(--at-ink-2);
 }
-.at-pdp__info {
-  padding-top: 40px;
-}
-.at-pdp__sticky {
-  position: sticky;
-  top: calc(var(--at-head-h) + 32px);
-  max-width: 440px;
-}
 .at-crumbs {
   font-size: 11px;
   letter-spacing: 0.16em;
@@ -725,17 +708,30 @@
   color: var(--at-ink-2);
   margin-bottom: 22px;
 }
+.at-crumbs a:hover {
+  color: var(--at-ink);
+}
 .at-pdp__name {
   font-family: var(--at-serif);
   font-weight: 400;
   font-size: clamp(30px, 3vw, 44px);
   line-height: 1.06;
   margin: 0 0 14px;
+  overflow-wrap: break-word;
+}
+.at-pdp__promo {
+  font-family: var(--at-serif);
+  font-style: italic;
+  font-size: 16px;
+  margin: -14px 0 28px;
+  padding-left: 14px;
+  border-left: 1px solid var(--at-ink);
 }
 .at-opt {
   border: 0;
   padding: 0;
   margin: 0 0 26px;
+  min-width: 0;
 }
 .at-opt legend {
   font-size: 11px;
@@ -794,7 +790,7 @@
   border-color: var(--at-ink) !important;
 }
 .at-size:disabled {
-  color: #a8a298;
+  color: #8f897f;
   text-decoration: line-through;
   cursor: not-allowed;
 }
@@ -802,6 +798,9 @@
   font-size: 13px;
   color: var(--at-ink-2);
   margin: -10px 0 16px;
+}
+.at-pdp__jump {
+  display: none;
 }
 .at-pdp__details {
   margin-top: 36px;
@@ -842,6 +841,136 @@
   font-size: 14px;
   margin: 0 0 18px;
 }
+
+@media (min-width: 900px) {
+  .at-pdp {
+    display: grid;
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    grid-template-areas:
+      'info gallery'
+      'story story';
+    column-gap: clamp(48px, 7vw, 120px);
+    padding: 0 var(--at-gutter);
+  }
+  .at-pdp__col {
+    display: contents;
+  }
+  .at-gallery {
+    grid-area: gallery;
+    padding-top: 40px;
+  }
+  .at-pdp__info {
+    grid-area: info;
+    padding-top: 72px;
+  }
+  .at-pdp__sticky {
+    position: sticky;
+    top: calc(var(--at-head-h) + 48px);
+  }
+  .at-pdp__name {
+    font-size: clamp(38px, 3.4vw, 54px);
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    margin-bottom: 22px;
+  }
+  /* Secuencia de fotos: ancha a la izquierda, corrida a la derecha y un par. */
+  .at-gallery__track {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: clamp(40px, 5vw, 88px) clamp(16px, 2vw, 28px);
+  }
+  .at-gallery__item {
+    align-self: start;
+  }
+  .at-gallery__item:nth-child(4n + 1) {
+    grid-column: 1 / 11;
+  }
+  .at-gallery__item:nth-child(4n + 2) {
+    grid-column: 4 / 13;
+  }
+  .at-gallery__item:nth-child(4n + 3) {
+    grid-column: 1 / 7;
+  }
+  .at-gallery__item:nth-child(4n + 4) {
+    grid-column: 7 / 13;
+    margin-top: clamp(48px, 8vw, 140px);
+  }
+  /* Si el par queda sin compañera, va sola y centrada. */
+  .at-gallery__item:nth-child(4n + 3):last-child {
+    grid-column: 3 / 11;
+  }
+  .at-gallery--empty {
+    grid-area: gallery;
+    margin-top: 40px;
+    width: 83%;
+  }
+  .at-pdp__jump {
+    display: inline-block;
+    text-align: left;
+    line-height: 1.7;
+    margin-top: 26px;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--at-ink-2);
+    border-bottom: 1px solid var(--at-line) !important;
+    padding-bottom: 3px;
+  }
+  .at-pdp__jump:hover {
+    color: var(--at-ink);
+    border-color: var(--at-ink) !important;
+  }
+  /* Cierre: la descripción como texto de revista y las políticas en columnas. */
+  .at-pdp__story {
+    grid-area: story;
+    margin-top: clamp(72px, 9vw, 140px);
+    padding: clamp(48px, 6vw, 96px) 0 clamp(32px, 4vw, 64px);
+    border-top: 1px solid var(--at-ink);
+    scroll-margin-top: calc(var(--at-head-h) + 16px);
+  }
+  .at-pdp__story .at-pdp__details {
+    margin: 0;
+    border: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 clamp(24px, 3vw, 48px);
+  }
+  .at-pdp__story details {
+    border-bottom: 1px solid var(--at-line);
+    align-self: start;
+  }
+  .at-pdp__story .at-pdp__lead {
+    grid-column: 1 / -1;
+    display: grid;
+    border: 0;
+    margin-bottom: clamp(40px, 5vw, 72px);
+  }
+  .at-pdp__story .at-pdp__lead summary {
+    font-family: var(--at-serif);
+    font-size: clamp(26px, 2.4vw, 36px);
+    letter-spacing: 0;
+    text-transform: none;
+    font-style: italic;
+    padding: 0 0 20px;
+    justify-content: flex-start;
+    gap: 16px;
+  }
+  .at-pdp__story .at-pdp__lead summary::after {
+    font-family: var(--at-sans);
+    font-style: normal;
+    font-size: 18px;
+    color: var(--at-ink-2);
+  }
+  .at-pdp__story .at-pdp__lead .at-pdp__desc {
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--at-ink);
+    max-width: 64ch;
+    columns: 2 30ch;
+    column-gap: clamp(32px, 4vw, 64px);
+  }
+}
+
 @media (max-width: 899px) {
   .at-pdp {
     display: block;
@@ -851,6 +980,7 @@
     position: relative;
   }
   .at-gallery__track {
+    display: flex;
     flex-direction: row;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
@@ -872,12 +1002,13 @@
     background: var(--at-paper);
     padding: 3px 8px;
   }
-  .at-pdp__info {
+  /* La barra de compra queda fija abajo hasta el final de la descripción. */
+  .at-pdp__col {
     padding: 24px var(--at-gutter) 0;
   }
+  .at-pdp__info,
   .at-pdp__sticky {
-    position: static;
-    max-width: none;
+    display: contents;
   }
   .at-pdp__buy {
     position: sticky;

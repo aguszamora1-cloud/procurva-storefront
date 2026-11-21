@@ -317,6 +317,20 @@ export function usePdp(product: Product): PdpState {
   };
 }
 
+/**
+ * Promo por cantidad del producto ("Llevá 3 y…"): el mismo texto que muestra
+ * Classic. La aplica el carrito común (useCartPromos); acá sólo se anuncia.
+ */
+export function useQtyPromoMessage(product: Product, color: string | null): string | null {
+  const { quantityMessageFor } = usePromotions();
+  return quantityMessageFor(product, color) || null;
+}
+
+/** Talles con stock para el color elegido: [disponibles, total]. */
+export function sizeAvailability(pdp: PdpState): [number, number] {
+  return [pdp.sizes.filter((s) => !pdp.sizeDisabled(s)).length, pdp.sizes.length];
+}
+
 // ── Navegación y datos de la tienda ───────────────────────────────────────────
 export interface StoreLink {
   label: string;

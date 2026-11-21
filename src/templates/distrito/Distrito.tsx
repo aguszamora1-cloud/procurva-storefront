@@ -9,6 +9,8 @@
  * encabezado, galería con barra de progreso y barra de compra con precio.
  */
 import { useCallback, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { transformedSrc } from '@/lib/images';
 import { Link, NavLink, useParams } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
 import { useFirstPaintGate } from '@/context/FirstPaintContext';
@@ -40,6 +42,7 @@ import {
   useMenuLinks,
   usePdp,
   usePolicies,
+  useQtyPromoMessage,
   useTplPrice,
   type SortKey,
 } from '../shared/commerce';
@@ -706,11 +709,26 @@ function DistritoCatalog() {
 }
 
 // ── Ficha ─────────────────────────────────────────────────────────────────────
+// Escritorio: el nombre en una franja de ancho completo, las fotos en una tira
+// horizontal a sangre y, debajo, la compra en columnas (color · talle · botón).
+// Celular: igual que en P1.1b (fotos, nombre, opciones, barra fija).
 function DistritoGallery({ images, name }: { images: string[]; name: string }) {
   const [index, setIndex] = useState(0);
+  const [edge, setEdge] = useState<'start' | 'end' | 'mid' | 'none'>('start');
+  const track = useRef<HTMLDivElement>(null);
+  const few = images.length < 3;
+  const update = (el: HTMLDivElement) => {
+    if (el.scrollWidth <= el.clientWidth + 4) return setEdge('none');
+    setIndex(Math.round(el.scrollLeft / el.clientWidth));
+    setEdge(el.scrollLeft < 8 ? 'start' : el.scrollLeft + el.clientWidth >= el.scrollWidth - 8 ? 'end' : 'mid');
+  };
+  const move = (dir: 1 | -1) => {
+    const el = track.current;
+    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.75, behavior: 'smooth' });
+  };
   if (images.length === 0) return <div className="di-gallery di-gallery--empty">Sin fotos</div>;
   return (
-    <div className="di-gallery">
+    <div className="di-gallery" data-few={few || undefined}>
       {images.length > 1 && (
         <div className="di-gallery__progress" aria-hidden="true">
           {images.map((src, i) => (
@@ -718,21 +736,23 @@ function DistritoGallery({ images, name }: { images: string[]; name: string }) {
           ))}
         </div>
       )}
-      <div
-        className="di-gallery__track"
-        tabIndex={0}
-        aria-label={`Fotos de ${name}`}
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          if (el.scrollWidth > el.clientWidth + 4) setIndex(Math.round(el.scrollLeft / el.clientWidth));
-        }}
-      >
+      <div ref={track} className="di-gallery__track" tabIndex={0} aria-label={`Fotos de ${name}`} onScroll={(e) => update(e.currentTarget)}>
         {images.map((src, i) => (
-          <figure key={src}>
-            <StoreImage src={src} alt={i === 0 ? name : `${name}, foto ${i + 1}`} transformWidth={1000} width={800} height={1000} loading={i < 2 ? 'eager' : 'lazy'} />
+          <figure key={src} style={few ? ({ '--di-bg': `url("${transformedSrc(src, { width: 200 })}")` } as CSSProperties) : undefined}>
+            <StoreImage src={src} alt={i === 0 ? name : `${name}, foto ${i + 1}`} transformWidth={1000} width={800} height={1000} loading={i < 3 ? 'eager' : 'lazy'} />
           </figure>
         ))}
       </div>
+      {!few && edge !== 'none' && (
+        <div className="di-gallery__nav di-only-desktop">
+          <button type="button" aria-label="Fotos anteriores" disabled={edge === 'start'} onClick={() => move(-1)}>
+            <ArrowLeft aria-hidden="true" />
+          </button>
+          <button type="button" aria-label="Más fotos" disabled={edge === 'end'} onClick={() => move(1)}>
+            <ArrowRight aria-hidden="true" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -741,8 +761,10 @@ function DistritoProductView({ product }: { product: Product }) {
   const config = useStore();
   const pdp = usePdp(product);
   const policies = usePolicies();
+  const promo = useQtyPromoMessage(product, pdp.color);
   const cats = productCategories(product);
   const price = useTplPrice(product, { color: pdp.color, size: pdp.size });
+  const description = product.description?.trim() ?? '';
   const cta = pdp.soldOut
     ? 'Agotado'
     : pdp.canAdd
@@ -756,87 +778,104 @@ function DistritoProductView({ product }: { product: Product }) {
             : 'Sin stock';
   return (
     <div className="di-pdp">
-      <Seo title={`${product.name} · ${config.name}`} description={product.description?.trim() || config.name} image={pdp.images[0]} slug={config.slug} siteName={config.name} path={`/producto/${product.id}`} />
-      <DistritoGallery images={pdp.images} name={product.name} />
-      <div className="di-pdp__info">
-        <div className="di-pdp__sticky">
+      <Seo title={`${product.name} · ${config.name}`} description={description || config.name} image={pdp.images[0]} slug={config.slug} siteName={config.name} path={`/producto/${product.id}`} />
+      <header className="di-pdp__head">
+        <div className="di-pdp__title">
           {cats[0] && (
             <Link to={categoryHref(cats[0])} className="di-meta di-pdp__cat">
               {cats[0]}
             </Link>
           )}
           <h1 className="di-pdp__name">{product.name}</h1>
-          <PriceView product={product} cls="di-price di-price--pdp" color={pdp.color} size={pdp.size} showInstallments />
+        </div>
+        <PriceView product={product} cls="di-price di-price--pdp" color={pdp.color} size={pdp.size} showInstallments />
+      </header>
+      <DistritoGallery images={pdp.images} name={product.name} />
+      <div className="di-pdp__col">
+        <div className="di-pdp__info">
+          <div className="di-pdp__sticky">
+            {(pdp.colors.length > 0 || pdp.sizes.length > 0) && (
+              <div className="di-pdp__pick" data-cols={pdp.colors.length > 0 && pdp.sizes.length > 0 ? 2 : 1}>
+                {pdp.colors.length > 0 && (
+                  <fieldset className="di-opt">
+                    <legend>
+                      Color <b>{pdp.color ?? '—'}</b>
+                    </legend>
+                    <div className="di-opt__row">
+                      {pdp.colors.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          className="di-chipbtn"
+                          aria-pressed={pdp.color === c}
+                          data-out={pdp.colorDisabled(c) || undefined}
+                          aria-label={`${c}${pdp.colorDisabled(c) ? ', sin stock' : ''}`}
+                          onClick={() => pdp.setColor(c)}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+                )}
 
-          {pdp.colors.length > 0 && (
-            <fieldset className="di-opt">
-              <legend>
-                Color <b>{pdp.color ?? '—'}</b>
-              </legend>
-              <div className="di-opt__row">
-                {pdp.colors.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className="di-chipbtn"
-                    aria-pressed={pdp.color === c}
-                    data-out={pdp.colorDisabled(c) || undefined}
-                    aria-label={`${c}${pdp.colorDisabled(c) ? ', sin stock' : ''}`}
-                    onClick={() => pdp.setColor(c)}
-                  >
-                    {c}
-                  </button>
-                ))}
+                {pdp.sizes.length > 0 && (
+                  <fieldset className="di-opt">
+                    <legend>
+                      Talle <b>{pdp.size ?? '—'}</b>
+                    </legend>
+                    <div className="di-opt__sizes">
+                      {pdp.sizes.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          aria-pressed={pdp.size === s}
+                          disabled={pdp.sizeDisabled(s)}
+                          aria-label={`Talle ${s}${pdp.sizeDisabled(s) ? ', sin stock' : ''}`}
+                          onClick={() => pdp.setSize(s)}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+                )}
               </div>
-            </fieldset>
-          )}
-
-          {pdp.sizes.length > 0 && (
-            <fieldset className="di-opt">
-              <legend>
-                Talle <b>{pdp.size ?? '—'}</b>
-              </legend>
-              <div className="di-opt__sizes">
-                {pdp.sizes.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    aria-pressed={pdp.size === s}
-                    disabled={pdp.sizeDisabled(s)}
-                    aria-label={`Talle ${s}${pdp.sizeDisabled(s) ? ', sin stock' : ''}`}
-                    onClick={() => pdp.setSize(s)}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-          )}
-
-          {pdp.lowStock != null && <p className="di-low">Últimas {pdp.lowStock} unidades en este talle</p>}
-
-          <div className="di-buy">
-            {price && <p className="di-buy__price di-only-mobile">{formatPrice(price.big)}</p>}
-            <button type="button" className="di-cta di-cta--block" onClick={buyAction(pdp, '.di-pdp')} disabled={pdp.soldOut || (!pdp.canAdd && !pdp.missing)}>
-              {cta}
-            </button>
-          </div>
-
-          <div className="di-pdp__more">
-            {product.description?.trim() && (
-              <details className="di-acc" open>
-                <summary>Detalle</summary>
-                <p>{product.description.trim()}</p>
-              </details>
             )}
-            {policies.map((p) => (
-              <details key={p.key} className="di-acc">
-                <summary>{p.title}</summary>
-                <p>{p.body}</p>
-              </details>
-            ))}
+
+            <div className="di-pdp__act">
+              {promo && <p className="di-pdp__promo">{promo}</p>}
+              {pdp.lowStock != null && <p className="di-low">{pdp.lowStock === 1 ? 'Última unidad en este talle' : `Últimas ${pdp.lowStock} unidades en este talle`}</p>}
+              <div className="di-buy">
+                {price && <p className="di-buy__price di-only-mobile">{formatPrice(price.big)}</p>}
+                <button type="button" className="di-cta di-cta--block" onClick={buyAction(pdp, '.di-pdp')} disabled={pdp.soldOut || (!pdp.canAdd && !pdp.missing)}>
+                  {cta}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+
+        {(description || policies.length > 0) && (
+          <div className="di-pdp__more">
+            {description && (
+              <details className="di-acc di-acc--lead" open>
+                <summary>Detalle</summary>
+                <p>{description}</p>
+              </details>
+            )}
+            {policies.length > 0 && (
+              <div className="di-pdp__policies">
+                {policies.map((p) => (
+                  <details key={p.key} className="di-acc">
+                    <summary>{p.title}</summary>
+                    <p>{p.body}</p>
+                  </details>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

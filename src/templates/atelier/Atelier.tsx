@@ -34,6 +34,7 @@ import {
   usePdp,
   usePolicies,
   useHero,
+  useQtyPromoMessage,
   buyAction,
   sameText,
   type CatalogView,
@@ -731,19 +732,48 @@ function AtelierCatalog() {
 }
 
 // ── Ficha ─────────────────────────────────────────────────────────────────────
+// Escritorio: columna angosta de compra a la izquierda (fija al bajar) y las
+// fotos a la derecha en una secuencia editorial asimétrica; la descripción y las
+// políticas cierran la ficha a todo el ancho. Celular: igual que en P1.1b.
+
+const SMALL_WORDS = new Set(['de', 'del', 'con', 'y', 'la', 'el', 'en', 'sin', 'x', 'para', 'por', 'a', 'al', 'las', 'los']);
+
+/**
+ * Nombre con tratamiento editorial: si el comercio lo escribió TODO en
+ * mayúsculas, se muestra con mayúscula inicial (la serif de Atelier en
+ * mayúsculas sostenidas se lee como un cartel). Las siglas cortas (NBA, BMW,
+ * CK) quedan como están. Sólo cambia la caja, nunca el texto.
+ */
+function editorialName(name: string): string {
+  const t = name.trim();
+  const letters = t.replace(/[^\p{L}]/gu, '');
+  if (letters.length < 4 || letters !== letters.toLocaleUpperCase('es')) return t;
+  return t
+    .split(/(\s+)/)
+    .map((w, i) => {
+      if (!w.trim()) return w;
+      const lower = w.toLocaleLowerCase('es');
+      if (SMALL_WORDS.has(lower)) return i === 0 ? lower.charAt(0).toLocaleUpperCase('es') + lower.slice(1) : lower;
+      const l = w.replace(/[^\p{L}]/gu, '');
+      if (l.length > 0 && l.length <= 3) return w;
+      return lower.charAt(0).toLocaleUpperCase('es') + lower.slice(1);
+    })
+    .join('');
+}
+
 function AtelierGallery({ images, name }: { images: string[]; name: string }) {
   const [index, setIndex] = useState(0);
   const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
-    setIndex(Math.round(el.scrollLeft / el.clientWidth));
+    if (el.scrollWidth > el.clientWidth + 4) setIndex(Math.round(el.scrollLeft / el.clientWidth));
   };
   if (images.length === 0) return <div className="at-gallery at-gallery--empty">Sin fotos</div>;
   return (
-    <div className="at-gallery">
+    <div className="at-gallery" data-n={Math.min(images.length, 4)}>
       <div className="at-gallery__track" onScroll={onScroll} tabIndex={0} aria-label={`Fotos de ${name}`}>
         {images.map((src, i) => (
           <figure key={src} className="at-gallery__item">
-            <StoreImage src={src} alt={i === 0 ? name : `${name}, foto ${i + 1}`} transformWidth={1200} width={900} height={1200} loading={i === 0 ? 'eager' : 'lazy'} />
+            <StoreImage src={src} alt={i === 0 ? name : `${name}, foto ${i + 1}`} transformWidth={1200} width={900} height={1200} loading={i < 2 ? 'eager' : 'lazy'} />
           </figure>
         ))}
       </div>
@@ -760,7 +790,10 @@ function AtelierProductView({ product }: { product: Product }) {
   const config = useStore();
   const pdp = usePdp(product);
   const policies = usePolicies();
+  const promo = useQtyPromoMessage(product, pdp.color);
   const cats = productCategories(product);
+  const description = product.description?.trim() ?? '';
+  const story = [description && 'Descripción', ...policies.map((p) => p.title.toLocaleLowerCase('es'))].filter(Boolean);
   const cta = pdp.soldOut
     ? 'Agotado'
     : pdp.canAdd
@@ -772,91 +805,108 @@ function AtelierProductView({ product }: { product: Product }) {
           : pdp.missing === 'talle'
             ? 'Elegí tu talle'
             : 'Sin stock';
+  const toStory = () => document.getElementById('at-story')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return (
     <div className="at-pdp">
-      <Seo title={`${product.name} · ${config.name}`} description={product.description?.trim() || config.name} image={pdp.images[0]} slug={config.slug} siteName={config.name} path={`/producto/${product.id}`} />
+      <Seo title={`${product.name} · ${config.name}`} description={description || config.name} image={pdp.images[0]} slug={config.slug} siteName={config.name} path={`/producto/${product.id}`} />
       <AtelierGallery images={pdp.images} name={product.name} />
-      <div className="at-pdp__info">
-        <div className="at-pdp__sticky">
-          <nav className="at-crumbs" aria-label="Ubicación">
-            <Link to="/productos">Tienda</Link>
-            {cats[0] && (
-              <>
-                <span aria-hidden="true"> / </span>
-                <Link to={categoryHref(cats[0])}>{cats[0]}</Link>
-              </>
+      <div className="at-pdp__col">
+        <div className="at-pdp__info">
+          <div className="at-pdp__sticky">
+            <nav className="at-crumbs" aria-label="Ubicación">
+              <Link to="/productos">Tienda</Link>
+              {cats[0] && (
+                <>
+                  <span aria-hidden="true"> / </span>
+                  <Link to={categoryHref(cats[0])}>{cats[0]}</Link>
+                </>
+              )}
+            </nav>
+            <h1 className="at-pdp__name">{editorialName(product.name)}</h1>
+            <PriceView product={product} cls="at-price at-price--pdp" color={pdp.color} size={pdp.size} showInstallments />
+            {promo && <p className="at-pdp__promo">{promo}</p>}
+
+            {pdp.colors.length > 0 && (
+              <fieldset className="at-opt">
+                <legend>
+                  Color <span>{pdp.color ?? ''}</span>
+                </legend>
+                <div className="at-opt__colors">
+                  {pdp.colors.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className="at-swatch"
+                      aria-pressed={pdp.color === c}
+                      aria-label={`${c}${pdp.colorDisabled(c) ? ', sin stock' : ''}`}
+                      title={c}
+                      data-out={pdp.colorDisabled(c) || undefined}
+                      onClick={() => pdp.setColor(c)}
+                    >
+                      <span style={{ backgroundColor: colorToHex(c) }} />
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
             )}
-          </nav>
-          <h1 className="at-pdp__name">{product.name}</h1>
-          <PriceView product={product} cls="at-price at-price--pdp" color={pdp.color} size={pdp.size} showInstallments />
 
-          {pdp.colors.length > 0 && (
-            <fieldset className="at-opt">
-              <legend>
-                Color <span>{pdp.color ?? ''}</span>
-              </legend>
-              <div className="at-opt__colors">
-                {pdp.colors.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className="at-swatch"
-                    aria-pressed={pdp.color === c}
-                    aria-label={`${c}${pdp.colorDisabled(c) ? ', sin stock' : ''}`}
-                    data-out={pdp.colorDisabled(c) || undefined}
-                    onClick={() => pdp.setColor(c)}
-                  >
-                    <span style={{ backgroundColor: colorToHex(c) }} />
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-          )}
-
-          {pdp.sizes.length > 0 && (
-            <fieldset className="at-opt">
-              <legend>Talle</legend>
-              <div className="at-opt__sizes">
-                {pdp.sizes.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className="at-size"
-                    aria-pressed={pdp.size === s}
-                    disabled={pdp.sizeDisabled(s)}
-                    aria-label={`Talle ${s}${pdp.sizeDisabled(s) ? ', sin stock' : ''}`}
-                    onClick={() => pdp.setSize(s)}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-          )}
-
-          {pdp.lowStock != null && <p className="at-pdp__low">Quedan {pdp.lowStock} en este talle.</p>}
-
-          <div className="at-pdp__buy">
-            <button type="button" className="at-button" onClick={buyAction(pdp, ".at-pdp")} disabled={pdp.soldOut || (!pdp.canAdd && !pdp.missing)}>
-              {cta}
-            </button>
-          </div>
-
-          <div className="at-pdp__details">
-            {product.description?.trim() && (
-              <details open>
-                <summary>Descripción</summary>
-                <p className="at-pdp__desc">{product.description.trim()}</p>
-              </details>
+            {pdp.sizes.length > 0 && (
+              <fieldset className="at-opt">
+                <legend>
+                  Talle <span>{pdp.size ?? ''}</span>
+                </legend>
+                <div className="at-opt__sizes">
+                  {pdp.sizes.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className="at-size"
+                      aria-pressed={pdp.size === s}
+                      disabled={pdp.sizeDisabled(s)}
+                      aria-label={`Talle ${s}${pdp.sizeDisabled(s) ? ', sin stock' : ''}`}
+                      onClick={() => pdp.setSize(s)}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
             )}
-            {policies.map((p) => (
-              <details key={p.key}>
-                <summary>{p.title}</summary>
-                <p className="at-pdp__desc">{p.body}</p>
-              </details>
-            ))}
+
+            {pdp.lowStock != null && <p className="at-pdp__low">{pdp.lowStock === 1 ? 'Queda 1 en este talle.' : `Quedan ${pdp.lowStock} en este talle.`}</p>}
+
+            <div className="at-pdp__buy">
+              <button type="button" className="at-button" onClick={buyAction(pdp, '.at-pdp')} disabled={pdp.soldOut || (!pdp.canAdd && !pdp.missing)}>
+                {cta}
+              </button>
+            </div>
+
+            {story.length > 0 && (
+              <button type="button" className="at-pdp__jump" onClick={toStory}>
+                {story.join(' · ')}
+              </button>
+            )}
           </div>
         </div>
+
+        {story.length > 0 && (
+          <section className="at-pdp__story" id="at-story" aria-label="Detalles del producto">
+            <div className="at-pdp__details">
+              {description && (
+                <details open className="at-pdp__lead">
+                  <summary>Descripción</summary>
+                  <p className="at-pdp__desc">{description}</p>
+                </details>
+              )}
+              {policies.map((p) => (
+                <details key={p.key}>
+                  <summary>{p.title}</summary>
+                  <p className="at-pdp__desc">{p.body}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

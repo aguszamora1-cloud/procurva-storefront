@@ -350,9 +350,6 @@
   .mo-tabs {
     display: grid;
   }
-  .mo-gallery__thumbs {
-    display: none;
-  }
 }
 .mo-tabs a,
 .mo-tabs button {
@@ -1015,63 +1012,16 @@
   }
 }
 
-/* Ficha */
-.mo-pdp__grid {
-  display: grid;
-  grid-template-columns: 7fr 5fr;
-  gap: clamp(24px, 4vw, 56px);
-  padding: 16px var(--mo-gutter) 0;
-  align-items: start;
-}
-.mo-gallery {
-  display: grid;
-  grid-template-columns: 76px 1fr;
-  gap: 12px;
-  position: sticky;
-  top: 140px;
-}
-.mo-gallery:not(:has(.mo-gallery__thumbs)) {
-  grid-template-columns: 1fr;
-}
-.mo-gallery__thumbs {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.mo-gallery__thumbs button {
-  border-radius: 4px;
-  overflow: hidden;
-  border: 2px solid transparent !important;
-  aspect-ratio: 1;
-  background: var(--mo-soft);
-}
-.mo-gallery__thumbs button[aria-pressed='true'] {
-  border-color: var(--mo-ink) !important;
-}
-.mo-gallery__thumbs img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+/* Ficha
+   Escritorio: fotos en grilla de dos columnas + recuadro de compra fijo.
+   Celular: fotos deslizables, datos y barra de compra fija (P1.1b). */
 .mo-gallery__main {
   position: relative;
   min-width: 0;
 }
-.mo-gallery__track {
-  display: flex;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-  border-radius: var(--mo-r);
-  background: var(--mo-soft);
-}
-.mo-gallery__track::-webkit-scrollbar {
-  display: none;
-}
 .mo-gallery__track figure {
-  flex: 0 0 100%;
   margin: 0;
-  scroll-snap-align: start;
+  background: var(--mo-soft);
 }
 .mo-gallery__track img {
   width: 100%;
@@ -1124,10 +1074,30 @@
   border-radius: 4px;
   margin-top: 6px;
 }
+.mo-pdp__promo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -6px 0 20px;
+  padding: 10px 12px;
+  border-radius: var(--mo-r);
+  background: color-mix(in srgb, var(--mo-brand) 8%, #fff);
+  border: 1px solid color-mix(in srgb, var(--mo-brand) 30%, #fff);
+  color: var(--mo-ink);
+  font-weight: 600;
+  font-size: 14px;
+}
+.mo-pdp__promo svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--mo-brand);
+}
 .mo-opt {
   border: 0;
   padding: 0;
   margin: 0 0 20px;
+  min-width: 0;
 }
 .mo-opt legend {
   font-size: 14px;
@@ -1188,11 +1158,24 @@
   text-decoration: line-through;
   cursor: not-allowed;
 }
-.mo-low {
-  color: var(--mo-sale);
-  font-weight: 600;
+.mo-stock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 16px;
   font-size: 14px;
-  margin: -6px 0 14px;
+  font-weight: 600;
+  color: #146c2e;
+}
+.mo-stock span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.mo-stock[data-state='low'],
+.mo-stock[data-state='out'] {
+  color: var(--mo-sale);
 }
 .mo-buy .mo-btn svg {
   width: 20px;
@@ -1253,19 +1236,147 @@
   color: var(--mo-ink-2);
   margin: 0 0 16px;
 }
+
+@media (min-width: 900px) {
+  .mo-pdp {
+    max-width: var(--mo-max);
+    margin: 0 auto;
+    width: 100%;
+  }
+  .mo-pdp__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(360px, 30vw, 440px);
+    gap: clamp(24px, 3vw, 48px);
+    padding: 16px var(--mo-gutter) 0;
+    align-items: start;
+  }
+  /* Grilla de fotos: de a dos; la primera ocupa el ancho si son impares. */
+  .mo-gallery__track {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .mo-gallery__track figure {
+    border-radius: var(--mo-r);
+    overflow: hidden;
+  }
+  .mo-gallery[data-n='1'] .mo-gallery__track figure,
+  .mo-gallery[data-n='many'] .mo-gallery__track figure:first-child:nth-last-child(odd) {
+    grid-column: 1 / -1;
+  }
+  .mo-gallery[data-n='1'] .mo-gallery__track img,
+  .mo-gallery[data-n='many'] .mo-gallery__track figure:first-child:nth-last-child(odd) img {
+    aspect-ratio: 4 / 3;
+    object-fit: contain;
+  }
+  .mo-gallery__track figure[data-more] {
+    display: none;
+  }
+  .mo-gallery__all {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 14px;
+    border: 1.5px solid var(--mo-line) !important;
+    border-radius: var(--mo-r);
+    font-weight: 700;
+  }
+  .mo-gallery__all:hover {
+    border-color: var(--mo-ink) !important;
+  }
+  /* Recuadro de compra fijo. */
+  .mo-pdp__info {
+    position: sticky;
+    top: 132px;
+  }
+  .mo-buybox {
+    border: 1px solid var(--mo-line);
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(18, 21, 26, 0.06);
+  }
+  .mo-pdp__name {
+    font-family: var(--mo-cond);
+    text-transform: uppercase;
+    font-size: clamp(30px, 2.6vw, 40px);
+    line-height: 1;
+    letter-spacing: 0.01em;
+  }
+  .mo-pdp__price {
+    background: var(--mo-soft);
+    border: 0;
+    border-radius: var(--mo-r);
+    padding: 14px 16px;
+    margin-bottom: 18px;
+  }
+  .mo-pdp__promo {
+    margin-top: -6px;
+  }
+  .mo-pdp__benefits {
+    margin-top: 14px;
+    background: none;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--mo-line);
+    border-radius: 0;
+  }
+  /* Detalles debajo, a todo el ancho. */
+  .mo-pdp__details {
+    padding: clamp(40px, 5vw, 72px) var(--mo-gutter) 24px;
+  }
+  .mo-pdp__details .mo-pdp__acc {
+    margin: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 0 clamp(32px, 5vw, 80px);
+    border-top: 3px solid var(--mo-ink);
+    padding-top: 8px;
+  }
+  .mo-pdp__details .mo-pdp__acc > :only-child {
+    grid-column: 1 / -1;
+  }
+  .mo-pdp__details .mo-pdp__desc {
+    border: 0;
+  }
+  .mo-pdp__details .mo-pdp__desc summary {
+    font-family: var(--mo-cond);
+    text-transform: uppercase;
+    font-size: 26px;
+  }
+  .mo-pdp__details .mo-pdp__desc p {
+    font-size: 16px;
+    line-height: 1.6;
+    max-width: 72ch;
+  }
+}
+
 @media (max-width: 899px) {
   .mo-pdp__grid {
+    display: grid;
     grid-template-columns: 1fr;
     gap: 18px;
-    padding-top: 10px;
+    padding: 10px var(--mo-gutter) 0;
   }
   .mo-gallery {
-    grid-template-columns: 1fr;
-    position: static;
     margin: 0 calc(var(--mo-gutter) * -1);
   }
   .mo-gallery__track {
-    border-radius: 0;
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .mo-gallery__track::-webkit-scrollbar {
+    display: none;
+  }
+  .mo-gallery__track figure {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+  }
+  .mo-pdp__details {
+    padding: 0 var(--mo-gutter);
+  }
+  .mo-pdp__details .mo-pdp__acc {
+    margin-top: 0;
   }
   .mo-buy {
     position: fixed;

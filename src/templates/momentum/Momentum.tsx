@@ -11,7 +11,7 @@
  */
 import { useCallback, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ChevronRight, Home, LayoutGrid, Search, ShoppingBag, SlidersHorizontal, Truck, CreditCard, X } from 'lucide-react';
+import { ChevronRight, Home, LayoutGrid, Search, ShoppingBag, SlidersHorizontal, Tag, Truck, CreditCard, X } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
 import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { useProducts } from '@/hooks/useProducts';
@@ -41,6 +41,8 @@ import {
   useMenuLinks,
   usePdp,
   usePolicies,
+  useQtyPromoMessage,
+  sizeAvailability,
   useTplPrice,
   type CatalogView,
   type SortKey,
@@ -824,37 +826,33 @@ function MomentumCatalog() {
 }
 
 // ── Ficha ─────────────────────────────────────────────────────────────────────
+// Escritorio: fotos en grilla de dos columnas (sin miniaturas) y un recuadro de
+// compra fijo a la derecha: precio, promo, disponibilidad real por talle y
+// botón. Los detalles van debajo, a todo el ancho. Celular: igual que en P1.1b.
+const GALLERY_FIRST = 6;
+
 function MomentumGallery({ images, name }: { images: string[]; name: string }) {
   const [index, setIndex] = useState(0);
+  const [all, setAll] = useState(false);
   const track = useRef<HTMLDivElement>(null);
-  const go = (i: number) => {
-    setIndex(i);
-    const el = track.current;
-    if (el) el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' });
-  };
   if (images.length === 0) return <div className="mo-gallery mo-gallery--empty">Sin fotos</div>;
+  const hidden = all ? 0 : Math.max(0, images.length - GALLERY_FIRST);
   return (
-    <div className="mo-gallery">
-      {images.length > 1 && (
-        <div className="mo-gallery__thumbs">
-          {images.map((src, i) => (
-            <button key={src} type="button" aria-label={`Ver foto ${i + 1}`} aria-pressed={i === index} onClick={() => go(i)}>
-              <StoreImage src={src} alt="" transformWidth={160} width={80} height={80} />
-            </button>
-          ))}
-        </div>
-      )}
+    <div className="mo-gallery" data-n={images.length > 2 ? 'many' : images.length}>
       <div className="mo-gallery__main">
         <div
           ref={track}
           className="mo-gallery__track"
           tabIndex={0}
           aria-label={`Fotos de ${name}`}
-          onScroll={(e) => setIndex(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            if (el.scrollWidth > el.clientWidth + 4) setIndex(Math.round(el.scrollLeft / el.clientWidth));
+          }}
         >
           {images.map((src, i) => (
-            <figure key={src}>
-              <StoreImage src={src} alt={i === 0 ? name : `${name}, foto ${i + 1}`} transformWidth={1000} width={900} height={900} loading={i === 0 ? 'eager' : 'lazy'} />
+            <figure key={src} data-more={(!all && i >= GALLERY_FIRST) || undefined}>
+              <StoreImage src={src} alt={i === 0 ? name : `${name}, foto ${i + 1}`} transformWidth={1000} width={900} height={900} loading={i < 2 ? 'eager' : 'lazy'} />
             </figure>
           ))}
         </div>
@@ -866,6 +864,11 @@ function MomentumGallery({ images, name }: { images: string[]; name: string }) {
           </div>
         )}
       </div>
+      {hidden > 0 && (
+        <button type="button" className="mo-gallery__all mo-only-desktop" onClick={() => setAll(true)}>
+          Ver {hidden} {hidden === 1 ? 'foto más' : 'fotos más'}
+        </button>
+      )}
     </div>
   );
 }
@@ -874,9 +877,25 @@ function MomentumProductView({ product }: { product: Product }) {
   const config = useStore();
   const pdp = usePdp(product);
   const policies = usePolicies();
+  const promo = useQtyPromoMessage(product, pdp.color);
   const cats = productCategories(product);
   const price = useTplPrice(product, { color: pdp.color, size: pdp.size });
   const benefits = useBenefits().filter((b) => b.key === 'envio');
+  const [inStock, total] = sizeAvailability(pdp);
+  const description = product.description?.trim() ?? '';
+  // Disponibilidad con los datos reales de stock (nunca un número inventado).
+  // Agotado: lo dice el botón, sin repetirlo acá.
+  const stock: { state: 'ok' | 'low' | 'out'; text: string } | null = pdp.soldOut
+    ? null
+    : pdp.lowStock != null
+      ? { state: 'low', text: pdp.lowStock === 1 ? 'Queda 1 unidad en este talle' : `Quedan ${pdp.lowStock} unidades en este talle` }
+      : pdp.variant
+        ? (pdp.variant.stock ?? 0) > 0
+          ? { state: 'ok', text: 'En stock' }
+          : { state: 'out', text: 'Sin stock en esta combinación' }
+        : total > 1
+          ? { state: inStock > 0 ? 'ok' : 'out', text: `Disponible en ${inStock} de ${total} talles${pdp.color && pdp.colors.length > 1 ? ` en ${pdp.color}` : ''}` }
+          : null;
   const cta = pdp.soldOut
     ? 'Sin stock'
     : pdp.canAdd
@@ -890,7 +909,7 @@ function MomentumProductView({ product }: { product: Product }) {
             : 'Sin stock';
   return (
     <div className="mo-pdp">
-      <Seo title={`${product.name} · ${config.name}`} description={product.description?.trim() || config.name} image={pdp.images[0]} slug={config.slug} siteName={config.name} path={`/producto/${product.id}`} />
+      <Seo title={`${product.name} · ${config.name}`} description={description || config.name} image={pdp.images[0]} slug={config.slug} siteName={config.name} path={`/producto/${product.id}`} />
       <nav className="mo-crumbs" aria-label="Ubicación">
         <Link to="/">Inicio</Link>
         <ChevronRight aria-hidden="true" />
@@ -899,101 +918,122 @@ function MomentumProductView({ product }: { product: Product }) {
       <div className="mo-pdp__grid">
         <MomentumGallery images={pdp.images} name={product.name} />
         <div className="mo-pdp__info">
-          <h1 className="mo-pdp__name">{product.name}</h1>
-          <div className="mo-pdp__price">
-            {price && price.offPct > 0 && <span className="mo-pdp__off">−{price.offPct}%</span>}
-            <PriceView product={product} cls="mo-price mo-price--pdp" color={pdp.color} size={pdp.size} showInstallments />
-          </div>
-
-          {pdp.colors.length > 0 && (
-            <fieldset className="mo-opt">
-              <legend>
-                Color: <b>{pdp.color ?? 'elegí uno'}</b>
-              </legend>
-              <div className="mo-opt__colors">
-                {pdp.colors.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    aria-pressed={pdp.color === c}
-                    data-out={pdp.colorDisabled(c) || undefined}
-                    aria-label={`${c}${pdp.colorDisabled(c) ? ', sin stock' : ''}`}
-                    title={c}
-                    onClick={() => pdp.setColor(c)}
-                  >
-                    <span style={{ backgroundColor: colorToHex(c) }} />
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-          )}
-
-          {pdp.sizes.length > 0 && (
-            <fieldset className="mo-opt">
-              <legend>
-                Talle: <b>{pdp.size ?? 'elegí uno'}</b>
-              </legend>
-              <div className="mo-opt__sizes">
-                {pdp.sizes.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    aria-pressed={pdp.size === s}
-                    disabled={pdp.sizeDisabled(s)}
-                    aria-label={`Talle ${s}${pdp.sizeDisabled(s) ? ', sin stock' : ''}`}
-                    onClick={() => pdp.setSize(s)}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-          )}
-
-          {pdp.lowStock != null && <p className="mo-low">Quedan {pdp.lowStock} unidades en este talle</p>}
-
-          <div className="mo-buy">
-            {price && (
-              <p className="mo-buy__price mo-only-mobile">
-                {formatPrice(price.big)}
-                {price.bigLabel && <small>{price.bigLabel}</small>}
+          <div className="mo-buybox">
+            <h1 className="mo-pdp__name">{product.name}</h1>
+            <div className="mo-pdp__price">
+              {price && price.offPct > 0 && <span className="mo-pdp__off">−{price.offPct}%</span>}
+              <PriceView product={product} cls="mo-price mo-price--pdp" color={pdp.color} size={pdp.size} showInstallments />
+            </div>
+            {promo && (
+              <p className="mo-pdp__promo">
+                <Tag aria-hidden="true" />
+                {promo}
               </p>
             )}
-            <button type="button" className="mo-btn mo-btn--block mo-btn--big" onClick={buyAction(pdp, '.mo-pdp')} disabled={pdp.soldOut || (!pdp.canAdd && !pdp.missing)}>
-              <ShoppingBag aria-hidden="true" />
-              {cta}
-            </button>
-          </div>
 
-          {benefits.length > 0 && (
-            <ul className="mo-pdp__benefits">
-              {benefits.map((b) => (
-                <li key={b.title}>
-                  {b.icon}
-                  <span>
-                    <b>{b.title}</b> {b.text}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="mo-pdp__acc">
-            {product.description?.trim() && (
-              <details open>
-                <summary>Descripción</summary>
-                <p>{product.description.trim()}</p>
-              </details>
+            {pdp.colors.length > 0 && (
+              <fieldset className="mo-opt">
+                <legend>
+                  Color: <b>{pdp.color ?? 'elegí uno'}</b>
+                </legend>
+                <div className="mo-opt__colors">
+                  {pdp.colors.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      aria-pressed={pdp.color === c}
+                      data-out={pdp.colorDisabled(c) || undefined}
+                      aria-label={`${c}${pdp.colorDisabled(c) ? ', sin stock' : ''}`}
+                      title={c}
+                      onClick={() => pdp.setColor(c)}
+                    >
+                      <span style={{ backgroundColor: colorToHex(c) }} />
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
             )}
-            {policies.map((p) => (
-              <details key={p.key}>
-                <summary>{p.title}</summary>
-                <p>{p.body}</p>
-              </details>
-            ))}
+
+            {pdp.sizes.length > 0 && (
+              <fieldset className="mo-opt">
+                <legend>
+                  Talle: <b>{pdp.size ?? 'elegí uno'}</b>
+                </legend>
+                <div className="mo-opt__sizes">
+                  {pdp.sizes.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      aria-pressed={pdp.size === s}
+                      disabled={pdp.sizeDisabled(s)}
+                      aria-label={`Talle ${s}${pdp.sizeDisabled(s) ? ', sin stock' : ''}`}
+                      onClick={() => pdp.setSize(s)}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+
+            {stock && (
+              <p className="mo-stock" data-state={stock.state} role="status">
+                <span aria-hidden="true" />
+                {stock.text}
+              </p>
+            )}
+
+            <div className="mo-buy">
+              {price && (
+                <p className="mo-buy__price mo-only-mobile">
+                  {formatPrice(price.big)}
+                  {price.bigLabel && <small>{price.bigLabel}</small>}
+                </p>
+              )}
+              <button type="button" className="mo-btn mo-btn--block mo-btn--big" onClick={buyAction(pdp, '.mo-pdp')} disabled={pdp.soldOut || (!pdp.canAdd && !pdp.missing)}>
+                <ShoppingBag aria-hidden="true" />
+                {cta}
+              </button>
+            </div>
+
+            {benefits.length > 0 && (
+              <ul className="mo-pdp__benefits">
+                {benefits.map((b) => (
+                  <li key={b.title}>
+                    {b.icon}
+                    <span>
+                      <b>{b.title}</b> {b.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </div>
+
+      {(description || policies.length > 0) && (
+        <section className="mo-pdp__details" aria-label="Detalles del producto">
+          <div className="mo-pdp__acc">
+            {description && (
+              <details open className="mo-pdp__desc">
+                <summary>Descripción</summary>
+                <p>{description}</p>
+              </details>
+            )}
+            {policies.length > 0 && (
+              <div className="mo-pdp__policies">
+                {policies.map((p) => (
+                  <details key={p.key}>
+                    <summary>{p.title}</summary>
+                    <p>{p.body}</p>
+                  </details>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
