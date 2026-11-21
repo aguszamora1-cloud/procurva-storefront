@@ -476,14 +476,21 @@ export function Checkout() {
   // panel (Logística → Métodos de envío → "Se puede pagar en efectivo"). Mientras
   // no hay método elegido no escondemos nada. Sin esto, un pedido que sale por
   // Correo a otra provincia podía elegir "Efectivo" y quedaba sin forma de cobrarse.
-  const cashAllowedByDelivery = selectedMethod ? selectedMethod.allowsCash : true;
+  // Si NINGUNA forma de entrega de la tienda admite efectivo, el efectivo no se
+  // ofrece nunca (ni antes de elegir la entrega) y no hay nada que aclarar: el
+  // aviso "elegí retirar el pedido" mandaba a una opción que no existe
+  // (LAS POPAS, 21/11/2026: solo envía, no cobra en efectivo).
+  const cashPossibleSomewhere = useMemo(() => channelMethods.some((m) => m.allowsCash), [channelMethods]);
+  const cashAllowedByDelivery = selectedMethod ? selectedMethod.allowsCash : cashPossibleSomewhere;
   const availablePayMethods = useMemo(
     () => payMethods.filter((m) => m !== 'efectivo' || cashAllowedByDelivery),
     [payMethods, cashAllowedByDelivery],
   );
   // El efectivo existe en la tienda pero esta entrega no lo admite: lo aclaramos en
   // vez de que la opción desaparezca sin explicación.
-  const cashHiddenByDelivery = payMethods.includes('efectivo') && !cashAllowedByDelivery;
+  const cashHiddenByDelivery = payMethods.includes('efectivo') && !cashAllowedByDelivery && cashPossibleSomewhere;
+  // El aviso solo nombra "retirar" si el efectivo se puede usar retirando.
+  const cashOnPickup = channelMethods.some((m) => m.allowsCash && !m.requiresAddress);
 
   // Mientras el cliente no eligió, sigue el preferido de la tienda (la config puede
   // llegar fresca después del primer render, desde la caché). Si el método elegido
@@ -1523,8 +1530,9 @@ export function Checkout() {
               {cashHiddenByDelivery && (
                 <p className="mt-3 flex items-start gap-1.5 text-[calc(12px_*_var(--font-scale,1))] leading-snug text-muted">
                   <Info className="mt-px h-3.5 w-3.5 shrink-0" />
-                  El pago en efectivo no está disponible para esta forma de entrega. Si querés abonar en
-                  efectivo, elegí retirar el pedido.
+                  {cashOnPickup
+                    ? 'El pago en efectivo no está disponible para esta forma de entrega. Si querés abonar en efectivo, elegí retirar el pedido.'
+                    : 'El pago en efectivo no está disponible para esta forma de entrega. Si querés abonar en efectivo, elegí otra.'}
                 </p>
               )}
 

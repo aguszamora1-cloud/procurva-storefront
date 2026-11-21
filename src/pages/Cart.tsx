@@ -10,6 +10,7 @@ import { FreeShippingProgress } from '@/components/FreeShippingProgress';
 import { Seo } from '@/components/Seo';
 import { formatPrice, resolvePricePair } from '@/lib/utils';
 import { groupCartItems, evalMinOrder } from '@/lib/cart';
+import { evalFreeShipping } from '@/lib/shipping';
 
 export function Cart() {
   const { items, updateQty, removeItem, clear, itemCount } = useCart();
@@ -34,6 +35,10 @@ export function Cart() {
   const beforeCoupon = resolvePricePair(config, coupon.cashSubtotal, coupon.cardSubtotal);
   const withCoupon = resolvePricePair(config, coupon.cashSubtotal - coupon.discountCash, coupon.cardSubtotal - coupon.discountCard);
   const shownPair = couponActive ? withCoupon : subtotalPair;
+  // Con envío gratis alcanzado no hay nada que aclarar del envío (la barra ya dice
+  // "Tenés envío gratis"). Antes decía "se coordina", que sonaba a trámite y
+  // espantaba (LAS POPAS, 21/11/2026): el costo lo calcula el checkout solo.
+  const freeShippingReached = evalFreeShipping(config.freeShippingFrom, subtotalPair.primary, false).reached;
   const seo = <Seo title={`Carrito · ${config.name}`} slug={config.slug} noindex />;
 
   if (items.length === 0) {
@@ -192,7 +197,11 @@ export function Cart() {
               )}
             </div>
           )}
-          <p className="py-4 text-[calc(12px_*_var(--font-scale,1))] text-subtle">El envío se coordina al finalizar la compra.</p>
+          {freeShippingReached ? (
+            <div className="pt-4" />
+          ) : (
+            <p className="py-4 text-[calc(12px_*_var(--font-scale,1))] text-subtle">El costo de envío se calcula en el siguiente paso.</p>
+          )}
           {min.ok ? (
             <Link
               to="/checkout"
