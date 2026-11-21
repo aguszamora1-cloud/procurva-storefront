@@ -13,6 +13,8 @@ import {
   sizeDisabledForColor,
   syncTierSelections,
   tierCardsFor,
+  tierSelectionIssue,
+  type TierIssue,
   tierVariantLabel as variantLabelOf,
   type VariantSpace,
 } from '@/lib/tierPurchase';
@@ -51,6 +53,8 @@ export interface TierPurchase {
   effectiveTierSelections: UnitSelection[];
   tierVariantLabel: string | null;
   tierValid: boolean;
+  /** Por qué no se puede agregar todavía (unidad incompleta o stock que no alcanza). */
+  tierIssue: TierIssue;
   /** Texto del botón en modo escalón. */
   tierCtaLabel: string;
   sizeDisabledFor: (color: string | null) => (size: string) => boolean;
@@ -172,6 +176,7 @@ export function useTierPurchase(p: Params): TierPurchase {
     effectiveTierSelections,
     tierVariantLabel: variantLabelOf(effectiveTierSelections),
     tierValid,
+    tierIssue: tierSelectionIssue({ inTierMode, selections: effectiveTierSelections, tierUnits, space }),
     tierCtaLabel: tierValid ? `AGREGAR ${tierUnits} AL CARRITO` : 'ELEGÍ LAS VARIANTES',
     sizeDisabledFor: (color) => sizeDisabledForColor(space, color),
     updateTierUnit,

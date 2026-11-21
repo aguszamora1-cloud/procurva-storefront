@@ -23,6 +23,7 @@ import { Seo } from '@/components/Seo';
 import { colorToHex, formatPrice, mainImage, productCategories } from '@/lib/utils';
 import type { Product } from '@/lib/types';
 import type { TemplateKit } from '../TemplateApp';
+import { TierPicker, TierUnits, type ChoicesProps } from '../shared/TierPicker';
 import {
   SORT_LABELS,
   brandOr,
@@ -40,6 +41,9 @@ import {
   useHero,
   useMenuLinks,
   usePdp,
+  useTplTiers,
+  tierBuyAction,
+  tierStockNotice,
   usePolicies,
   useQtyPromoMessage,
   sizeAvailability,
@@ -895,9 +899,62 @@ function MomentumGallery({ images, name }: { images: string[]; name: string }) {
   );
 }
 
+/** Color y talle de Momentum: los usan la ficha y cada unidad de un «Lleva N». */
+function MomentumChoices({ colors, sizes, color, size, onColor, onSize, colorDisabled, sizeDisabled }: ChoicesProps) {
+  return (
+    <>
+      {colors.length > 0 && (
+        <fieldset className="mo-opt">
+          <legend>
+            Color: <b>{color ?? 'elegí uno'}</b>
+          </legend>
+          <div className="mo-opt__colors">
+            {colors.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-pressed={color === c}
+                data-out={colorDisabled(c) || undefined}
+                aria-label={`${c}${colorDisabled(c) ? ', sin stock' : ''}`}
+                title={c}
+                onClick={() => onColor(c)}
+              >
+                <span style={{ backgroundColor: colorToHex(c) }} />
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
+      {sizes.length > 0 && (
+        <fieldset className="mo-opt">
+          <legend>
+            Talle: <b>{size ?? 'elegí uno'}</b>
+          </legend>
+          <div className="mo-opt__sizes">
+            {sizes.map((s) => (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={size === s}
+                disabled={sizeDisabled(s)}
+                aria-label={`Talle ${s}${sizeDisabled(s) ? ', sin stock' : ''}`}
+                onClick={() => onSize(s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
+    </>
+  );
+}
+
 function MomentumProductView({ product }: { product: Product }) {
   const config = useStore();
   const pdp = usePdp(product);
+  const tier = useTplTiers(product, pdp);
+  const notice = tierStockNotice(tier);
   const policies = usePolicies();
   const promo = useQtyPromoMessage(product, pdp.color);
   const cats = productCategories(product);
@@ -907,7 +964,9 @@ function MomentumProductView({ product }: { product: Product }) {
   const description = product.description?.trim() ?? '';
   // Disponibilidad con los datos reales de stock (nunca un número inventado).
   // Agotado: lo dice el botón, sin repetirlo acá.
-  const stock: { state: 'ok' | 'low' | 'out'; text: string } | null = pdp.soldOut
+  // Con filas por unidad cada unidad tiene su variante: la línea de disponibilidad
+  // del selector único no aplica (el aviso del escalón explica si falta stock).
+  const stock: { state: 'ok' | 'low' | 'out'; text: string } | null = pdp.soldOut || tier.perUnitOpen
     ? null
     : pdp.lowStock != null
       ? { state: 'low', text: pdp.lowStock === 1 ? 'Queda 1 unidad en este talle' : `Quedan ${pdp.lowStock} unidades en este talle` }
@@ -918,6 +977,7 @@ function MomentumProductView({ product }: { product: Product }) {
         : total > 1
           ? { state: inStock > 0 ? 'ok' : 'out', text: `Disponible en ${inStock} de ${total} talles${pdp.color && pdp.colors.length > 1 ? ` en ${pdp.color}` : ''}` }
           : null;
+  const tierCta = tier.tierValid ? `Agregar ${tier.tierUnits} al carrito` : notice ? 'Sin stock suficiente' : 'Elegí las variantes';
   const cta = pdp.soldOut
     ? 'Sin stock'
     : pdp.canAdd
@@ -953,51 +1013,26 @@ function MomentumProductView({ product }: { product: Product }) {
               </p>
             )}
 
-            {pdp.colors.length > 0 && (
-              <fieldset className="mo-opt">
-                <legend>
-                  Color: <b>{pdp.color ?? 'elegí uno'}</b>
-                </legend>
-                <div className="mo-opt__colors">
-                  {pdp.colors.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      aria-pressed={pdp.color === c}
-                      data-out={pdp.colorDisabled(c) || undefined}
-                      aria-label={`${c}${pdp.colorDisabled(c) ? ', sin stock' : ''}`}
-                      title={c}
-                      onClick={() => pdp.setColor(c)}
-                    >
-                      <span style={{ backgroundColor: colorToHex(c) }} />
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+            <TierPicker tier={tier} prefix="mo" />
+            {!tier.perUnitOpen && (
+              <MomentumChoices
+                colors={pdp.colors}
+                sizes={pdp.sizes}
+                color={pdp.color}
+                size={pdp.size}
+                onColor={pdp.setColor}
+                onSize={pdp.setSize}
+                colorDisabled={pdp.colorDisabled}
+                sizeDisabled={pdp.sizeDisabled}
+              />
             )}
-
-            {pdp.sizes.length > 0 && (
-              <fieldset className="mo-opt">
-                <legend>
-                  Talle: <b>{pdp.size ?? 'elegí uno'}</b>
-                </legend>
-                <div className="mo-opt__sizes">
-                  {pdp.sizes.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      aria-pressed={pdp.size === s}
-                      disabled={pdp.sizeDisabled(s)}
-                      aria-label={`Talle ${s}${pdp.sizeDisabled(s) ? ', sin stock' : ''}`}
-                      onClick={() => pdp.setSize(s)}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+            <TierUnits tier={tier} pdp={pdp} prefix="mo" Choices={MomentumChoices} />
+            {notice && (
+              <p className="mo-stock" data-state="out" role="status">
+                <span aria-hidden="true" />
+                {notice}
+              </p>
             )}
-
             {stock && (
               <p className="mo-stock" data-state={stock.state} role="status">
                 <span aria-hidden="true" />
@@ -1009,13 +1044,27 @@ function MomentumProductView({ product }: { product: Product }) {
               {price && (
                 <p className="mo-buy__price mo-only-mobile">
                   {formatPrice(price.big)}
-                  {price.bigLabel && <small>{price.bigLabel}</small>}
+                  {tier.inTierMode ? (
+                    <small>
+                      Lleva {tier.tierUnits}
+                      {tier.tierVariantLabel ? ` · ${tier.tierVariantLabel}` : ''}
+                    </small>
+                  ) : (
+                    price.bigLabel && <small>{price.bigLabel}</small>
+                  )}
                 </p>
               )}
-              <button type="button" className="mo-btn mo-btn--block mo-btn--big" onClick={buyAction(pdp, '.mo-pdp')} disabled={pdp.soldOut || (!pdp.canAdd && !pdp.missing)}>
-                <ShoppingBag aria-hidden="true" />
-                {cta}
-              </button>
+              {tier.inTierMode ? (
+                <button type="button" className="mo-btn mo-btn--block mo-btn--big" onClick={tierBuyAction(tier, '.mo-pdp')} disabled={!tier.tierValid && tier.tierIssue?.kind !== 'unit'}>
+                  <ShoppingBag aria-hidden="true" />
+                  {tierCta}
+                </button>
+              ) : (
+                <button type="button" className="mo-btn mo-btn--block mo-btn--big" onClick={buyAction(pdp, '.mo-pdp')} disabled={pdp.soldOut || (!pdp.canAdd && !pdp.missing)}>
+                  <ShoppingBag aria-hidden="true" />
+                  {cta}
+                </button>
+              )}
             </div>
 
             {benefits.length > 0 && (

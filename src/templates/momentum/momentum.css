@@ -1950,3 +1950,149 @@
   font-size: 13px;
   color: var(--mo-ink-2);
 }
+
+/* ── «Lleva N» (escalones por cantidad) ─────────────────────────────────────
+   Tarjetas de conversión: la cantidad, el descuento en rojo de oferta y el
+   precio por unidad bien visibles; la elegida con el color de la marca. */
+.mo-tiers {
+  border: 0;
+  padding: 0;
+  margin: 0 0 18px;
+  min-width: 0;
+}
+.mo-tiers legend {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.mo-tiers__opts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+.mo-tiers[data-layout='list'] .mo-tiers__opts {
+  grid-template-columns: minmax(0, 1fr);
+}
+.mo-tier {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 10px 10px;
+  border: 1px solid var(--mo-line);
+  border-radius: var(--mo-r);
+  background: var(--mo-bg);
+  cursor: pointer;
+}
+.mo-tier[data-active] {
+  border-color: var(--mo-brand);
+  box-shadow: inset 0 0 0 1px var(--mo-brand);
+  background: color-mix(in srgb, var(--mo-brand) 6%, #fff);
+}
+.mo-tier:has(input:focus-visible) {
+  outline: 2px solid var(--mo-brand);
+  outline-offset: 2px;
+}
+.mo-tier__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+.mo-tier__units {
+  font-family: var(--mo-cond);
+  font-weight: 700;
+  font-size: 19px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.mo-tier__off {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--mo-sale);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.mo-tier__price {
+  font-size: 12px;
+  color: var(--mo-ink-2);
+}
+.mo-tier__price b {
+  font-size: 17px;
+  color: var(--mo-ink);
+}
+.mo-tier__price s {
+  margin-right: 5px;
+}
+.mo-tier__card,
+.mo-tier__save {
+  font-size: 12px;
+  color: var(--mo-ink-2);
+}
+.mo-tier__save {
+  color: #1a7f3c;
+  font-weight: 600;
+}
+.mo-tier__badge {
+  position: absolute;
+  top: -9px;
+  left: 10px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--mo-brand);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+/* Unidades: recuadros suaves, uno por unidad. */
+.mo-units {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.mo-unit {
+  border: 1px solid var(--mo-line);
+  border-radius: var(--mo-r);
+  padding: 10px 12px 2px;
+  margin: 0;
+  min-width: 0;
+  background: var(--mo-soft);
+}
+.mo-unit > legend {
+  padding: 0 4px;
+  font-family: var(--mo-cond);
+  font-weight: 700;
+  font-size: 15px;
+  text-transform: uppercase;
+}
+.mo-unit .mo-opt {
+  margin-bottom: 10px;
+}
+/* Lista (ajuste del comercio): filas bajas con el precio a la derecha. */
+.mo-tiers[data-layout='list'] .mo-tier {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 12px;
+  padding: 10px 12px;
+}
+.mo-tiers[data-layout='list'] .mo-tier__head {
+  justify-content: flex-start;
+}
+.mo-tiers[data-layout='list'] .mo-tier__price {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  text-align: right;
+}
+.mo-tiers[data-layout='list'] .mo-tier__card,
+.mo-tiers[data-layout='list'] .mo-tier__save {
+  grid-column: 1;
+}
+.mo-tiers[data-layout='list'] .mo-tier__badge {
+  top: -8px;
+  left: auto;
+  right: 10px;
+}

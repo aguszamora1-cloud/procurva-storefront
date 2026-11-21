@@ -23,6 +23,7 @@ import { Seo } from '@/components/Seo';
 import { formatPrice, mainImage, productCategories } from '@/lib/utils';
 import type { Product } from '@/lib/types';
 import type { TemplateKit } from '../TemplateApp';
+import { TierPicker, TierUnits, type ChoicesProps } from '../shared/TierPicker';
 import {
   SORT_LABELS,
   brandOr,
@@ -41,6 +42,9 @@ import {
   useHero,
   useMenuLinks,
   usePdp,
+  useTplTiers,
+  tierBuyAction,
+  tierStockNotice,
   usePolicies,
   useQtyPromoMessage,
   useTplPrice,
@@ -774,13 +778,68 @@ function DistritoGallery({ images, name }: { images: string[]; name: string }) {
   );
 }
 
+/** Color y talle de Distrito: los usan la ficha y cada unidad de un «Lleva N». */
+function DistritoChoices({ colors, sizes, color, size, onColor, onSize, colorDisabled, sizeDisabled }: ChoicesProps) {
+  if (colors.length === 0 && sizes.length === 0) return null;
+  return (
+    <div className="di-pdp__pick" data-cols={colors.length > 0 && sizes.length > 0 ? 2 : 1}>
+      {colors.length > 0 && (
+        <fieldset className="di-opt">
+          <legend>
+            Color <b>{color ?? '—'}</b>
+          </legend>
+          <div className="di-opt__row">
+            {colors.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className="di-chipbtn"
+                aria-pressed={color === c}
+                data-out={colorDisabled(c) || undefined}
+                aria-label={`${c}${colorDisabled(c) ? ', sin stock' : ''}`}
+                onClick={() => onColor(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
+      {sizes.length > 0 && (
+        <fieldset className="di-opt">
+          <legend>
+            Talle <b>{size ?? '—'}</b>
+          </legend>
+          <div className="di-opt__sizes">
+            {sizes.map((s) => (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={size === s}
+                disabled={sizeDisabled(s)}
+                aria-label={`Talle ${s}${sizeDisabled(s) ? ', sin stock' : ''}`}
+                onClick={() => onSize(s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
+    </div>
+  );
+}
+
 function DistritoProductView({ product }: { product: Product }) {
   const config = useStore();
   const pdp = usePdp(product);
+  const tier = useTplTiers(product, pdp);
+  const notice = tierStockNotice(tier);
   const policies = usePolicies();
   const promo = useQtyPromoMessage(product, pdp.color);
   const cats = productCategories(product);
   const price = useTplPrice(product, { color: pdp.color, size: pdp.size });
+  const tierCta = tier.tierValid ? `Agregar ${tier.tierUnits} al carrito` : notice ? 'Sin stock suficiente' : 'Elegí las variantes';
   const description = product.description?.trim() ?? '';
   const cta = pdp.soldOut
     ? 'Agotado'
@@ -811,63 +870,51 @@ function DistritoProductView({ product }: { product: Product }) {
       <div className="di-pdp__col">
         <div className="di-pdp__info">
           <div className="di-pdp__sticky">
-            {(pdp.colors.length > 0 || pdp.sizes.length > 0) && (
-              <div className="di-pdp__pick" data-cols={pdp.colors.length > 0 && pdp.sizes.length > 0 ? 2 : 1}>
-                {pdp.colors.length > 0 && (
-                  <fieldset className="di-opt">
-                    <legend>
-                      Color <b>{pdp.color ?? '—'}</b>
-                    </legend>
-                    <div className="di-opt__row">
-                      {pdp.colors.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          className="di-chipbtn"
-                          aria-pressed={pdp.color === c}
-                          data-out={pdp.colorDisabled(c) || undefined}
-                          aria-label={`${c}${pdp.colorDisabled(c) ? ', sin stock' : ''}`}
-                          onClick={() => pdp.setColor(c)}
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
-                  </fieldset>
-                )}
-
-                {pdp.sizes.length > 0 && (
-                  <fieldset className="di-opt">
-                    <legend>
-                      Talle <b>{pdp.size ?? '—'}</b>
-                    </legend>
-                    <div className="di-opt__sizes">
-                      {pdp.sizes.map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          aria-pressed={pdp.size === s}
-                          disabled={pdp.sizeDisabled(s)}
-                          aria-label={`Talle ${s}${pdp.sizeDisabled(s) ? ', sin stock' : ''}`}
-                          onClick={() => pdp.setSize(s)}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </fieldset>
-                )}
-              </div>
-            )}
-
+            <div className="di-pdp__choose">
+              <TierPicker tier={tier} prefix="di" />
+              {!tier.perUnitOpen && (
+                <DistritoChoices
+                  colors={pdp.colors}
+                  sizes={pdp.sizes}
+                  color={pdp.color}
+                  size={pdp.size}
+                  onColor={pdp.setColor}
+                  onSize={pdp.setSize}
+                  colorDisabled={pdp.colorDisabled}
+                  sizeDisabled={pdp.sizeDisabled}
+                />
+              )}
+              <TierUnits tier={tier} pdp={pdp} prefix="di" Choices={DistritoChoices} />
+            </div>
             <div className="di-pdp__act">
               {promo && <p className="di-pdp__promo">{promo}</p>}
-              {pdp.lowStock != null && <p className="di-low">{pdp.lowStock === 1 ? 'Última unidad en este talle' : `Últimas ${pdp.lowStock} unidades en este talle`}</p>}
+              {notice && (
+                <p className="di-pdp__notice" role="status">
+                  {notice}
+                </p>
+              )}
+              {!tier.perUnitOpen && pdp.lowStock != null && <p className="di-low">{pdp.lowStock === 1 ? 'Última unidad en este talle' : `Últimas ${pdp.lowStock} unidades en este talle`}</p>}
               <div className="di-buy">
-                {price && <p className="di-buy__price di-only-mobile">{formatPrice(price.big)}</p>}
-                <button type="button" className="di-cta di-cta--block" onClick={buyAction(pdp, '.di-pdp')} disabled={pdp.soldOut || (!pdp.canAdd && !pdp.missing)}>
-                  {cta}
-                </button>
+                {price && (
+                  <p className="di-buy__price di-only-mobile">
+                    {formatPrice(price.big)}
+                    {tier.inTierMode && (
+                      <small>
+                        Lleva {tier.tierUnits}
+                        {tier.tierVariantLabel ? ` · ${tier.tierVariantLabel}` : ''}
+                      </small>
+                    )}
+                  </p>
+                )}
+                {tier.inTierMode ? (
+                  <button type="button" className="di-cta di-cta--block" onClick={tierBuyAction(tier, '.di-pdp')} disabled={!tier.tierValid && tier.tierIssue?.kind !== 'unit'}>
+                    {tierCta}
+                  </button>
+                ) : (
+                  <button type="button" className="di-cta di-cta--block" onClick={buyAction(pdp, '.di-pdp')} disabled={pdp.soldOut || (!pdp.canAdd && !pdp.missing)}>
+                    {cta}
+                  </button>
+                )}
               </div>
             </div>
           </div>

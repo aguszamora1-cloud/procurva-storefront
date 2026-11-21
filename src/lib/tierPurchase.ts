@@ -168,6 +168,36 @@ export function isTierSelectionValid(args: {
   return true;
 }
 
+/**
+ * Por qué una selección de escalón no se puede agregar (null = se puede, en lo
+ * que respecta a variantes y stock). Mismas reglas que isTierSelectionValid,
+ * con el detalle para explicárselo al comprador:
+ *  - 'unit': a esa unidad (índice desde 0) le falta color o talle.
+ *  - 'stock': esa variante no alcanza para las `requested` unidades que la piden.
+ * No informa cuánto stock hay: sólo que no alcanza.
+ */
+export type TierIssue =
+  | { kind: 'unit'; unit: number }
+  | { kind: 'stock'; variant: Variant; requested: number }
+  | null;
+
+export function tierSelectionIssue(args: { inTierMode: boolean; selections: UnitSelection[]; tierUnits: number; space: VariantSpace }): TierIssue {
+  const { inTierMode, selections, tierUnits, space } = args;
+  if (!inTierMode) return null;
+  const counts = new Map<string, number>();
+  for (let i = 0; i < tierUnits; i++) {
+    const sel = selections[i];
+    const v = sel ? findVariant(space, sel.size, sel.color) : null;
+    if (!v) return { kind: 'unit', unit: i };
+    counts.set(v.id, (counts.get(v.id) ?? 0) + 1);
+  }
+  for (const [vid, n] of counts) {
+    const v = space.variants.find((x) => x.id === vid);
+    if (v && (v.stock ?? 0) < n) return { kind: 'stock', variant: v, requested: n };
+  }
+  return null;
+}
+
 /** Etiqueta del grupo en el carrito ("Lleva 3 — 20% OFF"). */
 export function tierGroupLabel(card: TierCard): string {
   return `Lleva ${card.units}${card.discountPct > 0 ? ` — ${card.discountPct}% OFF` : ''}`;

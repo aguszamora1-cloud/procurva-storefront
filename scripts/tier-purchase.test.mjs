@@ -202,3 +202,28 @@ test('varias categorías: gana la primera en el orden del catálogo', () => {
   assert.equal(r.categoryName, 'Remeras');
   assert.deepEqual(T.tierCardsFor(r).map((c) => c.discountPct), [0, 15]);
 });
+
+test('motivo del bloqueo: coincide con la validación de Classic y no muestra cantidades', () => {
+  const vs = variants.map((v) => (v.color === 'Full negro' && v.size === 'S' ? { ...v, stock: 2 } : v));
+  const sel = (n, size, color) => Array.from({ length: n }, () => ({ size, color }));
+  const cases = [
+    [[...sel(2, 'S', 'Full negro'), { size: 'M', color: 'Logo rojo' }], 3],
+    [sel(3, 'S', 'Full negro'), 3],
+    [[{ size: null, color: 'Logo rojo' }, { size: 'M', color: 'Logo rojo' }], 2],
+    [[{ size: 'M', color: 'Logo rojo' }, { size: 'M', color: null }], 2],
+    [sel(2, 'M', 'Logo rojo'), 3],
+    [sel(2, 'M', 'Logo rojo'), 2],
+  ];
+  for (const [selections, units] of cases) {
+    const args = { inTierMode: true, selections, tierUnits: units, space: space(vs) };
+    const valid = T.isTierSelectionValid({ ...args, finalPrice: 35715 });
+    assert.equal(T.tierSelectionIssue(args) === null, valid, JSON.stringify(selections));
+  }
+  assert.deepEqual(T.tierSelectionIssue({ inTierMode: true, selections: [{ size: null, color: 'Logo rojo' }, { size: 'M', color: 'Logo rojo' }], tierUnits: 2, space: space(vs) }), { kind: 'unit', unit: 0 });
+  assert.deepEqual(T.tierSelectionIssue({ inTierMode: true, selections: sel(2, 'M', 'Logo rojo'), tierUnits: 3, space: space(vs) }), { kind: 'unit', unit: 2 });
+  const stock = T.tierSelectionIssue({ inTierMode: true, selections: sel(3, 'S', 'Full negro'), tierUnits: 3, space: space(vs) });
+  assert.equal(stock.kind, 'stock');
+  assert.equal(stock.requested, 3);
+  assert.equal(stock.variant.id, 'v-Full negro-S');
+  assert.equal(T.tierSelectionIssue({ inTierMode: false, selections: [], tierUnits: 1, space: space(vs) }), null);
+});

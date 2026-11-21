@@ -1851,3 +1851,199 @@
   font-size: 12px;
   color: var(--di-gray);
 }
+
+/* ── «Lleva N» (escalones por cantidad) ─────────────────────────────────────
+   Bloques grandes en fila, como los talles: la cantidad en tipografía ancha y
+   el descuento en el color de señal. El elegido se invierte (hueso sobre negro). */
+.di-tiers {
+  border: 0;
+  padding: 0;
+  margin: 0 0 22px;
+  min-width: 0;
+}
+.di-tiers legend {
+  font-stretch: 125%;
+  font-variation-settings: 'wdth' 125;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--di-gray);
+  margin-bottom: 10px;
+}
+.di-tiers__opts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 4px;
+}
+.di-tiers[data-layout='list'] .di-tiers__opts {
+  grid-template-columns: minmax(0, 1fr);
+}
+.di-tier {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 12px 12px;
+  border: 1px solid var(--di-line);
+  background: var(--di-black-2);
+  cursor: pointer;
+}
+.di-tier[data-active] {
+  background: var(--di-bone);
+  border-color: var(--di-bone);
+  color: var(--di-black);
+}
+.di-tier:has(input:focus-visible) {
+  outline: 2px solid var(--di-signal);
+  outline-offset: 2px;
+}
+.di-tier__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.di-tier__units {
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1;
+  text-transform: uppercase;
+  font-stretch: 75%;
+  font-variation-settings: 'wdth' 75;
+}
+.di-tier__off {
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--di-signal);
+}
+.di-tier[data-active] .di-tier__off {
+  color: #b23a0c;
+}
+.di-tier__price {
+  font-size: 12px;
+  color: var(--di-gray);
+}
+.di-tier__price b {
+  font-size: 18px;
+  color: var(--di-bone);
+}
+.di-tier[data-active] .di-tier__price,
+.di-tier[data-active] .di-tier__card,
+.di-tier[data-active] .di-tier__save,
+.di-tier[data-active] .di-tier__price b {
+  color: var(--di-black);
+}
+.di-tier__price s {
+  margin-right: 6px;
+}
+.di-tier__card,
+.di-tier__save {
+  font-size: 11px;
+  color: var(--di-gray);
+}
+.di-tier__badge {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  padding: 3px 6px;
+  background: var(--di-signal);
+  color: var(--di-black);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.di-tier[data-featured] {
+  padding-top: 24px;
+}
+/* Unidades numeradas, cada una con su color y talle. */
+.di-unit {
+  border: 0;
+  border-top: 1px solid var(--di-line);
+  padding: 14px 0 0;
+  margin: 0 0 14px;
+  min-width: 0;
+}
+.di-unit > legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  margin-bottom: 10px;
+  font-weight: 800;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--di-bone);
+}
+.di-unit > legend + * {
+  clear: both;
+}
+.di-unit .di-opt {
+  margin-bottom: 12px;
+}
+.di-pdp__notice {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #ff8a5c;
+  color: #ffb08f;
+  font-size: 13px;
+}
+.di-buy__price small {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--di-gray);
+}
+@media (min-width: 900px) {
+  .di-unit .di-opt__sizes button {
+    height: 48px;
+    font-size: 18px;
+  }
+  .di-unit .di-pdp__pick .di-opt {
+    margin-bottom: 12px;
+  }
+}
+@media (max-width: 899px) {
+  .di-pdp__choose {
+    display: contents;
+  }
+  .di-pdp .di-tiers,
+  .di-pdp .di-unit,
+  .di-pdp__notice {
+    margin-left: var(--di-gutter);
+    margin-right: var(--di-gutter);
+  }
+  .di-unit .di-opt {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .di-unit .di-pdp__pick {
+    display: block;
+  }
+}
+/* Lista (ajuste del comercio): filas bajas, cantidad · precio · descuento. */
+.di-tiers[data-layout='list'] .di-tier {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 12px;
+  padding: 10px 12px;
+}
+.di-tiers[data-layout='list'] .di-tier__head {
+  justify-content: flex-start;
+}
+.di-tiers[data-layout='list'] .di-tier__price {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  text-align: right;
+}
+.di-tiers[data-layout='list'] .di-tier__card,
+.di-tiers[data-layout='list'] .di-tier__save {
+  grid-column: 1;
+}
+.di-tiers[data-layout='list'] .di-tier[data-featured] {
+  padding-top: 10px;
+}
+.di-tiers[data-layout='list'] .di-tier__badge {
+  position: static;
+  grid-column: 1;
+  justify-self: start;
+  order: -1;
+}

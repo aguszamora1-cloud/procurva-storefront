@@ -27,6 +27,7 @@ import {
 } from '@/lib/utils';
 import { contrastRatio, parseHex } from '@/lib/contrast';
 import { buildSingleCartItem } from '@/lib/tierPurchase';
+import { useTierPurchase, type TierPurchase } from '@/hooks/useTierPurchase';
 import type { Product, Variant } from '@/lib/types';
 
 // ── Precio ────────────────────────────────────────────────────────────────────
@@ -207,6 +208,16 @@ export interface PdpState {
   missing: 'color' | 'talle' | 'ambos' | null;
   lowStock: number | null;
   add: () => void;
+  /** Todos los colores y talles del producto (sin ocultar): los que usa el escalón. */
+  allColors: string[];
+  allSizes: string[];
+  /** Talles para las filas por unidad: con stock en ALGÚN color (si se ocultan los agotados). */
+  unitSizes: string[];
+  /** Setters directos (sin el ajuste de setColor): los usa el escalón, como en Classic. */
+  setColorRaw: (c: string | null) => void;
+  setSizeRaw: (s: string | null) => void;
+  /** Primera foto del producto (la misma que usa Classic para una línea sin foto propia). */
+  firstImage: string | null;
 }
 
 export function usePdp(product: Product): PdpState {
@@ -281,7 +292,7 @@ export function usePdp(product: Product): PdpState {
       finalCash,
       mainPrice,
       promo: promoForProduct(product, color),
-      fallbackImage: images[0] ?? null,
+      fallbackImage: baseImages[0] ?? null,
     });
     addItem(item);
   };
@@ -305,7 +316,58 @@ export function usePdp(product: Product): PdpState {
     missing,
     lowStock,
     add,
+    allColors,
+    allSizes,
+    unitSizes: hide ? allSizes.filter((s) => variants.some((v) => v.size === s && (v.stock ?? 0) > 0)) : allSizes,
+    setColorRaw: setColor,
+    setSizeRaw: setSize,
+    firstImage: baseImages[0] ?? null,
   };
+}
+
+/**
+ * Escalones «Lleva N» en la ficha de una plantilla: el MISMO hook que Classic
+ * (hooks/useTierPurchase.ts), con los datos de usePdp. La plantilla sólo dibuja.
+ */
+export function useTplTiers(product: Product, pdp: PdpState): TierPurchase {
+  return useTierPurchase({
+    product,
+    variants: product.product_variants ?? [],
+    colors: pdp.allColors,
+    sizes: pdp.allSizes,
+    selectedSize: pdp.size,
+    selectedColor: pdp.color,
+    setSelectedSize: pdp.setSizeRaw,
+    setSelectedColor: pdp.setColorRaw,
+    images: pdp.firstImage ? [pdp.firstImage] : [],
+  });
+}
+
+/**
+ * Botón de compra en modo escalón: agrega el grupo si está completo; si a una
+ * unidad le falta algo, lleva a esa unidad. Con stock insuficiente no hace nada
+ * (el botón queda deshabilitado y el aviso explica por qué).
+ */
+export function tierBuyAction(tier: TierPurchase, root: string) {
+  return () => {
+    if (tier.tierValid) return tier.handleAddTier();
+    const issue = tier.tierIssue;
+    const target =
+      issue?.kind === 'unit'
+        ? document.querySelector<HTMLElement>(`${root} [data-unit="${issue.unit}"]`) ?? document.querySelector<HTMLElement>(`${root} fieldset`)
+        : null;
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.querySelector<HTMLElement>('button:not([disabled])')?.focus({ preventScroll: true });
+  };
+}
+
+/** Texto del aviso cuando una variante no alcanza para las unidades que la piden. */
+export function tierStockNotice(tier: TierPurchase): string | null {
+  const issue = tier.tierIssue;
+  if (issue?.kind !== 'stock') return null;
+  const name = [issue.variant.color, issue.variant.size && `talle ${issue.variant.size}`].filter(Boolean).join(', ');
+  return `No hay stock para ${issue.requested} unidades de ${name || 'esta variante'}. Elegí otra variante para alguna unidad.`;
 }
 
 /**

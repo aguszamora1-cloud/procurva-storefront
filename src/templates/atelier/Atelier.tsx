@@ -20,6 +20,7 @@ import { Seo } from '@/components/Seo';
 import { formatPrice, mainImage, productCategories, colorToHex } from '@/lib/utils';
 import type { Product } from '@/lib/types';
 import type { TemplateKit } from '../TemplateApp';
+import { TierPicker, TierUnits, type ChoicesProps } from '../shared/TierPicker';
 import {
   SORT_LABELS,
   cardHref,
@@ -32,6 +33,9 @@ import {
   useHeading,
   useMenuLinks,
   usePdp,
+  useTplTiers,
+  tierBuyAction,
+  tierStockNotice,
   usePolicies,
   useHero,
   useQtyPromoMessage,
@@ -807,9 +811,64 @@ function AtelierGallery({ images, name }: { images: string[]; name: string }) {
   );
 }
 
+/** Color y talle de Atelier: los usan la ficha y cada unidad de un «Lleva N». */
+function AtelierChoices({ colors, sizes, color, size, onColor, onSize, colorDisabled, sizeDisabled }: ChoicesProps) {
+  return (
+    <>
+      {colors.length > 0 && (
+        <fieldset className="at-opt">
+          <legend>
+            Color <span>{color ?? ''}</span>
+          </legend>
+          <div className="at-opt__colors">
+            {colors.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className="at-swatch"
+                aria-pressed={color === c}
+                aria-label={`${c}${colorDisabled(c) ? ', sin stock' : ''}`}
+                title={c}
+                data-out={colorDisabled(c) || undefined}
+                onClick={() => onColor(c)}
+              >
+                <span style={{ backgroundColor: colorToHex(c) }} />
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
+      {sizes.length > 0 && (
+        <fieldset className="at-opt">
+          <legend>
+            Talle <span>{size ?? ''}</span>
+          </legend>
+          <div className="at-opt__sizes">
+            {sizes.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className="at-size"
+                aria-pressed={size === s}
+                disabled={sizeDisabled(s)}
+                aria-label={`Talle ${s}${sizeDisabled(s) ? ', sin stock' : ''}`}
+                onClick={() => onSize(s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
+    </>
+  );
+}
+
 function AtelierProductView({ product }: { product: Product }) {
   const config = useStore();
   const pdp = usePdp(product);
+  const tier = useTplTiers(product, pdp);
+  const notice = tierStockNotice(tier);
   const policies = usePolicies();
   const promo = useQtyPromoMessage(product, pdp.color);
   const cats = productCategories(product);
@@ -826,6 +885,8 @@ function AtelierProductView({ product }: { product: Product }) {
           : pdp.missing === 'talle'
             ? 'Elegí tu talle'
             : 'Sin stock';
+  // «Lleva N»: el botón agrega el grupo entero o lleva a la unidad que falta.
+  const tierCta = tier.tierValid ? `Agregar ${tier.tierUnits} a la bolsa` : notice ? 'Sin stock suficiente' : 'Elegí las variantes';
   const toStory = () => document.getElementById('at-story')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return (
     <div className="at-pdp">
@@ -846,60 +907,39 @@ function AtelierProductView({ product }: { product: Product }) {
             <h1 className="at-pdp__name">{editorialName(product.name)}</h1>
             <PriceView product={product} cls="at-price at-price--pdp" color={pdp.color} size={pdp.size} showInstallments />
             {promo && <p className="at-pdp__promo">{promo}</p>}
+            <TierPicker tier={tier} prefix="at" />
 
-            {pdp.colors.length > 0 && (
-              <fieldset className="at-opt">
-                <legend>
-                  Color <span>{pdp.color ?? ''}</span>
-                </legend>
-                <div className="at-opt__colors">
-                  {pdp.colors.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      className="at-swatch"
-                      aria-pressed={pdp.color === c}
-                      aria-label={`${c}${pdp.colorDisabled(c) ? ', sin stock' : ''}`}
-                      title={c}
-                      data-out={pdp.colorDisabled(c) || undefined}
-                      onClick={() => pdp.setColor(c)}
-                    >
-                      <span style={{ backgroundColor: colorToHex(c) }} />
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+            {!tier.perUnitOpen && (
+              <AtelierChoices
+                colors={pdp.colors}
+                sizes={pdp.sizes}
+                color={pdp.color}
+                size={pdp.size}
+                onColor={pdp.setColor}
+                onSize={pdp.setSize}
+                colorDisabled={pdp.colorDisabled}
+                sizeDisabled={pdp.sizeDisabled}
+              />
             )}
+            <TierUnits tier={tier} pdp={pdp} prefix="at" Choices={AtelierChoices} />
 
-            {pdp.sizes.length > 0 && (
-              <fieldset className="at-opt">
-                <legend>
-                  Talle <span>{pdp.size ?? ''}</span>
-                </legend>
-                <div className="at-opt__sizes">
-                  {pdp.sizes.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      className="at-size"
-                      aria-pressed={pdp.size === s}
-                      disabled={pdp.sizeDisabled(s)}
-                      aria-label={`Talle ${s}${pdp.sizeDisabled(s) ? ', sin stock' : ''}`}
-                      onClick={() => pdp.setSize(s)}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+            {notice && (
+              <p className="at-pdp__notice" role="status">
+                {notice}
+              </p>
             )}
-
-            {pdp.lowStock != null && <p className="at-pdp__low">{pdp.lowStock === 1 ? 'Queda 1 en este talle.' : `Quedan ${pdp.lowStock} en este talle.`}</p>}
+            {!tier.perUnitOpen && pdp.lowStock != null && <p className="at-pdp__low">{pdp.lowStock === 1 ? 'Queda 1 en este talle.' : `Quedan ${pdp.lowStock} en este talle.`}</p>}
 
             <div className="at-pdp__buy">
-              <button type="button" className="at-button" onClick={buyAction(pdp, '.at-pdp')} disabled={pdp.soldOut || (!pdp.canAdd && !pdp.missing)}>
-                {cta}
-              </button>
+              {tier.inTierMode ? (
+                <button type="button" className="at-button" onClick={tierBuyAction(tier, '.at-pdp')} disabled={!tier.tierValid && tier.tierIssue?.kind !== 'unit'}>
+                  {tierCta}
+                </button>
+              ) : (
+                <button type="button" className="at-button" onClick={buyAction(pdp, '.at-pdp')} disabled={pdp.soldOut || (!pdp.canAdd && !pdp.missing)}>
+                  {cta}
+                </button>
+              )}
             </div>
 
             {story.length > 0 && (
