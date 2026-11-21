@@ -1771,3 +1771,8 @@
   border-left: 1px solid #8c2f1f;
   color: #8c2f1f;
 }
+/* La lista de escalones ya cierra con un filete: la primera unidad no repite el suyo. */
+.at-units .at-unit:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
