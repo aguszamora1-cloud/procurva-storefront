@@ -47,7 +47,7 @@ import {
   type SortKey,
 } from '../shared/commerce';
 import { PriceView } from '../shared/Price';
-import { StoreMark, useCartView, useCloseOnRoute, useFitText, useOverlay, useSearchSubmit } from '../shared/ui';
+import { StoreMark, unitsLabel, useCartView, useCloseOnRoute, useFitText, useOverlay, useSearchSubmit } from '../shared/ui';
 import './distrito.css';
 
 
@@ -262,40 +262,53 @@ function DistritoFooter() {
 
 // ── Carrito ───────────────────────────────────────────────────────────────────
 function CartLines() {
-  const { lines, updateQty, removeItem } = useCartView();
+  const { rows } = useCartView();
   return (
     <ul className="di-lines">
-      {lines.map(({ key, item, unit, total, before }) => (
-        <li key={key} className="di-line">
-          <Link to={`/producto/${item.product_id}`} className="di-line__img">
-            {item.image_url && <StoreImage src={item.image_url} alt="" transformWidth={200} width={120} height={150} />}
+      {rows.map((row) => (
+        <li key={row.key} className="di-line" data-group={row.group ?? undefined}>
+          <Link to={`/producto/${row.productId}`} className="di-line__img" tabIndex={-1} aria-hidden="true">
+            {row.image && <StoreImage src={row.image} alt="" transformWidth={200} width={120} height={150} />}
           </Link>
           <div className="di-line__info">
-            <Link to={`/producto/${item.product_id}`} className="di-line__name">
-              {item.name}
+            <Link to={`/producto/${row.productId}`} className="di-line__name">
+              {row.name}
             </Link>
-            <p className="di-meta">
-              {[item.color, item.size].filter(Boolean).join(' / ')}
-              {item.qty > 1 ? ` · ${formatPrice(unit)} c/u` : ''}
-            </p>
+            {row.item ? (
+              <p className="di-meta">
+                {[row.item.color, row.item.size].filter(Boolean).join(' / ')}
+                {row.unit != null ? ` · ${formatPrice(row.unit)} c/u` : ''}
+              </p>
+            ) : (
+              row.detail && <p className="di-line__group">{row.detail}</p>
+            )}
             <div className="di-line__row">
-              <div className="di-qty">
-                <button type="button" onClick={() => updateQty(key, item.qty - 1)} aria-label={`Quitar una unidad de ${item.name}`}>
-                  −
-                </button>
-                <span aria-live="polite">{item.qty}</span>
-                <button type="button" onClick={() => updateQty(key, item.qty + 1)} aria-label={`Sumar una unidad de ${item.name}`}>
-                  +
-                </button>
-              </div>
-              <button type="button" className="di-line__remove" onClick={() => removeItem(key)}>
+              {row.qty ? (
+                <div className="di-qty">
+                  <button type="button" onClick={row.qty.dec} aria-label={`Quitar una unidad de ${row.name}`}>
+                    −
+                  </button>
+                  <span aria-live="polite">{row.units}</span>
+                  <button type="button" onClick={row.qty.inc} aria-label={`Sumar una unidad de ${row.name}`}>
+                    +
+                  </button>
+                </div>
+              ) : (
+                <span className="di-qty di-qty--fixed">{unitsLabel(row.units)}</span>
+              )}
+              <button type="button" className="di-line__remove" onClick={row.remove} aria-label={`Quitar ${row.name}${row.group ? ' (todo el grupo)' : ''}`}>
                 Quitar
               </button>
             </div>
           </div>
           <p className="di-line__price">
-            {before != null && <s>{formatPrice(before * item.qty)}</s>}
-            {formatPrice(total)}
+            {row.price.strike != null && <s>{formatPrice(row.price.strike)}</s>}
+            {formatPrice(row.price.big)}
+            {row.price.small != null && (
+              <small>
+                {formatPrice(row.price.small)} {row.price.smallLabel}
+              </small>
+            )}
           </p>
         </li>
       ))}
@@ -304,9 +317,8 @@ function CartLines() {
 }
 
 function ShipBlock() {
-  const { subtotal, freeShippingLeft, freeShippingFrom } = useCartView();
+  const { freeShippingLeft, freeShippingPct: pct } = useCartView();
   if (freeShippingLeft == null) return null;
-  const pct = Math.min(100, Math.round((subtotal / freeShippingFrom) * 100));
   return (
     <div className="di-ship">
       <p>{freeShippingLeft > 0 ? `Sumá ${formatPrice(freeShippingLeft)} y el envío es gratis` : 'Envío gratis'}</p>
@@ -323,8 +335,13 @@ function CartSummary() {
     <div className="di-summary">
       <p className="di-summary__row">
         <span>Subtotal</span>
-        <span>{formatPrice(subtotal)}</span>
+        <span>{formatPrice(subtotal.big)}</span>
       </p>
+      {subtotal.small != null && (
+        <p className="di-summary__small">
+          {formatPrice(subtotal.small)} {subtotal.smallLabel}
+        </p>
+      )}
       <p className="di-meta">Envío y descuentos por medio de pago, en el checkout.</p>
       <Link to="/checkout" className="di-cta di-cta--block">
         Ir a pagar
@@ -337,8 +354,8 @@ function CartSummary() {
 function KeepLooking({ onPick }: { onPick: () => void }) {
   const { products } = useProducts();
   const { categories } = useCategories(products);
-  const { items } = useCartView();
-  const inCart = new Set(items.map((i) => i.product_id));
+  const { rows } = useCartView();
+  const inCart = new Set(rows.map((r) => r.productId));
   const fresh = products
     .filter((p) => !inCart.has(p.id) && mainImage(p) && !isSoldOut(p))
     .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
@@ -377,7 +394,7 @@ function KeepLooking({ onPick }: { onPick: () => void }) {
 }
 
 function DistritoCart() {
-  const { isOpen, close, lines, itemCount } = useCartView();
+  const { isOpen, close, rows, itemCount } = useCartView();
   const ref = useRef<HTMLDivElement>(null);
   useOverlay(isOpen, close, ref);
   useCloseOnRoute(close);
@@ -392,7 +409,7 @@ function DistritoCart() {
             Cerrar
           </button>
         </div>
-        {lines.length === 0 ? (
+        {rows.length === 0 ? (
           <div className="di-drawer__scroll">
             <div className="di-empty">
               <p className="di-empty__big">Vacío</p>
@@ -905,11 +922,11 @@ function DistritoProduct() {
 }
 
 function DistritoCartPage() {
-  const { lines, itemCount } = useCartView();
+  const { rows, itemCount } = useCartView();
   return (
     <div className="di-cartpage">
       <h1 className="di-giant di-giant--page">Carrito [{itemCount}]</h1>
-      {lines.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="di-empty">
           <p className="di-empty__big">Vacío</p>
           <Link to="/productos" className="di-cta di-cta--ghost">

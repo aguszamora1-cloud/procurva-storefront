@@ -48,7 +48,7 @@ import {
   type SortKey,
 } from '../shared/commerce';
 import { PriceView } from '../shared/Price';
-import { StoreMark, useCartView, useCloseOnRoute, useOverlay } from '../shared/ui';
+import { StoreMark, unitsLabel, useCartView, useCloseOnRoute, useOverlay } from '../shared/ui';
 import './momentum.css';
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -318,9 +318,8 @@ function MomentumFooter() {
 
 // ── Carrito ───────────────────────────────────────────────────────────────────
 function ShipProgress() {
-  const { subtotal, freeShippingLeft, freeShippingFrom } = useCartView();
+  const { freeShippingLeft, freeShippingPct: pct } = useCartView();
   if (freeShippingLeft == null) return null;
-  const pct = Math.min(100, Math.round((subtotal / freeShippingFrom) * 100));
   return (
     <div className="mo-ship">
       <p>
@@ -341,37 +340,50 @@ function ShipProgress() {
 }
 
 function CartLines() {
-  const { lines, updateQty, removeItem } = useCartView();
+  const { rows } = useCartView();
   return (
     <ul className="mo-lines">
-      {lines.map(({ key, item, total, before }) => (
-        <li key={key} className="mo-line">
-          <Link to={`/producto/${item.product_id}`} className="mo-line__img">
-            {item.image_url && <StoreImage src={item.image_url} alt="" transformWidth={200} width={120} height={120} />}
+      {rows.map((row) => (
+        <li key={row.key} className="mo-line" data-group={row.group ?? undefined}>
+          <Link to={`/producto/${row.productId}`} className="mo-line__img" tabIndex={-1} aria-hidden="true">
+            {row.image && <StoreImage src={row.image} alt="" transformWidth={200} width={120} height={120} />}
           </Link>
           <div className="mo-line__info">
             <div className="mo-line__top">
-              <Link to={`/producto/${item.product_id}`} className="mo-line__name">
-                {item.name}
+              <Link to={`/producto/${row.productId}`} className="mo-line__name">
+                {row.name}
               </Link>
-              <button type="button" className="mo-line__x" onClick={() => removeItem(key)} aria-label={`Quitar ${item.name}`}>
+              <button type="button" className="mo-line__x" onClick={row.remove} aria-label={`Quitar ${row.name}${row.group ? ' (todo el grupo)' : ''}`}>
                 <X />
               </button>
             </div>
-            <p className="mo-line__meta">{[item.color, item.size && `Talle ${item.size}`].filter(Boolean).join(' · ')}</p>
+            {row.item ? (
+              <p className="mo-line__meta">{[row.item.color, row.item.size && `Talle ${row.item.size}`].filter(Boolean).join(' · ')}</p>
+            ) : (
+              row.detail && <p className="mo-line__group">{row.detail}</p>
+            )}
             <div className="mo-line__row">
-              <div className="mo-qty">
-                <button type="button" onClick={() => updateQty(key, item.qty - 1)} aria-label={`Quitar una unidad de ${item.name}`}>
-                  −
-                </button>
-                <span aria-live="polite">{item.qty}</span>
-                <button type="button" onClick={() => updateQty(key, item.qty + 1)} aria-label={`Sumar una unidad de ${item.name}`}>
-                  +
-                </button>
-              </div>
+              {row.qty ? (
+                <div className="mo-qty">
+                  <button type="button" onClick={row.qty.dec} aria-label={`Quitar una unidad de ${row.name}`}>
+                    −
+                  </button>
+                  <span aria-live="polite">{row.units}</span>
+                  <button type="button" onClick={row.qty.inc} aria-label={`Sumar una unidad de ${row.name}`}>
+                    +
+                  </button>
+                </div>
+              ) : (
+                <span className="mo-qty mo-qty--fixed">{unitsLabel(row.units)}</span>
+              )}
               <p className="mo-line__price">
-                {before != null && <s>{formatPrice(before * item.qty)}</s>}
-                {formatPrice(total)}
+                {row.price.strike != null && <s>{formatPrice(row.price.strike)}</s>}
+                {formatPrice(row.price.big)}
+                {row.price.small != null && (
+                  <small>
+                    {formatPrice(row.price.small)} {row.price.smallLabel}
+                  </small>
+                )}
               </p>
             </div>
           </div>
@@ -387,8 +399,13 @@ function CartSummary() {
     <div className="mo-summary">
       <p className="mo-summary__row">
         <span>Subtotal</span>
-        <b>{formatPrice(subtotal)}</b>
+        <b>{formatPrice(subtotal.big)}</b>
       </p>
+      {subtotal.small != null && (
+        <p className="mo-summary__small">
+          {formatPrice(subtotal.small)} {subtotal.smallLabel}
+        </p>
+      )}
       <p className="mo-summary__note">El envío y los descuentos por medio de pago se calculan en el siguiente paso.</p>
       <Link to="/checkout" className="mo-btn mo-btn--block">
         Iniciar compra
@@ -398,7 +415,7 @@ function CartSummary() {
 }
 
 function MomentumCart() {
-  const { isOpen, close, lines, itemCount, subtotal } = useCartView();
+  const { isOpen, close, rows, itemCount, subtotal } = useCartView();
   const ref = useRef<HTMLDivElement>(null);
   useOverlay(isOpen, close, ref);
   useCloseOnRoute(close);
@@ -416,7 +433,7 @@ function MomentumCart() {
             <X />
           </button>
         </div>
-        {lines.length === 0 ? (
+        {rows.length === 0 ? (
           <div className="mo-empty">
             <ShoppingBag aria-hidden="true" />
             <p>Todavía no agregaste productos.</p>
@@ -429,8 +446,13 @@ function MomentumCart() {
             <div className="mo-drawer__top">
               <p className="mo-summary__row">
                 <span>Subtotal</span>
-                <b>{formatPrice(subtotal)}</b>
+                <b>{formatPrice(subtotal.big)}</b>
               </p>
+              {subtotal.small != null && (
+                <p className="mo-summary__small">
+                  {formatPrice(subtotal.small)} {subtotal.smallLabel}
+                </p>
+              )}
               <ShipProgress />
               <Link to="/checkout" className="mo-btn mo-btn--block">
                 Iniciar compra
@@ -1068,13 +1090,13 @@ function MomentumProduct() {
 }
 
 function MomentumCartPage() {
-  const { lines, itemCount } = useCartView();
+  const { rows, itemCount } = useCartView();
   return (
     <div className="mo-cartpage">
       <h1 className="mo-display mo-display--page">
         Tu carrito <span>({itemCount})</span>
       </h1>
-      {lines.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="mo-empty mo-empty--page">
           <ShoppingBag aria-hidden="true" />
           <p>Todavía no agregaste productos.</p>

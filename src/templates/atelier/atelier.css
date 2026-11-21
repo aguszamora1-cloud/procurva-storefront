@@ -1626,3 +1626,17 @@
     white-space: normal;
   }
 }
+
+/* Grupos del carrito (escalón, curva, pack): una sola fila, sin cantidad editable. */
+.at-bag__meta--group {
+  color: var(--at-ink);
+}
+.at-bag__qty--fixed {
+  font-size: 13px;
+  color: var(--at-ink-2);
+  margin-bottom: 0;
+}
+.at-bag__note--price {
+  margin-top: -4px;
+  text-align: right;
+}

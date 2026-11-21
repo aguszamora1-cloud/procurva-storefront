@@ -3,8 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
-import { cartLineKey } from '@/lib/cart';
-import type { CartItem } from '@/lib/types';
+import { buildCartRows, cartTotals } from './cartRows';
 
 /** ESC cierra, el fondo no scrollea y el foco entra al panel (y vuelve al cerrar). */
 export function useOverlay(open: boolean, close: () => void, panel: RefObject<HTMLElement | null>) {
@@ -81,34 +80,21 @@ export function StoreMark({ className, height }: { className?: string; height?: 
   return <span className={className}>{name}</span>;
 }
 
-export interface CartLine {
-  key: string;
-  item: CartItem;
-  unit: number;
-  total: number;
-  /** Precio unitario antes de promos (si hubo). */
-  before: number | null;
-}
+export type { CartAmount, CartGroupKind, CartRow } from './cartRows';
+export { unitsLabel } from './cartRows';
 
-/** Carrito con las promos por cantidad aplicadas (mismo cálculo que Classic). */
+/**
+ * Carrito de las plantillas con la agrupación y los precios de Classic (ver
+ * cartRows.ts). A propósito NO devuelve `updateQty` ni `removeItem`: la única
+ * forma de cambiar una cantidad desde una plantilla es `row.qty`, que sólo
+ * existe en los productos sueltos.
+ */
 export function useCartView() {
-  const cart = useCart();
-  const { freeShippingFrom } = useStore();
-  const { unitFinal, adjustedSubtotal } = useCartPromos();
-  const lines: CartLine[] = cart.items.map((item) => {
-    const unit = unitFinal(item);
-    const original = item.unit_price_original ?? item.unit_price;
-    return {
-      key: cartLineKey(item),
-      item,
-      unit,
-      total: unit * item.qty,
-      before: original > unit ? original : null,
-    };
-  });
-  const subtotal = adjustedSubtotal;
-  const freeShippingLeft = freeShippingFrom > 0 ? Math.max(0, freeShippingFrom - subtotal) : null;
-  return { ...cart, lines, subtotal, freeShippingFrom, freeShippingLeft };
+  const { items, isOpen, open, close, itemCount, updateQty, removeItem } = useCart();
+  const config = useStore();
+  const { byLine, adjustedSubtotal } = useCartPromos();
+  const rows = buildCartRows(items, byLine, config, { updateQty, removeItem });
+  return { isOpen, open, close, itemCount, rows, ...cartTotals(items, adjustedSubtotal, config) };
 }
 
 /**

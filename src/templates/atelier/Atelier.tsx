@@ -41,7 +41,7 @@ import {
   type SortKey,
 } from '../shared/commerce';
 import { PriceView } from '../shared/Price';
-import { StoreMark, useCartView, useCloseOnRoute, useFitText, useOverlay, useScrolled, useSearchSubmit } from '../shared/ui';
+import { StoreMark, unitsLabel, useCartView, useCloseOnRoute, useFitText, useOverlay, useScrolled, useSearchSubmit } from '../shared/ui';
 import './atelier.css';
 
 // ── Encabezado ────────────────────────────────────────────────────────────────
@@ -240,36 +240,52 @@ function AtelierFooter() {
 // Atelier no usa un cajón lateral: la bolsa despliega desde el encabezado como un
 // panel del alto de su contenido (sin huecos), con fotos grandes y el total en serif.
 function BagLines({ compact }: { compact?: boolean }) {
-  const { lines, updateQty, removeItem } = useCartView();
+  const { rows } = useCartView();
   return (
     <ul className={`at-bag__lines${compact ? ' at-bag__lines--compact' : ''}`}>
-      {lines.map(({ key, item, unit, total, before }) => (
-        <li key={key} className="at-bag__line">
-          <Link to={`/producto/${item.product_id}`} className="at-bag__thumb">
-            {item.image_url ? <StoreImage src={item.image_url} alt="" transformWidth={300} width={150} height={200} /> : null}
+      {rows.map((row) => (
+        <li key={row.key} className="at-bag__line" data-group={row.group ?? undefined}>
+          <Link to={`/producto/${row.productId}`} className="at-bag__thumb" tabIndex={-1} aria-hidden="true">
+            {row.image ? <StoreImage src={row.image} alt="" transformWidth={300} width={150} height={200} /> : null}
           </Link>
           <div className="at-bag__info">
-            <Link to={`/producto/${item.product_id}`} className="at-bag__name">
-              {item.name}
+            <Link to={`/producto/${row.productId}`} className="at-bag__name">
+              {row.name}
             </Link>
-            <p className="at-bag__meta">{[item.color, item.size && `Talle ${item.size}`].filter(Boolean).join(' · ')}</p>
-            <div className="at-bag__qty" role="group" aria-label={`Cantidad de ${item.name}`}>
-              <span className="at-bag__qlabel">Cantidad</span>
-              <button type="button" onClick={() => updateQty(key, item.qty - 1)} aria-label={`Quitar una unidad de ${item.name}`}>
-                −
-              </button>
-              <span aria-live="polite">{item.qty}</span>
-              <button type="button" onClick={() => updateQty(key, item.qty + 1)} aria-label={`Sumar una unidad de ${item.name}`}>
-                +
-              </button>
-            </div>
+            {row.item ? (
+              <p className="at-bag__meta">{[row.item.color, row.item.size && `Talle ${row.item.size}`].filter(Boolean).join(' · ')}</p>
+            ) : (
+              row.detail && <p className="at-bag__meta at-bag__meta--group">{row.detail}</p>
+            )}
+            {row.qty ? (
+              <div className="at-bag__qty" role="group" aria-label={`Cantidad de ${row.name}`}>
+                <span className="at-bag__qlabel">Cantidad</span>
+                <button type="button" onClick={row.qty.dec} aria-label={`Quitar una unidad de ${row.name}`}>
+                  −
+                </button>
+                <span aria-live="polite">{row.units}</span>
+                <button type="button" onClick={row.qty.inc} aria-label={`Sumar una unidad de ${row.name}`}>
+                  +
+                </button>
+              </div>
+            ) : (
+              <p className="at-bag__qty at-bag__qty--fixed">
+                <span className="at-bag__qlabel">Cantidad</span>
+                <span>{unitsLabel(row.units)}</span>
+              </p>
+            )}
             <div className="at-bag__foot">
               <p className="at-bag__price">
-                {formatPrice(total)}
-                {before != null && <s>{formatPrice(before * item.qty)}</s>}
-                {item.qty > 1 && <small>{formatPrice(unit)} c/u</small>}
+                {formatPrice(row.price.big)}
+                {row.price.strike != null && <s>{formatPrice(row.price.strike)}</s>}
+                {row.unit != null && <small>{formatPrice(row.unit)} c/u</small>}
+                {row.price.small != null && (
+                  <small>
+                    {formatPrice(row.price.small)} {row.price.smallLabel}
+                  </small>
+                )}
               </p>
-              <button type="button" className="at-bag__remove" onClick={() => removeItem(key)}>
+              <button type="button" className="at-bag__remove" onClick={row.remove} aria-label={`Quitar ${row.name}${row.group ? ' (todo el grupo)' : ''}`}>
                 Quitar
               </button>
             </div>
@@ -286,8 +302,13 @@ function BagSummary({ onContinue }: { onContinue?: () => void }) {
     <div className="at-bag__summary">
       <p className="at-bag__subtotal">
         <span>Subtotal</span>
-        <span>{formatPrice(subtotal)}</span>
+        <span>{formatPrice(subtotal.big)}</span>
       </p>
+      {subtotal.small != null && (
+        <p className="at-bag__note at-bag__note--price">
+          {formatPrice(subtotal.small)} {subtotal.smallLabel}
+        </p>
+      )}
       {freeShippingLeft != null && (
         <p className="at-bag__note">
           {freeShippingLeft > 0 ? `Te faltan ${formatPrice(freeShippingLeft)} para el envío gratis.` : 'Tu compra tiene envío gratis.'}
@@ -307,7 +328,7 @@ function BagSummary({ onContinue }: { onContinue?: () => void }) {
 }
 
 function AtelierBag() {
-  const { isOpen, close, lines, itemCount } = useCartView();
+  const { isOpen, close, rows, itemCount } = useCartView();
   const ref = useRef<HTMLDivElement>(null);
   useOverlay(isOpen, close, ref);
   useCloseOnRoute(close);
@@ -325,7 +346,7 @@ function AtelierBag() {
           </button>
         </div>
         <div className="at-drawer__body">
-          {lines.length === 0 ? (
+          {rows.length === 0 ? (
             <div className="at-empty">
               <p>Tu bolsa está vacía.</p>
               <Link to="/productos" className="at-link at-link--line" onClick={close}>
@@ -942,11 +963,11 @@ function AtelierProduct() {
 
 // ── Página de la bolsa ────────────────────────────────────────────────────────
 function AtelierCart() {
-  const { lines } = useCartView();
+  const { rows } = useCartView();
   return (
     <div className="at-cartpage">
       <h1 className="at-display at-display--page">Bolsa</h1>
-      {lines.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="at-empty at-empty--page">
           <p>Tu bolsa está vacía.</p>
           <Link to="/productos" className="at-link at-link--line">
