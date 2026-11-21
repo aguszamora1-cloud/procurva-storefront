@@ -26,7 +26,8 @@ import {
   mainImage,
 } from '@/lib/utils';
 import { contrastRatio, parseHex } from '@/lib/contrast';
-import type { CartItem, Product, Variant } from '@/lib/types';
+import { buildSingleCartItem } from '@/lib/tierPurchase';
+import type { Product, Variant } from '@/lib/types';
 
 // ── Precio ────────────────────────────────────────────────────────────────────
 export interface TplPrice {
@@ -271,27 +272,17 @@ export function usePdp(product: Product): PdpState {
 
   const add = () => {
     if (!variant || !canAdd) return;
-    const promo = promoForProduct(product, color);
-    const item: CartItem = {
-      product_id: product.id,
-      variant_id: variant.id,
-      name: product.name,
+    // Misma línea que agrega la ficha de Classic (lib/tierPurchase.ts).
+    const item = buildSingleCartItem({
+      product,
       categories: productCategories(product),
-      size: variant.size,
-      color: variant.color,
-      unit_price: finalPrice,
-      ...(finalCash != null && finalCash < finalPrice ? { unit_price_cash: finalCash } : {}),
-      ...(promo
-        ? {
-            promo_id: promo.id,
-            promo_name: promo.name,
-            unit_price_original: mainPrice,
-            promo_stackable: promo.stackable_with_coupons !== false,
-          }
-        : {}),
-      qty: 1,
-      image_url: variant.image_url ?? images[0] ?? null,
-    };
+      variant,
+      finalPrice,
+      finalCash,
+      mainPrice,
+      promo: promoForProduct(product, color),
+      fallbackImage: images[0] ?? null,
+    });
     addItem(item);
   };
 

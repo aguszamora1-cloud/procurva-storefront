@@ -17,6 +17,7 @@
     "test:header-nav": "node --test scripts/nav-entries.test.mjs",
     "test:header": "node --test scripts/header-variant.test.mjs",
     "test:template-cart": "node --test scripts/template-cart.test.mjs",
+    "test:tier-purchase": "node --test scripts/tier-purchase.test.mjs",
     "check": "npm run check:mirrors && npm run check:opacity && npm run check:radius",
     "prebuild": "npm run check",
     "build": "tsc -b && vite build && node scripts/spa-shell.mjs",
