@@ -301,18 +301,27 @@ function BagLines({ compact }: { compact?: boolean }) {
 }
 
 function BagSummary({ onContinue }: { onContinue?: () => void }) {
-  const { subtotal, freeShippingLeft } = useCartView();
+  const { subtotal, couponCode, freeShippingLeft } = useCartView();
   return (
     <div className="at-bag__summary">
       <p className="at-bag__subtotal">
         <span>Subtotal</span>
-        <span>{formatPrice(subtotal.big)}</span>
+        <span>
+          {subtotal.strike != null && (
+            <s>
+              <span className="tpl-sr">Antes </span>
+              {formatPrice(subtotal.strike)}
+            </s>
+          )}
+          {formatPrice(subtotal.big)}
+        </span>
       </p>
       {subtotal.small != null && (
         <p className="at-bag__note at-bag__note--price">
           {formatPrice(subtotal.small)} {subtotal.smallLabel}
         </p>
       )}
+      {couponCode && <p className="at-bag__note at-bag__note--price">Con el cupón {couponCode}</p>}
       {freeShippingLeft != null && (
         <p className="at-bag__note">
           {freeShippingLeft > 0 ? `Te faltan ${formatPrice(freeShippingLeft)} para el envío gratis.` : 'Tu compra tiene envío gratis.'}

@@ -21,7 +21,8 @@ mkdirSync(CACHE_DIR, { recursive: true });
 const outfile = resolve(CACHE_DIR, `cart-${process.pid}.mjs`);
 await build({
   stdin: {
-    contents: `export * from './src/templates/shared/cartRows.ts'; export { cartLineKey, groupCartItems } from './src/lib/cart.ts';
+    contents: `export * from './src/templates/shared/cartRows.ts'; export { cartLineKey, groupCartItems, priceCartItems } from './src/lib/cart.ts';
+      export { sumCartSubtotals } from './src/lib/cartAmounts.ts';
       export { computeQuantityPromos } from './src/lib/promotions.ts';`,
     resolveDir: repoRoot,
     loader: 'ts',
@@ -35,7 +36,7 @@ await build({
   define: { 'import.meta.env': '{}' },
   logLevel: 'silent',
 });
-const { buildCartRows, cartTotals, unitsLabel, cartLineKey, groupCartItems, computeQuantityPromos } = await import(
+const { buildCartRows, cartTotals, unitsLabel, cartLineKey, groupCartItems, priceCartItems, sumCartSubtotals, computeQuantityPromos } = await import(
   pathToFileURL(outfile).href
 );
 
@@ -120,7 +121,13 @@ function memoryCart(initial) {
 const ALL = { priceDisplay: 'all', cashLabel: 'en efectivo', priceEmphasis: 'cash', freeShippingFrom: 100000 };
 const CARD = { priceDisplay: 'card', cashLabel: 'en efectivo', freeShippingFrom: 0 };
 
-const rowsFor = (cart, cfg = ALL) => buildCartRows(cart.items, promos(cart.items).byLine, cfg, cart);
+// Igual que useCartView: los pricedItems de useCartCoupon (priceCartItems).
+const rowsFor = (cart, cfg = ALL) => {
+  const { byLine } = promos(cart.items);
+  return buildCartRows(cart.items, priceCartItems(cart.items, byLine, 'retail'), byLine, cfg, cart);
+};
+/** Subtotales como useCartCoupon (sin cupón). */
+const sums = (items) => ({ ...sumCartSubtotals(priceCartItems(items, promos(items).byLine, 'retail')), discountCash: 0, discountCard: 0 });
 
 // ── Agrupación ────────────────────────────────────────────────────────────────
 test('agrupa igual que groupCartItems de Classic (mismas filas, unidades y claves)', () => {
@@ -225,41 +232,51 @@ test('el escalón no se suma a la promo por cantidad (tiene su precio propio)', 
   assert.equal(byLine.get(cartLineKey(suelto)).active, true);
 });
 
-test('precios por fila: mismas ramas que el carrito de Classic', () => {
+test('precios por fila: los mismos que cobra el checkout (FIN0-B)', () => {
   const rows = rowsFor(memoryCart(ITEMS));
   const [s, surt, cur, t2, t3, pk] = rows;
-  // Suelto con promo por cantidad activa (10%): total con la promo, tachado el de antes.
-  assert.deepEqual(s.price, { big: 18000, small: null, smallLabel: '', strike: 20000 });
-  assert.equal(s.unit, 9000);
-  // Escalones: contado grande, tarjeta abajo, tachado el de lista.
-  assert.deepEqual(t2.price, { big: 15300, small: 17000, smallLabel: 'con tarjeta', strike: 20000 });
-  assert.deepEqual(t3.price, { big: 21600, small: 24000, smallLabel: 'con tarjeta', strike: 30000 });
+  // Suelto con promo por cantidad activa (10%): contado y tarjeta con la promo
+  // (priceCartItems: contado 9000 → 8100, tarjeta 10000 → 9000); tachado el
+  // contado de antes de la promo (misma base que el número grande).
+  assert.deepEqual(s.price, { big: 16200, small: 18000, smallLabel: 'con tarjeta', strike: 18000, isCash: true });
+  assert.equal(s.unit, 8100);
+  // Escalones: contado grande, tarjeta abajo, tachado el de lista (sin cambios).
+  assert.deepEqual(t2.price, { big: 15300, small: 17000, smallLabel: 'con tarjeta', strike: 20000, isCash: true });
+  assert.deepEqual(t3.price, { big: 21600, small: 24000, smallLabel: 'con tarjeta', strike: 30000, isCash: true });
   // Curva, pack y surtida: total de la fila.
   assert.equal(cur.price.big, 15000);
   assert.equal(pk.price.big, 24000);
   assert.equal(surt.price.big, 27000);
 });
 
-test('subtotal: mismo par que Classic y la misma base para el envío gratis', () => {
+test('subtotal: el mismo del checkout y la misma base para el envío gratis', () => {
   const { adjustedSubtotal } = promos(ITEMS);
   // Tarjeta: 18000 (suelto con promo) + 17000 + 24000 + 15000 + 24000 + 27000.
   assert.equal(adjustedSubtotal, 125000);
-  // Contado como lo calcula Classic: unit_price_cash si existe (sin promo por cantidad).
-  const cash = 18000 + 15300 + 21600 + 15000 + 24000 + 27000;
-  const t = cartTotals(ITEMS, adjustedSubtotal, ALL);
-  assert.deepEqual(t.subtotal, { big: cash, small: 125000, smallLabel: 'con tarjeta', strike: null });
+  assert.equal(sums(ITEMS).cardSubtotal, adjustedSubtotal);
+  // Contado como el checkout: el del suelto YA con la promo por cantidad (16200).
+  const cash = 16200 + 15300 + 21600 + 15000 + 24000 + 27000;
+  const t = cartTotals(sums(ITEMS), ALL);
+  assert.deepEqual(t.subtotal, { big: cash, small: 125000, smallLabel: 'con tarjeta', strike: null, isCash: true });
+  assert.equal(t.couponCode, null);
   assert.equal(t.freeShippingLeft, 0);
   assert.equal(t.freeShippingPct, 100);
-  const c = cartTotals(ITEMS, adjustedSubtotal, CARD);
-  assert.deepEqual(c.subtotal, { big: 125000, small: null, smallLabel: '', strike: null });
+  const c = cartTotals(sums(ITEMS), CARD);
+  assert.deepEqual(c.subtotal, { big: 125000, small: null, smallLabel: '', strike: null, isCash: false });
   assert.equal(c.freeShippingLeft, null);
 });
 
 test('con precio de tarjeta, la suma de las filas da el subtotal', () => {
   const cart = memoryCart(ITEMS);
   const rows = rowsFor(cart, CARD);
-  const { adjustedSubtotal } = promos(cart.items);
-  assert.equal(rows.reduce((s, r) => s + r.price.big, 0), cartTotals(cart.items, adjustedSubtotal, CARD).subtotal.big);
+  assert.equal(rows.reduce((s, r) => s + r.price.big, 0), cartTotals(sums(cart.items), CARD).subtotal.big);
+});
+
+test('con contado protagonista, la suma de las filas da el subtotal (FIN0-B)', () => {
+  const cart = memoryCart(ITEMS);
+  const rows = rowsFor(cart, ALL);
+  assert.equal(rows.reduce((s, r) => s + r.price.big, 0), cartTotals(sums(cart.items), ALL).subtotal.big);
+  assert.equal(rows.reduce((s, r) => s + (r.price.small ?? r.price.big), 0), cartTotals(sums(cart.items), ALL).subtotal.small);
 });
 
 test('carrito persistido: las filas salen iguales después de serializar (recarga)', () => {

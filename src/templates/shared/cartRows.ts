@@ -4,26 +4,25 @@
  *
  * MISMA agrupación, mismos precios por fila y mismo subtotal que el carrito de
  * Classic (components/CartDrawer.tsx y pages/Cart.tsx), resueltos con sus mismos
- * helpers: groupCartItems (lib/cart), el resultado de useCartPromos y
- * resolvePricePair (lib/utils). Las plantillas sólo deciden cómo se ve.
+ * helpers: lib/cartAmounts (P1.2-FIN0-B: los precios que cobra el checkout,
+ * priceCartItems + cupón) y el resultado de useCartPromos. Las plantillas sólo
+ * deciden cómo se ve.
  */
-import { groupCartItems } from '@/lib/cart';
-import { resolvePricePair } from '@/lib/utils';
+import {
+  cartAmountRows,
+  cartSubtotalAmount,
+  freeShippingBase,
+  type CartAmount,
+  type CartPriceConfig,
+  type CartSubtotals,
+} from '@/lib/cartAmounts';
 import type { QtyPromoLineResult } from '@/lib/promotions';
 import type { CartItem, StoreConfig } from '@/lib/types';
 
+export type { CartAmount } from '@/lib/cartAmounts';
+
 /** Grupo comercial indivisible del carrito (mismos tipos que agrupa Classic). */
 export type CartGroupKind = 'tier' | 'curva' | 'curva_surtida' | 'pack';
-
-/** Precio de una fila o del subtotal, ya resuelto como lo muestra Classic. */
-export interface CartAmount {
-  big: number;
-  /** Segunda línea ("$35.715 con tarjeta"), si la tienda la muestra. */
-  small: number | null;
-  smallLabel: string;
-  /** Tachado: precio antes del descuento, sólo si es mayor que `big`. */
-  strike: number | null;
-}
 
 /**
  * Una fila del carrito tal como la agrupa Classic (`groupCartItems`).
@@ -52,37 +51,32 @@ export interface CartRow {
   remove: () => void;
 }
 
-type PriceConfig = Pick<StoreConfig, 'priceDisplay' | 'cashLabel'> & Partial<Pick<StoreConfig, 'priceEmphasis'>>;
+type PriceConfig = CartPriceConfig;
 
 export interface CartActions {
   updateQty: (lineKey: string, qty: number) => void;
   removeItem: (lineKey: string) => void;
 }
 
+/**
+ * `pricedItems` = los de useCartCoupon (priceCartItems), los mismos del checkout.
+ */
 export function buildCartRows(
   items: CartItem[],
+  pricedItems: CartItem[],
   byLine: Map<string, QtyPromoLineResult>,
   config: PriceConfig,
   { updateQty, removeItem }: CartActions,
 ): CartRow[] {
-  return groupCartItems(items).map((row) => {
-    const isTier = row.source === 'tier';
-    // Precio de la fila: mismas ramas que CartDrawer.
-    let price: CartAmount;
-    const promo = isTier ? undefined : byLine.get(row.removeKeys[0]);
-    if (isTier) {
-      const pair = resolvePricePair(config, row.cashTotal, row.lineTotal);
-      const strike = row.originalTotal != null && row.originalTotal > row.lineTotal ? row.originalTotal : null;
-      price = { big: pair.big, small: pair.small, smallLabel: pair.smallLabel, strike };
-    } else if (promo?.active) {
-      price = { big: promo.unitPriceFinal * row.units, small: null, smallLabel: '', strike: row.lineTotal };
-    } else {
-      const pair = resolvePricePair(config, row.cashTotal, row.lineTotal);
-      // Suelto con promo automática: el precio de lista queda tachado (dato real
-      // de la línea: unit_price_original). Classic no lo muestra; no cambia el total.
-      const only = row.source === 'suelto' ? row.items[0] : null;
-      const original = only ? (only.unit_price_original ?? only.unit_price) * only.qty : 0;
-      price = { big: pair.big, small: pair.small, smallLabel: pair.smallLabel, strike: original > pair.big ? original : null };
+  return cartAmountRows(items, pricedItems, byLine, config).map(({ row, price: amount, qtyPromo }) => {
+    let price = amount;
+    // Suelto con promo automática y sin promo por cantidad que lo baje: el
+    // precio de lista queda tachado (dato real de la línea: unit_price_original).
+    // Classic no lo muestra; no cambia el total.
+    if (row.source === 'suelto' && !qtyPromo && price.strike == null) {
+      const only = row.items[0];
+      const original = (only.unit_price_original ?? only.unit_price) * only.qty;
+      if (original > price.big) price = { ...price, strike: original };
     }
     const single = row.source === 'suelto' && row.editable && row.removeKeys.length === 1 && row.items.length === 1;
     const key = row.removeKeys[0];
@@ -104,29 +98,30 @@ export function buildCartRows(
 }
 
 export interface CartTotals {
+  /** Con cupón aplicado: el subtotal con el cupón y el de antes en `strike`. */
   subtotal: CartAmount;
+  /** Código del cupón que bajó el subtotal, o null. */
+  couponCode: string | null;
   freeShippingFrom: number;
   freeShippingLeft: number | null;
   freeShippingPct: number;
 }
 
 /**
- * Subtotal: el mismo par que Classic (contado protagonista si la tienda lo
- * muestra), con la misma base para el envío gratis que Classic le pasa a
- * FreeShippingProgress. `adjustedSubtotal` sale de useCartPromos.
+ * Subtotal y envío gratis: los mismos de Classic (lib/cartAmounts), sobre los
+ * subtotales de useCartCoupon (los del checkout).
  */
 export function cartTotals(
-  items: CartItem[],
-  adjustedSubtotal: number,
+  sums: CartSubtotals,
   config: PriceConfig & Pick<StoreConfig, 'freeShippingFrom'>,
+  couponCode: string | null = null,
 ): CartTotals {
-  const cashSubtotal = items.reduce((s, i) => s + (typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price) * i.qty, 0);
-  const hasCash = cashSubtotal > 0 && cashSubtotal < adjustedSubtotal;
-  const pair = resolvePricePair(config, hasCash ? cashSubtotal : null, adjustedSubtotal);
-  const base = pair.primary;
+  const { couponActive, ...subtotal } = cartSubtotalAmount(sums, config);
+  const base = freeShippingBase(sums);
   const from = config.freeShippingFrom;
   return {
-    subtotal: { big: pair.big, small: pair.small, smallLabel: pair.smallLabel, strike: null },
+    subtotal,
+    couponCode: couponActive ? couponCode : null,
     freeShippingFrom: from,
     freeShippingLeft: from > 0 ? Math.max(0, from - base) : null,
     freeShippingPct: from > 0 ? Math.min(100, Math.round((base / from) * 100)) : 0,

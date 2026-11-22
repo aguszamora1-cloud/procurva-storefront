@@ -1776,3 +1776,11 @@
   border-top: 0;
   padding-top: 0;
 }
+
+/* Subtotal con cupón (P1.2-FIN0-B): el de antes, tachado y chico, como en las filas. */
+.at-bag__subtotal s {
+  font-family: var(--at-sans);
+  font-size: 13px;
+  color: var(--at-ink-2);
+  margin-right: 10px;
+}

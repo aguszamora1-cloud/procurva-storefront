@@ -52,7 +52,7 @@ import {
   type SortKey,
 } from '../shared/commerce';
 import { PriceView } from '../shared/Price';
-import { StoreMark, unitsLabel, useCartView, useCloseOnRoute, useOverlay } from '../shared/ui';
+import { StoreMark, unitsLabel, useCartView, useCloseOnRoute, useOverlay, type CartAmount } from '../shared/ui';
 import './momentum.css';
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -398,18 +398,10 @@ function CartLines() {
 }
 
 function CartSummary() {
-  const { subtotal } = useCartView();
+  const { subtotal, couponCode } = useCartView();
   return (
     <div className="mo-summary">
-      <p className="mo-summary__row">
-        <span>Subtotal</span>
-        <b>{formatPrice(subtotal.big)}</b>
-      </p>
-      {subtotal.small != null && (
-        <p className="mo-summary__small">
-          {formatPrice(subtotal.small)} {subtotal.smallLabel}
-        </p>
-      )}
+      <SubtotalLines subtotal={subtotal} couponCode={couponCode} />
       <p className="mo-summary__note">El envío y los descuentos por medio de pago se calculan en el siguiente paso.</p>
       <Link to="/checkout" className="mo-btn mo-btn--block">
         Iniciar compra
@@ -418,8 +410,34 @@ function CartSummary() {
   );
 }
 
+/** Subtotal del resumen y del carrito lateral (con el cupón tachando el de antes). */
+function SubtotalLines({ subtotal, couponCode }: { subtotal: CartAmount; couponCode: string | null }) {
+  return (
+    <>
+      <p className="mo-summary__row">
+        <span>Subtotal</span>
+        <b>
+          {subtotal.strike != null && (
+            <s>
+              <span className="tpl-sr">Antes </span>
+              {formatPrice(subtotal.strike)}
+            </s>
+          )}
+          {formatPrice(subtotal.big)}
+        </b>
+      </p>
+      {subtotal.small != null && (
+        <p className="mo-summary__small">
+          {formatPrice(subtotal.small)} {subtotal.smallLabel}
+        </p>
+      )}
+      {couponCode && <p className="mo-summary__small">Con el cupón {couponCode}</p>}
+    </>
+  );
+}
+
 function MomentumCart() {
-  const { isOpen, close, rows, itemCount, subtotal } = useCartView();
+  const { isOpen, close, rows, itemCount, subtotal, couponCode } = useCartView();
   const ref = useRef<HTMLDivElement>(null);
   useOverlay(isOpen, close, ref);
   useCloseOnRoute(close);
@@ -448,15 +466,7 @@ function MomentumCart() {
         ) : (
           <>
             <div className="mo-drawer__top">
-              <p className="mo-summary__row">
-                <span>Subtotal</span>
-                <b>{formatPrice(subtotal.big)}</b>
-              </p>
-              {subtotal.small != null && (
-                <p className="mo-summary__small">
-                  {formatPrice(subtotal.small)} {subtotal.smallLabel}
-                </p>
-              )}
+              <SubtotalLines subtotal={subtotal} couponCode={couponCode} />
               <ShipProgress />
               <Link to="/checkout" className="mo-btn mo-btn--block">
                 Iniciar compra

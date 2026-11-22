@@ -2096,3 +2096,11 @@
   left: auto;
   right: 10px;
 }
+
+/* Subtotal con cupón (P1.2-FIN0-B): el de antes, tachado y chico, como en las filas. */
+.mo-summary__row s {
+  color: var(--mo-ink-2);
+  font-weight: 400;
+  font-size: 13px;
+  margin-right: 6px;
+}

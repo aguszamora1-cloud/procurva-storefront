@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
 import { useCartPromos } from '@/hooks/useCartPromos';
+import { useCartCoupon } from '@/hooks/useCartCoupon';
+import { useCoupon } from '@/context/CouponContext';
 import { buildCartRows, cartTotals } from './cartRows';
 
 /** ESC cierra, el fondo no scrollea y el foco entra al panel (y vuelve al cerrar). */
@@ -92,9 +94,12 @@ export { unitsLabel } from './cartRows';
 export function useCartView() {
   const { items, isOpen, open, close, itemCount, updateQty, removeItem } = useCart();
   const config = useStore();
-  const { byLine, adjustedSubtotal } = useCartPromos();
-  const rows = buildCartRows(items, byLine, config, { updateQty, removeItem });
-  return { isOpen, open, close, itemCount, rows, ...cartTotals(items, adjustedSubtotal, config) };
+  const { byLine } = useCartPromos();
+  // Los mismos precios y cupón que Classic y el checkout (lib/cartAmounts).
+  const coupon = useCartCoupon();
+  const { savedCoupon } = useCoupon();
+  const rows = buildCartRows(items, coupon.pricedItems, byLine, config, { updateQty, removeItem });
+  return { isOpen, open, close, itemCount, rows, ...cartTotals(coupon, config, savedCoupon?.code ?? null) };
 }
 
 /**

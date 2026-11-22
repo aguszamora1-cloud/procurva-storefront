@@ -334,18 +334,27 @@ function ShipBlock() {
 }
 
 function CartSummary() {
-  const { subtotal } = useCartView();
+  const { subtotal, couponCode } = useCartView();
   return (
     <div className="di-summary">
       <p className="di-summary__row">
         <span>Subtotal</span>
-        <span>{formatPrice(subtotal.big)}</span>
+        <span>
+          {subtotal.strike != null && (
+            <s>
+              <span className="tpl-sr">Antes </span>
+              {formatPrice(subtotal.strike)}
+            </s>
+          )}
+          {formatPrice(subtotal.big)}
+        </span>
       </p>
       {subtotal.small != null && (
         <p className="di-summary__small">
           {formatPrice(subtotal.small)} {subtotal.smallLabel}
         </p>
       )}
+      {couponCode && <p className="di-summary__small">Con el cupón {couponCode}</p>}
       <p className="di-meta">Envío y descuentos por medio de pago, en el checkout.</p>
       <Link to="/checkout" className="di-cta di-cta--block">
         Ir a pagar
