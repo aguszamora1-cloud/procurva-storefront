@@ -18,6 +18,7 @@ import { looksLikePhone } from '@/lib/phone';
 import { computeDiscount, eligibleSubtotal, eligibleItems, minimumBase } from '@/lib/coupons';
 import { track } from '@/lib/tracking';
 import { useCoupon } from '@/context/CouponContext';
+import { useCartCashRecoveryPending } from '@/context/CartCashRecovery';
 import { CouponChip } from '@/components/CouponChip';
 import { CorreoAgencyPicker } from '@/components/CorreoAgencyPicker';
 import { useCorreoLiveRates } from '@/hooks/useCorreoLiveRates';
@@ -193,6 +194,11 @@ export function Checkout() {
   // "Oferta antes de pagar" tildada (o null). No vive en el carrito: se suma acá
   // a los ítems del pedido, ya con su precio especial (ver OrderBumpOffer).
   const [bumpLine, setBumpLine] = useState<CartItem | null>(null);
+
+  // Líneas viejas cuyo contado de lista se está verificando contra el catálogo
+  // (context/CartCashRecovery): hasta que termine, el total de contado todavía
+  // puede bajar, así que no se deja confirmar.
+  const verifyingCart = useCartCashRecoveryPending();
 
   // Items con la promo POR CANTIDAD ya aplicada al precio (ver priceCartItems).
   // La oferta antes de pagar va al final y SIN promo: ya tiene su precio.
@@ -777,6 +783,7 @@ export function Checkout() {
     // (doble-tap mobile). Se libera solo en los caminos que NO navegan/redirigen
     // (error, o WhatsApp que abre pestaña y se queda en la página).
     if (submitLockRef.current) return;
+    if (verifyingCart) return;
     const v = validate(routing !== 'wa');
     if (v) { setError(v); return; }
     submitLockRef.current = true;
@@ -1106,7 +1113,7 @@ export function Checkout() {
   const mustQuoteShipping = !selectedMethod && hasDeliveryMethods && !appliedCp;
   // También mientras la opción elegida se está cotizando en vivo: confirmar en ese
   // momento guardaría el costo provisorio en vez de la tarifa real.
-  const ctaDisabled = loading !== null || stockIssues.length > 0 || mustQuoteShipping || quotingSelected;
+  const ctaDisabled = loading !== null || stockIssues.length > 0 || mustQuoteShipping || quotingSelected || verifyingCart;
 
   // Bloque de totales del resumen (reusado en el panel y en la barra fija mobile).
   const summaryRows = (
@@ -1736,6 +1743,9 @@ export function Checkout() {
               {mustQuoteShipping && payMethods.length > 0 && (
                 <p className="mt-2 text-center text-[calc(12px_*_var(--font-scale,1))] text-muted">Calculá tu envío para continuar</p>
               )}
+              {verifyingCart && payMethods.length > 0 && (
+                <p className="mt-2 text-center text-[calc(12px_*_var(--font-scale,1))] text-muted">Actualizando los precios de tu carrito…</p>
+              )}
               {quotingSelected && payMethods.length > 0 && (
                 <p className="mt-2 text-center text-[calc(12px_*_var(--font-scale,1))] text-muted">Cotizando el envío con Correo Argentino…</p>
               )}
@@ -1799,6 +1809,9 @@ export function Checkout() {
         </div>
         {mustQuoteShipping && payMethods.length > 0 && (
           <p className="px-5 pb-2 text-[calc(11px_*_var(--font-scale,1))] text-muted">Calculá tu envío para continuar</p>
+        )}
+        {verifyingCart && payMethods.length > 0 && (
+          <p className="px-5 pb-2 text-[calc(11px_*_var(--font-scale,1))] text-muted">Actualizando los precios de tu carrito…</p>
         )}
         {quotingSelected && payMethods.length > 0 && (
           <p className="px-5 pb-2 text-[calc(11px_*_var(--font-scale,1))] text-muted">Cotizando el envío con Correo Argentino…</p>

@@ -6,6 +6,7 @@ import { PromotionsProvider } from '@/context/PromotionsContext';
 import { CategoryTiersProvider } from '@/context/CategoryTiersContext';
 import { CartProvider } from '@/context/CartContext';
 import { CouponProvider } from '@/context/CouponContext';
+import { CartCashRecoveryProvider } from '@/context/CartCashRecovery';
 import { FirstPaintProvider, RouteGate, useFirstPaintGate } from '@/context/FirstPaintContext';
 import { Layout } from '@/components/Layout';
 import { ScrollToTop } from '@/components/ScrollToTop';
@@ -64,6 +65,7 @@ function StoreRoutes() {
       <WholesalePricingProvider>
       <PromotionsProvider>
       <CategoryTiersProvider>
+      <CartCashRecoveryProvider>
       <BrowserRouter>
       <FirstPaintProvider>
         <ScrollToTop />
@@ -100,6 +102,7 @@ function StoreRoutes() {
         </Layout>
       </FirstPaintProvider>
       </BrowserRouter>
+      </CartCashRecoveryProvider>
       </CategoryTiersProvider>
       </PromotionsProvider>
       </WholesalePricingProvider>

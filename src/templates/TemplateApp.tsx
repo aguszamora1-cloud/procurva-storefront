@@ -5,6 +5,7 @@ import { PromotionsProvider } from '@/context/PromotionsContext';
 import { CategoryTiersProvider } from '@/context/CategoryTiersContext';
 import { CartProvider } from '@/context/CartContext';
 import { CouponProvider } from '@/context/CouponContext';
+import { CartCashRecoveryProvider } from '@/context/CartCashRecovery';
 import { FirstPaintProvider } from '@/context/FirstPaintContext';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { ContrastScope } from '@/components/ContrastScope';
@@ -124,15 +125,17 @@ export function TemplateApp({ id }: { id: DevTemplateId }) {
         <WholesalePricingProvider>
           <PromotionsProvider>
             <CategoryTiersProvider>
-              <BrowserRouter>
-                <FirstPaintProvider>
-                  <ScrollToTop />
-                  <Suspense fallback={<LoadingScreen />}>
-                    <Kit />
-                  </Suspense>
-                  <PreviewSwitcher current={id} />
-                </FirstPaintProvider>
-              </BrowserRouter>
+              <CartCashRecoveryProvider>
+                <BrowserRouter>
+                  <FirstPaintProvider>
+                    <ScrollToTop />
+                    <Suspense fallback={<LoadingScreen />}>
+                      <Kit />
+                    </Suspense>
+                    <PreviewSwitcher current={id} />
+                  </FirstPaintProvider>
+                </BrowserRouter>
+              </CartCashRecoveryProvider>
             </CategoryTiersProvider>
           </PromotionsProvider>
         </WholesalePricingProvider>
