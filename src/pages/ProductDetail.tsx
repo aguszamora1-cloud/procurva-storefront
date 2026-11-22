@@ -484,6 +484,7 @@ export function ProductDetail() {
         finalPrice,
         finalCash,
         mainPrice,
+        cashPrice,
         promo,
         fallbackImage: images[0] ?? null,
       }),

@@ -1390,6 +1390,10 @@ export interface CartItem {
   promo_name?: string;
   // Precio unitario ORIGINAL (antes de la promo), para mostrar el tachado/ahorro.
   unit_price_original?: number;
+  // Precio de CONTADO de lista (antes de la promo automática). Sólo en sueltos con
+  // promo y contado. Es la base de la promo por cantidad en contado, para que no
+  // se acumule con la automática (lib/cart.ts priceCartItems). No viaja al pedido.
+  unit_price_cash_original?: number;
   // Si la promo NO es acumulable con cupones (gatea el cupón en el checkout).
   promo_stackable?: boolean;
   // ── PROTOTIPO volume tiers (retail, source='tier') ──────────────────────────

@@ -291,6 +291,7 @@ export function usePdp(product: Product): PdpState {
       finalPrice,
       finalCash,
       mainPrice,
+      cashPrice,
       promo: promoForProduct(product, color),
       fallbackImage: baseImages[0] ?? null,
     });

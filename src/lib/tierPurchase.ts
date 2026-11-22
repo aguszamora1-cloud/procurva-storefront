@@ -267,10 +267,13 @@ export function buildSingleCartItem(args: {
   finalPrice: number;
   finalCash: number | null;
   mainPrice: number;
+  /** Contado de lista (getPriceInfo, sin promo), o null si no hay contado. */
+  cashPrice: number | null;
   promo: Promotion | null;
   fallbackImage: string | null;
 }): CartItem {
-  const { product, categories, variant, finalPrice, finalCash, mainPrice, promo, fallbackImage } = args;
+  const { product, categories, variant, finalPrice, finalCash, mainPrice, cashPrice, promo, fallbackImage } = args;
+  const hasCash = finalCash != null && finalCash < finalPrice;
   return {
     product_id: product.id,
     variant_id: variant.id,
@@ -279,12 +282,13 @@ export function buildSingleCartItem(args: {
     size: variant.size,
     color: variant.color,
     unit_price: finalPrice,
-    ...(finalCash != null && finalCash < finalPrice ? { unit_price_cash: finalCash } : {}),
+    ...(hasCash ? { unit_price_cash: finalCash } : {}),
     ...(promo
       ? {
           promo_id: promo.id,
           promo_name: promo.name,
           unit_price_original: mainPrice,
+          ...(hasCash && cashPrice != null ? { unit_price_cash_original: cashPrice } : {}),
           promo_stackable: promo.stackable_with_coupons !== false,
         }
       : {}),
