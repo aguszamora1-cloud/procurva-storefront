@@ -152,6 +152,8 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
+    "defaultPayMethod": "transferencia",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -406,6 +408,8 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
+    "defaultPayMethod": "transferencia",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -665,6 +669,8 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
+    "defaultPayMethod": "transferencia",
     "badges": {
       "style": "glass",
       "position": "top-right",
@@ -919,6 +925,8 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
+    "defaultPayMethod": "transferencia",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -1173,6 +1181,8 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
+    "defaultPayMethod": "transferencia",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -1427,6 +1437,8 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
+    "defaultPayMethod": "transferencia",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -1681,6 +1693,8 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
+    "defaultPayMethod": "transferencia",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -1935,6 +1949,8 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
+    "defaultPayMethod": "transferencia",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -2189,6 +2205,8 @@
     "trustBadgesTextColorCustom": "",
     "hideOutOfStock": false,
     "hideOutOfStockVariants": false,
+    "showShippingCalculator": true,
+    "defaultPayMethod": "transferencia",
     "badges": {
       "style": "solid",
       "position": "top-left",

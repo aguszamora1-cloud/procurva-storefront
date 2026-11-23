@@ -111,7 +111,10 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // todas las tiendas mientras el registro esté vacío. Subir a v23 en el mismo
 // cambio que publique la primera plantilla aplicable: si no, esa tienda pintaría
 // el primer frame sin plantilla y saltaría al resolver el fetch.
-const cacheKey = (slug: string) => `procurva_store_config_v22:${slug}`;
+// v23: suma `showShippingCalculator`. Se lee con guarda (`!== false`), así que
+// una entrada v22 no la oculta; el bump es para que no PARPADEE: una tienda que
+// la apagó pintaría el primer frame con la calculadora y la sacaría al resolver.
+const cacheKey = (slug: string) => `procurva_store_config_v23:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 

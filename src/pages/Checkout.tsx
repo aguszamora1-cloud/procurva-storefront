@@ -25,7 +25,7 @@ import { useCorreoLiveRates } from '@/hooks/useCorreoLiveRates';
 import { useCorreoAgencies } from '@/hooks/useCorreoAgencies';
 import { FeaturedShippingTag } from '@/components/FeaturedShippingTag';
 import { OrderBumpOffer } from '@/components/OrderBumpOffer';
-import type { CartItem } from '@/lib/types';
+import type { CartItem, CheckoutPayMethod } from '@/lib/types';
 import { useFreeShippingProducts } from '@/hooks/useFreeShippingProducts';
 import { carrierWithAgency, correoPostalCode, type CorreoAgency } from '@/lib/micorreo';
 import { PREVIEW_BLOCKED_MESSAGES, usePreviewProtected } from '@/lib/previewGuard';
@@ -274,7 +274,7 @@ export function Checkout() {
   // 'gocuotas' = cuotas sin interés con débito (precio de contado).
   // 'mp_cuenta' = dinero en cuenta de Mercado Pago (precio de contado, va a MP
   // restringido a saldo en cuenta). Requiere Mercado Pago.
-  type PayMethod = 'transferencia' | 'efectivo' | 'tarjeta' | 'gocuotas' | 'mp_cuenta';
+  type PayMethod = CheckoutPayMethod;
   const mpEnabled = config.mercadopagoEnabled;
   const gcEnabled = config.gocuotasEnabled;
   const waEnabled = Boolean(config.whatsapp);
@@ -298,7 +298,14 @@ export function Checkout() {
     if (gcEnabled) list.push('gocuotas');
     return list;
   }, [mpEnabled, gcEnabled, waEnabled, hasTransferAccount]);
-  const [payMethod, setPayMethod] = useState<PayMethod>('transferencia');
+  // El que viene marcado de entrada lo elige el comercio (editor → Checkout);
+  // default 'transferencia'. Si la tienda no ofrece ese medio, el primero de la lista.
+  const preferredPayMethod = config.defaultPayMethod;
+  const [payMethod, setPayMethod] = useState<PayMethod>(() =>
+    payMethods.includes(preferredPayMethod) ? preferredPayMethod : payMethods[0] ?? 'transferencia',
+  );
+  // Una vez que el cliente elige, no se lo cambiamos aunque llegue la config fresca.
+  const userPickedPayMethod = useRef(false);
 
   // Transferencia bancaria directa: si el comercio configuró una cuenta destino con
   // datos, "Transferencia" pasa a modo manual (muestra los datos bancarios, el
@@ -475,19 +482,34 @@ export function Checkout() {
   // panel (Logística → Métodos de envío → "Se puede pagar en efectivo"). Mientras
   // no hay método elegido no escondemos nada. Sin esto, un pedido que sale por
   // Correo a otra provincia podía elegir "Efectivo" y quedaba sin forma de cobrarse.
-  const cashAllowedByDelivery = selectedMethod ? selectedMethod.allowsCash : true;
+  // Si NINGUNA forma de entrega de la tienda admite efectivo, el efectivo no se
+  // ofrece nunca (ni antes de elegir la entrega) y no hay nada que aclarar: el
+  // aviso "elegí retirar el pedido" mandaba a una opción que no existe
+  // (LAS POPAS, 21/11/2026: solo envía, no cobra en efectivo).
+  const cashPossibleSomewhere = useMemo(() => channelMethods.some((m) => m.allowsCash), [channelMethods]);
+  const cashAllowedByDelivery = selectedMethod ? selectedMethod.allowsCash : cashPossibleSomewhere;
   const availablePayMethods = useMemo(
     () => payMethods.filter((m) => m !== 'efectivo' || cashAllowedByDelivery),
     [payMethods, cashAllowedByDelivery],
   );
   // El efectivo existe en la tienda pero esta entrega no lo admite: lo aclaramos en
   // vez de que la opción desaparezca sin explicación.
-  const cashHiddenByDelivery = payMethods.includes('efectivo') && !cashAllowedByDelivery;
+  const cashHiddenByDelivery = payMethods.includes('efectivo') && !cashAllowedByDelivery && cashPossibleSomewhere;
+  // El aviso solo nombra "retirar" si el efectivo se puede usar retirando.
+  const cashOnPickup = channelMethods.some((m) => m.allowsCash && !m.requiresAddress);
 
-  // Si el método elegido deja de estar disponible, caé al primero disponible.
+  // Mientras el cliente no eligió, sigue el preferido de la tienda (la config puede
+  // llegar fresca después del primer render, desde la caché). Si el método elegido
+  // deja de estar disponible (p. ej. efectivo con envío por Correo), caé al
+  // preferido y, si tampoco está, al primero disponible.
   useEffect(() => {
-    setPayMethod((prev) => (availablePayMethods.includes(prev) ? prev : availablePayMethods[0] ?? 'transferencia'));
-  }, [availablePayMethods]);
+    const preferredOk = availablePayMethods.includes(preferredPayMethod);
+    setPayMethod((prev) => {
+      if (!userPickedPayMethod.current && preferredOk) return preferredPayMethod;
+      if (availablePayMethods.includes(prev)) return prev;
+      return preferredOk ? preferredPayMethod : availablePayMethods[0] ?? 'transferencia';
+    });
+  }, [availablePayMethods, preferredPayMethod]);
 
   // Todavía no hay un CP completo y la tienda tiene envíos a domicilio.
   const needsCpForDelivery = hasDeliveryMethods && !appliedCp;
@@ -1493,7 +1515,7 @@ export function Checkout() {
                       name="metodo-pago"
                       value={m}
                       checked={selected}
-                      onChange={() => { setPayMethod(m); setError(''); }}
+                      onChange={() => { userPickedPayMethod.current = true; setPayMethod(m); setError(''); }}
                     >
                       <span className="flex items-start justify-between gap-2">
                         <span className="min-w-0">
@@ -1515,8 +1537,9 @@ export function Checkout() {
               {cashHiddenByDelivery && (
                 <p className="mt-3 flex items-start gap-1.5 text-[calc(12px_*_var(--font-scale,1))] leading-snug text-muted">
                   <Info className="mt-px h-3.5 w-3.5 shrink-0" />
-                  El pago en efectivo no está disponible para esta forma de entrega. Si querés abonar en
-                  efectivo, elegí retirar el pedido.
+                  {cashOnPickup
+                    ? 'El pago en efectivo no está disponible para esta forma de entrega. Si querés abonar en efectivo, elegí retirar el pedido.'
+                    : 'El pago en efectivo no está disponible para esta forma de entrega. Si querés abonar en efectivo, elegí otra.'}
                 </p>
               )}
 
