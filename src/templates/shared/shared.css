@@ -224,13 +224,11 @@
   --color-on-primary: #ffffff;
   --radius-button: var(--mo-r);
 }
+/* Sin text-transform: cambiaría el texto que leen las pruebas de paridad con Classic. */
 .tpl-atelier .tpl-classic-surface--pay .bg-primary {
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  font-size: 12px;
+  letter-spacing: 0.12em;
 }
 .tpl-distrito .tpl-classic-surface--pay .bg-primary {
-  text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: 800;
 }
