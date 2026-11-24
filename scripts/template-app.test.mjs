@@ -42,7 +42,7 @@ async function load(name, contents, env = '{}') {
   return import(pathToFileURL(outfile).href);
 }
 
-const { decideTemplateApp, TEMPLATE_APPS_ENABLED } = await load('gate', `export * from './src/lib/templateApp.ts';`);
+const { decideTemplateApp, needsOutfitsProbe, TEMPLATE_APPS_ENABLED, OUTFITS_PROBE_TIMEOUT_MS } = await load('gate', `export * from './src/lib/templateApp.ts';`);
 const on = await load('gate-on', `export { TEMPLATE_APPS_ENABLED } from './src/lib/templateApp.ts';`, '{"VITE_TEMPLATE_APPS":"1"}');
 const raro = await load('gate-raro', `export { TEMPLATE_APPS_ENABLED } from './src/lib/templateApp.ts';`, '{"VITE_TEMPLATE_APPS":"true"}');
 const { blockedReason, READ_RPCS } = await load('guard', `export * from './src/lib/writeGuard.ts';`);
@@ -51,7 +51,8 @@ const src = (p) => readFileSync(resolve(repoRoot, p), 'utf8');
 const code = (p) => src(p).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
 // ── 1. Decisión ───────────────────────────────────────────────────────────────
-const OK = { enabled: true, template: { id: 'atelier', version: 1 }, storeType: 'retail', outfitsSection: false };
+// Superficies de outfits apagadas: no hace falta leer nada.
+const OK = { enabled: true, template: { id: 'atelier', version: 1 }, storeType: 'retail', outfitsSection: false, mostrarOutfit: false, outfits: 'sin-leer' };
 
 test('interruptor: apagado por defecto; sólo "1" lo prende', () => {
   assert.equal(TEMPLATE_APPS_ENABLED, false);
@@ -91,9 +92,45 @@ test('mayorista o canal desconocido: Classic', () => {
   }
 });
 
-test('outfits prendidos (o dato raro): Classic', () => {
-  for (const outfitsSection of [true, undefined, null, 1, 'false']) {
-    assert.deepEqual(decideTemplateApp({ ...OK, outfitsSection }), { kit: null, block: 'outfits' }, JSON.stringify(outfitsSection));
+test('outfits: con una superficie prendida, sin leer = pantalla de carga; con outfits activos = Classic', () => {
+  const ACTIVOS = [{ active: true }];
+  for (const [campo, valores] of [['outfitsSection', [true, undefined, null, 1, 'false']], ['mostrarOutfit', [true, undefined, null, 0, 'false']]]) {
+    for (const v of valores) {
+      const i = { ...OK, [campo]: v };
+      assert.equal(needsOutfitsProbe(i), true, `${campo}=${JSON.stringify(v)} pide leer`);
+      assert.deepEqual(decideTemplateApp({ ...i, outfits: 'sin-leer' }), { kit: null, block: 'verificando' });
+      assert.deepEqual(decideTemplateApp({ ...i, outfits: 'leyendo' }), { kit: null, block: 'verificando' });
+      assert.deepEqual(decideTemplateApp({ ...i, outfits: ACTIVOS }), { kit: null, block: 'outfits' }, `${campo}=${JSON.stringify(v)}`);
+      assert.deepEqual(decideTemplateApp({ ...i, outfits: [] }), { kit: 'atelier', block: null }, `${campo} prendido sin outfits activos: monta`);
+    }
+  }
+});
+
+test('outfits: error o demora de la lectura = Classic; nunca plantilla sin leer', () => {
+  const i = { ...OK, mostrarOutfit: true };
+  assert.deepEqual(decideTemplateApp({ ...i, outfits: 'error' }), { kit: null, block: 'outfits-sin-verificar' });
+  for (const raro of [null, undefined, '', 0, {}, 'ok']) {
+    assert.equal(decideTemplateApp({ ...i, outfits: raro }).kit, null, JSON.stringify(raro));
+  }
+  assert.ok(OUTFITS_PROBE_TIMEOUT_MS > 0 && OUTFITS_PROBE_TIMEOUT_MS <= 3000);
+  // Filas inactivas (la lectura no las trae) no cuentan; las activas cuentan sin mirar prendas.
+  assert.equal(decideTemplateApp({ ...i, outfits: [{ active: false }] }).kit, 'atelier');
+  assert.equal(decideTemplateApp({ ...i, outfits: [{ active: true, items: 0 }] }).kit, 'atelier', 'look sin prendas no se ve en Classic');
+  assert.equal(decideTemplateApp({ ...i, outfits: [{ active: true }] }).kit, null);
+});
+
+test('sin plantilla, mayorista o interruptor apagado: NUNCA se leen los outfits', () => {
+  const prendido = { ...OK, outfitsSection: true, mostrarOutfit: true };
+  assert.equal(needsOutfitsProbe(prendido), true);
+  assert.equal(needsOutfitsProbe({ ...prendido, template: null }), false);
+  assert.equal(needsOutfitsProbe({ ...prendido, template: { id: 'atelier', version: 9 } }), false);
+  assert.equal(needsOutfitsProbe({ ...prendido, storeType: 'wholesale' }), false);
+  assert.equal(needsOutfitsProbe({ ...prendido, enabled: false }), false);
+  assert.equal(needsOutfitsProbe(OK), false, 'superficies apagadas: no hace falta');
+  for (const outfits of ['sin-leer', 'error', [{ active: true }], []]) {
+    assert.equal(decideTemplateApp({ ...prendido, template: null, outfits }).block, 'sin-plantilla');
+    assert.equal(decideTemplateApp({ ...prendido, storeType: 'wholesale', outfits }).block, 'mayorista');
+    assert.equal(decideTemplateApp({ ...prendido, enabled: false, outfits }).block, 'apagado');
   }
 });
 
@@ -102,12 +139,17 @@ test('todas las combinaciones: sólo una monta', () => {
   for (const enabled of [true, false])
     for (const template of [OK.template, { id: 'atelier', version: 9 }, null])
       for (const storeType of ['retail', 'wholesale'])
-        for (const outfitsSection of [false, true]) {
-          const d = decideTemplateApp({ enabled, template, storeType, outfitsSection });
-          if (d.kit) montadas++;
-          assert.equal(Boolean(d.kit), enabled && template === OK.template && storeType === 'retail' && outfitsSection === false);
-        }
-  assert.equal(montadas, 1);
+        for (const outfitsSection of [false, true])
+          for (const mostrarOutfit of [false, true])
+            for (const outfits of ['sin-leer', 'error', [{ active: true }], []]) {
+              const d = decideTemplateApp({ enabled, template, storeType, outfitsSection, mostrarOutfit, outfits });
+              if (d.kit) montadas++;
+              const sinSuperficie = outfitsSection === false && mostrarOutfit === false;
+              const esperado = enabled && template === OK.template && storeType === 'retail' && (sinSuperficie || (Array.isArray(outfits) && outfits.length === 0));
+              assert.equal(Boolean(d.kit), esperado, JSON.stringify({ enabled, template, storeType, outfitsSection, mostrarOutfit, outfits }));
+            }
+  // Sin superficies: monta con cualquier lectura (4). Con alguna superficie (3 combinaciones): sólo con lectura vacía.
+  assert.equal(montadas, 4 + 3);
 });
 
 test('no muta la entrada', () => {
@@ -150,7 +192,20 @@ test('App.tsx: la plantilla se monta sólo por decideTemplateApp y detrás del i
   const app = code('src/App.tsx');
   assert.match(app, /const TemplateApp = import\.meta\.env\.DEV \|\| TEMPLATE_APPS_ENABLED\s*\?/);
   assert.match(app, /if \(TEMPLATE_APPS_ENABLED\) return <StoreSurface \/>;/);
-  assert.match(app, /decideTemplateApp\(\{\s*enabled: TEMPLATE_APPS_ENABLED,/);
+  assert.match(app, /const gate = \{\s*enabled: TEMPLATE_APPS_ENABLED,/);
+  assert.match(app, /mostrarOutfit: config\.complementaryBlock\.mostrarOutfit,/);
+  assert.match(app, /useTemplateOutfitsProbe\(companyId, needsOutfitsProbe\(gate\)\)/);
+  assert.match(app, /decideTemplateApp\(\{ \.\.\.gate, outfits \}\)/);
+  assert.match(app, /if \(block === 'verificando'\) return <LoadingScreen \/>;/);
+  // La lectura: la misma tabla pública que Classic, sólo activos, una fila, con tope de tiempo y sin guardarla.
+  const h = code('src/hooks/useTemplateOutfitsProbe.ts');
+  assert.match(h, /\.from\('catalog_outfits'\)\s*\.select\('id, active'\)\s*\.eq\('company_id', companyId\)\s*\.eq\('active', true\)\s*\.limit\(1\)/);
+  assert.match(h, /if \(!needed\) return;/);
+  // El primer resultado es definitivo: una respuesta tardía o repetida no lo cambia.
+  assert.match(h, /setProbe\(\(prev\) => \(pendiente\(prev\) \? next : prev\)\)/);
+  assert.match(h, /cancelled = true;\s*clearTimeout\(timer\);/);
+  assert.match(h, /OUTFITS_PROBE_TIMEOUT_MS/);
+  assert.doesNotMatch(h, /localStorage|sessionStorage|\.insert\(|\.update\(|\.rpc\(/);
   // El único otro camino a TemplateApp es la vista previa de desarrollo.
   const usos = app.match(/<TemplateApp\b[^>]*>/g) ?? [];
   assert.deepEqual(usos.sort(), ['<TemplateApp id={devTemplate} devPreview />', '<TemplateApp id={kit} />'].sort());

@@ -22,7 +22,8 @@ import { RouteNotFound } from '@/pages/RouteNotFound';
 import { WholesalePasswordGate } from '@/pages/WholesalePasswordGate';
 import { PaginaEnConstruccion } from '@/pages/PaginaEnConstruccion';
 import { devTemplate } from '@/lib/devTemplate';
-import { TEMPLATE_APPS_ENABLED, decideTemplateApp } from '@/lib/templateApp';
+import { TEMPLATE_APPS_ENABLED, decideTemplateApp, needsOutfitsProbe } from '@/lib/templateApp';
+import { useTemplateOutfitsProbe } from '@/hooks/useTemplateOutfitsProbe';
 
 // Code-splitting: cada página se carga bajo demanda (lazy) para reducir el
 // bundle inicial. La navegación dispara la descarga del chunk de la página.
@@ -58,12 +59,18 @@ const TemplateApp = import.meta.env.DEV || TEMPLATE_APPS_ENABLED
 function StoreSurface() {
   const config = useStore();
   const storeType = useStoreType();
-  const { kit } = decideTemplateApp({
+  const { companyId } = useStoreStatus();
+  const gate = {
     enabled: TEMPLATE_APPS_ENABLED,
     template: config.template,
     storeType,
     outfitsSection: config.sections.outfits,
-  });
+    mostrarOutfit: config.complementaryBlock.mostrarOutfit,
+  };
+  // Outfits activos: se leen SÓLO si todo lo demás ya da plantilla (ver lib/templateApp).
+  const outfits = useTemplateOutfitsProbe(companyId, needsOutfitsProbe(gate));
+  const { kit, block } = decideTemplateApp({ ...gate, outfits });
+  if (block === 'verificando') return <LoadingScreen />;
   if (TemplateApp && kit)
     return (
       <Suspense fallback={<LoadingScreen />}>
