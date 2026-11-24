@@ -21,6 +21,7 @@
     "test:cart-pricing": "node --test scripts/cart-pricing.test.mjs",
     "test:cart-cash-recovery": "node --test scripts/cart-cash-recovery.test.mjs",
     "test:cart-amounts": "node --test scripts/cart-amounts.test.mjs",
+    "test:home-order": "node --test scripts/home-order.test.mjs",
     "check": "npm run check:mirrors && npm run check:opacity && npm run check:radius",
     "prebuild": "npm run check",
     "build": "tsc -b && vite build && node scripts/spa-shell.mjs",
