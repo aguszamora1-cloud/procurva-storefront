@@ -127,7 +127,7 @@ function Gate() {
   if (TemplateApp && devTemplate)
     return (
       <Suspense fallback={<LoadingScreen />}>
-        <TemplateApp id={devTemplate} />
+        <TemplateApp id={devTemplate} devPreview />
       </Suspense>
     );
   return <StoreRoutes />;

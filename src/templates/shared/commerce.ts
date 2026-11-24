@@ -6,7 +6,7 @@
  * una plantilla nunca muestra un precio distinto del que cobra el checkout.
  * Las plantillas sólo deciden cómo se ve.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
 import { usePromotions } from '@/context/PromotionsContext';
@@ -28,6 +28,8 @@ import {
 import { contrastRatio, parseHex } from '@/lib/contrast';
 import { buildSingleCartItem } from '@/lib/tierPurchase';
 import { useTierPurchase, type TierPurchase } from '@/hooks/useTierPurchase';
+import { useMetaPixel } from '@/hooks/useMetaPixel';
+import { track } from '@/lib/tracking';
 import type { Product, Variant } from '@/lib/types';
 
 // ── Precio ────────────────────────────────────────────────────────────────────
@@ -208,6 +210,8 @@ export interface PdpState {
   missing: 'color' | 'talle' | 'ambos' | null;
   lowStock: number | null;
   add: () => void;
+  /** AddToCart del píxel (mismo hook que Classic); lo usa también el escalón. */
+  trackAddToCart: (p: { contentId: string; name: string; value: number }) => void;
   /** Todos los colores y talles del producto (sin ocultar): los que usa el escalón. */
   allColors: string[];
   allSizes: string[];
@@ -222,6 +226,7 @@ export interface PdpState {
 
 export function usePdp(product: Product): PdpState {
   const config = useStore();
+  const { trackViewContent, trackAddToCart } = useMetaPixel();
   const [params] = useSearchParams();
   const { addItem } = useCart();
   const { priceFor, promoForProduct } = usePromotions();
@@ -281,6 +286,20 @@ export function usePdp(product: Product): PdpState {
   const threshold = config.badges.lowStock.enabled ? config.badges.lowStock.threshold : 0;
   const lowStock = variant && (variant.stock ?? 0) > 0 && (variant.stock ?? 0) <= threshold ? (variant.stock as number) : null;
 
+  // T4: los mismos eventos que la ficha de Classic (pages/ProductDetail.tsx), con
+  // los mismos valores: ViewContent con el precio de lista sin talle, una vez por
+  // producto, y el product_view del embudo propio. La ficha de la plantilla se
+  // monta con el producto ya cargado (Classic lo recibe después): sin la marca,
+  // el doble efecto de StrictMode lo contaba dos veces en desarrollo.
+  const viewedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (viewedFor.current === product.id) return;
+    viewedFor.current = product.id;
+    trackViewContent({ contentId: product.id, name: product.name, value: getPriceInfo(product).mainPrice });
+    track('product_view', { product_id: product.id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id]);
+
   const add = () => {
     if (!variant || !canAdd) return;
     // Misma línea que agrega la ficha de Classic (lib/tierPurchase.ts).
@@ -296,9 +315,12 @@ export function usePdp(product: Product): PdpState {
       fallbackImage: baseImages[0] ?? null,
     });
     addItem(item);
+    // T4: AddToCart con el precio efectivamente agregado (ya con promo), como Classic.
+    trackAddToCart({ contentId: product.id, name: product.name, value: finalPrice });
   };
 
   return {
+    trackAddToCart,
     colors,
     sizes,
     color,
@@ -341,6 +363,7 @@ export function useTplTiers(product: Product, pdp: PdpState): TierPurchase {
     setSelectedSize: pdp.setSizeRaw,
     setSelectedColor: pdp.setColorRaw,
     images: pdp.firstImage ? [pdp.firstImage] : [],
+    trackAddToCart: pdp.trackAddToCart,
   });
 }
 

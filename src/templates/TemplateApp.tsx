@@ -10,6 +10,9 @@ import { FirstPaintProvider } from '@/context/FirstPaintContext';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { ContrastScope } from '@/components/ContrastScope';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { Analytics } from '@/components/Analytics';
+import { MetaPixelPageView } from '@/components/MetaPixelPageView';
+import { StorefrontAnalytics } from '@/components/StorefrontAnalytics';
 import { useStoreType } from '@/context/StoreProvider';
 import type { DevTemplateId } from '@/lib/devTemplate';
 import { PreviewSwitcher } from './shared/PreviewSwitcher';
@@ -21,6 +24,15 @@ import './shared/shared.css';
  * Reemplaza el armado de Classic (Layout + páginas) por el de la plantilla
  * elegida, con los MISMOS proveedores de datos (carrito, cupones, promos,
  * precios mayoristas, escalones).
+ *
+ * T4: la misma analítica que Classic, montada una sola vez y en el mismo lugar
+ * (Analytics, MetaPixelPageView, StorefrontAnalytics). Las fichas de los kits
+ * disparan ViewContent, AddToCart y product_view con los mismos hooks
+ * (shared/commerce.ts); el carrito, el checkout y sus resultados son los de
+ * Classic. En las vistas previas no sale nada: en la del diseñador isPreviewMode
+ * apaga el píxel, el CAPI y el embudo (y la guarda de templatePreviewGuard corta
+ * toda escritura); en la de desarrollo la analítica directamente no se monta
+ * (el píxel se carga por GET, que la guarda deja pasar) y la guarda corta el resto.
  *
  * T3: el checkout, sus resultados (aprobado, rechazado, pendiente), la página de
  * una promo y la reseña son las MISMAS páginas de Classic, montadas sobre una
@@ -131,7 +143,12 @@ function KitRoutes({ kit, id }: { kit: TemplateKit; id: DevTemplateId }) {
   );
 }
 
-export function TemplateApp({ id }: { id: DevTemplateId }) {
+/**
+ * `devPreview`: vista previa de desarrollo (?pc_dev_tpl): suma el selector de
+ * plantillas y no monta analítica. En una tienda con la plantilla activada es
+ * false: selector afuera y la misma analítica que Classic.
+ */
+export function TemplateApp({ id, devPreview = false }: { id: DevTemplateId; devPreview?: boolean }) {
   const Kit = KITS[id];
   return (
     <CartProvider>
@@ -143,10 +160,19 @@ export function TemplateApp({ id }: { id: DevTemplateId }) {
                 <BrowserRouter>
                   <FirstPaintProvider>
                     <ScrollToTop />
+                    {/* La vista previa de desarrollo mira una tienda REAL: sin
+                        analítica, para no cargar su píxel ni contar visitas. */}
+                    {!devPreview && (
+                      <>
+                        <Analytics />
+                        <MetaPixelPageView />
+                        <StorefrontAnalytics />
+                      </>
+                    )}
                     <Suspense fallback={<LoadingScreen />}>
                       <Kit />
                     </Suspense>
-                    <PreviewSwitcher current={id} />
+                    {import.meta.env.DEV && devPreview && <PreviewSwitcher current={id} />}
                   </FirstPaintProvider>
                 </BrowserRouter>
               </CartCashRecoveryProvider>
