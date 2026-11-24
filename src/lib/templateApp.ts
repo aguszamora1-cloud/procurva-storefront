@@ -7,7 +7,7 @@ import { outfitSurfaces, outfitsUsage, type OutfitRowSummary, type OutfitsGateCo
  *
  * Interruptor del build: VITE_TEMPLATE_APPS=1. Apagado por defecto. Se prende
  * recién cuando el servidor ya valida la activación y la compatibilidad
- * (20261208 + 20261210 del ERP: la referencia la escriben sólo las RPC, para
+ * (20261208 + 20261213 del ERP: la referencia la escriben sólo las RPC, para
  * empresas piloto, tiendas minoristas, sin outfits a la vista y con permiso del
  * miembro; y ningún guardado del comercio puede volver incompatible una tienda
  * con plantilla). Con el interruptor apagado `TEMPLATE_APPS_ENABLED` es `false`
