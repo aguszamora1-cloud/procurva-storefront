@@ -5,6 +5,25 @@
   background: var(--color-background, #fff);
   color: var(--color-text, #111);
   flex: 1;
+  font-family: var(--font-body);
+}
+
+/* T3: las páginas de Classic dentro de una plantilla (checkout, resultados,
+   promo, reseña, ficha mayorista) conservan los colores de la tienda, que ya
+   tienen el contraste resuelto, y toman la familia sans de la plantilla para
+   títulos y texto. Las serif y condensadas de display no se usan acá: esas
+   páginas piden pesos 600 a 800 que esas familias no traen. */
+.tpl-atelier .tpl-classic-surface {
+  --font-heading: var(--at-sans);
+  --font-body: var(--at-sans);
+}
+.tpl-distrito .tpl-classic-surface {
+  --font-heading: var(--di-font);
+  --font-body: var(--di-font);
+}
+.tpl-momentum .tpl-classic-surface {
+  --font-heading: var(--mo-sans);
+  --font-body: var(--mo-sans);
 }
 
 .tpl-route-wait {

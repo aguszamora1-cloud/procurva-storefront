@@ -1050,5 +1050,5 @@ export const atelierKit: TemplateKit = {
   Cart: AtelierCart,
   Notice: AtelierNotice,
   fontsHref:
-    'https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Jost:wght@400;500&display=swap',
+    'https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Jost:wght@400;500;600;700;800&display=swap',
 };

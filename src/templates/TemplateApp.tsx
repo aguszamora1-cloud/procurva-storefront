@@ -20,9 +20,15 @@ import './shared/shared.css';
  *
  * Reemplaza el armado de Classic (Layout + páginas) por el de la plantilla
  * elegida, con los MISMOS proveedores de datos (carrito, cupones, promos,
- * precios mayoristas, escalones). No monta analítica, píxeles ni popups: la
- * vista previa no registra nada (además, lib/devTemplate corta toda escritura).
- * El checkout no se abre: la vista previa termina en el carrito.
+ * precios mayoristas, escalones).
+ *
+ * T3: el checkout, sus resultados (aprobado, rechazado, pendiente), la página de
+ * una promo y la reseña son las MISMAS páginas de Classic, montadas sobre una
+ * superficie Classic (sus colores, que ya tienen el contraste resuelto) con la
+ * tipografía de la plantilla, y con el encabezado y el pie de la plantilla
+ * alrededor. Ninguna lógica comercial se duplica. En la vista previa de
+ * desarrollo (?pc_dev_tpl) el checkout se abre, pero lib/devTemplate corta el
+ * pedido y el pago (no se crea nada); en la del diseñador lo corta previewGuard.
  */
 export interface TemplateKit {
   /** Encabezado + pie + carrito lateral alrededor de la página. */
@@ -44,6 +50,21 @@ const KITS: Record<DevTemplateId, ComponentType> = {
 
 const ClassicCustomPage = lazy(() => import('@/pages/CustomPage').then((m) => ({ default: m.CustomPage })));
 const ClassicProductDetail = lazy(() => import('@/pages/ProductDetail').then((m) => ({ default: m.ProductDetail })));
+const ClassicCheckout = lazy(() => import('@/pages/Checkout').then((m) => ({ default: m.Checkout })));
+const ClassicCheckoutSuccess = lazy(() => import('@/pages/CheckoutResult').then((m) => ({ default: m.CheckoutSuccess })));
+const ClassicCheckoutFailure = lazy(() => import('@/pages/CheckoutResult').then((m) => ({ default: m.CheckoutFailure })));
+const ClassicCheckoutPending = lazy(() => import('@/pages/CheckoutResult').then((m) => ({ default: m.CheckoutPending })));
+const ClassicPromoPage = lazy(() => import('@/pages/PromoPage').then((m) => ({ default: m.PromoPage })));
+const ClassicResena = lazy(() => import('@/pages/Resena').then((m) => ({ default: m.Resena })));
+
+/**
+ * Página de Classic dentro de la plantilla. `contrast` = la misma decisión que
+ * App.tsx: ContrastScope sólo donde Classic lo usa (ficha, promo); el checkout,
+ * sus resultados y la reseña van sin él, igual que en Classic.
+ */
+function ClassicSurface({ children, contrast = false }: { children: ReactNode; contrast?: boolean }) {
+  return <div className="tpl-classic-surface">{contrast ? <ContrastScope>{children}</ContrastScope> : children}</div>;
+}
 
 function useFonts(href: string) {
   useEffect(() => {
@@ -78,29 +99,22 @@ function KitRoutes({ kit, id }: { kit: TemplateKit; id: DevTemplateId }) {
           <Route path="/producto/:id" element={
               isWholesale ? (
                 // Superficie propia de Classic: sobre el fondo oscuro de una plantilla su texto no se leía.
-                <div className="tpl-classic-surface">
-                  {/* Igual que en Classic (App.tsx): grises y acento con contraste AA. */}
-                  <ContrastScope>
-                    <ClassicProductDetail />
-                  </ContrastScope>
-                </div>
+                <ClassicSurface contrast>
+                  <ClassicProductDetail />
+                </ClassicSurface>
               ) : (
                 <Product />
               )
             } />
           <Route path="/carrito" element={<Cart />} />
           <Route path="/pagina/:slug" element={<ClassicCustomPage />} />
-          <Route
-            path="/checkout/*"
-            element={
-              <Notice title="Checkout fuera de la vista previa">
-                <p>Esta es una vista previa de la plantilla. El pago no se abre desde acá y no se crea ningún pedido.</p>
-                <p>
-                  <Link to="/carrito">Volver al carrito</Link>
-                </p>
-              </Notice>
-            }
-          />
+          {/* T3: mismas rutas y mismas páginas que Classic (App.tsx). */}
+          <Route path="/promo/:slug" element={<ClassicSurface contrast><ClassicPromoPage /></ClassicSurface>} />
+          <Route path="/checkout" element={<ClassicSurface><ClassicCheckout /></ClassicSurface>} />
+          <Route path="/checkout/success" element={<ClassicSurface><ClassicCheckoutSuccess /></ClassicSurface>} />
+          <Route path="/checkout/failure" element={<ClassicSurface><ClassicCheckoutFailure /></ClassicSurface>} />
+          <Route path="/checkout/pending" element={<ClassicSurface><ClassicCheckoutPending /></ClassicSurface>} />
+          <Route path="/resena/:token" element={<ClassicSurface><ClassicResena /></ClassicSurface>} />
           <Route
             path="*"
             element={

@@ -489,11 +489,14 @@ function MomentumShell({ children }: { children: ReactNode }) {
   const [cats, setCats] = useState(false);
   const closeCats = useCallback(() => setCats(false), []);
   useCloseOnRoute(closeCats);
+  // T3: en el checkout (el de Classic) la barra de pestañas taparía su barra fija
+  // de «Confirmar pedido» en el celular, y además distrae al pagar: no se muestra.
+  const inCheckout = useLocation().pathname === '/checkout';
   const own = '#1546d6';
   const pick = (c: string) => (isNeutralColor(c) ? null : brandOr(c, '#ffffff', ''));
   const brand = pick(config.colorPrimary) || pick(config.colorAccent) || own;
   return (
-    <div className="tpl-momentum" style={{ '--mo-brand': brand } as CSSProperties}>
+    <div className="tpl-momentum" data-checkout={inCheckout || undefined} style={{ '--mo-brand': brand } as CSSProperties}>
       <a href="#mo-main" className="mo-skip">
         Ir al contenido
       </a>
@@ -502,7 +505,7 @@ function MomentumShell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <MomentumFooter />
-      <TabBar onCategories={() => setCats(true)} />
+      {!inCheckout && <TabBar onCategories={() => setCats(true)} />}
       <CategoriesSheet open={cats} close={closeCats} />
       <MomentumCart />
     </div>
@@ -1193,5 +1196,5 @@ export const momentumKit: TemplateKit = {
   Cart: MomentumCartPage,
   Notice: MomentumNotice,
   fontsHref:
-    'https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,700;1,800&family=Barlow:wght@400;500;600;700&display=swap',
+    'https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,700;1,800&family=Barlow:wght@400;500;600;700;800&display=swap',
 };

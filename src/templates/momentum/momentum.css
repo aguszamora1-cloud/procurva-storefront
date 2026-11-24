@@ -48,7 +48,9 @@
   display: block;
   max-width: 100%;
 }
-.tpl-momentum svg {
+/* :where(:not(...)) deja la especificidad igual: los íconos de las páginas de
+   Classic (checkout, ficha mayorista) conservan su tamaño. */
+.tpl-momentum svg:where(:not(.tpl-classic-surface *)) {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
@@ -376,6 +378,10 @@
 @media (max-width: 899px) {
   .tpl-momentum {
     padding-bottom: calc(58px + env(safe-area-inset-bottom));
+  }
+  /* Sin barra de pestañas en el checkout (T3): el espacio lo reserva su propia barra. */
+  .tpl-momentum[data-checkout] {
+    padding-bottom: 0;
   }
 }
 
