@@ -289,3 +289,31 @@ test('unitsLabel', () => {
   assert.equal(unitsLabel(1), '1 unidad');
   assert.equal(unitsLabel(3), '3 unidades');
 });
+
+// ── T8 24/11: el precio de otro medio de pago no se tacha ─────────────────────
+test('suelto SIN promo con contado y tarjeta: sin tachado (la tarjeta no es un «antes»)', () => {
+  const it = { ...base, product_id: 'p-x', variant_id: 'v-x', size: 'L', color: 'Logo blanco', unit_price: 35715, unit_price_cash: 25000, qty: 1 };
+  const [row] = rowsFor(memoryCart([it]), ALL);
+  assert.deepEqual(row.price, { big: 25000, small: 35715, smallLabel: 'con tarjeta', strike: null, isCash: true });
+  const [card] = rowsFor(memoryCart([it]), CARD);
+  assert.equal(card.price.strike, null);
+});
+
+test('suelto con promo automática: tachado en la misma base que el número grande', () => {
+  const it = {
+    ...base, product_id: 'p-y', variant_id: 'v-y', size: 'M', color: 'Negro', qty: 2,
+    unit_price: 8000, unit_price_original: 10000, unit_price_cash: 7200, unit_price_cash_original: 9000, promo_id: 'promo-auto', promo_name: '20% OFF',
+  };
+  const [row] = rowsFor(memoryCart([it]), ALL);
+  assert.equal(row.price.big, 14400);
+  assert.equal(row.price.strike, 18000); // contado de lista, no la tarjeta (20000)
+  const [card] = rowsFor(memoryCart([it]), CARD);
+  assert.equal(card.price.big, 16000);
+  assert.equal(card.price.strike, 20000);
+});
+
+test('promo automática sin contado de lista: sin tachado en contado (no se inventa la base)', () => {
+  const it = { ...base, product_id: 'p-z', variant_id: 'v-z', size: 'S', color: 'Rojo', qty: 1, unit_price: 8000, unit_price_original: 10000, unit_price_cash: 7200, promo_id: 'promo-auto' };
+  const [row] = rowsFor(memoryCart([it]), ALL);
+  assert.equal(row.price.strike, null);
+});

@@ -59,6 +59,27 @@ export interface CartActions {
 }
 
 /**
+ * Tachado de un suelto con promo automática (Classic no lo muestra; no cambia el
+ * total). Sólo con una promo real de la línea (`promo_id` y lista mayor que el
+ * precio) y en la MISMA base que el número grande: si el grande es el contado,
+ * se tacha el contado de lista; si es la tarjeta, la tarjeta de lista. Nunca el
+ * precio de otro medio de pago: «$25.000 ~~$35.715~~» con $35.715 = tarjeta se
+ * leía como un descuento que no existe (T8, 24/11).
+ */
+export function autoPromoStrike(only: CartItem, price: CartAmount): number | null {
+  if (!only.promo_id || typeof only.unit_price_original !== 'number' || !(only.unit_price_original > only.unit_price)) return null;
+  const cash = typeof only.unit_price_cash === 'number' ? only.unit_price_cash * only.qty : null;
+  const card = only.unit_price * only.qty;
+  let list: number | null = null;
+  if (price.isCash && cash != null && price.big === cash) {
+    list = typeof only.unit_price_cash_original === 'number' ? only.unit_price_cash_original * only.qty : null;
+  } else if (price.big === card) {
+    list = only.unit_price_original * only.qty;
+  }
+  return list != null && list > price.big ? list : null;
+}
+
+/**
  * `pricedItems` = los de useCartCoupon (priceCartItems), los mismos del checkout.
  */
 export function buildCartRows(
@@ -70,13 +91,9 @@ export function buildCartRows(
 ): CartRow[] {
   return cartAmountRows(items, pricedItems, byLine, config).map(({ row, price: amount, qtyPromo }) => {
     let price = amount;
-    // Suelto con promo automática y sin promo por cantidad que lo baje: el
-    // precio de lista queda tachado (dato real de la línea: unit_price_original).
-    // Classic no lo muestra; no cambia el total.
     if (row.source === 'suelto' && !qtyPromo && price.strike == null) {
-      const only = row.items[0];
-      const original = (only.unit_price_original ?? only.unit_price) * only.qty;
-      if (original > price.big) price = { ...price, strike: original };
+      const strike = autoPromoStrike(row.items[0], price);
+      if (strike != null) price = { ...price, strike };
     }
     const single = row.source === 'suelto' && row.editable && row.removeKeys.length === 1 && row.items.length === 1;
     const key = row.removeKeys[0];
