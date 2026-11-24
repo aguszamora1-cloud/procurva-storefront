@@ -1304,7 +1304,7 @@
 
 /* Classic le pone su fuente a los títulos y controles: acá manda la plantilla.
    Especificidad de elemento (:where): le gana a la regla global y pierde con las clases de la plantilla. */
-:where(.tpl-atelier) :is(h1, h2, h3, h4, h5, h6, p, input, select, button, legend, summary) {
+:where(.tpl-atelier) :is(h1, h2, h3, h4, h5, h6, p, input, select, button, legend, summary):not(:where(.tpl-store *)) {
   font-family: inherit;
 }
 

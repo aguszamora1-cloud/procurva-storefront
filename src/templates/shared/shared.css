@@ -87,3 +87,99 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ── T5 · contenido del comercio dentro de la plantilla (shared/StoreContent) ──
+   Las variables del tema llegan por `style` (themeVars con la paleta de la
+   plantilla). Acá sólo se devuelve a los componentes de Classic lo que las reglas
+   globales de cada plantilla les sacan: la fuente de los títulos y el tamaño
+   propio de los íconos: atelier.css y momentum.css excluyen .tpl-store de su
+   regla de fuentes y momentum.css de la de íconos. Especificidad baja a propósito: cualquier clase de un
+   componente de Classic sigue mandando. */
+.tpl-store {
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+.tpl-store--bare {
+  display: contents;
+}
+
+/* Voz de cada plantilla en los títulos y márgenes del contenido del comercio:
+   los títulos de sección de Classic toman el de la plantilla y el margen lateral
+   (px-6 de Classic) se alinea con el de la plantilla. Especificidad (0,2,1) /
+   (0,3,0): le gana a las utilidades de Classic sólo para estas propiedades.
+   Títulos con :root[data-typography] (0,5,1): los roles ty-* de v2 son (0,3,0).
+   El popup (.tpl-store--bare) conserva su título: es una caja chica con los
+   colores que eligió el comercio. */
+:root[data-typography] .tpl-atelier .tpl-store:not(.tpl-store--bare) h2 {
+  font-family: var(--at-serif);
+  font-weight: 400;
+  font-style: normal;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  font-size: clamp(28px, 3vw, 44px);
+  line-height: 1.05;
+}
+:root[data-typography] .tpl-distrito .tpl-store:not(.tpl-store--bare) h2 {
+  font-weight: 900;
+  font-stretch: 62%;
+  font-variation-settings: 'wdth' 62;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  font-size: clamp(36px, 5vw, 72px);
+  line-height: 0.9;
+}
+:root[data-typography] .tpl-momentum .tpl-store:not(.tpl-store--bare) h2 {
+  font-family: var(--mo-cond);
+  font-style: italic;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  font-size: clamp(26px, 2.6vw, 36px);
+  line-height: 1;
+}
+.tpl-atelier .tpl-store .px-6 {
+  padding-left: var(--at-gutter);
+  padding-right: var(--at-gutter);
+}
+.tpl-distrito .tpl-store .px-6 {
+  padding-left: var(--di-gutter);
+  padding-right: var(--di-gutter);
+}
+.tpl-momentum .tpl-store .px-6 {
+  padding-left: var(--mo-gutter);
+  padding-right: var(--mo-gutter);
+}
+/* Atelier: la portada va enmarcada (no a sangre); lo que el comercio pone justo
+   debajo (una franja, por ejemplo) no se pega a la foto. */
+.tpl-atelier :is(.at-cover, .at-hero) + .tpl-store {
+  margin-top: clamp(32px, 4vw, 56px);
+}
+.tpl-momentum :is(.mo-stage, .mo-hero) + .tpl-store {
+  margin-top: 16px;
+}
+
+/* Newsletter (Classic: banda bg-primary con el bloque centrado a 2xl). Con los
+   títulos a la izquierda de la plantilla, el bloque centrado quedaba corrido:
+   acá arranca en el margen de la plantilla, como sus propios títulos. */
+.tpl-atelier .tpl-store section.bg-primary > .max-w-2xl {
+  max-width: none;
+  padding-left: var(--at-gutter);
+  padding-right: var(--at-gutter);
+}
+.tpl-distrito .tpl-store section.bg-primary > .max-w-2xl {
+  max-width: none;
+  padding-left: var(--di-gutter);
+  padding-right: var(--di-gutter);
+}
+/* Momentum es de caja (contenido a 1360 px): el newsletter va como un panel con
+   las esquinas de la plantilla dentro de la caja, no como una banda cortada. */
+.tpl-momentum .tpl-store section.bg-primary {
+  margin: clamp(36px, 5vw, 64px) var(--mo-gutter) 0;
+  border-radius: var(--mo-r);
+}
+.tpl-momentum .tpl-store section.bg-primary > .max-w-2xl {
+  max-width: none;
+  padding-left: clamp(20px, 4vw, 56px);
+  padding-right: clamp(20px, 4vw, 56px);
+}

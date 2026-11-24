@@ -45,6 +45,7 @@ import {
   type SortKey,
 } from '../shared/commerce';
 import { PriceView } from '../shared/Price';
+import { TemplateNewsletterPopup, TemplateTopBars, useStoreHomeExtras, type TemplateInk, type TemplateNatives } from '../shared/StoreContent';
 import { StoreMark, unitsLabel, useCartView, useCloseOnRoute, useFitText, useOverlay, useScrolled, useSearchSubmit } from '../shared/ui';
 import './atelier.css';
 
@@ -389,6 +390,7 @@ function AtelierShell({ children }: { children: ReactNode }) {
       <a href="#at-main" className="at-skip">
         Ir al contenido
       </a>
+      <TemplateTopBars ink={ATELIER_INK} />
       <AtelierHeader onMenu={() => setMenu(true)} onSearch={() => setSearch(true)} />
       <AtelierMenu open={menu} close={closeMenu} onSearch={() => setSearch(true)} />
       <AtelierSearch open={search} close={closeSearch} />
@@ -397,6 +399,7 @@ function AtelierShell({ children }: { children: ReactNode }) {
       </main>
       <AtelierFooter />
       <AtelierBag />
+      <TemplateNewsletterPopup ink={ATELIER_INK} />
     </div>
   );
 }
@@ -443,12 +446,35 @@ function CardSkeleton({ n = 6 }: { n?: number }) {
 }
 
 // ── Home ──────────────────────────────────────────────────────────────────────
+/**
+ * Paleta de Atelier para el contenido del comercio (secciones personalizadas,
+ * reseñas, newsletter): papel y tinta, Bodoni en los títulos, sin esquinas.
+ */
+export const ATELIER_INK: TemplateInk = {
+  background: '#f4f1eb',
+  text: '#1b1916',
+  primary: '#1b1916',
+  accent: '#1b1916',
+  secondary: '#ebe6dd',
+  headingFamily: 'Bodoni Moda',
+  bodyFamily: 'Jost',
+  headingStack: "'Bodoni Moda', 'Didot', 'Bodoni 72', Georgia, serif",
+  bodyStack: "'Jost', 'Futura', 'Century Gothic', system-ui, sans-serif",
+  corners: 'square',
+  buttonCorners: 'square',
+  titleAlign: 'left',
+};
+
+/** Bloques propios del home de Atelier, en el orden en que los pinta (ver useStoreHomeExtras). */
+const ATELIER_NATIVES: TemplateNatives = [['hero'], ['new_arrivals'], ['categories'], ['featured'], ['offers']];
+
 function AtelierHome() {
   const config = useStore();
   const { products, isLoading } = useProducts();
   const { featured, newArrivals, offers } = useHomeSections(products);
   const { categories } = useCategories(products);
   useFirstPaintGate('tpl-home', isLoading);
+  const store = useStoreHomeExtras(ATELIER_NATIVES, ATELIER_INK);
   const newTitle = useHeading('new_arrivals', 'Novedades');
   const featTitle = useHeading('featured', 'Lo más elegido');
   const offersTitle = useHeading('offers', 'Precios especiales');
@@ -480,6 +506,7 @@ function AtelierHome() {
   return (
     <>
       <Seo title={config.metaTitle || config.name} description={config.metaDescription || config.tagline || config.name} image={config.ogImageUrl} slug={config.slug} siteName={config.name} path="/" />
+      {store.slot(0)}
       {hero.image && !hero.hasText ? (
         // Portada con el texto dentro de la imagen: entera, en su proporción,
         // enmarcada como una tapa (nombre e índice real de la tienda al costado).
@@ -542,6 +569,7 @@ function AtelierHome() {
           )}
         </section>
       )}
+      {store.slot(1)}
 
       {isLoading ? (
         <section className="at-section">
@@ -549,7 +577,7 @@ function AtelierHome() {
         </section>
       ) : (
         <>
-          {heading && (
+          {store.on('new_arrivals') && heading && (
             <section className="at-section" aria-labelledby="at-new">
               <div className="at-section__head">
                 <h2 id="at-new" className="at-title">
@@ -571,8 +599,9 @@ function AtelierHome() {
               </div>
             </section>
           )}
+          {store.slot(2)}
 
-          {categories.length > 1 && (
+          {store.on('categories') && categories.length > 1 && (
             <section className="at-section at-index" aria-labelledby="at-cats">
               <h2 id="at-cats" className="at-eyebrow">
                 Categorías
@@ -594,8 +623,9 @@ function AtelierHome() {
               </ol>
             </section>
           )}
+          {store.slot(3)}
 
-          {rail.length > 0 && (
+          {store.on('featured') && rail.length > 0 && (
             <section className="at-section" aria-labelledby="at-feat">
               <div className="at-section__head">
                 <h2 id="at-feat" className="at-title">
@@ -612,8 +642,9 @@ function AtelierHome() {
               </div>
             </section>
           )}
+          {store.slot(4)}
 
-          {offers.length > 0 && (
+          {store.on('offers') && offers.length > 0 && (
             <section className="at-section" aria-labelledby="at-off">
               <div className="at-section__head">
                 <h2 id="at-off" className="at-title">
@@ -630,6 +661,7 @@ function AtelierHome() {
               </div>
             </section>
           )}
+          {store.slot(5)}
         </>
       )}
     </>
@@ -1050,5 +1082,5 @@ export const atelierKit: TemplateKit = {
   Cart: AtelierCart,
   Notice: AtelierNotice,
   fontsHref:
-    'https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Jost:wght@400;500&display=swap',
+    'https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Jost:wght@400;500;600&display=swap',
 };
