@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { StoreProvider, useStoreStatus } from '@/context/StoreProvider';
+import { StoreProvider, useStore, useStoreStatus, useStoreType } from '@/context/StoreProvider';
 import { WholesalePricingProvider } from '@/context/WholesalePricingContext';
 import { PromotionsProvider } from '@/context/PromotionsContext';
 import { CategoryTiersProvider } from '@/context/CategoryTiersContext';
@@ -22,6 +22,7 @@ import { RouteNotFound } from '@/pages/RouteNotFound';
 import { WholesalePasswordGate } from '@/pages/WholesalePasswordGate';
 import { PaginaEnConstruccion } from '@/pages/PaginaEnConstruccion';
 import { devTemplate } from '@/lib/devTemplate';
+import { TEMPLATE_APPS_ENABLED, decideTemplateApp } from '@/lib/templateApp';
 
 // Code-splitting: cada página se carga bajo demanda (lazy) para reducir el
 // bundle inicial. La navegación dispara la descarga del chunk de la página.
@@ -45,9 +46,32 @@ const Resena = lazy(() => import('@/pages/Resena').then((m) => ({ default: m.Res
  * `false` literal: el import diferido desaparece del bundle y toda tienda ve
  * Classic, sin cambios.
  */
-const TemplateApp = import.meta.env.DEV
+const TemplateApp = import.meta.env.DEV || TEMPLATE_APPS_ENABLED
   ? lazy(() => import('@/templates/TemplateApp').then((m) => ({ default: m.TemplateApp })))
   : null;
+
+/**
+ * T6: plantilla completa activada (o en vista previa autorizada desde el
+ * diseñador), sólo con el build habilitado. Todas las condiciones en
+ * lib/templateApp; cualquier otra cosa pinta Classic exacto.
+ */
+function StoreSurface() {
+  const config = useStore();
+  const storeType = useStoreType();
+  const { kit } = decideTemplateApp({
+    enabled: TEMPLATE_APPS_ENABLED,
+    template: config.template,
+    storeType,
+    outfitsSection: config.sections.outfits,
+  });
+  if (TemplateApp && kit)
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <TemplateApp id={kit} />
+      </Suspense>
+    );
+  return <StoreRoutes />;
+}
 
 /** Fallback liviano mientras se descarga el chunk de la página. */
 function PageFallback() {
@@ -130,6 +154,7 @@ function Gate() {
         <TemplateApp id={devTemplate} devPreview />
       </Suspense>
     );
+  if (TEMPLATE_APPS_ENABLED) return <StoreSurface />;
   return <StoreRoutes />;
 }
 

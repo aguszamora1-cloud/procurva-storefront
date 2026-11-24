@@ -1,6 +1,9 @@
 // Plantillas P1.1: PRIMERO, para que la guarda de la vista previa (sólo DEV)
 // quede puesta antes de que se cree el cliente de Supabase. En producción no deja nada.
 import './lib/devTemplate';
+// T6: misma guarda para la vista previa del diseñador con una plantilla completa
+// (sólo con el build de plantillas habilitado; apagado no deja nada).
+import './lib/templatePreviewGuard';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
