@@ -97,6 +97,10 @@ const {
   normalizeTemplateComponents,
   templateHeaderLayout,
   resolveTemplateHeader,
+  APP_KITS,
+  isAppKit,
+  templateAppKit,
+  resolveTemplateApp,
 } = mod;
 /** sha256 del JSON canónico de una definición: es lo que guarda el lock. */
 const templateHash = (def) => createHash('sha256').update(canonicalTemplateJson(def)).digest('hex');
@@ -179,8 +183,21 @@ test('parseTemplateRef: sólo forma válida; resolveTemplateRef: sólo lo que ex
 });
 
 // ── 3. Registro ───────────────────────────────────────────────────────────────
-test('F0: el registro está vacío', () => {
-  assert.equal(STORE_TEMPLATES.length, 0);
+// T6: las tres primeras plantillas publicadas. Cualquier otra cosa en el registro
+// (una versión nueva, un patch, otro kit) tiene que pasar por esta prueba a mano.
+const PUBLICADAS = [
+  { id: 'atelier', version: 1, name: 'Atelier', patch: {}, components: { app: { kit: 'atelier' } } },
+  { id: 'distrito', version: 1, name: 'Distrito', patch: {}, components: { app: { kit: 'distrito' } } },
+  { id: 'momentum', version: 1, name: 'Momentum', patch: {}, components: { app: { kit: 'momentum' } } },
+];
+
+test('T6: el registro tiene exactamente Atelier, Distrito y Momentum v1, sin patch y cada una con su kit', () => {
+  assert.deepEqual(clone(STORE_TEMPLATES), PUBLICADAS);
+  for (const def of STORE_TEMPLATES) {
+    assert.deepEqual(def.patch, {}, `${def.id}: una tienda completa no pisa settings`);
+    assert.equal(templateAppKit(def), def.id);
+    assert.equal(templateHeaderLayout(def), 'classic', `${def.id}: sin armado de encabezado (el kit trae el suyo)`);
+  }
 });
 
 test('registro: ids, versiones, nombres y claves válidos', () => {
@@ -350,7 +367,7 @@ test('vista previa de plantilla: sólo con el handshake completo del canal (hell
   assert.equal(isTemplatePreviewAuthorized({ state: 'preview', acked: true }), true);
 });
 
-test('vista previa de plantilla: fuera del navegador y con el registro vacío no hay pedido ni plantilla', () => {
+test('vista previa de plantilla: fuera del navegador no hay pedido ni plantilla', () => {
   assert.equal(requestedTemplate(), null);
   assert.equal(previewTemplate(), null);
 });
@@ -375,7 +392,8 @@ test('storeTemplates.ts es autocontenido (espejo byte-idéntico en el ERP)', () 
 
 test('storeTemplates.ts se importa directo con Node (sin empaquetar)', async () => {
   const direct = await import(pathToFileURL(resolve(repoRoot, 'src/lib/storeTemplates.ts')).href);
-  assert.equal(direct.STORE_TEMPLATES.length, 0);
+  assert.equal(direct.STORE_TEMPLATES.length, 3);
+  assert.deepEqual([...direct.APP_KITS], ['atelier', 'distrito', 'momentum']);
   assert.deepEqual([...direct.TEMPLATE_PATCH_KEYS], [...TEMPLATE_PATCH_KEYS]);
 });
 
@@ -423,8 +441,8 @@ const BAD_COMPONENTS = [
   { headers: { layout: 'inline' } },
 ];
 
-test('contrato: esquema 2, exactamente classic | inline | stacked, sin tonos ni statement', () => {
-  assert.equal(STORE_TEMPLATES_SCHEMA, 2);
+test('contrato: esquema 3, exactamente classic | inline | stacked, sin tonos ni statement', () => {
+  assert.equal(STORE_TEMPLATES_SCHEMA, 3);
   assert.deepEqual([...HEADER_LAYOUTS], ['classic', 'inline', 'stacked']);
   assert.equal(DEFAULT_HEADER_LAYOUT, 'classic');
   for (const l of HEADER_LAYOUTS) assert.ok(isHeaderLayout(l));
@@ -499,8 +517,7 @@ test('encabezados desconocidos o mal formados: la definición es inválida y da 
   }
 });
 
-test('registro vacío: toda referencia da Classic con el registro real', () => {
-  assert.equal(STORE_TEMPLATES.length, 0);
+test('registro real: las referencias de prueba dan Classic', () => {
   for (const ref of [{ id: 'con-inline', version: 1 }, { id: 'con-stacked', version: 1 }, { id: 'prueba-f0', version: 1 }, null]) {
     assert.equal(resolveTemplateHeader(ref), 'classic', JSON.stringify(ref));
   }
@@ -542,6 +559,73 @@ test('compatibilidad: configs guardadas antes del esquema 2 normalizan igual y r
   const b = canonicalTemplateJson(HDR('x', 1, { header: { layout: 'stacked' } }));
   assert.notEqual(a, b);
   assert.equal(canonicalTemplateJson(HDR('x', 1, undefined)), '{"id":"x","name":"x","patch":{},"version":1}', 'una definición del esquema 1 conserva su huella');
+});
+
+// ── 8. Esquema 3: tienda completa (components.app) ─────────────────────────────
+test('esquema 3: exactamente atelier | distrito | momentum', () => {
+  assert.deepEqual([...APP_KITS], ['atelier', 'distrito', 'momentum']);
+  for (const k of APP_KITS) assert.ok(isAppKit(k));
+  for (const v of ['Atelier', 'classic', '', null, undefined, 1, ['atelier'], { kit: 'atelier' }, 'atelier ']) assert.equal(isAppKit(v), false, JSON.stringify(v));
+});
+
+const BAD_APPS = [
+  { app: null },
+  { app: 'atelier' },
+  { app: [] },
+  { app: {} },
+  { app: { kit: 'classic' } },
+  { app: { kit: 'Atelier' } },
+  { app: { kit: 'otra' } },
+  { app: { kit: 1 } },
+  { app: { kit: 'atelier', extra: true } },
+  { app: { kits: 'atelier' } },
+  { app: { kit: 'atelier' }, tone: 'x' },
+  { app: { __proto__: { kit: 'atelier' } } },
+];
+
+test('esquema 3: app válida resuelve su kit; mal formada invalida la definición y da Classic', () => {
+  const ok = HDR('con-app', 1, { app: { kit: 'distrito' } });
+  assert.ok(isValidTemplateDefinition(ok));
+  assert.equal(templateAppKit(ok), 'distrito');
+  assert.equal(resolveTemplateApp({ id: 'con-app', version: 1 }, [ok]), 'distrito');
+  assert.deepEqual(normalizeTemplateComponents({ app: { kit: 'momentum' } }), { app: { kit: 'momentum' } });
+  assert.deepEqual(normalizeTemplateComponents({ header: { layout: 'inline' }, app: { kit: 'atelier' } }), { header: { layout: 'inline' }, app: { kit: 'atelier' } });
+  for (const comp of BAD_APPS) {
+    const def = HDR('rara', 1, comp);
+    assert.equal(isValidTemplateComponents(comp), false, JSON.stringify(comp));
+    assert.equal(templateAppKit(def), null, JSON.stringify(comp));
+    assert.equal(resolveTemplateApp({ id: 'rara', version: 1 }, [def]), null, JSON.stringify(comp));
+    assert.deepEqual(normalizeTemplateComponents(comp), {}, JSON.stringify(comp));
+  }
+  // Una definición con app pero rota por fuera (patch no permitido) tampoco monta nada.
+  assert.equal(templateAppKit({ ...ok, patch: { price_display: 'all' } }), null);
+});
+
+test('esquema 3: el registro real resuelve los tres kits sólo con id y versión exactos', () => {
+  assert.equal(resolveTemplateApp({ id: 'atelier', version: 1 }), 'atelier');
+  assert.equal(resolveTemplateApp({ id: 'distrito', version: 1, previous: { a: 1 }, applied_at: '2026-11-23' }), 'distrito');
+  assert.equal(resolveTemplateApp({ id: 'momentum', version: 1 }), 'momentum');
+  for (const bad of [...BAD_REFS, { id: 'atelier', version: 2 }, { id: 'atelier', version: null }, { id: 'atelier' }, { id: 'ATELIER', version: 1 }, { id: 'classic', version: 1 }, null, undefined, 'atelier']) {
+    assert.equal(resolveTemplateApp(bad), null, JSON.stringify(bad));
+  }
+  // Sin app: ninguna definición de prueba (esquemas 1 y 2) monta un kit.
+  for (const def of HDR_REGISTRY) assert.equal(templateAppKit(def), null, def.id);
+});
+
+test('esquema 3: aplicar una tienda completa sólo guarda la referencia y normalize la resuelve', () => {
+  for (const [name, p] of Object.entries(payloads)) {
+    for (const def of STORE_TEMPLATES) {
+      const payload = clone(p);
+      const antes = clone(payload.settings ?? {});
+      payload.settings = applyTemplate(payload.settings, def);
+      assert.deepEqual({ ...payload.settings, template: undefined }, { ...antes, template: undefined }, `${name} ${def.id}: pisó settings`);
+      const config = normalizeStoreConfig(payload);
+      assert.deepEqual(config.template, { id: def.id, version: 1 }, `${name} ${def.id}`);
+      assert.deepEqual(withoutTemplate(config), golden[name], `${name} ${def.id}: cambió el resto de la config`);
+      assert.equal(resolveTemplateApp(config.template), def.id);
+      assert.equal(resolveTemplateHeader(config.template), 'classic');
+    }
+  }
 });
 
 test('integridad del espejo: con PROCURVA2_DIR, el ERP tiene el mismo archivo byte a byte', () => {
