@@ -51,6 +51,7 @@ import {
   type SortKey,
 } from '../shared/commerce';
 import { PriceView } from '../shared/Price';
+import { TemplateNewsletterPopup, TemplateTopBars, useStoreHomeExtras, type TemplateInk, type TemplateNatives } from '../shared/StoreContent';
 import { StoreMark, unitsLabel, useCartView, useCloseOnRoute, useFitText, useOverlay, useSearchSubmit } from '../shared/ui';
 import './distrito.css';
 
@@ -447,6 +448,41 @@ function DistritoCart() {
   );
 }
 
+/**
+ * Acento de señal: el del comercio si tiene tono y se lee sobre negro; si es
+ * blanco, negro o gris, el naranja propio de Distrito (si no, pierde identidad).
+ */
+function distritoSignal(accent: string): string {
+  return isNeutralColor(accent) ? '#ff5b1f' : brandOr(accent, '#0e0e0e', '#ff5b1f');
+}
+
+/**
+ * Paleta de Distrito para el contenido del comercio (secciones personalizadas,
+ * reseñas, newsletter): negro y hueso, Archivo, sin esquinas; la señal es el
+ * acento. Los grises y rellenos con AA sobre negro salen de themeVars.
+ */
+function useDistritoInk(): TemplateInk {
+  const { colorAccent } = useStore();
+  const accent = distritoSignal(colorAccent);
+  return useMemo(
+    () => ({
+      background: '#0e0e0e',
+      text: '#ebe8e1',
+      primary: accent,
+      accent,
+      secondary: '#1a1a19',
+      headingFamily: 'Archivo',
+      bodyFamily: 'Archivo',
+      headingStack: "'Archivo', 'Arial Narrow', system-ui, sans-serif",
+      bodyStack: "'Archivo', 'Arial Narrow', system-ui, sans-serif",
+      corners: 'square',
+      buttonCorners: 'square',
+      titleAlign: 'left',
+    }),
+    [accent],
+  );
+}
+
 function DistritoShell({ children }: { children: ReactNode }) {
   const config = useStore();
   const [menu, setMenu] = useState(false);
@@ -454,14 +490,14 @@ function DistritoShell({ children }: { children: ReactNode }) {
   const closeMenu = useCallback(() => setMenu(false), []);
   const closeSearch = useCallback(() => setSearch(false), []);
   useCloseOnRoute(closeMenu);
-  // Acento de señal: el del comercio si tiene tono y se lee sobre negro; si es
-  // blanco, negro o gris, el naranja propio de Distrito (si no, pierde identidad).
-  const signal = isNeutralColor(config.colorAccent) ? '#ff5b1f' : brandOr(config.colorAccent, '#0e0e0e', '#ff5b1f');
+  const signal = distritoSignal(config.colorAccent);
+  const ink = useDistritoInk();
   return (
     <div className="tpl-distrito" style={{ '--di-signal': signal } as CSSProperties}>
       <a href="#di-main" className="di-skip">
         Ir al contenido
       </a>
+      <TemplateTopBars ink={ink} />
       <DistritoHeader onMenu={() => setMenu(true)} onSearch={() => setSearch(true)} />
       <DistritoMenu open={menu} close={closeMenu} />
       <DistritoSearch open={search} close={closeSearch} />
@@ -470,6 +506,7 @@ function DistritoShell({ children }: { children: ReactNode }) {
       </main>
       <DistritoFooter />
       <DistritoCart />
+      <TemplateNewsletterPopup ink={ink} />
     </div>
   );
 }
@@ -534,12 +571,16 @@ function DropRail({ products, title, id }: { products: Product[]; title: string;
   );
 }
 
+/** Bloques propios del home de Distrito, en el orden en que los pinta (ver useStoreHomeExtras). */
+const DISTRITO_NATIVES: TemplateNatives = [['hero'], ['new_arrivals'], ['categories'], ['featured'], ['offers']];
+
 function DistritoHome() {
   const config = useStore();
   const { products, isLoading } = useProducts();
   const { featured, newArrivals, offers } = useHomeSections(products);
   const { categories } = useCategories(products);
   useFirstPaintGate('tpl-home', isLoading);
+  const store = useStoreHomeExtras(DISTRITO_NATIVES, useDistritoInk());
   const hero = useHero();
   const newTitle = useHeading('new_arrivals', 'Últimos ingresos');
   const featTitle = useHeading('featured', 'Destacados');
@@ -555,6 +596,7 @@ function DistritoHome() {
   return (
     <>
       <Seo title={config.metaTitle || config.name} description={config.metaDescription || config.tagline || config.name} image={config.ogImageUrl} slug={config.slug} siteName={config.name} path="/" />
+      {store.slot(0)}
       {bannerMode ? (
         // Banner del comercio entero sobre una franja negra a sangre; debajo,
         // en la misma pantalla, arranca la tira de ingresos.
@@ -592,6 +634,7 @@ function DistritoHome() {
           </div>
         </section>
       )}
+      {store.slot(1)}
 
       {isLoading ? (
         <section className="di-section">
@@ -599,9 +642,10 @@ function DistritoHome() {
         </section>
       ) : (
         <>
-          {drop.length > 0 && <DropRail products={drop} title={newTitle} id="di-new" />}
+          {store.on('new_arrivals') && drop.length > 0 && <DropRail products={drop} title={newTitle} id="di-new" />}
+          {store.slot(2)}
 
-          {categories.length > 0 && (
+          {store.on('categories') && categories.length > 0 && (
             <section className="di-section" aria-labelledby="di-cats">
               <div className="di-head">
                 <h2 id="di-cats" className="di-title">
@@ -622,8 +666,9 @@ function DistritoHome() {
               </div>
             </section>
           )}
+          {store.slot(3)}
 
-          {picks.length > 0 && (
+          {store.on('featured') && picks.length > 0 && (
             <section className="di-section" aria-labelledby="di-feat">
               <div className="di-head">
                 <h2 id="di-feat" className="di-title">
@@ -646,8 +691,9 @@ function DistritoHome() {
               </div>
             </section>
           )}
+          {store.slot(4)}
 
-          {offers.length > 0 && (
+          {store.on('offers') && offers.length > 0 && (
             <section className="di-band" aria-labelledby="di-off">
               <div className="di-head">
                 <h2 id="di-off" className="di-title">
@@ -664,6 +710,7 @@ function DistritoHome() {
               </div>
             </section>
           )}
+          {store.slot(5)}
         </>
       )}
     </>

@@ -1304,7 +1304,7 @@
 
 /* Classic le pone su fuente a los títulos y controles: acá manda la plantilla.
    Especificidad de elemento (:where): le gana a la regla global y pierde con las clases de la plantilla. */
-:where(.tpl-atelier) :is(h1, h2, h3, h4, h5, h6, p, input, select, button, legend, summary) {
+:where(.tpl-atelier) :is(h1, h2, h3, h4, h5, h6, p, input, select, button, legend, summary):not(:where(.tpl-store *)) {
   font-family: inherit;
 }
 
@@ -1369,7 +1369,9 @@
 }
 @media (max-width: 899px) {
   .at-cover {
-    grid-template-columns: 1fr;
+    /* minmax(0, …): con 1fr la columna crecía al ancho del índice de categorías
+       (que se desliza en horizontal) y la portada desbordaba el celular. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
     padding-top: 20px;
   }

@@ -52,6 +52,8 @@ import {
   type SortKey,
 } from '../shared/commerce';
 import { PriceView } from '../shared/Price';
+import { MarqueeStrip, marqueeMessages } from '@/components/MarqueeStrip';
+import { TemplateNewsletterPopup, TemplateTopBars, useStoreHomeExtras, type TemplateInk, type TemplateNatives } from '../shared/StoreContent';
 import { StoreMark, unitsLabel, useCartView, useCloseOnRoute, useOverlay, type CartAmount } from '../shared/ui';
 import './momentum.css';
 
@@ -116,12 +118,17 @@ function MomentumHeader() {
   const { categories } = useCategories(products);
   const contact = useContact();
   const wa = contact.find((c) => c.label === 'WhatsApp');
+  // Los anuncios del comercio (los de la barra de Classic) van en la barra de
+  // arriba de Momentum, en lugar de los beneficios calculados: son el texto que
+  // la tienda eligió publicar.
+  const { announcement } = useStore();
+  const messages = marqueeMessages(announcement);
   const util = useBenefits().map((b) => `${b.title} ${b.text}`);
   return (
     <header className="mo-header">
-      {(util.length > 0 || wa) && (
-        <div className="mo-util">
-          <p>{util.join('  ·  ')}</p>
+      {(messages.length > 0 || util.length > 0 || wa) && (
+        <div className={messages.length > 0 ? 'mo-util mo-util--marquee' : 'mo-util'}>
+          {messages.length > 0 ? <MarqueeStrip messages={messages} /> : <p>{util.join('  ·  ')}</p>}
           {wa && (
             <a href={wa.href} target="_blank" rel="noreferrer" className="mo-only-desktop">
               Consultas por WhatsApp
@@ -484,6 +491,39 @@ function MomentumCart() {
   );
 }
 
+/** Color de marca: el primario o el acento del comercio si tienen tono y se leen sobre blanco; si no, el azul propio. */
+function momentumBrand(primary: string, accent: string): string {
+  const pick = (c: string) => (isNeutralColor(c) ? null : brandOr(c, '#ffffff', ''));
+  return pick(primary) || pick(accent) || '#1546d6';
+}
+
+/**
+ * Paleta de Momentum para el contenido del comercio (secciones personalizadas,
+ * reseñas, newsletter): blanco, tinta y la marca como acento; Barlow; esquinas
+ * suaves como las de la plantilla.
+ */
+function useMomentumInk(): TemplateInk {
+  const { colorPrimary, colorAccent } = useStore();
+  const accent = momentumBrand(colorPrimary, colorAccent);
+  return useMemo(
+    () => ({
+      background: '#ffffff',
+      text: '#12151a',
+      primary: '#f2f3f5',
+      accent,
+      secondary: '#f2f3f5',
+      headingFamily: 'Barlow',
+      bodyFamily: 'Barlow',
+      headingStack: "'Barlow', system-ui, sans-serif",
+      bodyStack: "'Barlow', system-ui, sans-serif",
+      corners: 'rounded',
+      buttonCorners: 'rounded',
+      titleAlign: 'left',
+    }),
+    [accent],
+  );
+}
+
 function MomentumShell({ children }: { children: ReactNode }) {
   const config = useStore();
   const [cats, setCats] = useState(false);
@@ -492,14 +532,14 @@ function MomentumShell({ children }: { children: ReactNode }) {
   // T3: en el checkout (el de Classic) la barra de pestañas taparía su barra fija
   // de «Confirmar pedido» en el celular, y además distrae al pagar: no se muestra.
   const inCheckout = useLocation().pathname === '/checkout';
-  const own = '#1546d6';
-  const pick = (c: string) => (isNeutralColor(c) ? null : brandOr(c, '#ffffff', ''));
-  const brand = pick(config.colorPrimary) || pick(config.colorAccent) || own;
+  const brand = momentumBrand(config.colorPrimary, config.colorAccent);
+  const ink = useMomentumInk();
   return (
     <div className="tpl-momentum" data-checkout={inCheckout || undefined} style={{ '--mo-brand': brand } as CSSProperties}>
       <a href="#mo-main" className="mo-skip">
         Ir al contenido
       </a>
+      <TemplateTopBars ink={ink} announcement={false} />
       <MomentumHeader />
       <main id="mo-main" className="mo-main">
         {children}
@@ -508,6 +548,7 @@ function MomentumShell({ children }: { children: ReactNode }) {
       {!inCheckout && <TabBar onCategories={() => setCats(true)} />}
       <CategoriesSheet open={cats} close={closeCats} />
       <MomentumCart />
+      <TemplateNewsletterPopup ink={ink} />
     </div>
   );
 }
@@ -564,12 +605,20 @@ function GridSkeleton({ n = 8 }: { n?: number }) {
 // ── Home ──────────────────────────────────────────────────────────────────────
 type TabKey = 'featured' | 'new' | 'offers';
 
+/**
+ * Bloques propios del home de Momentum, en el orden en que los pinta. Las
+ * pestañas cubren Destacados, Nuevos y Ofertas (ver useStoreHomeExtras). Con
+ * portada de banner las categorías van dentro de la portada.
+ */
+const MOMENTUM_NATIVES: TemplateNatives = [['hero'], ['categories'], ['featured', 'new_arrivals', 'offers']];
+
 function MomentumHome() {
   const config = useStore();
   const { products, isLoading } = useProducts();
   const { featured, newArrivals, offers } = useHomeSections(products);
   const { categories } = useCategories(products);
   useFirstPaintGate('tpl-home', isLoading);
+  const store = useStoreHomeExtras(MOMENTUM_NATIVES, useMomentumInk());
   const hero = useHero();
   const bannerMode = Boolean(hero.image && !hero.hasText);
   const titles: Record<TabKey, string> = {
@@ -578,7 +627,8 @@ function MomentumHome() {
     offers: useHeading('offers', 'Ofertas'),
   };
   const lists: Record<TabKey, Product[]> = { featured, new: newArrivals, offers };
-  const tabs = (['featured', 'new', 'offers'] as TabKey[]).filter((k) => lists[k].length > 0);
+  const tabOn: Record<TabKey, boolean> = { featured: store.on('featured'), new: store.on('new_arrivals'), offers: store.on('offers') };
+  const tabs = (['featured', 'new', 'offers'] as TabKey[]).filter((k) => tabOn[k] && lists[k].length > 0);
   const [tab, setTab] = useState<TabKey>('featured');
   const active = tabs.includes(tab) ? tab : tabs[0];
   const fallback = newArrivals.find((p) => mainImage(p));
@@ -597,6 +647,7 @@ function MomentumHome() {
   return (
     <>
       <Seo title={config.metaTitle || config.name} description={config.metaDescription || config.tagline || config.name} image={config.ogImageUrl} slug={config.slug} siteName={config.name} path="/" />
+      {store.slot(0)}
       {bannerMode ? (
         <section className="mo-stage" aria-label="Portada">
           <h1 className="tpl-sr">{config.name}</h1>
@@ -662,8 +713,9 @@ function MomentumHome() {
           )}
         </section>
       )}
+      {store.slot(1)}
 
-      {!bannerMode && categories.length > 0 && (
+      {!bannerMode && store.on('categories') && categories.length > 0 && (
         <section className="mo-section" aria-labelledby="mo-cats">
           <div className="mo-head">
             <h2 id="mo-cats" className="mo-title">
@@ -687,6 +739,7 @@ function MomentumHome() {
           </div>
         </section>
       )}
+      {!isLoading && store.slot(2)}
 
       <section className="mo-section" aria-label="Productos">
         {isLoading ? (
@@ -719,6 +772,7 @@ function MomentumHome() {
           )
         )}
       </section>
+      {!isLoading && store.slot(3)}
     </>
   );
 }

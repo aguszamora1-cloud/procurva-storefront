@@ -29,7 +29,7 @@
 }
 /* Classic le pone su fuente a los títulos y controles: acá manda la plantilla.
    Especificidad de elemento (:where): le gana a la regla global y pierde con las clases de la plantilla. */
-:where(.tpl-momentum) :is(h1, h2, h3, h4, h5, h6, p, input, select, button, legend, summary) {
+:where(.tpl-momentum) :is(h1, h2, h3, h4, h5, h6, p, input, select, button, legend, summary):not(:where(.tpl-store *)) {
   font-family: inherit;
 }
 :where(.tpl-momentum) a {
@@ -49,8 +49,8 @@
   max-width: 100%;
 }
 /* :where(:not(...)) deja la especificidad igual: los íconos de las páginas de
-   Classic (checkout, ficha mayorista) conservan su tamaño. */
-.tpl-momentum svg:where(:not(.tpl-classic-surface *)) {
+   Classic (checkout, ficha mayorista) y del contenido del comercio (T5) conservan su tamaño. */
+.tpl-momentum svg:where(:not(.tpl-classic-surface *, .tpl-store *)) {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
@@ -2109,4 +2109,20 @@
   font-weight: 400;
   font-size: 13px;
   margin-right: 6px;
+}
+
+/* T5: anuncios del comercio (MarqueeStrip de Classic) dentro de la barra de arriba. */
+.mo-util--marquee {
+  display: block;
+  padding: 0;
+}
+.mo-util--marquee a {
+  top: 0;
+  right: 0;
+  padding-right: var(--mo-gutter);
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 24px;
+  background: linear-gradient(to right, transparent, var(--mo-ink) 20px);
 }

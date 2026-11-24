@@ -468,3 +468,19 @@ export function useProductFilter(): ProductFilter {
   if (!ctx) throw new Error('useProductFilter must be used within StoreProvider');
   return ctx.productFilter;
 }
+
+/**
+ * Plantillas (T5): re-provee la MISMA tienda con algunos campos de presentación
+ * cambiados (colores, tipografías, esquinas) sólo para lo que va adentro. Lo usan
+ * las plantillas para que los componentes de Classic que muestran el contenido
+ * del comercio (secciones personalizadas, reseñas, newsletter) calculen sus
+ * colores en código (useInk, popup) con la paleta de la plantilla, igual que las
+ * variables CSS del contenedor. No cambia datos, estado ni tienda: Classic no lo
+ * usa.
+ */
+export function StoreConfigOverride({ patch, children }: { patch: Partial<StoreConfig>; children: ReactNode }) {
+  const ctx = useContext(StoreContext);
+  if (!ctx) throw new Error('StoreConfigOverride must be used within StoreProvider');
+  const value = ctx.config ? { ...ctx, config: { ...ctx.config, ...patch } } : ctx;
+  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+}
