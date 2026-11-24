@@ -1369,7 +1369,9 @@
 }
 @media (max-width: 899px) {
   .at-cover {
-    grid-template-columns: 1fr;
+    /* minmax(0, …): con 1fr la columna crecía al ancho del índice de categorías
+       (que se desliza en horizontal) y la portada desbordaba el celular. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 18px;
     padding-top: 20px;
   }
