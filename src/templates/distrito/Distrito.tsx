@@ -51,6 +51,7 @@ import {
   type SortKey,
 } from '../shared/commerce';
 import { PriceView } from '../shared/Price';
+import { TemplateCartNudges, TemplatePdpExtras, TemplatePdpReviews, TemplateWhatsApp } from '../shared/ClassicExtras';
 import { TemplateNewsletterPopup, TemplateTopBars, useStoreHomeExtras, type TemplateInk, type TemplateNatives } from '../shared/StoreContent';
 import { StoreMark, unitsLabel, useCartView, useCloseOnRoute, useFitText, useOverlay, useSearchSubmit } from '../shared/ui';
 import './distrito.css';
@@ -338,6 +339,7 @@ function CartSummary() {
   const { subtotal, couponCode } = useCartView();
   return (
     <div className="di-summary">
+      <TemplateCartNudges className="di-nudge" />
       <p className="di-summary__row">
         <span>Subtotal</span>
         <span>
@@ -507,6 +509,7 @@ function DistritoShell({ children }: { children: ReactNode }) {
       <DistritoFooter />
       <DistritoCart />
       <TemplateNewsletterPopup ink={ink} />
+      <TemplateWhatsApp />
     </div>
   );
 }
@@ -897,6 +900,7 @@ function DistritoProductView({ product }: { product: Product }) {
   const price = useTplPrice(product, { color: pdp.color, size: pdp.size });
   const tierCta = tier.tierValid ? `Agregar ${tier.tierUnits} al carrito` : notice ? 'Sin stock suficiente' : 'Elegí las variantes';
   const description = product.description?.trim() ?? '';
+  const ink = useDistritoInk();
   const cta = pdp.soldOut
     ? 'Agotado'
     : pdp.canAdd
@@ -909,6 +913,7 @@ function DistritoProductView({ product }: { product: Product }) {
             ? 'Elegí talle'
             : 'Sin stock';
   return (
+    <>
     <div className="di-pdp">
       <Seo title={`${product.name} · ${config.name}`} description={description || config.name} image={pdp.images[0]} slug={config.slug} siteName={config.name} path={`/producto/${product.id}`} />
       <header className="di-pdp__head">
@@ -976,6 +981,8 @@ function DistritoProductView({ product }: { product: Product }) {
           </div>
         </div>
 
+        <TemplatePdpExtras ink={ink} product={product} />
+
         {(description || policies.length > 0) && (
           <div className="di-pdp__more">
             {description && (
@@ -998,6 +1005,8 @@ function DistritoProductView({ product }: { product: Product }) {
         )}
       </div>
     </div>
+    <TemplatePdpReviews ink={ink} product={product} />
+    </>
   );
 }
 

@@ -202,3 +202,74 @@
   padding-left: clamp(20px, 4vw, 56px);
   padding-right: clamp(20px, 4vw, 56px);
 }
+
+/* Cierre visual (24/11) · checkout y resultados de Classic dentro de la plantilla:
+   los botones de acción (bg-primary: «Confirmar pedido», «Reintentar», «Seguir
+   comprando», únicos usos en esas páginas) toman el botón de la plantilla. Sólo
+   color, esquina y letra: la lógica de pago y los estados no cambian. Contraste
+   AA: tinta/papel de Atelier 16:1, negro sobre señal de Distrito 6,9:1, blanco
+   sobre la marca de Momentum ≥ 4,5:1 (momentumBrand ya lo exige). */
+.tpl-atelier .tpl-classic-surface--pay {
+  --color-primary: var(--at-ink);
+  --color-on-primary: var(--at-paper);
+  --radius-button: 0px;
+}
+.tpl-distrito .tpl-classic-surface--pay {
+  --color-primary: var(--di-signal);
+  --color-on-primary: #0e0e0e;
+  --radius-button: 0px;
+}
+.tpl-momentum .tpl-classic-surface--pay {
+  --color-primary: var(--mo-brand);
+  --color-on-primary: #ffffff;
+  --radius-button: var(--mo-r);
+}
+.tpl-atelier .tpl-classic-surface--pay .bg-primary {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 12px;
+}
+.tpl-distrito .tpl-classic-surface--pay .bg-primary {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 800;
+}
+.tpl-momentum .tpl-classic-surface--pay .bg-primary {
+  font-weight: 700;
+}
+/* En los resultados el hover de Classic pasa al acento de la tienda: se queda en el botón de la plantilla. */
+.tpl-classic-surface--pay .bg-primary:hover {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  opacity: 0.9;
+}
+
+/* Botón flotante de WhatsApp (FloatingWhatsApp de Classic): en el celular se
+   sube para no tapar las barras fijas de cada plantilla (compra de la ficha,
+   pestañas de Momentum). En escritorio queda donde lo pone Classic. */
+@media (max-width: 899px) {
+  .tpl-momentum .tpl-wa > a {
+    bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+  .tpl-momentum:has(.mo-buy) .tpl-wa > a {
+    bottom: calc(150px + env(safe-area-inset-bottom));
+  }
+  .tpl-atelier:has(.at-pdp__buy) .tpl-wa > a,
+  .tpl-distrito:has(.di-buy) .tpl-wa > a {
+    bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Calculadora de envío y «Así funciona tu compra» en la columna de compra. */
+.tpl-pdp-extras {
+  display: grid;
+  gap: 20px;
+  margin-top: 24px;
+  background: transparent;
+}
+.tpl-pdp-extras > * {
+  margin: 0;
+}
+.tpl-pdp-reviews {
+  padding: 0 clamp(16px, 4vw, 56px) 32px;
+}

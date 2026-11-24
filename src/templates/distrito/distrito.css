@@ -2055,3 +2055,37 @@
   font-size: 12px;
   margin-right: 6px;
 }
+
+/* Aviso de ahorro por cantidad (mismo texto que Classic), con la señal de la plantilla. */
+.di-nudge {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--di-signal);
+  color: var(--di-bone);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+/* Calculadora de envío y «Así funciona tu compra» (Classic): debajo de la compra
+   en el celular; en escritorio, una franja a dos columnas como el detalle. */
+.di-pdp__col > .tpl-store {
+  margin: 24px var(--di-gutter) 0;
+}
+@media (min-width: 900px) {
+  .di-pdp__col > .tpl-store {
+    margin: 0;
+    padding: 32px var(--di-gutter) 8px;
+    border-bottom: 1px solid var(--di-line);
+  }
+  .di-pdp__col > .tpl-store .tpl-pdp-extras {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    column-gap: clamp(32px, 6vw, 112px);
+    align-items: start;
+    margin: 0 0 24px;
+  }
+  .di-pdp__col > .tpl-store .tpl-pdp-extras > * {
+    border-top: 0;
+    padding-top: 0;
+  }
+}

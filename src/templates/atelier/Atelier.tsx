@@ -45,6 +45,7 @@ import {
   type SortKey,
 } from '../shared/commerce';
 import { PriceView } from '../shared/Price';
+import { TemplateCartNudges, TemplatePdpExtras, TemplatePdpReviews, TemplateWhatsApp } from '../shared/ClassicExtras';
 import { TemplateNewsletterPopup, TemplateTopBars, useStoreHomeExtras, type TemplateInk, type TemplateNatives } from '../shared/StoreContent';
 import { StoreMark, unitsLabel, useCartView, useCloseOnRoute, useFitText, useOverlay, useScrolled, useSearchSubmit } from '../shared/ui';
 import './atelier.css';
@@ -305,6 +306,7 @@ function BagSummary({ onContinue }: { onContinue?: () => void }) {
   const { subtotal, couponCode, freeShippingLeft } = useCartView();
   return (
     <div className="at-bag__summary">
+      <TemplateCartNudges className="at-bag__nudge" />
       <p className="at-bag__subtotal">
         <span>Subtotal</span>
         <span>
@@ -400,6 +402,7 @@ function AtelierShell({ children }: { children: ReactNode }) {
       <AtelierFooter />
       <AtelierBag />
       <TemplateNewsletterPopup ink={ATELIER_INK} />
+      <TemplateWhatsApp />
     </div>
   );
 }
@@ -930,6 +933,7 @@ function AtelierProductView({ product }: { product: Product }) {
   const tierCta = tier.tierValid ? `Agregar ${tier.tierUnits} a la bolsa` : notice ? 'Sin stock suficiente' : 'Elegí las variantes';
   const toStory = () => document.getElementById('at-story')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return (
+    <>
     <div className="at-pdp">
       <Seo title={`${product.name} · ${config.name}`} description={description || config.name} image={pdp.images[0]} slug={config.slug} siteName={config.name} path={`/producto/${product.id}`} />
       <AtelierGallery images={pdp.images} name={product.name} />
@@ -991,6 +995,8 @@ function AtelierProductView({ product }: { product: Product }) {
           </div>
         </div>
 
+        <TemplatePdpExtras ink={ATELIER_INK} product={product} />
+
         {story.length > 0 && (
           <section className="at-pdp__story" id="at-story" aria-label="Detalles del producto">
             <div className="at-pdp__details">
@@ -1011,6 +1017,8 @@ function AtelierProductView({ product }: { product: Product }) {
         )}
       </div>
     </div>
+    <TemplatePdpReviews ink={ATELIER_INK} product={product} />
+    </>
   );
 }
 

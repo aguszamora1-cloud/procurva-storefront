@@ -848,6 +848,7 @@
     grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
     grid-template-areas:
       'info gallery'
+      'extras extras'
       'story story';
     column-gap: clamp(48px, 7vw, 120px);
     padding: 0 var(--at-gutter);
@@ -1785,4 +1786,44 @@
   font-size: 13px;
   color: var(--at-ink-2);
   margin-right: 10px;
+}
+
+/* Aviso de ahorro por cantidad (mismo texto que Classic): la nota editorial de la ficha. */
+.at-bag__nudge {
+  font-family: var(--at-serif);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.35;
+  margin: 0 0 16px;
+  padding-left: 12px;
+  border-left: 1px solid var(--at-ink);
+}
+/* Calculadora de envío y «Así funciona tu compra» (Classic). En el celular, debajo
+   de la compra; en escritorio, una franja propia a dos columnas debajo de la
+   galería (dentro del panel fijo de compra lo alargaban más que la pantalla). */
+@media (max-width: 899px) {
+  .at-pdp__col > .tpl-store {
+    margin-top: 24px;
+  }
+}
+@media (min-width: 900px) {
+  .at-pdp__col > .tpl-store {
+    grid-area: extras;
+    margin-top: clamp(72px, 9vw, 140px);
+    padding-top: clamp(40px, 5vw, 72px);
+    border-top: 1px solid var(--at-line);
+  }
+  .at-pdp__col > .tpl-store .tpl-pdp-extras {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(48px, 7vw, 120px);
+    align-items: start;
+    margin-top: 0;
+  }
+  .at-pdp__col > .tpl-store .tpl-pdp-extras > * {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .at-pdp__col > .tpl-store + .at-pdp__story {
+    margin-top: clamp(48px, 6vw, 96px);
+  }
 }

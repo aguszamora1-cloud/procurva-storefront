@@ -53,6 +53,7 @@ import {
 } from '../shared/commerce';
 import { PriceView } from '../shared/Price';
 import { MarqueeStrip, marqueeMessages } from '@/components/MarqueeStrip';
+import { TemplateCartNudges, TemplatePdpExtras, TemplatePdpReviews, TemplateWhatsApp } from '../shared/ClassicExtras';
 import { TemplateNewsletterPopup, TemplateTopBars, useStoreHomeExtras, type TemplateInk, type TemplateNatives } from '../shared/StoreContent';
 import { StoreMark, unitsLabel, useCartView, useCloseOnRoute, useOverlay, type CartAmount } from '../shared/ui';
 import './momentum.css';
@@ -408,6 +409,7 @@ function CartSummary() {
   const { subtotal, couponCode } = useCartView();
   return (
     <div className="mo-summary">
+      <TemplateCartNudges className="mo-nudge" />
       <SubtotalLines subtotal={subtotal} couponCode={couponCode} />
       <p className="mo-summary__note">El envío y los descuentos por medio de pago se calculan en el siguiente paso.</p>
       <Link to="/checkout" className="mo-btn mo-btn--block">
@@ -473,6 +475,7 @@ function MomentumCart() {
         ) : (
           <>
             <div className="mo-drawer__top">
+              <TemplateCartNudges className="mo-nudge" />
               <SubtotalLines subtotal={subtotal} couponCode={couponCode} />
               <ShipProgress />
               <Link to="/checkout" className="mo-btn mo-btn--block">
@@ -549,6 +552,7 @@ function MomentumShell({ children }: { children: ReactNode }) {
       <CategoriesSheet open={cats} close={closeCats} />
       <MomentumCart />
       <TemplateNewsletterPopup ink={ink} />
+      <TemplateWhatsApp />
     </div>
   );
 }
@@ -1019,6 +1023,7 @@ function MomentumChoices({ colors, sizes, color, size, onColor, onSize, colorDis
 
 function MomentumProductView({ product }: { product: Product }) {
   const config = useStore();
+  const ink = useMomentumInk();
   const pdp = usePdp(product);
   const tier = useTplTiers(product, pdp);
   const notice = tierStockNotice(tier);
@@ -1150,6 +1155,8 @@ function MomentumProductView({ product }: { product: Product }) {
         </div>
       </div>
 
+      <TemplatePdpExtras ink={ink} product={product} />
+
       {(description || policies.length > 0) && (
         <section className="mo-pdp__details" aria-label="Detalles del producto">
           <div className="mo-pdp__acc">
@@ -1172,6 +1179,7 @@ function MomentumProductView({ product }: { product: Product }) {
           </div>
         </section>
       )}
+      <TemplatePdpReviews ink={ink} product={product} />
     </div>
   );
 }

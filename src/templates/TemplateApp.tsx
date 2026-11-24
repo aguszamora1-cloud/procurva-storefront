@@ -72,10 +72,11 @@ const ClassicResena = lazy(() => import('@/pages/Resena').then((m) => ({ default
 /**
  * Página de Classic dentro de la plantilla. `contrast` = la misma decisión que
  * App.tsx: ContrastScope sólo donde Classic lo usa (ficha, promo); el checkout,
- * sus resultados y la reseña van sin él, igual que en Classic.
+ * sus resultados y la reseña van sin él, igual que en Classic. `pay`: checkout y
+ * resultados, cuyos botones de acción toman el botón de la plantilla (shared.css).
  */
-function ClassicSurface({ children, contrast = false }: { children: ReactNode; contrast?: boolean }) {
-  return <div className="tpl-classic-surface">{contrast ? <ContrastScope>{children}</ContrastScope> : children}</div>;
+function ClassicSurface({ children, contrast = false, pay = false }: { children: ReactNode; contrast?: boolean; pay?: boolean }) {
+  return <div className={pay ? 'tpl-classic-surface tpl-classic-surface--pay' : 'tpl-classic-surface'}>{contrast ? <ContrastScope>{children}</ContrastScope> : children}</div>;
 }
 
 function useFonts(href: string) {
@@ -122,10 +123,10 @@ function KitRoutes({ kit, id }: { kit: TemplateKit; id: DevTemplateId }) {
           <Route path="/pagina/:slug" element={<ClassicCustomPage />} />
           {/* T3: mismas rutas y mismas páginas que Classic (App.tsx). */}
           <Route path="/promo/:slug" element={<ClassicSurface contrast><ClassicPromoPage /></ClassicSurface>} />
-          <Route path="/checkout" element={<ClassicSurface><ClassicCheckout /></ClassicSurface>} />
-          <Route path="/checkout/success" element={<ClassicSurface><ClassicCheckoutSuccess /></ClassicSurface>} />
-          <Route path="/checkout/failure" element={<ClassicSurface><ClassicCheckoutFailure /></ClassicSurface>} />
-          <Route path="/checkout/pending" element={<ClassicSurface><ClassicCheckoutPending /></ClassicSurface>} />
+          <Route path="/checkout" element={<ClassicSurface pay><ClassicCheckout /></ClassicSurface>} />
+          <Route path="/checkout/success" element={<ClassicSurface pay><ClassicCheckoutSuccess /></ClassicSurface>} />
+          <Route path="/checkout/failure" element={<ClassicSurface pay><ClassicCheckoutFailure /></ClassicSurface>} />
+          <Route path="/checkout/pending" element={<ClassicSurface pay><ClassicCheckoutPending /></ClassicSurface>} />
           <Route path="/resena/:token" element={<ClassicSurface><ClassicResena /></ClassicSurface>} />
           <Route
             path="*"
