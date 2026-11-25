@@ -847,6 +847,10 @@ export interface RawCatalogSettings {
   // Medio de pago que viene marcado al entrar al checkout. Ausente = 'transferencia'
   // (lo de siempre). Si la tienda no ofrece ese medio, se usa el primero disponible.
   default_pay_method?: string;
+  // A qué precio cobra "Dinero en cuenta" (saldo de Mercado Pago): 'cash' = precio
+  // de contado, igual que transferencia (lo de siempre); 'card' = precio de tarjeta,
+  // para el comercio que da el descuento solo por transferencia. Ausente = 'cash'.
+  mp_cuenta_price_mode?: string;
   // Badges de las product cards (Últimas unidades / Nuevo / Envío gratis /
   // Descuento). Cada uno: on/off, color de fondo (texto por contraste) y label;
   // low_stock/new con su parámetro propio. Lo escribe el panel Diseño → Badges.
@@ -1275,6 +1279,10 @@ export interface StoreConfig {
   // (sin comisión para el comercio); el comercio lo cambia desde el editor
   // (Checkout). LAS POPAS, 20/11/2026.
   defaultPayMethod: CheckoutPayMethod;
+  // Precio que cobra "Dinero en cuenta". Default 'cash' (contado, como siempre);
+  // 'card' = precio de tarjeta, sin el descuento por pago. El comercio lo cambia
+  // desde el editor (Checkout). Indumentaria VR, 24/11/2026.
+  mpCuentaPriceMode: 'cash' | 'card';
   // Badges de las product cards, normalizados con defaults. El texto se resuelve
   // por contraste sobre `color`. `discount.color` vacío = usa el color de acento.
   badges: {

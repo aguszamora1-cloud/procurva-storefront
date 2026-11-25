@@ -321,9 +321,12 @@ export function Checkout() {
           : payMethod === 'transferencia' && mpEnabled
             ? 'mp'
             : 'wa';
-  // Sólo la tarjeta usa el precio de tarjeta; el resto (incluido dinero en
-  // cuenta) va a precio de contado.
-  const priceMode: 'cash' | 'card' = payMethod === 'tarjeta' ? 'card' : 'cash';
+  // La tarjeta usa el precio de tarjeta; el resto va a precio de contado. "Dinero
+  // en cuenta" va a contado salvo que la tienda lo haya pasado a precio de tarjeta
+  // (editor → Checkout): es el comercio que da el descuento solo por transferencia.
+  const cardPricedMethod = (m: PayMethod) =>
+    m === 'tarjeta' || (m === 'mp_cuenta' && config.mpCuentaPriceMode === 'card');
+  const priceMode: 'cash' | 'card' = cardPricedMethod(payMethod) ? 'card' : 'cash';
 
   // Revalidación de stock al entrar al checkout. El carrito vive en localStorage
   // sin vencimiento y no se revalida nunca, así que un ítem agregado hace días
@@ -1473,7 +1476,7 @@ export function Checkout() {
               <div className="space-y-2.5">
                 {availablePayMethods.map((m) => {
                   const selected = payMethod === m;
-                  const isCash = m !== 'tarjeta';
+                  const isCash = !cardPricedMethod(m);
                   const label =
                     m === 'tarjeta'
                       ? 'Tarjeta'

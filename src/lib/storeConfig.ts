@@ -597,6 +597,9 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
     defaultPayMethod: (CHECKOUT_PAY_METHODS as readonly string[]).includes(s.default_pay_method as string)
       ? (s.default_pay_method as CheckoutPayMethod)
       : 'transferencia',
+    // Default 'cash': las tiendas existentes siguen cobrando "Dinero en cuenta" a
+    // precio de contado. Solo el valor exacto 'card' lo pasa a precio de tarjeta.
+    mpCuentaPriceMode: s.mp_cuenta_price_mode === 'card' ? 'card' : 'cash',
 
     // Badges de las product cards. Defaults pensados para no cambiar el aspecto
     // de tiendas existentes: lowStock/discount/freeShipping activos (freeShipping
