@@ -154,6 +154,7 @@
     "hideOutOfStockVariants": false,
     "showShippingCalculator": true,
     "defaultPayMethod": "transferencia",
+    "mpCuentaPriceMode": "cash",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -410,6 +411,7 @@
     "hideOutOfStockVariants": false,
     "showShippingCalculator": true,
     "defaultPayMethod": "transferencia",
+    "mpCuentaPriceMode": "cash",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -671,6 +673,7 @@
     "hideOutOfStockVariants": false,
     "showShippingCalculator": true,
     "defaultPayMethod": "transferencia",
+    "mpCuentaPriceMode": "cash",
     "badges": {
       "style": "glass",
       "position": "top-right",
@@ -927,6 +930,7 @@
     "hideOutOfStockVariants": false,
     "showShippingCalculator": true,
     "defaultPayMethod": "transferencia",
+    "mpCuentaPriceMode": "cash",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -1183,6 +1187,7 @@
     "hideOutOfStockVariants": false,
     "showShippingCalculator": true,
     "defaultPayMethod": "transferencia",
+    "mpCuentaPriceMode": "cash",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -1439,6 +1444,7 @@
     "hideOutOfStockVariants": false,
     "showShippingCalculator": true,
     "defaultPayMethod": "transferencia",
+    "mpCuentaPriceMode": "cash",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -1695,6 +1701,7 @@
     "hideOutOfStockVariants": false,
     "showShippingCalculator": true,
     "defaultPayMethod": "transferencia",
+    "mpCuentaPriceMode": "cash",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -1951,6 +1958,7 @@
     "hideOutOfStockVariants": false,
     "showShippingCalculator": true,
     "defaultPayMethod": "transferencia",
+    "mpCuentaPriceMode": "cash",
     "badges": {
       "style": "solid",
       "position": "top-left",
@@ -2207,6 +2215,7 @@
     "hideOutOfStockVariants": false,
     "showShippingCalculator": true,
     "defaultPayMethod": "transferencia",
+    "mpCuentaPriceMode": "cash",
     "badges": {
       "style": "solid",
       "position": "top-left",
