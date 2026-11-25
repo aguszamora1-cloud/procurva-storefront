@@ -1,42 +1,22 @@
 /**
- * Atelier 2 · A0: esqueleto del kit.
+ * Atelier 2 (referencia visual: maqueta Atelier v2.1 aprobada).
  *
  * Sólo se monta en la vista previa de desarrollo (?pc_dev_tpl=atelier&pc_dev_atelier=2,
  * ver shared/devAtelier2.ts). No está en el registro de plantillas: ninguna tienda
- * puede aplicarlo. Todavía no pinta secciones ni tiene lógica comercial; la
- * composición de v2.1 llega por bloques (A1 a A7) con los componentes que ya
- * usa Atelier 1 (precios, escalones, carrito, extras de Classic).
+ * puede aplicarlo.
+ *
+ * Estado por bloques:
+ *   A0  esqueleto del kit.
+ *   A1  base visual (Chrome.tsx): encabezado, menú de celular, buscador, pie,
+ *       paleta del comercio legible (palette.ts) e Inter.
+ *   A2–A7  inicio, catálogo, ficha, bolsa: todavía páginas provisorias.
+ * Sin lógica comercial propia: todo sale de los hooks compartidos.
  */
 
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { useStore } from '@/context/StoreProvider';
 import type { TemplateKit } from '../TemplateApp';
-import { StoreMark } from '../shared/ui';
+import { Atelier2Shell } from './Chrome';
 import './atelier2.css';
-
-function Atelier2Shell({ children }: { children: ReactNode }) {
-  const { name } = useStore();
-  return (
-    <div className="a2" data-atelier2="a0">
-      <header className="a2-h">
-        <div className="a2-wrap a2-h__in">
-          <Link to="/" className="a2-h__mark" aria-label={`${name}, inicio`}>
-            <StoreMark height={32} />
-          </Link>
-          <nav className="a2-h__nav" aria-label="Principal">
-            <Link to="/productos">Productos</Link>
-            <Link to="/carrito">Bolsa</Link>
-          </nav>
-        </div>
-      </header>
-      <main className="a2-main">{children}</main>
-      <footer className="a2-f">
-        <div className="a2-wrap">{name}</div>
-      </footer>
-    </div>
-  );
-}
 
 function Atelier2Notice({ title, children }: { title: string; children?: ReactNode }) {
   return (
