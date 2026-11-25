@@ -583,7 +583,7 @@ function DistritoHome() {
   const { featured, newArrivals, offers } = useHomeSections(products);
   const { categories } = useCategories(products);
   useFirstPaintGate('tpl-home', isLoading);
-  const store = useStoreHomeExtras(DISTRITO_NATIVES, useDistritoInk());
+  const store = useStoreHomeExtras(DISTRITO_NATIVES, useDistritoInk(), { testimonials: 'template' });
   const hero = useHero();
   const newTitle = useHeading('new_arrivals', 'Últimos ingresos');
   const featTitle = useHeading('featured', 'Destacados');

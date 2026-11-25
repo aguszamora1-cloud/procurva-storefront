@@ -179,14 +179,19 @@
   align-items: center;
   justify-content: center;
 }
+/* Logo: alto según su peso óptico (--mark-k, ver StoreMark): un cuadrado llega a
+   50 px, uno muy ancho baja hasta 26 px; el ancho sale de su proporción. */
 .at-header__logo {
-  max-height: 34px;
-  max-width: 180px;
+  height: clamp(26px, calc(50px * var(--mark-k, 0.75)), 50px);
+  max-width: 200px;
   width: auto;
   object-fit: contain;
   font-family: var(--at-serif);
   font-size: 24px;
   letter-spacing: 0.02em;
+}
+span.at-header__logo {
+  height: auto;
 }
 .at-only-mobile {
   display: none;
@@ -202,8 +207,8 @@
     display: inline-flex;
   }
   .at-header__logo {
-    max-height: 28px;
-    max-width: 140px;
+    height: clamp(22px, calc(42px * var(--mark-k, 0.75)), 42px);
+    max-width: 150px;
   }
 }
 
@@ -366,7 +371,7 @@
 
 /* Secciones */
 .at-section {
-  padding: clamp(64px, 9vw, 140px) var(--at-gutter) 0;
+  padding: clamp(56px, 7vw, 104px) var(--at-gutter) 0;
 }
 .at-section__head {
   display: flex;
@@ -497,13 +502,35 @@
   font-size: 13px;
   margin: 0;
 }
+/* Ficha: el precio de contado manda; tarjeta debajo, legible; cuotas en tono
+   secundario. Mismos números que Price.tsx, sólo jerarquía. */
 .at-price--pdp {
-  font-size: 18px;
-  margin: 4px 0 30px;
+  font-size: 15px;
+  margin: 4px 0 26px;
 }
-.at-price--pdp .at-price__small,
+.at-price--pdp .at-price__big {
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.at-price--pdp .at-price__label {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  margin-left: 2px;
+}
+.at-price--pdp .at-price__strike {
+  font-size: 15px;
+}
+.at-price--pdp .at-price__small {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--at-line);
+  font-size: 14px;
+  color: var(--at-ink);
+}
 .at-price--pdp .at-price__inst {
-  margin-top: 4px;
+  margin-top: 3px;
   font-size: 13px;
 }
 
@@ -680,8 +707,9 @@
 }
 
 /* Ficha
-   Escritorio: compra a la izquierda (fija), fotos a la derecha en secuencia
-   editorial (ancha, corrida, par), descripción y políticas a todo el ancho. */
+   Escritorio: fotos a la izquierda en secuencia editorial (ancha, par, corrida),
+   compra a la derecha (fija), descripción y políticas a todo el ancho.
+   Celular: fotos primero (deslizables) y la compra debajo. */
 .at-gallery__item {
   margin: 0;
   background: var(--at-paper-2);
@@ -842,15 +870,17 @@
   margin: 0 0 18px;
 }
 
+  /* FIN0: fotos a la izquierda y compra a la derecha (fija mientras se recorren
+     las fotos). La columna de compra queda angosta y la galería toma el resto. */
 @media (min-width: 900px) {
   .at-pdp {
     display: grid;
-    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
     grid-template-areas:
-      'info gallery'
+      'gallery info'
       'extras extras'
       'story story';
-    column-gap: clamp(48px, 7vw, 120px);
+    column-gap: clamp(40px, 6vw, 96px);
     padding: 0 var(--at-gutter);
   }
   .at-pdp__col {
@@ -858,52 +888,52 @@
   }
   .at-gallery {
     grid-area: gallery;
-    padding-top: 40px;
+    padding-top: 32px;
   }
   .at-pdp__info {
     grid-area: info;
-    padding-top: 72px;
+    padding-top: 40px;
   }
   .at-pdp__sticky {
     position: sticky;
-    top: calc(var(--at-head-h) + 48px);
+    top: calc(var(--at-head-h) + 32px);
   }
   .at-pdp__name {
-    font-size: clamp(38px, 3.4vw, 54px);
-    line-height: 1.02;
+    font-size: clamp(34px, 3vw, 48px);
+    line-height: 1.04;
     letter-spacing: -0.01em;
-    margin-bottom: 22px;
+    margin-bottom: 18px;
   }
-  /* Secuencia de fotos: ancha a la izquierda, corrida a la derecha y un par. */
+  /* Secuencia editorial: la primera a todo el ancho de la galería; después un
+     par (la segunda un poco más baja) y una corrida a la derecha. */
   .at-gallery__track {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: clamp(40px, 5vw, 88px) clamp(16px, 2vw, 28px);
+    gap: clamp(20px, 2.4vw, 36px) clamp(16px, 2vw, 28px);
   }
   .at-gallery__item {
     align-self: start;
   }
-  .at-gallery__item:nth-child(4n + 1) {
-    grid-column: 1 / 11;
+  .at-gallery__item:nth-child(3n + 1) {
+    grid-column: 1 / 13;
   }
-  .at-gallery__item:nth-child(4n + 2) {
-    grid-column: 4 / 13;
+  .at-gallery__item:nth-child(3n + 1):not(:first-child) {
+    grid-column: 3 / 13;
   }
-  .at-gallery__item:nth-child(4n + 3) {
+  .at-gallery__item:nth-child(3n + 2) {
     grid-column: 1 / 7;
   }
-  .at-gallery__item:nth-child(4n + 4) {
+  .at-gallery__item:nth-child(3n + 3) {
     grid-column: 7 / 13;
-    margin-top: clamp(48px, 8vw, 140px);
+    margin-top: clamp(24px, 4vw, 64px);
   }
-  /* Si el par queda sin compañera, va sola y centrada. */
-  .at-gallery__item:nth-child(4n + 3):last-child {
-    grid-column: 3 / 11;
+  /* Si el par queda sin compañera, va sola y a todo el ancho. */
+  .at-gallery__item:nth-child(3n + 2):last-child {
+    grid-column: 1 / 13;
   }
   .at-gallery--empty {
     grid-area: gallery;
-    margin-top: 40px;
-    width: 83%;
+    margin-top: 32px;
   }
   .at-pdp__jump {
     display: inline-block;
@@ -924,8 +954,8 @@
   /* Cierre: la descripción como texto de revista y las políticas en columnas. */
   .at-pdp__story {
     grid-area: story;
-    margin-top: clamp(72px, 9vw, 140px);
-    padding: clamp(48px, 6vw, 96px) 0 clamp(32px, 4vw, 64px);
+    margin-top: clamp(48px, 5vw, 80px);
+    padding: clamp(36px, 4vw, 64px) 0 clamp(24px, 3vw, 48px);
     border-top: 1px solid var(--at-ink);
     scroll-margin-top: calc(var(--at-head-h) + 16px);
   }
@@ -1218,7 +1248,7 @@
 
 /* Pie */
 .at-footer {
-  margin-top: clamp(80px, 10vw, 160px);
+  margin-top: clamp(64px, 7vw, 112px);
   border-top: 1px solid var(--at-line);
   padding: 56px var(--at-gutter) 28px;
   font-size: 13px;
@@ -1809,21 +1839,25 @@
 @media (min-width: 900px) {
   .at-pdp__col > .tpl-store {
     grid-area: extras;
-    margin-top: clamp(72px, 9vw, 140px);
-    padding-top: clamp(40px, 5vw, 72px);
+    margin-top: clamp(48px, 5vw, 80px);
+    padding-top: clamp(32px, 3.5vw, 52px);
     border-top: 1px solid var(--at-line);
   }
   .at-pdp__col > .tpl-store .tpl-pdp-extras {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: clamp(48px, 7vw, 120px);
+    column-gap: clamp(40px, 6vw, 96px);
     align-items: start;
     margin-top: 0;
+    max-width: 640px;
+  }
+  .at-pdp__col > .tpl-store .tpl-pdp-extras[data-cols='2'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: none;
   }
   .at-pdp__col > .tpl-store .tpl-pdp-extras > * {
     border-top: 0;
     padding-top: 0;
   }
   .at-pdp__col > .tpl-store + .at-pdp__story {
-    margin-top: clamp(48px, 6vw, 96px);
+    margin-top: clamp(40px, 4vw, 64px);
   }
 }

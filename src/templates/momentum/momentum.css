@@ -228,11 +228,14 @@
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 32px;
-  padding: 12px var(--mo-gutter);
+  padding: 8px var(--mo-gutter);
 }
+/* Logo: alto según su peso óptico (--mark-k, ver StoreMark): un cuadrado llega a
+   52 px, uno muy ancho baja a 28 px; el ancho sale de su proporción. La fila no
+   crece: antes medía 44 + 24 de aire, ahora 52 + 16. */
 .mo-header__logo {
-  max-height: 44px;
-  max-width: 170px;
+  height: clamp(28px, calc(52px * var(--mark-k, 0.75)), 52px);
+  max-width: 190px;
   width: auto;
   object-fit: contain;
   font-family: var(--mo-cond);
@@ -240,6 +243,10 @@
   font-weight: 800;
   font-size: 26px;
   text-transform: uppercase;
+}
+span.mo-header__logo,
+span.mo-footer__logo {
+  height: auto;
 }
 .mo-header__search {
   max-width: 560px;
@@ -301,7 +308,7 @@
   scrollbar-width: none;
 }
 .mo-nav a {
-  padding: 10px 12px 12px;
+  padding: 6px 12px 9px;
   font-weight: 600;
   font-size: 14px;
   text-transform: uppercase;
@@ -325,7 +332,8 @@
     padding: 8px var(--mo-gutter);
   }
   .mo-header__logo {
-    max-height: 36px;
+    height: clamp(24px, calc(42px * var(--mark-k, 0.75)), 42px);
+    max-width: 160px;
   }
   .mo-header__msearch {
     padding: 0 var(--mo-gutter) 10px;
@@ -1270,9 +1278,14 @@
   .mo-gallery[data-n='many'] .mo-gallery__track figure:first-child:nth-last-child(odd) {
     grid-column: 1 / -1;
   }
+  /* FIN0: la foto que va sola a todo el ancho se encajonaba en 4:3 con franjas
+     grises a los costados (las fotos de producto suelen ser verticales) y dejaba
+     un hueco grande debajo, al lado del recuadro de compra. Ahora va con SU
+     proporción, entera y a todo el ancho de la galería. */
   .mo-gallery[data-n='1'] .mo-gallery__track img,
   .mo-gallery[data-n='many'] .mo-gallery__track figure:first-child:nth-last-child(odd) img {
-    aspect-ratio: 4 / 3;
+    aspect-ratio: auto;
+    height: auto;
     object-fit: contain;
   }
   .mo-gallery__track figure[data-more] {
@@ -1625,8 +1638,9 @@
   color: #fff;
 }
 .mo-footer__logo {
-  max-height: 48px;
-  max-width: 160px;
+  height: clamp(40px, calc(64px * var(--mark-k, 0.75)), 64px);
+  width: auto;
+  max-width: 180px;
   object-fit: contain;
   background: #fff;
   padding: 6px;

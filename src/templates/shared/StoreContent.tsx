@@ -37,6 +37,7 @@ import { marqueeMessages } from '@/components/MarqueeStrip';
 import { StoriesSection } from '@/components/home/StoriesSection';
 import { ReelsSection } from '@/components/home/ReelsSection';
 import { SocialProofSection } from '@/components/home/SocialProofSection';
+import { TemplateTestimonials } from './Testimonials';
 import { customSectionNode, customSectionSkipsReveal } from '@/components/home/customSectionNode';
 import { customSectionKey, homeSectionEnabled, orderHomeKeys, placeAroundNatives, type FixedHomeKey } from '@/lib/homeOrder';
 import { themeVars } from '@/lib/theme';
@@ -200,7 +201,12 @@ export interface StoreHomeExtras {
  * bloques propios de la plantilla; el resto se ubica a su alrededor con el orden
  * de la tienda (placeAroundNatives).
  */
-export function useStoreHomeExtras(natives: TemplateNatives, ink: TemplateInk): StoreHomeExtras {
+export function useStoreHomeExtras(
+  natives: TemplateNatives,
+  ink: TemplateInk,
+  /** `testimonials: 'template'`: los testimonios con el carrusel de las plantillas (shared/Testimonials) en vez de la cinta de Classic. */
+  opts: { testimonials?: 'classic' | 'template' } = {},
+): StoreHomeExtras {
   const config = useStore();
   const { sections: customSections, isLoading } = useCustomSections();
   // Igual que Classic: las secciones personalizadas se intercalan en cualquier
@@ -215,7 +221,7 @@ export function useStoreHomeExtras(natives: TemplateNatives, ink: TemplateInk): 
   if (on('trust_badges')) nodes.trust_badges = <TrustBadges background={config.trustBadgesBgColor || undefined} />;
   if (on('stories')) nodes.stories = <StoriesSection />;
   if (on('reels')) nodes.reels = <ReelsSection />;
-  if (on('social_proof')) nodes.social_proof = <SocialProofSection />;
+  if (on('social_proof')) nodes.social_proof = opts.testimonials === 'template' ? <TemplateTestimonials /> : <SocialProofSection />;
   if (on('newsletter')) nodes.newsletter = <NewsletterSection />;
   const customKeys: string[] = [];
   for (const cs of customSections) {

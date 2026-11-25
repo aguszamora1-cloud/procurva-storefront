@@ -191,6 +191,25 @@
   padding-left: var(--di-gutter);
   padding-right: var(--di-gutter);
 }
+/* FIN0 · Distrito: el título de la suscripción (72 px, el de todas las secciones)
+   le ganaba por mucho a un formulario de 448 px. Título un escalón más chico y
+   formulario más ancho y alto, mismo comportamiento (NewsletterSection). */
+:root[data-typography] .tpl-distrito .tpl-store:not(.tpl-store--bare) section.bg-primary h2 {
+  font-size: clamp(32px, 3.8vw, 56px);
+}
+.tpl-distrito .tpl-store section.bg-primary .max-w-md {
+  max-width: 560px;
+}
+.tpl-distrito .tpl-store section.bg-primary form :is(input, button) {
+  font-size: 15px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.tpl-distrito .tpl-store section.bg-primary form button {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
 /* Momentum es de caja (contenido a 1360 px): el newsletter va como un panel con
    las esquinas de la plantilla dentro de la caja, no como una banda cortada. */
 .tpl-momentum .tpl-store section.bg-primary {
@@ -258,6 +277,157 @@
   }
 }
 
+/* FIN0 · Testimonios con el carrusel de las plantillas (shared/Testimonials).
+   Flechas en el encabezado (fuera de las tarjetas), sin avance automático.
+   Escritorio: entran 3 enteras; con más, la 4.ª asoma un poco a la derecha.
+   Celular: una tarjeta y media (la siguiente asoma) con las flechas a la vista. */
+.tpl-tst {
+  padding: clamp(40px, 5vw, 72px) clamp(16px, 4vw, 56px) clamp(40px, 5vw, 72px);
+}
+.tpl-tst__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.tpl-tst__label {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-accent-ink, var(--color-accent));
+}
+.tpl-tst__title {
+  margin: 0;
+}
+.tpl-tst__nav {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.tpl-tst__nav button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text);
+  background: transparent;
+  cursor: pointer;
+}
+.tpl-tst__nav button svg {
+  width: 20px;
+  height: 20px;
+}
+.tpl-tst__nav button:hover:not(:disabled) {
+  border-color: var(--color-text) !important;
+}
+.tpl-tst__nav button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.tpl-tst__track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 2 * 16px) / 3);
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.tpl-tst__track::-webkit-scrollbar {
+  display: none;
+}
+.tpl-tst__track[data-overflow] {
+  grid-auto-columns: calc((100% - 3 * 16px) / 3.15);
+}
+.tpl-tst__card {
+  margin: 0;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  min-width: 0;
+}
+.tpl-tst__stars {
+  margin: 0;
+  display: flex;
+  gap: 2px;
+}
+.tpl-tst__stars svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-border);
+  fill: currentColor;
+}
+.tpl-tst__stars svg[data-on] {
+  color: #f5b301;
+}
+.tpl-tst__text {
+  margin: 0;
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--color-text);
+  overflow-wrap: break-word;
+}
+.tpl-tst__who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.tpl-tst__avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  object-fit: cover;
+  background: var(--color-secondary);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+@media (max-width: 899px) {
+  .tpl-tst__track,
+  .tpl-tst__track[data-overflow] {
+    grid-auto-columns: 82%;
+    gap: 12px;
+  }
+  .tpl-tst__nav button {
+    width: 40px;
+    height: 40px;
+  }
+}
+/* Distrito: tarjetas negras sobre negro con borde, nombre con la voz condensada. */
+.tpl-distrito .tpl-tst {
+  padding-left: var(--di-gutter);
+  padding-right: var(--di-gutter);
+}
+.tpl-distrito .tpl-tst__card {
+  background: var(--di-black-2, #161616);
+}
+.tpl-distrito .tpl-tst__avatar {
+  background: #2c2c2a;
+  color: var(--di-bone, #ece8e1);
+}
+.tpl-distrito .tpl-tst__who {
+  font-weight: 800;
+  font-stretch: 75%;
+  font-variation-settings: 'wdth' 75;
+  text-transform: uppercase;
+  font-size: 16px;
+}
+
 /* Calculadora de envío y «Así funciona tu compra» en la columna de compra. */
 .tpl-pdp-extras {
   display: grid;
@@ -267,6 +437,59 @@
 }
 .tpl-pdp-extras > * {
   margin: 0;
+}
+
+/* «Así funciona tu compra» de las plantillas: pasos numerados del comercio, sin
+   estado (nada aparece «hecho» antes de comprar). Hereda tinta y tipografía. */
+.tpl-steps {
+  border-top: 1px solid var(--color-border);
+  padding-top: 20px;
+}
+.tpl-steps__title {
+  margin: 0 0 14px;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.tpl-steps__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.tpl-steps__item {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.tpl-steps__num {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted-aa, var(--color-muted));
+}
+.tpl-steps__text {
+  display: grid;
+  gap: 2px;
+  padding-top: 2px;
+}
+.tpl-steps__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.tpl-steps__detail {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-muted-aa, var(--color-muted));
 }
 .tpl-pdp-reviews {
   padding: 0 clamp(16px, 4vw, 56px) 32px;

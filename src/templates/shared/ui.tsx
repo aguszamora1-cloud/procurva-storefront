@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '@/context/StoreProvider';
 import { useCart } from '@/context/CartContext';
@@ -6,6 +6,7 @@ import { useCartPromos } from '@/hooks/useCartPromos';
 import { useCartCoupon } from '@/hooks/useCartCoupon';
 import { useCoupon } from '@/context/CouponContext';
 import { buildCartRows, cartTotals } from './cartRows';
+import { logoWeight } from './storeFacts';
 
 /** ESC cierra, el fondo no scrollea y el foco entra al panel (y vuelve al cerrar). */
 export function useOverlay(open: boolean, close: () => void, panel: RefObject<HTMLElement | null>) {
@@ -75,10 +76,35 @@ export function useSearchSubmit() {
   };
 }
 
-/** Logo real de la tienda; sin logo, su nombre como texto. */
+/**
+ * Logo real de la tienda; sin logo, su nombre como texto. Con imagen deja en
+ * `--mark-k` su peso óptico (logoWeight): el CSS de cada plantilla calcula el
+ * alto con eso y el ancho sale de la proporción original (`width: auto`), así que
+ * nunca se deforma ni se recorta. Antes de medir (imagen cargando) vale 1.
+ */
 export function StoreMark({ className, height }: { className?: string; height?: number }) {
   const { logoUrl, name } = useStore();
-  if (logoUrl) return <img src={logoUrl} alt={name} className={className} style={height ? { height } : undefined} />;
+  const [k, setK] = useState<number | null>(null);
+  const ref = useRef<HTMLImageElement>(null);
+  const measure = (img: HTMLImageElement | null) => {
+    if (img && img.complete && img.naturalWidth > 0) setK(logoWeight(img.naturalWidth, img.naturalHeight));
+  };
+  useLayoutEffect(() => measure(ref.current), [logoUrl]);
+  if (logoUrl) {
+    const style: Record<string, string | number> = {};
+    if (height) style.height = height;
+    if (k != null) style['--mark-k'] = k;
+    return (
+      <img
+        ref={ref}
+        src={logoUrl}
+        alt={name}
+        className={className}
+        style={style as CSSProperties}
+        onLoad={(e) => measure(e.currentTarget)}
+      />
+    );
+  }
   return <span className={className}>{name}</span>;
 }
 
