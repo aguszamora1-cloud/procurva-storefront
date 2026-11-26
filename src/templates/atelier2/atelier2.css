@@ -39,7 +39,7 @@
 .a2-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .a2-muted { color: var(--a2-muted); }
 .a2-main { flex: 1; }
-.a2-skip { position: absolute; left: 12px; top: -60px; z-index: 80; padding: 10px 16px; background: var(--a2-text); color: var(--a2-bg); border-radius: var(--a2-r); }
+.a2-skip { position: absolute; left: 12px; top: -60px; z-index: 80; display: inline-flex; align-items: center; min-height: 44px; padding: 10px 16px; background: var(--a2-text); color: var(--a2-bg); border-radius: var(--a2-r); }
 .a2-skip:focus { top: 12px; }
 .a2-ib { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; }
 .a2-ib:hover { background: var(--a2-line-soft); }
@@ -48,7 +48,7 @@
 }
 
 /* ── Logo ─────────────────────────────────────────────────────────────────── */
-.a2-logo { display: flex; align-items: center; justify-content: center; min-height: 44px; }
+.a2-logo { display: flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; }
 .a2-logo__mark { display: block; }
 img.a2-logo__mark { height: clamp(30px, calc(62px * var(--mark-k, 0.8)), 64px); width: auto; max-width: 240px; object-fit: contain; transition: height 0.25s var(--a2-ease); }
 span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; text-align: center; }
@@ -207,7 +207,7 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
 
 /* Grillas y tarjeta */
 .a2-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px 20px; }
-.a2-card { display: flex; flex-direction: column; min-width: 0; }
+.a2-card { position: relative; display: flex; flex-direction: column; min-width: 0; }
 .a2-card__m { position: relative; display: block; aspect-ratio: 3 / 4; overflow: hidden; background: var(--a2-frame); border-radius: var(--a2-r); }
 .a2-card__m img { width: 100%; height: 100%; object-fit: cover; }
 .a2-card__alt { position: absolute; inset: 0; opacity: 0; transition: opacity 0.35s var(--a2-ease); }
@@ -216,6 +216,10 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
 .a2-card__flag { position: absolute; top: 10px; left: 10px; font-size: 12px; font-weight: 500; padding: 4px 8px; border-radius: 2px; background: var(--a2-bg); color: var(--a2-text); }
 .a2-card__n { margin-top: 12px; padding: 2px 0; font-size: 14.5px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .a2-card__n:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* Área táctil: el nombre cubre la tarjeta entera (la foto y el precio llevan al mismo producto). El recorte
+   de dos renglones no corta el ::after: su bloque contenedor es la tarjeta, no el nombre. */
+.a2-card__n::after { content: ''; position: absolute; inset: 0; }
+.a2-card:hover .a2-card__n { text-decoration: underline; text-underline-offset: 3px; }
 .a2-price { margin-top: 6px; font-size: 14.5px; }
 .a2-price__row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; }
 .a2-price__big { font-weight: 500; }
@@ -627,3 +631,13 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
 .a2-relc .a2-card__n { font-size: 13.5px; }
 /* Marca de cada paso del plan (data-block / data-pin): no es una caja, no cambia el espaciado. */
 .a2-step { display: contents; }
+
+/* ══ A7 · Áreas táctiles de piezas de Classic dentro de Atelier 2 ══════════ */
+/* Sólo estilos limitados a .a2; los componentes no se editan. Se agranda el área sin correr el diseño:
+   relleno hacia abajo compensado con margen negativo, por encima del texto que sigue (z-index). */
+/* Calculadora de envío: «No sé mi código postal» (12 px de texto, 19 px de alto). */
+.a2 a[href^="https://www.correoargentino.com.ar/formularios/cpa"] { position: relative; z-index: 1; padding-bottom: 26px; margin-bottom: -26px; }
+/* Newsletter: «Agregar mi nombre (opcional)». */
+.a2 section.bg-primary form ~ button.underline { position: relative; z-index: 1; margin-top: 0; padding-top: 8px; padding-bottom: 16px; margin-bottom: -16px; }
+/* Preguntas frecuentes: «Escribinos por WhatsApp» (40 px de alto). */
+.a2 a.rounded-md.bg-accent[href*="wa.me"] { min-height: 44px; }
