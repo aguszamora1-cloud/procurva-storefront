@@ -26,6 +26,7 @@
     "test:outfits-gate": "node --test scripts/outfits-gate.test.mjs",
     "test:template-fin0": "node --test scripts/template-fin0.test.mjs",
     "test:layout-plan": "node --test scripts/product-layout-plan.test.mjs",
+    "test:installments": "node --test scripts/installments-explicit.test.mjs",
     "check": "npm run check:mirrors && npm run check:opacity && npm run check:radius",
     "prebuild": "npm run check",
     "build": "tsc -b && vite build && node scripts/spa-shell.mjs",

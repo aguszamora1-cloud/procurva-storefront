@@ -7,27 +7,29 @@
  * criterio que FIN0 en Atelier 1) sólo muestra lo que se puede distinguir como
  * configurado. Ningún número ni texto cambia: acá sólo se decide si se muestra.
  *
- * Las constantes repiten los valores por defecto de lib/storeConfig.ts (no están
- * exportados). Decisión pendiente, documentada en A4_ENTREGA.md: si storeConfig
- * expusiera «configurado o por defecto», estas reglas se reemplazan por ese dato.
+ * Cuotas: storeConfig expone `installmentsExplicit` (presencia de la clave
+ * guardada), así que no se infiere nada. Promesa de envío e insignias: las
+ * constantes repiten los valores por defecto de lib/storeConfig.ts (no están
+ * exportados); diagnóstico aparte en BLOQUEOS_ORDEN_Y_CUOTAS.md.
  */
 import type { StoreConfig } from '@/lib/types';
 
-/** lib/storeConfig.ts · installmentsCount cuando falta card_installments. */
-export const DEFAULT_INSTALLMENTS = 3;
 /** lib/storeConfig.ts · DEFAULTS.shippingPromiseTitle. */
 export const DEFAULT_SHIPPING_TITLE = 'Envío rápido';
 /** lib/storeConfig.ts · trustBadgeLabels cuando falta trust_badges (después del título de envío). */
 export const DEFAULT_TRUST_LABELS = ['Abonás al recibir', 'Pagás como quieras', 'Compra protegida'];
 
 /**
- * Renglón de cuotas (installmentsLabel): sólo con otra cantidad que la de por
- * defecto o con el «Texto informativo Tarjeta» escrito por el comercio. Con 0 el
- * comercio eligió no anunciar cuotas (installmentsLabel ya devuelve vacío).
+ * Renglón de cuotas (installmentsLabel): sólo con una configuración explícita del
+ * comercio. `installmentsExplicit` (storeConfig) dice si `card_installments` está
+ * guardado; sin la clave, el 3 es el valor por defecto y no se anuncia. El
+ * «Texto informativo Tarjeta» también es explícito: lo escribe el comercio y
+ * nunca tiene valor por defecto. Con 0 el comercio eligió no anunciar cuotas
+ * (installmentsLabel ya devuelve vacío, también para el texto).
  */
-export function installmentsBacked(c: Pick<StoreConfig, 'installmentsCount' | 'cardPaymentText'>): boolean {
+export function installmentsBacked(c: Pick<StoreConfig, 'installmentsCount' | 'installmentsExplicit' | 'cardPaymentText'>): boolean {
   if (c.installmentsCount <= 0) return false;
-  return Boolean(c.cardPaymentText) || c.installmentsCount !== DEFAULT_INSTALLMENTS;
+  return c.installmentsExplicit === true || Boolean(c.cardPaymentText);
 }
 
 /** Promesa de envío: encendida y con un título propio o un subtítulo (el subtítulo nunca tiene valor por defecto). */

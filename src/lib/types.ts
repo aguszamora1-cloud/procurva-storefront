@@ -1154,6 +1154,15 @@ export interface StoreConfig {
   cardPaymentText: string;
   installmentsCount: number;
   /**
+   * true sólo si el comercio guardó `card_installments` (un número válido, 0
+   * incluido). Con la clave ausente, `installmentsCount` es el 3 por defecto:
+   * nadie escribía la clave antes del campo del editor (21/08/2026) y el editor
+   * sólo la escribe cuando el comercio teclea. Classic no lo lee; lo usan las
+   * plantillas para no anunciar cuotas que el comercio nunca confirmó.
+   * Opcional: una configuración en caché de antes no lo trae (= no confirmado).
+   */
+  installmentsExplicit?: boolean;
+  /**
    * Qué precios muestra la tienda en productos, carrito y combos:
    *  'all'     → contado protagonista + "$X con tarjeta" + cuotas (default, lo de siempre)
    *  'contado' → SOLO el precio de contado. Sin renglón de tarjeta, sin cuotas, sin badge %
