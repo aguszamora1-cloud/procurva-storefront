@@ -16,6 +16,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -113,6 +114,23 @@ test('testimonios de las plantillas: sin avance automático ni estrellas inventa
   for (const f of [TPL[0], TPL[2]]) assert.doesNotMatch(code(f), /testimonials: 'template'/, f);
 });
 
+/**
+ * Únicos cambios aprobados en Classic desde la base, cada uno con su contenido
+ * EXACTO (SHA-256 del texto con saltos de línea \n). Cualquier otro archivo, o
+ * cualquier cambio en estos, vuelve a fallar. No excluye carpetas.
+ *  - PR #28 de main («Dinero en cuenta» a precio de tarjeta, 5bf0b4c): llega al
+ *    integrar P1.1 sobre main. El diff de cada archivo desde la base es
+ *    idéntico, línea por línea, al de PR #28 (storeConfig.ts +3, types.ts +8,
+ *    Checkout.tsx +7/−4). Aprobado por Agus el 26/11/2026.
+ */
+const CLASSIC_APPROVED = {
+  'src/lib/storeConfig.ts': '474df7a16f7026a31219132172c683a6ee095a8362d109a2f5772ef01786fd2a',
+  'src/lib/types.ts': '8d1229437a473383c2e50164c6b50d0e163e16fe46c3d51b866d57674f4bf1c8',
+  'src/pages/Checkout.tsx': '7181a252783e2ac8d20373c222a0cc1e068d692fdca0936201c2eebbd8519324',
+};
+const contentHash = (file) =>
+  createHash('sha256').update(readFileSync(resolve(repoRoot, file), 'utf8').replace(/\r\n/g, '\n')).digest('hex');
+
 test('Classic no cambia: componentes, páginas, lib y contextos intactos', () => {
   const base = process.env.FIN0_BASE || '6feaeac';
   let changed;
@@ -124,5 +142,9 @@ test('Classic no cambia: componentes, páginas, lib y contextos intactos', () =>
   } catch {
     return; // sin git (copia suelta): la guarda no aplica
   }
-  assert.equal(changed, '', `archivos de Classic cambiados desde ${base}:\n${changed}`);
+  const notApproved = changed
+    .split('\n')
+    .filter(Boolean)
+    .filter((f) => !(f in CLASSIC_APPROVED && contentHash(f) === CLASSIC_APPROVED[f]));
+  assert.equal(notApproved.join('\n'), '', `archivos de Classic cambiados desde ${base} (fuera de lo aprobado o con otro contenido):\n${notApproved.join('\n')}`);
 });
