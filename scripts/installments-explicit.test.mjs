@@ -91,6 +91,25 @@ test('inválidos (texto, negativo, NaN, infinito, null): mismo 3 que hoy y no ex
   }
 });
 
+test('los cinco casos: Classic muestra lo mismo que la base y Atelier 2 sólo lo explícito', { skip: OLD ? false : 'sin git' }, () => {
+  // [caso, settings, explícito, Atelier 2 anuncia]
+  const CASES = [
+    ['clave ausente', {}, false, false],
+    ['3 explícitas', { card_installments: 3 }, true, true],
+    ['6 explícitas', { card_installments: 6 }, true, true],
+    ['cero', { card_installments: 0 }, true, false],
+    ['inválido (texto)', { card_installments: 'seis' }, false, false],
+  ];
+  for (const [name, s, explicit, shown] of CASES) {
+    const now = NEW.normalizeStoreConfig(resolved(s));
+    const base = OLD.normalizeStoreConfig(resolved(s));
+    assert.equal(now.installmentsExplicit, explicit, name);
+    assert.equal(NEW.installmentsBacked(now), shown, name);
+    // Classic: el mismo renglón que antes, con cualquier precio.
+    for (const price of [0, 999, 50000]) assert.equal(NEW.installmentsLabel(now, price), NEW.installmentsLabel(base, price), `${name} $${price}`);
+  }
+});
+
 test('Atelier 2 sólo anuncia cuotas confirmadas', () => {
   const backed = (s) => NEW.installmentsBacked(NEW.normalizeStoreConfig(resolved(s)));
   assert.equal(backed({}), false, 'ausente (3 por defecto)');
