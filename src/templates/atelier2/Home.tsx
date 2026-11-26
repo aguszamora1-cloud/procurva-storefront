@@ -96,7 +96,7 @@ function CategoryIndex({ categories, products, total }: { categories: CategoryIn
 
 export function Atelier2Home() {
   const config = useStore();
-  const { ink } = useAtelier2Palette();
+  const { ink, newsletterInk } = useAtelier2Palette();
   const { products, isLoading } = useProducts();
   const { featured, newArrivals, offers } = useHomeSections(products);
   const { categories } = useCategories(products);
@@ -108,7 +108,7 @@ export function Atelier2Home() {
     return ordered.map((k) => [k]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderKey]);
-  const store = useStoreHomeExtras(natives, ink);
+  const store = useStoreHomeExtras(natives, ink, { newsletterInk });
 
   const featTitle = useHeading('featured', 'Destacados');
   const newTitle = useHeading('new_arrivals', 'Recién llegados');

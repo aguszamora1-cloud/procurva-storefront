@@ -204,8 +204,12 @@ export interface StoreHomeExtras {
 export function useStoreHomeExtras(
   natives: TemplateNatives,
   ink: TemplateInk,
-  /** `testimonials: 'template'`: los testimonios con el carrusel de las plantillas (shared/Testimonials) en vez de la cinta de Classic. */
-  opts: { testimonials?: 'classic' | 'template' } = {},
+  /**
+   * `testimonials: 'template'`: los testimonios con el carrusel de las plantillas (shared/Testimonials) en vez de la cinta de Classic.
+   * `newsletterInk`: paleta propia SÓLO para la sección del newsletter (el mismo componente de Classic, con la
+   * misma suscripción, visibilidad y orden; sólo cambian sus colores). Sin ella, el newsletter queda como siempre.
+   */
+  opts: { testimonials?: 'classic' | 'template'; newsletterInk?: TemplateInk } = {},
 ): StoreHomeExtras {
   const config = useStore();
   const { sections: customSections, isLoading } = useCustomSections();
@@ -222,7 +226,14 @@ export function useStoreHomeExtras(
   if (on('stories')) nodes.stories = <StoriesSection />;
   if (on('reels')) nodes.reels = <ReelsSection />;
   if (on('social_proof')) nodes.social_proof = opts.testimonials === 'template' ? <TemplateTestimonials /> : <SocialProofSection />;
-  if (on('newsletter')) nodes.newsletter = <NewsletterSection />;
+  if (on('newsletter'))
+    nodes.newsletter = opts.newsletterInk ? (
+      <StoreSurface ink={opts.newsletterInk}>
+        <NewsletterSection />
+      </StoreSurface>
+    ) : (
+      <NewsletterSection />
+    );
   const customKeys: string[] = [];
   for (const cs of customSections) {
     const key = customSectionKey(cs.id);

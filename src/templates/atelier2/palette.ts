@@ -10,7 +10,7 @@
 import { useMemo, type CSSProperties } from 'react';
 import { useStore } from '@/context/StoreProvider';
 import { accentInk, contrastRatio, greyAlphas, legacyTextOn, parseHex, readableFill } from '@/lib/contrast';
-import { safeText } from '@/lib/theme';
+import { contrastColor, luminance, safeText } from '@/lib/theme';
 import type { TemplateInk } from '../shared/StoreContent';
 
 const INTER = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -24,11 +24,37 @@ function textOn(surface: string, preferred: string): string {
   return legacyTextOn(surface);
 }
 
+/**
+ * Botón del newsletter. Classic lo pinta con `safeFill(accent, sección)` y le pone el
+ * texto de `contrastColor`; acá se elige el relleno para que ese resultado cumpla:
+ * texto 4,5:1 sobre el botón y botón 3:1 contra la sección (contraste de componente).
+ * Orden: el principal (ya legible), su versión llevada al extremo (accentInk) y, si
+ * ninguno alcanza, el color de texto de la sección. El color guardado no cambia.
+ */
+export function newsletterButton(primaryFill: string, section: string, sectionText: string): string {
+  const ok = (fill: string) => {
+    const f = parseHex(fill);
+    const s = parseHex(section);
+    const t = parseHex(contrastColor(fill));
+    if (!f || !s || !t) return false;
+    const keptByClassic = Math.abs(luminance(fill) - luminance(section)) >= 0.25;
+    return keptByClassic && contrastRatio(t, f) >= AA && contrastRatio(f, s) >= 3;
+  };
+  for (const fill of [primaryFill, accentInk(primaryFill, section)]) if (ok(fill)) return fill;
+  return sectionText;
+}
+
 export interface Atelier2Palette {
   /** Variables CSS del kit (todas con prefijo --a2-). */
   vars: CSSProperties;
   /** Lo mismo en los términos de Classic, para las piezas compartidas (barras, popup, secciones del comercio). */
   ink: TemplateInk;
+  /**
+   * Newsletter: la sección de Classic sobre el color secundario, con el principal
+   * del comercio sólo en el botón (maqueta v2.1). Classic pinta la sección con
+   * `primary` y el botón con `accent`: acá van el secundario y el principal.
+   */
+  newsletterInk: TemplateInk;
 }
 
 export function useAtelier2Palette(): Atelier2Palette {
@@ -73,6 +99,7 @@ export function useAtelier2Palette(): Atelier2Palette {
       buttonCorners: 'rounded',
       titleAlign: 'left',
     };
-    return { vars: vars as CSSProperties, ink };
+    const newsletterInk: TemplateInk = { ...ink, primary: secondary, accent: newsletterButton(primary.fill, secondary, onSecondary) };
+    return { vars: vars as CSSProperties, ink, newsletterInk };
   }, [c.colorBackground, c.colorText, c.colorPrimary, c.colorAccent, c.colorSecondary, c.headerBackground]);
 }
