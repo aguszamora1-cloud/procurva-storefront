@@ -29,9 +29,9 @@
  * calcula ese número a partir del id del producto, no es un dato real.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Check, ChevronDown, Ruler, Tag, Truck, X } from 'lucide-react';
+import { ChevronDown, Ruler, Tag, Truck } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
 import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { useCartView } from '../shared/ui';
@@ -269,27 +269,6 @@ function BelowZone({ product, layout, sections, ink }: { product: Product; layou
   return <div className="a2-below">{nodes}</div>;
 }
 
-// ── Aviso al agregar ─────────────────────────────────────────────────────────
-/**
- * addItem abre la bolsa lateral; Atelier 2 todavía no la tiene (llega en A6).
- * Mientras tanto: se cierra ese estado y se avisa, con un enlace a la bolsa.
- */
-function useAddedNotice() {
-  const { isOpen, close } = useCartView();
-  const [added, setAdded] = useState(false);
-  useEffect(() => {
-    if (!isOpen) return;
-    close();
-    setAdded(true);
-  }, [isOpen, close]);
-  useEffect(() => {
-    if (!added) return;
-    const t = window.setTimeout(() => setAdded(false), 6000);
-    return () => window.clearTimeout(t);
-  }, [added]);
-  return { added, dismiss: useCallback(() => setAdded(false), []) };
-}
-
 // ── Ficha ─────────────────────────────────────────────────────────────────────
 function ProductView({ product }: { product: Product }) {
   const config = useStore();
@@ -307,7 +286,6 @@ function ProductView({ product }: { product: Product }) {
   const { badges } = useProductBadges(product, { color: pdp.color });
   const { sections } = useProductDetailCustomSections(product.id);
   const policies = usePolicies();
-  const { added, dismiss } = useAddedNotice();
   const [finder, setFinder] = useState(false);
 
   const layout = resolveProductLayoutOrNull(product.product_layout) ?? config.productLayout;
@@ -635,18 +613,6 @@ function ProductView({ product }: { product: Product }) {
         </button>
       </div>
 
-      {added && (
-        <div className="a2-toast" role="status">
-          <Check aria-hidden="true" />
-          <p>Se agregó a tu bolsa</p>
-          <Link to="/carrito" className="a2-toast__a">
-            Ver bolsa
-          </Link>
-          <button type="button" className="a2-ib" onClick={dismiss} aria-label="Cerrar aviso">
-            <X aria-hidden="true" />
-          </button>
-        </div>
-      )}
     </>
   );
 }

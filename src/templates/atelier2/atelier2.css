@@ -429,12 +429,6 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
 .a2-below > .a2-sec:first-child { padding-top: clamp(40px, 5vw, 72px); }
 .a2-below .tpl-store { background: transparent; }
 
-/* Aviso «Se agregó a tu bolsa» (hasta que llegue la bolsa lateral, A6) */
-.a2-toast { position: fixed; z-index: 70; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; width: min(480px, calc(100vw - 32px)); padding: 6px 6px 6px 16px; background: var(--a2-text); color: var(--a2-bg); border-radius: var(--a2-r); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18); font-size: 14px; }
-.a2-toast p { flex: 1; min-width: 0; }
-.a2-toast__a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; text-decoration: underline; text-underline-offset: 3px; font-weight: 500; }
-.a2-toast .a2-ib:hover { background: color-mix(in srgb, var(--a2-bg) 14%, transparent); }
-.a2-toast :focus-visible { outline-color: var(--a2-bg); }
 
 /* Barra fija de compra (sólo celular) */
 .a2-bar { display: none; }
@@ -473,7 +467,6 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
   /* La barra no tapa el final de la página ni el botón de WhatsApp. */
   .a2:has(.a2-bar) { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
   .tpl-atelier2:has(.a2-bar) .tpl-wa > a { bottom: calc(88px + env(safe-area-inset-bottom)); }
-  .a2-toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
 }
 .a2-promise { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; margin-top: -8px; }
 .a2-promise .lucide { width: 18px; height: 18px; margin-top: 1px; color: var(--a2-muted); }
@@ -548,4 +541,81 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
 /* Pie: 44 px donde se toca con el dedo (celular, tablet); con mouse queda como estaba. */
 @media (max-width: 899px), (pointer: coarse) {
   .a2-ft ul a { min-height: 44px; min-width: 44px; }
+}
+
+/* ══ A6 · Bolsa lateral y página /carrito ═════════════════════════════════ */
+.a2-sheet--r { right: 0; }
+.a2-bag { width: min(460px, 100%); }
+.a2-bag .a2-sheet__h h2 { font-size: 18px; font-weight: 500; }
+.a2-bag .a2-sheet__h h2 span { color: var(--a2-muted); font-weight: 400; }
+/* Falla visual 1 de la maqueta: las líneas con 24 px de margen a cada lado. */
+.a2-bag__b { display: grid; gap: 20px; align-content: start; padding: 12px 24px 24px; }
+.a2-bag__f { gap: 12px; box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.04); }
+.a2-bag .tpl-store, .a2-cartp .tpl-store { background: transparent; }
+.a2-bag .tpl-store:not(:has(:not([data-ink]))), .a2-cartp .tpl-store:not(:has(:not([data-ink]))) { display: none; }
+
+/* Líneas */
+.a2-lines { list-style: none; margin: 0; padding: 0; }
+.a2-line { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 14px; padding: 18px 0; border-bottom: 1px solid var(--a2-line); }
+.a2-line:first-child { padding-top: 8px; }
+.a2-line__img { display: block; aspect-ratio: 3 / 4; overflow: hidden; background: var(--a2-frame); border-radius: var(--a2-r); }
+.a2-line__img img { width: 100%; height: 100%; object-fit: cover; }
+.a2-line__b { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.a2-line__h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.a2-line__n { display: inline-flex; align-items: center; min-width: 0; min-height: 44px; margin: -12px 0; font-size: 14.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.a2-line__n:hover { text-decoration: underline; text-underline-offset: 3px; }
+.a2-line__p { flex: none; display: grid; justify-items: end; font-size: 14.5px; white-space: nowrap; }
+.a2-line__p b { font-weight: 500; }
+.a2-line__p s { font-size: 12.5px; color: var(--a2-muted); }
+.a2-line__m { display: flex; flex-wrap: wrap; gap: 0 10px; font-size: 13px; color: var(--a2-muted); }
+.a2-line__m--g { color: var(--a2-text); }
+.a2-line__f { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 6px; }
+.a2-qty { display: inline-flex; align-items: center; border: 1px solid var(--a2-line); border-radius: var(--a2-r); }
+.a2-qty button { width: 44px; height: 44px; display: grid; place-items: center; }
+.a2-qty button:hover { background: var(--a2-line-soft); }
+.a2-qty .lucide { width: 16px; height: 16px; }
+.a2-qty span { min-width: 24px; text-align: center; font-size: 14px; font-variant-numeric: tabular-nums; }
+.a2-line__u { font-size: 13px; color: var(--a2-muted); }
+.a2-line__x { min-width: 44px; min-height: 44px; padding: 0 4px; font-size: 13px; color: var(--a2-muted); text-decoration: underline; text-underline-offset: 3px; }
+.a2-line__x:hover { color: var(--a2-text); }
+
+/* Avisos de ahorro. Falla visual 3: el «%» no queda solo en el renglón siguiente. */
+.a2-nudge { padding: 12px 14px; font-size: 13.5px; line-height: 1.45; color: var(--a2-accent-ink); background: color-mix(in srgb, var(--a2-accent) 9%, var(--a2-bg)); border-radius: var(--a2-r); text-wrap: pretty; }
+.a2-nudge + .a2-nudge { margin-top: -12px; }
+
+/* Resumen */
+.a2-sum { display: grid; gap: 16px; align-content: start; }
+.a2-sum__t { display: grid; gap: 4px; }
+.a2-sum__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 15px; }
+.a2-sum__row s { margin-right: 8px; font-size: 13.5px; color: var(--a2-muted); }
+.a2-sum__row b { font-size: 19px; font-weight: 500; letter-spacing: -0.01em; }
+.a2-sum__note { font-size: 13px; color: var(--a2-muted); }
+.a2-sum__note--r, .a2-sum__save { text-align: right; }
+.a2-sum__save { font-size: 13.5px; font-weight: 500; color: var(--a2-accent-ink); }
+.a2-sum__classic { display: grid; gap: 14px; }
+.a2-sum__cta { display: grid; gap: 8px; }
+.a2-sum__cta .a2-btn { width: 100%; }
+.a2-bagx:empty { display: none; }
+.a2-bagempty { display: grid; justify-items: center; gap: 14px; padding: 56px 0; text-align: center; color: var(--a2-muted); }
+.a2-bagempty .lucide { width: 28px; height: 28px; }
+
+/* Página /carrito */
+.a2-cartp { padding-top: 32px; }
+.a2-cartp h1 { margin: 0 0 24px; font-size: clamp(28px, 3vw, 40px); font-weight: 500; line-height: 1.15; letter-spacing: -0.02em; }
+.a2-cartp h1 .a2-muted { font-size: 0.5em; font-weight: 400; letter-spacing: 0; }
+.a2-cartp__g { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: clamp(32px, 4vw, 64px); align-items: start; }
+.a2-cartp__l { display: grid; gap: 28px; }
+.a2-cartp__l > .a2-lines { border-top: 1px solid var(--a2-line); }
+.a2-cartp .a2-line { grid-template-columns: 112px minmax(0, 1fr); gap: 20px; padding: 22px 0; }
+.a2-cartp__s { position: sticky; top: 84px; padding: 24px; border: 1px solid var(--a2-line); border-radius: var(--a2-r); }
+
+@media (max-width: 899px) {
+  .a2-bag { width: 100%; }
+  .a2-bag__b { padding: 8px 16px 20px; }
+  .a2-bag__f { padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .a2-line { grid-template-columns: 72px minmax(0, 1fr); gap: 12px; }
+  .a2-cartp { padding-top: 20px; }
+  .a2-cartp__g { grid-template-columns: 1fr; gap: 28px; }
+  .a2-cartp .a2-line { grid-template-columns: 84px minmax(0, 1fr); gap: 14px; padding: 18px 0; }
+  .a2-cartp__s { position: static; padding: 20px 16px; }
 }

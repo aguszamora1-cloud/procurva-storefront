@@ -5,7 +5,7 @@
  * Sólo presentación. Los datos salen de los mismos hooks que usa Atelier 1
  * (productos, categorías, menú, contacto, políticas, carrito) y las piezas
  * compartidas son las mismas: barras superiores, popup del newsletter y botón de
- * WhatsApp. La bolsa lateral llega en A6: mientras tanto «Bolsa» abre /carrito.
+ * WhatsApp. «Bolsa» abre la bolsa lateral (A6, Cart.tsx), como Atelier 1.
  */
 
 import { useCallback, useRef, useState, type FormEvent, type ReactNode } from 'react';
@@ -20,6 +20,7 @@ import { TemplateNewsletterPopup, TemplateTopBars } from '../shared/StoreContent
 import { TemplateWhatsApp } from '../shared/ClassicExtras';
 import { StoreMark, useCartView, useCloseOnRoute, useOverlay, useScrolled, useSearchSubmit } from '../shared/ui';
 import { useAtelier2Palette } from './palette';
+import { Atelier2Bag } from './Cart';
 
 /** Categorías que entran en la fila del encabezado de escritorio; el resto, en «Más» (menú). */
 const NAV_CATEGORIES = 5;
@@ -40,7 +41,7 @@ function Logo({ className = '' }: { className?: string }) {
 }
 
 function Header({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void }) {
-  const { itemCount } = useCartView();
+  const { itemCount, open: openBag } = useCartView();
   const { categories } = useStoreCategories();
   const compact = useScrolled(24);
   const bagLabel = `Bolsa, ${itemCount} ${itemCount === 1 ? 'producto' : 'productos'}`;
@@ -61,7 +62,7 @@ function Header({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void
           <button type="button" className="a2-ib a2-only-m" onClick={onSearch} aria-label="Buscar">
             <Search aria-hidden="true" />
           </button>
-          <Link to="/carrito" className="a2-hd__tool a2-hd__bag" aria-label={bagLabel}>
+          <button type="button" className="a2-hd__tool a2-hd__bag" aria-label={bagLabel} aria-haspopup="dialog" onClick={openBag}>
             <ShoppingBag aria-hidden="true" />
             <span className="a2-only-d">Bolsa</span>
             {itemCount > 0 && (
@@ -69,7 +70,7 @@ function Header({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void
                 {itemCount}
               </b>
             )}
-          </Link>
+          </button>
         </div>
       </div>
       {categories.length > 0 && (
@@ -334,6 +335,7 @@ export function Atelier2Shell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <Footer />
+      <Atelier2Bag />
       <TemplateNewsletterPopup ink={ink} />
       <TemplateWhatsApp />
     </div>
