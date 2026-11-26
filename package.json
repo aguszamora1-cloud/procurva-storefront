@@ -29,6 +29,7 @@
     "test:installments": "node --test scripts/installments-explicit.test.mjs",
     "test:shipping-promise": "node --test scripts/shipping-promise-explicit.test.mjs",
     "test:atelier2-guards": "node --test scripts/atelier2-guards.test.mjs",
+    "test:template-atelier2": "node --test scripts/template-atelier2.test.mjs",
     "check": "npm run check:mirrors && npm run check:opacity && npm run check:radius",
     "prebuild": "npm run check",
     "build": "tsc -b && vite build && node scripts/spa-shell.mjs",
