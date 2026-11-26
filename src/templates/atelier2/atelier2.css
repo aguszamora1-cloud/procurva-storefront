@@ -541,3 +541,11 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
   .a2-tier__badge { left: auto; right: 10px; }
   .a2-unit { padding: 4px 12px 12px; }
 }
+
+/* ══ A4c · Áreas táctiles de la navegación ═══════════════════════════════ */
+/* Ruta: 44 px de alto para tocar; el margen negativo conserva el espacio que se ve (32 px). */
+.a2-crumbs a { min-height: 44px; min-width: 44px; justify-content: center; padding: 0 6px; margin: -6px -6px; }
+/* Pie: 44 px donde se toca con el dedo (celular, tablet); con mouse queda como estaba. */
+@media (max-width: 899px), (pointer: coarse) {
+  .a2-ft ul a { min-height: 44px; min-width: 44px; }
+}

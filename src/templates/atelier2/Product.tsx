@@ -34,7 +34,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Check, ChevronDown, Ruler, Tag, Truck, X } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
 import { useFirstPaintGate } from '@/context/FirstPaintContext';
-import { useCart } from '@/context/CartContext';
+import { useCartView } from '../shared/ui';
 import { usePromotions } from '@/context/PromotionsContext';
 import { useProduct } from '@/hooks/useProduct';
 import { useProductBadges } from '@/hooks/useProductBadges';
@@ -275,7 +275,7 @@ function BelowZone({ product, layout, sections, ink }: { product: Product; layou
  * Mientras tanto: se cierra ese estado y se avisa, con un enlace a la bolsa.
  */
 function useAddedNotice() {
-  const { isOpen, close } = useCart();
+  const { isOpen, close } = useCartView();
   const [added, setAdded] = useState(false);
   useEffect(() => {
     if (!isOpen) return;
@@ -295,7 +295,7 @@ function ProductView({ product }: { product: Product }) {
   const config = useStore();
   const { ink } = useAtelier2Palette();
   const navigate = useNavigate();
-  const { close: closeCart } = useCart();
+  const { close: closeCart } = useCartView();
   const pdp = usePdp(product);
   const tier = useTplTiers(product, pdp);
   const notice = tierStockNotice(tier);
