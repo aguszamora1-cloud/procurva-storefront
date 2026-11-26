@@ -23,9 +23,8 @@
  * mismos grupos, bloques fijos anclados y filas por unidad. Atelier 2 sólo
  * decide cómo se ve cada bloque.
  *
- * Valores por defecto (facts.ts): las cuotas, la promesa de envío y las
- * insignias de confianza se muestran sólo cuando se distinguen de lo que
- * storeConfig completa solo. «N personas están viendo» no se muestra: Classic
+ * Valores por defecto (facts.ts): las cuotas y la promesa de envío se muestran
+ * sólo si el comercio las guardó; las insignias de confianza, por ahora no. «N personas están viendo» no se muestra: Classic
  * calcula ese número a partir del id del producto, no es un dato real.
  */
 
@@ -79,7 +78,7 @@ import { merchantPurchaseSteps } from '../shared/storeFacts';
 import { StoreSurface, type TemplateInk } from '../shared/StoreContent';
 import { Atelier2Card } from './Card';
 import { Atelier2Choices } from './Choices';
-import { installmentsBacked, shippingPromiseBacked, trustBadgesBacked } from './facts';
+import { installmentsBacked, shippingPromiseLines, trustBadgesBacked } from './facts';
 import { useAtelier2Palette } from './palette';
 
 const ROOT = '.a2-pdp';
@@ -433,16 +432,18 @@ function ProductView({ product }: { product: Product }) {
             )}
           </div>
         ) : null;
-      case 'shipping_promise':
-        return shippingPromiseBacked(config) ? (
+      case 'shipping_promise': {
+        const promise = shippingPromiseLines(config);
+        return promise ? (
           <p className="a2-promise">
             <Truck aria-hidden="true" />
             <span>
-              {config.shippingPromiseTitle && <b>{config.shippingPromiseTitle}</b>}
-              {config.shippingPromiseSubtitle && <span>{config.shippingPromiseSubtitle}</span>}
+              {promise.title && <b>{promise.title}</b>}
+              {promise.subtitle && <span>{promise.subtitle}</span>}
             </span>
           </p>
         ) : null;
+      }
       case 'add_to_cart':
         return (
           <>
@@ -523,7 +524,7 @@ function ProductView({ product }: { product: Product }) {
                 <ShippingCalculator productId={product.id} />
               </Surface>
             )}
-            {trustBadgesBacked(config) && (
+            {trustBadgesBacked() && (
               <Surface ink={ink}>
                 <TrustBadges />
               </Surface>

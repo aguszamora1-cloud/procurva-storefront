@@ -565,6 +565,9 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
 
     shippingPromiseEnabled: bool(s.shipping_promise_enabled, true),
     shippingPromiseTitle: shippingTitle,
+    // ¿Título guardado por el comercio o «Envío rápido» por defecto? No cambia
+    // shippingPromiseTitle ni lo que muestra Classic.
+    shippingPromiseTitleExplicit: typeof s.shipping_promise_title === 'string',
     // Subtítulo: SOLO lo que el comercio cargó. Sin fallback a shipping_message
     // (duplicaba el título cuando coincidían) ni al default: vacío → no se
     // renderiza el "· subtítulo", solo el título.

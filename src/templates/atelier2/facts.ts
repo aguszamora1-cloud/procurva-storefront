@@ -7,17 +7,11 @@
  * criterio que FIN0 en Atelier 1) sólo muestra lo que se puede distinguir como
  * configurado. Ningún número ni texto cambia: acá sólo se decide si se muestra.
  *
- * Cuotas: storeConfig expone `installmentsExplicit` (presencia de la clave
- * guardada), así que no se infiere nada. Promesa de envío e insignias: las
- * constantes repiten los valores por defecto de lib/storeConfig.ts (no están
- * exportados); diagnóstico aparte en BLOQUEOS_ORDEN_Y_CUOTAS.md.
+ * Nada se decide comparando textos con un valor por defecto: storeConfig expone
+ * la presencia del dato guardado (`installmentsExplicit`,
+ * `shippingPromiseTitleExplicit`). Lo que no se puede demostrar, no se muestra.
  */
 import type { StoreConfig } from '@/lib/types';
-
-/** lib/storeConfig.ts · DEFAULTS.shippingPromiseTitle. */
-export const DEFAULT_SHIPPING_TITLE = 'Envío rápido';
-/** lib/storeConfig.ts · trustBadgeLabels cuando falta trust_badges (después del título de envío). */
-export const DEFAULT_TRUST_LABELS = ['Abonás al recibir', 'Pagás como quieras', 'Compra protegida'];
 
 /**
  * Renglón de cuotas (installmentsLabel): sólo con una configuración explícita del
@@ -32,16 +26,31 @@ export function installmentsBacked(c: Pick<StoreConfig, 'installmentsCount' | 'i
   return c.installmentsExplicit === true || Boolean(c.cardPaymentText);
 }
 
-/** Promesa de envío: encendida y con un título propio o un subtítulo (el subtítulo nunca tiene valor por defecto). */
-export function shippingPromiseBacked(c: Pick<StoreConfig, 'shippingPromiseEnabled' | 'shippingPromiseTitle' | 'shippingPromiseSubtitle'>): boolean {
-  if (!c.shippingPromiseEnabled) return false;
-  if (c.shippingPromiseSubtitle) return true;
-  return Boolean(c.shippingPromiseTitle) && c.shippingPromiseTitle !== DEFAULT_SHIPPING_TITLE;
+/**
+ * Promesa de envío: qué renglones mostrar, o null para no mostrarla.
+ * - Apagada por el comercio (shipping_promise_enabled), no se muestra; la
+ *   visibilidad del bloque en el diseño de la ficha la decide la plantilla.
+ * - Título: sólo si el comercio lo guardó (`shippingPromiseTitleExplicit`); sin
+ *   la clave, «Envío rápido» es el valor por defecto y no se anuncia.
+ * - Subtítulo: storeConfig no le pone valor por defecto, así que un subtítulo
+ *   con texto siempre es el que guardó el comercio.
+ */
+export function shippingPromiseLines(
+  c: Pick<StoreConfig, 'shippingPromiseEnabled' | 'shippingPromiseTitle' | 'shippingPromiseTitleExplicit' | 'shippingPromiseSubtitle'>,
+): { title: string; subtitle: string } | null {
+  if (!c.shippingPromiseEnabled) return null;
+  const title = c.shippingPromiseTitleExplicit === true ? c.shippingPromiseTitle.trim() : '';
+  const subtitle = c.shippingPromiseSubtitle.trim();
+  return title || subtitle ? { title, subtitle } : null;
 }
 
-/** Insignias de confianza: encendidas y distintas de la lista por defecto («Abonás al recibir»…). */
-export function trustBadgesBacked(c: Pick<StoreConfig, 'sections' | 'trustBadgeLabels' | 'shippingPromiseTitle'>): boolean {
-  if (!c.sections.trustBadges || c.trustBadgeLabels.length === 0) return false;
-  const fallback = [c.shippingPromiseTitle, ...DEFAULT_TRUST_LABELS].filter(Boolean);
-  return !(c.trustBadgeLabels.length === fallback.length && c.trustBadgeLabels.every((l, i) => l === fallback[i]));
+/**
+ * Insignias de confianza: ocultas en Atelier 2 (decisión de Agus del 26/11,
+ * opción B). No se puede demostrar qué etiqueta eligió el comercio: al editar
+ * una, el editor guarda las cuatro, y la lista por defecto del editor no es la
+ * de la tienda. Pendiente de producto antes de A8: que el editor guarde cada
+ * etiqueta sólo cuando el comercio la escribe. Classic no cambia.
+ */
+export function trustBadgesBacked(): boolean {
+  return false;
 }

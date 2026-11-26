@@ -208,8 +208,10 @@ export function useStoreHomeExtras(
    * `testimonials: 'template'`: los testimonios con el carrusel de las plantillas (shared/Testimonials) en vez de la cinta de Classic.
    * `newsletterInk`: paleta propia SÓLO para la sección del newsletter (el mismo componente de Classic, con la
    * misma suscripción, visibilidad y orden; sólo cambian sus colores). Sin ella, el newsletter queda como siempre.
+   * `hideTrustBadges`: la plantilla no pinta la barra de insignias aunque el comercio la tenga prendida (Atelier 2:
+   * no se puede demostrar qué etiquetas eligió el comercio). Sin la opción, la barra queda como siempre.
    */
-  opts: { testimonials?: 'classic' | 'template'; newsletterInk?: TemplateInk } = {},
+  opts: { testimonials?: 'classic' | 'template'; newsletterInk?: TemplateInk; hideTrustBadges?: boolean } = {},
 ): StoreHomeExtras {
   const config = useStore();
   const { sections: customSections, isLoading } = useCustomSections();
@@ -222,7 +224,7 @@ export function useStoreHomeExtras(
 
   const nodes: Record<string, ReactNode> = {};
   const noReveal = new Set<string>(['trust_badges']);
-  if (on('trust_badges')) nodes.trust_badges = <TrustBadges background={config.trustBadgesBgColor || undefined} />;
+  if (on('trust_badges') && !opts.hideTrustBadges) nodes.trust_badges = <TrustBadges background={config.trustBadgesBgColor || undefined} />;
   if (on('stories')) nodes.stories = <StoriesSection />;
   if (on('reels')) nodes.reels = <ReelsSection />;
   if (on('social_proof')) nodes.social_proof = opts.testimonials === 'template' ? <TemplateTestimonials /> : <SocialProofSection />;

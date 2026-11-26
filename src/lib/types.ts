@@ -1259,6 +1259,13 @@ export interface StoreConfig {
   // Shipping
   shippingPromiseEnabled: boolean;
   shippingPromiseTitle: string;
+  /**
+   * true sólo si el comercio guardó `shipping_promise_title` (un texto, aunque
+   * esté vacío). Sin la clave, `shippingPromiseTitle` es «Envío rápido» por
+   * defecto. Lo escriben sólo los campos del editor del ERP al teclear (no hay
+   * valor por defecto que se guarde solo). No cambia lo que muestra Classic.
+   */
+  shippingPromiseTitleExplicit?: boolean;
   shippingPromiseSubtitle: string;
   shippingPromiseColor: string;
   shippingMessage: string;

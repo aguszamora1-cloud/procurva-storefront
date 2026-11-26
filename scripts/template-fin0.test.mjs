@@ -124,12 +124,15 @@ test('testimonios de las plantillas: sin avance automático ni estrellas inventa
  *  - Cuotas confirmadas (installmentsExplicit): storeConfig agrega un campo;
  *    installmentsCount y el resto de la configuración son idénticos a la base
  *    (scripts/installments-explicit.test.mjs). Aprobado por Agus el 26/11.
+ *  - Promesa de envío guardada (shippingPromiseTitleExplicit): otro campo, con
+ *    el mismo criterio (scripts/shipping-promise-explicit.test.mjs). Aprobado
+ *    por Agus el 26/11.
  */
 const CLASSIC_APPROVED = {
   'src/pages/ProductDetail.tsx': '9dd70f91b2bf7395b3e821d52db3a604450ec8801dd766af031f1d71701a0cff',
   'src/lib/productLayoutPlan.ts': '73978dd8a5bfc76a4ccc60d32bec893d4bed1d514b1271f1d5628a93ecd87617',
-  'src/lib/types.ts': '763d8e6e6d48457058b0b9ea1e3ffe98b5a731f947b313a6938f85c9db56111d',
-  'src/lib/storeConfig.ts': '15fbad07a376927fb60c9115e9a98a7610b9165f78a64853057af1ec62504e0a',
+  'src/lib/types.ts': '491490719dfdd2c3b46e74ea47903783a26f00f0688c4fc53d6cab3476430919',
+  'src/lib/storeConfig.ts': '5714d2e1e332d59da4ffd60f4f9d088a1f48dfee3216cd6254756572e12a1103',
 };
 const contentHash = (file) =>
   createHash('sha256').update(readFileSync(resolve(repoRoot, file), 'utf8').replace(/\r\n/g, '\n')).digest('hex');

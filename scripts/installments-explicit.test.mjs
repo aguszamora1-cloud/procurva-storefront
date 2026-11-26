@@ -61,7 +61,8 @@ test('Classic no cambia: misma configuración normalizada que 6feaeac, salvo ins
   for (const [name, v] of Object.entries(VALUES)) {
     for (const extra of [{}, { card_payment_text: 'Hasta 6 cuotas con bancos' }, { price_display: 'contado' }]) {
       const a = OLD.normalizeStoreConfig(resolved(settingsFor(v, extra)));
-      const { installmentsExplicit, ...b } = NEW.normalizeStoreConfig(resolved(settingsFor(v, extra)));
+      // shippingPromiseTitleExplicit: el otro campo aprobado (shipping-promise-explicit.test.mjs).
+      const { installmentsExplicit, shippingPromiseTitleExplicit: _promesa, ...b } = NEW.normalizeStoreConfig(resolved(settingsFor(v, extra)));
       assert.equal(typeof installmentsExplicit, 'boolean', name);
       assert.deepEqual(b, a, `card_installments=${name} ${JSON.stringify(extra)}`);
       for (const price of [0, 1000, 35715]) assert.equal(NEW.installmentsLabel(b, price), NEW.installmentsLabel(a, price));

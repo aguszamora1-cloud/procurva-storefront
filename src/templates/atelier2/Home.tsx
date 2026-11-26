@@ -7,9 +7,10 @@
  *     useStoreHomeExtras().on);
  *   - orden: el de `sections_order` (orderHomeKeys), también para las propias;
  *     el contenido del comercio (secciones personalizadas, reseñas, newsletter,
- *     videos, historias, beneficios) se ubica entre ellas con placeAroundNatives,
+ *     videos, historias) se ubica entre ellas con placeAroundNatives,
  *     igual que en las otras plantillas. El newsletter aparece SÓLO ahí, cuando
  *     está habilitado: no hay uno fijo en el pie.
+ *     La barra de insignias (beneficios) no se pinta: ver facts.ts.
  *   - títulos: los que escribió el comercio (useHeading), o uno corto.
  * Datos: productos, fijados y más vendidos (useHomeSections), categorías con su
  * imagen. Sin textos, etiquetas ni promociones inventadas.
@@ -33,6 +34,7 @@ import { useStoreHomeExtras, type TemplateNatives } from '../shared/StoreContent
 import { Atelier2Card, Atelier2CardSkeleton } from './Card';
 import { Atelier2Hero } from './Hero';
 import { useAtelier2Palette } from './palette';
+import { trustBadgesBacked } from './facts';
 
 /** Bloques propios de Atelier 2. Su orden en pantalla sale de sections_order. */
 const NATIVE_KEYS: readonly FixedHomeKey[] = ['hero', 'categories', 'featured', 'new_arrivals', 'offers'];
@@ -108,7 +110,8 @@ export function Atelier2Home() {
     return ordered.map((k) => [k]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderKey]);
-  const store = useStoreHomeExtras(natives, ink, { newsletterInk });
+  // Insignias de confianza: ocultas en Atelier 2 (facts.ts · trustBadgesBacked).
+  const store = useStoreHomeExtras(natives, ink, { newsletterInk, hideTrustBadges: !trustBadgesBacked() });
 
   const featTitle = useHeading('featured', 'Destacados');
   const newTitle = useHeading('new_arrivals', 'Recién llegados');
