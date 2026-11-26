@@ -641,3 +641,7 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
 .a2 section.bg-primary form ~ button.underline { position: relative; z-index: 1; margin-top: 0; padding-top: 8px; padding-bottom: 16px; margin-bottom: -16px; }
 /* Preguntas frecuentes: «Escribinos por WhatsApp» (40 px de alto). */
 .a2 a.rounded-md.bg-accent[href*="wa.me"] { min-height: 44px; }
+/* Bolsa: «¿Tenés un cupón?» de CouponCartBox (20 px de alto). Sólo donde se toca con el dedo. */
+@media (max-width: 899px), (pointer: coarse) {
+  .a2-sum__classic button.inline-flex.text-accent { min-height: 44px; }
+}
