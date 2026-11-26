@@ -11,7 +11,8 @@
  *       paleta del comercio legible (palette.ts) e Inter.
  *   A2  inicio (Home.tsx, Hero.tsx, Card.tsx): portada a ancho completo y
  *       secciones con la visibilidad y el orden del editor.
- *   A3–A6  catálogo, ficha, bolsa: todavía páginas provisorias.
+ *   A3  catálogo (Catalog.tsx): categoría, búsqueda, talle, orden y «Mostrar más».
+ *   A4–A6  ficha y bolsa: todavía páginas provisorias.
  * Sin lógica comercial propia: todo sale de los hooks compartidos.
  */
 
@@ -19,6 +20,7 @@ import type { ReactNode } from 'react';
 import type { TemplateKit } from '../TemplateApp';
 import { Atelier2Shell } from './Chrome';
 import { Atelier2Home } from './Home';
+import { Atelier2Catalog } from './Catalog';
 import './atelier2.css';
 
 function Atelier2Notice({ title, children }: { title: string; children?: ReactNode }) {
@@ -44,7 +46,7 @@ function pending(title: string, block: string) {
 export const atelier2Kit: TemplateKit = {
   Shell: Atelier2Shell,
   Home: Atelier2Home,
-  Catalog: pending('Productos', 'A3'),
+  Catalog: Atelier2Catalog,
   Product: pending('Ficha de producto', 'A4 y A5'),
   Cart: pending('Bolsa', 'A6'),
   Notice: Atelier2Notice,
