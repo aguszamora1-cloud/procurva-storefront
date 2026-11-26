@@ -40,54 +40,15 @@ import { useProductBadges } from '@/hooks/useProductBadges';
 import { formatPrice, getPriceInfo, productImages, resolvePricePair, sortSizes } from '@/lib/utils';
 import { buildWhatsappInquiry } from '@/lib/checkout';
 import { track } from '@/lib/tracking';
-import {
-  isCustomToken,
-  customTokenId,
-  reinsertByReference,
-  DEFAULT_PRODUCT_LAYOUT,
-  resolveProductLayoutOrNull,
-  type ProductLayout,
-} from '@/lib/productLayout';
+import { DEFAULT_PRODUCT_LAYOUT, resolveProductLayoutOrNull, type ProductLayout } from '@/lib/productLayout';
+import { planBelowProduct, planRightColumn, type RightAnchor } from '@/lib/productLayoutPlan';
 import type { CustomSection, Product, ProductDetailSlot, StoreConfig, Variant } from '@/lib/types';
 import { useTypography } from '@/hooks/useTypography';
 import { useInk } from '@/hooks/useInk';
 
-/**
- * Grupos visuales de la columna derecha. Los tokens de un mismo grupo que queden
- * CONSECUTIVOS se pintan juntos dentro de un contenedor con menos aire
- * (space-y-3 = 12px en vez de los 24px de la columna): son partes de una misma
- * decisión y con 24px entre color y talle se leían como bloques sueltos. Si el
- * comercio los separa en el editor, cada corrida arma su propio grupo.
- */
-const RIGHT_GROUP: Record<string, 'variant' | 'cta'> = {
-  colors: 'variant',
-  sizes: 'variant',
-  size_guide: 'variant',
-  add_to_cart: 'cta',
-  whatsapp: 'cta',
-  virtual_try: 'cta',
-};
-
-/**
- * Tokens que esta columna sabe pintar. Incluye a reels/reviews/related, que
- * ahora tienen variante de columna además de la de ancho completo: el comercio
- * elige la zona y cada una usa el layout que le corresponde.
- */
-const RIGHT_TOKENS: readonly string[] = [
-  'quantity_promo',
-  'colors',
-  'sizes',
-  'size_guide',
-  'shipping_promise',
-  'add_to_cart',
-  'whatsapp',
-  'virtual_try',
-  'upsells',
-  'purchase_flow',
-  'reels',
-  'reviews',
-  'related',
-];
+// Grupos visuales (RIGHT_GROUP), tokens de la columna (RIGHT_TOKENS) y el orden
+// de las dos zonas viven en lib/productLayoutPlan.ts: los comparte con las
+// plantillas, para que el orden del editor se respete igual en todas.
 
 /**
  * Renderiza la zona "debajo del producto" (ancho completo) en el ORDEN del
@@ -111,19 +72,17 @@ function BelowProductBlocks({
 }) {
   const belowCustoms = sections.filter((s) => (s.content as { slot?: ProductDetailSlot }).slot === 'below_product');
   const byId = new Map(belowCustoms.map((s) => [s.id, s]));
-  const referenced = new Set<string>();
   const nodes: ReactNode[] = [];
 
-  for (const token of layout.below_product) {
-    if (isCustomToken(token)) {
-      const sec = byId.get(customTokenId(token));
-      if (sec) {
-        referenced.add(sec.id);
-        nodes.push(<CustomSectionNode key={token} section={sec} />);
-      }
+  for (const step of planBelowProduct(
+    layout.below_product,
+    belowCustoms.map((s) => s.id),
+  )) {
+    if (step.kind === 'custom') {
+      nodes.push(<CustomSectionNode key={step.key} section={byId.get(step.id) as CustomSection} />);
       continue;
     }
-    switch (token) {
+    switch (step.token) {
       case 'purchase_flow':
         nodes.push(
           <div key="purchase_flow" className="mx-auto max-w-[1200px] px-6">
@@ -158,12 +117,8 @@ function BelowProductBlocks({
     }
   }
 
-  // Forward-compat: custom sections visibles de below_product que el layout aún no
-  // referencia (p. ej. creadas después). Se muestran al final para no perderlas.
-  for (const sec of belowCustoms) {
-    if (!referenced.has(sec.id)) nodes.push(<CustomSectionNode key={`unref-${sec.id}`} section={sec} />);
-  }
-
+  // Las custom sections de below_product que el layout aún no referencia (p. ej.
+  // creadas después) ya vienen al final del plan, para no perderlas.
   return <>{nodes}</>;
 }
 
@@ -754,7 +709,7 @@ export function ProductDetail() {
    * reproduce exactamente la columna de antes. Si el comercio oculta el ancla,
    * el bloque fijo NO se pierde — se reinserta donde lo pone el default.
    */
-  const rightPins: Record<string, ReactNode> = {
+  const rightPins: Record<RightAnchor, ReactNode> = {
     // Escalones por categoría (tarjetas seleccionables). El cálculo de precios
     // queda afuera (tierPrices); QuantityTierSelector es sólo presentación.
     quantity_promo: hasTiers ? (
@@ -793,28 +748,18 @@ export function ProductDetail() {
   /** La columna derecha minorista, en el orden configurado. */
   const buildRightColumn = (): ReactNode[] => {
     const nodes: ReactNode[] = [];
-    // Orden efectivo = los tokens visibles + los ocultos que anclan un bloque
-    // fijo, reinsertados donde van. Sin esto, ocultar "Complementarios" se
-    // llevaba puesta la calculadora de envío.
-    const visible = rightLayout.filter((t) => RIGHT_TOKENS.includes(t));
-    const anchors = Object.keys(rightPins).filter((t) => !visible.includes(t));
-    const order = reinsertByReference(visible, anchors, DEFAULT_PRODUCT_LAYOUT.right_column);
-
-    let unitRowsDone = false;
-    for (let i = 0; i < order.length; i++) {
-      const group = RIGHT_GROUP[order[i]];
-      if (group) {
-        const run: string[] = [];
-        while (i < order.length && RIGHT_GROUP[order[i]] === group) run.push(order[i++]);
-        i--;
+    // Orden efectivo (visibles + anclas ocultas reinsertadas, en grupos):
+    // lib/productLayoutPlan.ts.
+    for (const step of planRightColumn(rightLayout)) {
+      if (step.kind === 'group') {
+        const { group, tokens: run } = step;
         // Las filas por unidad encabezan la zona de variantes (y reemplazan a
         // los selectores únicos: showSingleSelectors = !perUnitOpen).
-        const withRows = group === 'variant' && perUnitOpen && !unitRowsDone;
+        const withRows = step.unitRows && perUnitOpen;
         const inner = run.map((t) => [t, rightBlock(t)] as const).filter(([, node]) => node !== null);
         // Grupo entero vacío (producto sin colores, probador apagado…): no
         // emitimos el contenedor, si no la columna queda con un hueco de 24px.
         if (!withRows && inner.length === 0) continue;
-        if (withRows) unitRowsDone = true;
         nodes.push(
           <div key={`grupo-${run[0]}`} className={group === 'variant' ? 'space-y-3' : 'space-y-3 pt-1'}>
             {withRows && (
@@ -834,9 +779,9 @@ export function ProductDetail() {
         );
         continue;
       }
-      if (visible.includes(order[i])) nodes.push(<Fragment key={order[i]}>{rightBlock(order[i])}</Fragment>);
-      const pin = rightPins[order[i]];
-      if (pin) nodes.push(<Fragment key={`ancla-${order[i]}`}>{pin}</Fragment>);
+      if (step.visible) nodes.push(<Fragment key={step.token}>{rightBlock(step.token)}</Fragment>);
+      const pin = step.anchor ? rightPins[step.token as RightAnchor] : null;
+      if (pin) nodes.push(<Fragment key={`ancla-${step.token}`}>{pin}</Fragment>);
     }
     return nodes;
   };
