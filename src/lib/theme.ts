@@ -120,12 +120,20 @@ export function surfaceVars(bg: string): Record<string, string> {
 }
 
 /**
- * Inyecta las CSS variables del tenant en :root. Todos los componentes leen
- * de estas variables (nunca colores hardcodeados).
+ * Variables CSS del tema para una config: colores (con sus derivados de
+ * contraste), tipografías, escala y esquinas. Pura: no toca el documento.
+ *
+ * applyTheme las escribe en :root (Classic, igual que siempre). Las plantillas
+ * (T5) las escriben en el `style` de un contenedor con su propia paleta, para
+ * que los componentes de Classic que muestran el contenido del comercio
+ * (secciones personalizadas, reseñas, newsletter) tomen los colores de la
+ * plantilla sin reescribir ninguna clase.
  */
-export function applyTheme(config: StoreConfig): void {
-  const root = document.documentElement;
-  const set = (k: string, v: string) => root.style.setProperty(k, v);
+export function themeVars(config: StoreConfig): Record<string, string> {
+  const vars: Record<string, string> = {};
+  const set = (k: string, v: string) => {
+    vars[k] = v;
+  };
 
   set('--color-primary', config.colorPrimary);
   set('--color-secondary', config.colorSecondary);
@@ -199,6 +207,23 @@ export function applyTheme(config: StoreConfig): void {
   // nada. Es por canal: minorista y mayorista tienen su propio `settings`.
   set('--font-scale', String(config.fontScale));
 
+  // Esquinas. `rounded-full` NO sale de acá a propósito: es literal en el config
+  // de Tailwind, para que elegir "recto" no convierta en cuadrados los swatches
+  // de color ni los avatares.
+  const scale = CORNER_SCALES[config.corners] ?? CORNER_SCALES.rounded;
+  for (const [step, value] of Object.entries(scale)) set(`--radius-${step}`, value);
+  set('--radius-button', BUTTON_RADII[config.buttonCorners] ?? BUTTON_RADII.rounded);
+  return vars;
+}
+
+/**
+ * Inyecta las CSS variables del tenant en :root. Todos los componentes leen
+ * de estas variables (nunca colores hardcodeados).
+ */
+export function applyTheme(config: StoreConfig): void {
+  const root = document.documentElement;
+  for (const [k, v] of Object.entries(themeVars(config))) root.style.setProperty(k, v);
+
   // Versión tipográfica (lib/typography). Los roles `ty-*` de globals.css sólo
   // aplican bajo data-typography="v2", así que en v1 estos atributos no cambian
   // nada de lo que se ve.
@@ -216,13 +241,6 @@ export function applyTheme(config: StoreConfig): void {
     delete root.dataset.template;
     delete root.dataset.templateVersion;
   }
-
-  // Esquinas. `rounded-full` NO sale de acá a propósito: es literal en el config
-  // de Tailwind, para que elegir "recto" no convierta en cuadrados los swatches
-  // de color ni los avatares.
-  const scale = CORNER_SCALES[config.corners] ?? CORNER_SCALES.rounded;
-  for (const [step, value] of Object.entries(scale)) set(`--radius-${step}`, value);
-  set('--radius-button', BUTTON_RADII[config.buttonCorners] ?? BUTTON_RADII.rounded);
 }
 
 const FONT_LINK_ID = 'tenant-google-fonts';

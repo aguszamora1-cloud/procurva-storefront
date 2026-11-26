@@ -9,6 +9,7 @@ import {
 } from 'react';
 import type { CartItem } from '@/lib/types';
 import { cartLineKey } from '@/lib/cart';
+import { cashRecoverySignature } from '@/lib/cartCashLine';
 import { track } from '@/lib/tracking';
 
 const CART_STORAGE_KEY = 'procurva_storefront_cart_v1';
@@ -23,6 +24,13 @@ interface CartContextValue {
   removeItem: (lineKey: string) => void;
   updateQty: (lineKey: string, qty: number) => void;
   clear: () => void;
+  /**
+   * Completa el contado de lista de UNA línea guardada antes de FIN0-A, ya
+   * verificado contra el catálogo (context/CartCashRecovery). Sólo si la línea
+   * sigue teniendo la misma huella (no fue quitada, reemplazada ni cambió) y
+   * todavía no lo tiene. No toca precios, cantidades ni agrupación.
+   */
+  fillCashOriginal: (signature: string, value: number) => void;
   itemCount: number;
   subtotal: number;
 }
@@ -83,6 +91,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback(() => setItems([]), []);
 
+  const fillCashOriginal = useCallback((signature: string, value: number) => {
+    setItems((prev) => {
+      const idx = prev.findIndex((p) => p.unit_price_cash_original === undefined && cashRecoverySignature(p) === signature);
+      if (idx < 0) return prev;
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], unit_price_cash_original: value };
+      return copy;
+    });
+  }, []);
+
   const value = useMemo<CartContextValue>(() => {
     const itemCount = items.reduce((sum, i) => sum + i.qty, 0);
     const subtotal = items.reduce((sum, i) => sum + i.unit_price * i.qty, 0);
@@ -96,10 +114,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem,
       updateQty,
       clear,
+      fillCashOriginal,
       itemCount,
       subtotal,
     };
-  }, [items, isOpen, addItem, removeItem, updateQty, clear]);
+  }, [items, isOpen, addItem, removeItem, updateQty, clear, fillCashOriginal]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

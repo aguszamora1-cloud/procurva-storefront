@@ -36,6 +36,12 @@ interface PromotionsValue {
    * para no mostrar "terminó" en el primer frame).
    */
   ready: boolean;
+  /**
+   * true si la última carga de ESTA empresa falló: `promotions` queda vacío pero
+   * no porque no haya promos. Lo usa la recuperación del contado de lista del
+   * carrito (P1.2-FIN0-A.2) para no verificar contra una lista incompleta.
+   */
+  failed: boolean;
   /** Mejor promo aplicable a un producto (para badge/countdown). */
   promoForProduct: (product: PromoProduct, color?: string | null) => Promotion | null;
   /** Precio promocional de un precio de referencia para un producto (storeType-aware). */
@@ -54,6 +60,7 @@ const PromotionsContext = createContext<PromotionsValue>({
   promotions: [],
   loading: false,
   ready: false,
+  failed: false,
   promoForProduct: () => null,
   priceFor: (p) => ({ finalPrice: p, promo: null, savings: 0, discountPct: 0 }),
   quantityPromoFor: () => null,
@@ -67,6 +74,7 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const [failedFor, setFailedFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!companyId) {
@@ -97,8 +105,10 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error('[Promotions] error cargando promociones', error);
         setPromotions([]);
+        setFailedFor(companyId);
       } else {
         setPromotions((data ?? []) as Promotion[]);
+        setFailedFor(null);
       }
       setLoading(false);
       setLoadedFor(companyId);
@@ -110,6 +120,7 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
 
   const effectiveStoreType: StoreType = storeType ?? 'retail';
   const ready = !!companyId && loadedFor === companyId;
+  const failed = !!companyId && failedFor === companyId;
 
   const promoForProduct = useCallback(
     (product: PromoProduct, color?: string | null) =>
@@ -149,8 +160,8 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<PromotionsValue>(
-    () => ({ promotions, loading, ready, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, colorPromoHintFor, bannerPromotions }),
-    [promotions, loading, ready, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, colorPromoHintFor, bannerPromotions],
+    () => ({ promotions, loading, ready, failed, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, colorPromoHintFor, bannerPromotions }),
+    [promotions, loading, ready, failed, promoForProduct, priceFor, quantityPromoFor, quantityMessageFor, colorPromoHintFor, bannerPromotions],
   );
 
   return <PromotionsContext.Provider value={value}>{children}</PromotionsContext.Provider>;

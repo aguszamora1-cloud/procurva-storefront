@@ -63,9 +63,10 @@ const REGISTRY = [
   def('layout-basura', 1, { header: { layout: 'diagonal' } }),
 ];
 
-test('esquema 2, tres armados y registro vacío', () => {
-  assert.equal(STORE_TEMPLATES_SCHEMA, 2);
-  assert.equal(STORE_TEMPLATES.length, 0);
+test('esquema 3, tres armados; las plantillas publicadas (tiendas completas) no piden encabezado', () => {
+  assert.equal(STORE_TEMPLATES_SCHEMA, 3);
+  assert.deepEqual(STORE_TEMPLATES.map((d) => `${d.id}@${d.version}`), ['atelier@1', 'distrito@1', 'momentum@1']);
+  for (const d of STORE_TEMPLATES) assert.equal(resolveHeaderLayout({ id: d.id, version: d.version }, undefined, null), 'classic', d.id);
   assert.deepEqual([...HEADER_LAYOUTS], ['classic', 'inline', 'stacked']);
 });
 
@@ -74,7 +75,7 @@ test('sin pedido de desarrollo, resolveHeaderLayout es exactamente el contrato',
     assert.equal(resolveHeaderLayout(ref, REGISTRY, null), resolveTemplateHeader(ref, REGISTRY), JSON.stringify(ref));
   }
   assert.equal(resolveHeaderLayout({ id: 'con-inline', version: 1 }, REGISTRY, null), 'inline');
-  assert.equal(resolveHeaderLayout({ id: 'con-inline', version: 1 }), 'classic', 'el registro real está vacío');
+  assert.equal(resolveHeaderLayout({ id: 'con-inline', version: 1 }), 'classic', 'con-inline no está en el registro real');
   assert.equal(resolveHeaderLayout(null, REGISTRY, null), 'classic');
 });
 

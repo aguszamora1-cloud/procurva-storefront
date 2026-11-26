@@ -7,7 +7,9 @@ import plugin from 'tailwindcss/plugin.js';
 
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  // src/templates (vista previa de plantillas P1.1, sólo DEV) usa CSS propio:
+  // afuera del escaneo para no sumar utilidades al CSS de producción.
+  content: ['./index.html', './src/**/*.{ts,tsx}', '!./src/templates/**'],
   theme: {
     extend: {
       colors: {
