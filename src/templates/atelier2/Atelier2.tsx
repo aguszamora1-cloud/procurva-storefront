@@ -12,7 +12,8 @@
  *   A2  inicio (Home.tsx, Hero.tsx, Card.tsx): portada a ancho completo y
  *       secciones con la visibilidad y el orden del editor.
  *   A3  catálogo (Catalog.tsx): categoría, búsqueda, talle, orden y «Mostrar más».
- *   A4–A6  ficha y bolsa: todavía páginas provisorias.
+ *   A4  ficha (Product.tsx, Choices.tsx): compra normal y escalones «Lleva N».
+ *   A6  bolsa: todavía página provisoria.
  * Sin lógica comercial propia: todo sale de los hooks compartidos.
  */
 
@@ -21,6 +22,7 @@ import type { TemplateKit } from '../TemplateApp';
 import { Atelier2Shell } from './Chrome';
 import { Atelier2Home } from './Home';
 import { Atelier2Catalog } from './Catalog';
+import { Atelier2Product } from './Product';
 import './atelier2.css';
 
 function Atelier2Notice({ title, children }: { title: string; children?: ReactNode }) {
@@ -47,7 +49,7 @@ export const atelier2Kit: TemplateKit = {
   Shell: Atelier2Shell,
   Home: Atelier2Home,
   Catalog: Atelier2Catalog,
-  Product: pending('Ficha de producto', 'A4 y A5'),
+  Product: Atelier2Product,
   Cart: pending('Bolsa', 'A6'),
   Notice: Atelier2Notice,
   fontsHref: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap',
