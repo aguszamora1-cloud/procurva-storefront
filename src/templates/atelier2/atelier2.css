@@ -480,3 +480,64 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
 .a2-promise > span { display: grid; gap: 2px; }
 .a2-promise b { font-weight: 500; }
 .a2-promise > span > span { color: var(--a2-muted); }
+
+/* ══ A4b · Escalones «Lleva N» y filas por unidad (diseño v2.1) ═══════════ */
+/* El texto de la promoción va dentro del bloque, como nota, no como franja. */
+.a2-qpromo--in > p { padding: 0; background: none; font-size: 13.5px; gap: 8px; }
+.a2-qpromo--in .lucide { width: 16px; height: 16px; margin-top: 2px; }
+.a2-blk--tier { gap: 12px; }
+.a2-tiers > legend { margin-bottom: 12px; }
+/* Tarjetas: una al lado de la otra; «Más elegido» como etiqueta sobre el borde. */
+.a2-tiers__opts { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; padding-top: 9px; }
+.a2-tier { align-content: start; gap: 3px; padding: 16px 12px 12px; font-size: 12.5px; color: var(--a2-muted); transition: border-color 0.2s; }
+.a2-tier:hover { border-color: color-mix(in srgb, var(--a2-text) 45%, var(--a2-bg)); }
+.a2-tier[data-active] { border-color: var(--a2-text); box-shadow: inset 0 0 0 1px var(--a2-text); }
+.a2-tier:focus-within { outline: none; }
+.a2-tier:has(:focus-visible) { outline: 2px solid var(--a2-text); outline-offset: 2px; }
+.a2-tier__badge { position: absolute; top: -9px; left: 10px; font-size: 11px; font-weight: 500; line-height: 1; padding: 3px 6px; border-radius: 2px; background: var(--a2-accent); color: var(--a2-on-accent); white-space: nowrap; }
+.a2-tier__head { gap: 0 6px; color: var(--a2-text); }
+.a2-tier__units { font-size: 14px; }
+.a2-tier__off { font-size: 12.5px; font-weight: 500; color: var(--a2-accent-ink); }
+.a2-tier__price { font-size: 12.5px; }
+.a2-tier__price b { font-size: 15px; font-weight: 500; color: var(--a2-text); }
+.a2-tier__price s { font-size: 12.5px; }
+.a2-tier__save { color: var(--a2-muted); }
+.a2-tier[data-active] .a2-tier__save { color: var(--a2-accent-ink); }
+/* Con 4 o más escalones, o si el comercio eligió «lista»: filas. */
+.a2-tiers[data-count='4'] .a2-tiers__opts, .a2-tiers[data-count='5'] .a2-tiers__opts, .a2-tiers[data-count='6'] .a2-tiers__opts { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 14px; }
+.a2-tiers[data-layout='list'] .a2-tiers__opts { grid-auto-flow: row; grid-template-columns: 1fr; gap: 8px; }
+.a2-tiers[data-layout='list'] .a2-tier { grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; min-height: 60px; padding: 14px; }
+.a2-tiers[data-layout='list'] .a2-tier__head { grid-column: 1; }
+.a2-tiers[data-layout='list'] .a2-tier__price { grid-column: 2; grid-row: 1 / span 3; text-align: right; }
+.a2-tiers[data-layout='list'] .a2-tier__badge { left: auto; right: 10px; }
+
+/* Filas por unidad: cada unidad es una tarjeta compacta. */
+.a2-blk--pick:has(.a2-units) { gap: 12px; }
+.a2-units { gap: 10px; }
+.a2-unit { padding: 4px 14px 14px; gap: 10px; transition: border-color 0.2s; }
+.a2-unit > legend { padding: 0 6px; margin-left: -6px; font-size: 13.5px; font-weight: 500; }
+.a2-unit .a2-pick { gap: 8px; }
+.a2-unit .a2-pick__l { font-size: 13px; }
+.a2-unit .a2-sz { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; }
+.a2-unit .a2-sz__b { min-height: 44px; font-size: 13.5px; }
+/* La unidad a la que le falta algo (tierIssue) queda marcada; el botón lleva hasta ella. */
+.a2-blk--pick[data-next='0'] .a2-unit[data-unit='0'], .a2-blk--pick[data-next='1'] .a2-unit[data-unit='1'],
+.a2-blk--pick[data-next='2'] .a2-unit[data-unit='2'], .a2-blk--pick[data-next='3'] .a2-unit[data-unit='3'],
+.a2-blk--pick[data-next='4'] .a2-unit[data-unit='4'], .a2-blk--pick[data-next='5'] .a2-unit[data-unit='5'],
+.a2-blk--pick[data-next='6'] .a2-unit[data-unit='6'], .a2-blk--pick[data-next='7'] .a2-unit[data-unit='7'],
+.a2-blk--pick[data-next='8'] .a2-unit[data-unit='8'], .a2-blk--pick[data-next='9'] .a2-unit[data-unit='9'] { border-color: var(--a2-text); }
+.a2-blk--pick[data-next='0'] .a2-unit[data-unit='0'] > legend::after, .a2-blk--pick[data-next='1'] .a2-unit[data-unit='1'] > legend::after,
+.a2-blk--pick[data-next='2'] .a2-unit[data-unit='2'] > legend::after, .a2-blk--pick[data-next='3'] .a2-unit[data-unit='3'] > legend::after,
+.a2-blk--pick[data-next='4'] .a2-unit[data-unit='4'] > legend::after, .a2-blk--pick[data-next='5'] .a2-unit[data-unit='5'] > legend::after,
+.a2-blk--pick[data-next='6'] .a2-unit[data-unit='6'] > legend::after, .a2-blk--pick[data-next='7'] .a2-unit[data-unit='7'] > legend::after,
+.a2-blk--pick[data-next='8'] .a2-unit[data-unit='8'] > legend::after, .a2-blk--pick[data-next='9'] .a2-unit[data-unit='9'] > legend::after { content: ' · falta elegir'; font-weight: 400; color: var(--a2-accent-ink); }
+
+@media (max-width: 899px) {
+  /* Celular: una fila por escalón, cantidad a la izquierda y precio a la derecha. */
+  .a2-tiers__opts, .a2-tiers[data-count] .a2-tiers__opts { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: 1fr; gap: 8px; row-gap: 8px; }
+  .a2-tier { grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; min-height: 60px; padding: 14px; }
+  .a2-tier__head { grid-column: 1; }
+  .a2-tier__price { grid-column: 2; grid-row: 1 / span 3; text-align: right; }
+  .a2-tier__badge { left: auto; right: 10px; }
+  .a2-unit { padding: 4px 12px 12px; }
+}
