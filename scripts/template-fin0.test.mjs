@@ -16,6 +16,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -113,6 +114,21 @@ test('testimonios de las plantillas: sin avance automático ni estrellas inventa
   for (const f of [TPL[0], TPL[2]]) assert.doesNotMatch(code(f), /testimonials: 'template'/, f);
 });
 
+/**
+ * Únicos cambios aprobados en Classic desde la base, cada uno con su contenido
+ * EXACTO (SHA-256 del texto con saltos de línea \n). Cualquier otro archivo, o
+ * cualquier cambio en estos, vuelve a fallar. No excluye carpetas.
+ *  - Orden de la ficha compartido con las plantillas (lib/productLayoutPlan.ts):
+ *    ProductDetail.tsx recorre el plan; el comportamiento es idéntico
+ *    (scripts/product-layout-plan.test.mjs). Aprobación pendiente de Agus.
+ */
+const CLASSIC_APPROVED = {
+  'src/pages/ProductDetail.tsx': '9dd70f91b2bf7395b3e821d52db3a604450ec8801dd766af031f1d71701a0cff',
+  'src/lib/productLayoutPlan.ts': '73978dd8a5bfc76a4ccc60d32bec893d4bed1d514b1271f1d5628a93ecd87617',
+};
+const contentHash = (file) =>
+  createHash('sha256').update(readFileSync(resolve(repoRoot, file), 'utf8').replace(/\r\n/g, '\n')).digest('hex');
+
 test('Classic no cambia: componentes, páginas, lib y contextos intactos', () => {
   const base = process.env.FIN0_BASE || '6feaeac';
   let changed;
@@ -124,5 +140,9 @@ test('Classic no cambia: componentes, páginas, lib y contextos intactos', () =>
   } catch {
     return; // sin git (copia suelta): la guarda no aplica
   }
-  assert.equal(changed, '', `archivos de Classic cambiados desde ${base}:\n${changed}`);
+  const notApproved = changed
+    .split('\n')
+    .filter(Boolean)
+    .filter((f) => !(f in CLASSIC_APPROVED && contentHash(f) === CLASSIC_APPROVED[f]));
+  assert.equal(notApproved.join('\n'), '', `archivos de Classic cambiados desde ${base} (fuera de lo aprobado o con otro contenido):\n${notApproved.join('\n')}`);
 });
