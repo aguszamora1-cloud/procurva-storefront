@@ -286,7 +286,7 @@ function BelowZone({ product, layout, sections, ink }: { product: Product; layou
 // ── Ficha ─────────────────────────────────────────────────────────────────────
 function ProductView({ product }: { product: Product }) {
   const config = useStore();
-  const { ink } = useAtelier2Palette();
+  const { ink, softInk } = useAtelier2Palette();
   const navigate = useNavigate();
   const { close: closeCart } = useCartView();
   const pdp = usePdp(product);
@@ -419,7 +419,7 @@ function ProductView({ product }: { product: Product }) {
             </button>
             {finder && (
               <div id="a2-finder" className="a2-guide__p">
-                <Surface ink={ink}>
+                <Surface ink={softInk}>
                   <SizeFinder
                     sizes={pdp.allSizes}
                     onSelect={(s) => {

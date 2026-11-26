@@ -290,7 +290,7 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
 .a2-catchips::-webkit-scrollbar { display: none; }
 .a2-catchips .a2-chip { flex: none; }
 .a2-chip[aria-current='page'] { background: var(--a2-text); color: var(--a2-bg); border-color: var(--a2-text); }
-.a2-chip--x { gap: 6px; padding: 0 10px 0 14px; background: var(--a2-line-soft); border-color: transparent; }
+.a2-chip--x { gap: 6px; padding: 0 10px 0 14px; background: var(--a2-line-soft); color: var(--a2-on-soft); border-color: transparent; }
 .a2-chip--x .lucide { width: 16px; height: 16px; }
 .a2-tools { position: sticky; top: 60px; z-index: 10; margin-top: 16px; background: var(--a2-bg); border-bottom: 1px solid var(--a2-line); }
 .a2-tools__in { display: flex; align-items: center; gap: 12px; min-height: 68px; }
@@ -353,7 +353,7 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
 .a2-buy h1 { font-size: clamp(24px, 2.2vw, 32px); line-height: 1.15; letter-spacing: -0.02em; font-weight: 500; overflow-wrap: anywhere; }
 .a2-buy__brand { font-size: 14px; color: var(--a2-muted); margin-top: -4px; }
 .a2-flags { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.a2-flags li { font-size: 12px; font-weight: 500; line-height: 1; padding: 6px 8px; border-radius: 2px; background: var(--a2-line-soft); color: var(--a2-text); }
+.a2-flags li { font-size: 12px; font-weight: 500; line-height: 1; padding: 6px 8px; border-radius: 2px; background: var(--a2-line-soft); color: var(--a2-on-soft); }
 .a2-pp-wrap { display: grid; gap: 12px; padding-bottom: 22px; border-bottom: 1px solid var(--a2-line); }
 .a2-pp-wrap > .tpl-store { background: transparent; }
 .a2-pp { display: grid; gap: 4px; }
@@ -394,7 +394,7 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
 .a2-lnk__c { transition: transform 0.2s; }
 .a2-lnk[aria-expanded='true'] .a2-lnk__c { transform: rotate(180deg); }
 .a2-guide { display: grid; gap: 8px; margin-top: -8px; }
-.a2-guide__p { padding: 16px; background: var(--a2-line-soft); border-radius: var(--a2-r); }
+.a2-guide__p { padding: 16px; background: var(--a2-line-soft); color: var(--a2-on-soft); border-radius: var(--a2-r); }
 .a2-guide__p .tpl-store { background: transparent; }
 .a2-notes { display: grid; gap: 6px; margin-top: -10px; }
 .a2-note { font-size: 14px; padding: 12px 14px; border: 1px solid var(--a2-accent-ink); color: var(--a2-accent-ink); border-radius: var(--a2-r); }

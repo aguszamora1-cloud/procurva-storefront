@@ -24,12 +24,14 @@ export interface Atelier2Palette {
    * `primary` y el botón con `accent`: acá van el secundario y el principal.
    */
   newsletterInk: TemplateInk;
+  /** Piezas de Classic sobre la superficie suave (guía de talles): ese fondo y su texto legible. */
+  softInk: TemplateInk;
 }
 
 export function useAtelier2Palette(): Atelier2Palette {
   const c = useStore();
   return useMemo(() => {
-    const { bg, text, primary, secondary, onSecondary } = atelier2Colors(c);
+    const { bg, text, soft, onSoft, primary, secondary, onSecondary } = atelier2Colors(c);
     const ink: TemplateInk = {
       background: bg,
       text,
@@ -45,6 +47,7 @@ export function useAtelier2Palette(): Atelier2Palette {
       titleAlign: 'left',
     };
     const newsletterInk: TemplateInk = { ...ink, primary: secondary, accent: newsletterButton(primary.fill, secondary, onSecondary) };
-    return { vars: atelier2Vars(c) as CSSProperties, ink, newsletterInk };
+    const softInk: TemplateInk = { ...ink, background: soft, text: onSoft };
+    return { vars: atelier2Vars(c) as CSSProperties, ink, newsletterInk, softInk };
   }, [c.colorBackground, c.colorText, c.colorPrimary, c.colorAccent, c.colorSecondary, c.headerBackground]);
 }

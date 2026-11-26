@@ -17,7 +17,6 @@ import {
   minAlphaForContrast,
   parseHex,
   readableFill,
-  relativeLuminance,
   type Rgb,
 } from '@/lib/contrast';
 import { contrastColor, luminance } from '@/lib/theme';
@@ -105,20 +104,24 @@ export function readableOn(color: string, main: string, extra: readonly string[]
   return contrastRatio([0, 0, 0], m) >= contrastRatio([255, 255, 255], m) ? '#000000' : '#ffffff';
 }
 
+/** Separación mínima entre la superficie suave y el fondo, para que una etiqueta se vea como etiqueta. */
+export const SOFT_MIN = 1.08;
+
 /**
  * Superficie suave (--a2-line-soft: etiquetas, filtros activos, guía de talles, estados
- * deshabilitados). Por defecto, la de siempre: 7 % del texto sobre el fondo. Si así el
- * texto queda por debajo de 4,5:1 (fondos de tono medio, donde el texto llega justo), el
- * tinte va hacia el polo opuesto al texto: se sigue viendo la superficie y el contraste sube.
+ * deshabilitados): la de la hoja de estilos, 7 % del texto sobre el fondo. Si así casi no
+ * se distingue del fondo (fondos oscuros saturados, donde el 7 % apenas mueve la
+ * luminancia), se sube la mezcla de a un punto hasta SOFT_MIN, con un tope de 30 %.
  */
 export function softSurface(text: string, bg: string): string {
   const t = parseHex(text);
   const b = parseHex(bg);
   if (!t || !b) return bg;
-  const usual = blend(t, b, SOFT).map(Math.round) as unknown as Rgb;
-  if (contrastRatio(t, usual) >= AA) return toHex(usual);
-  const away: Rgb = relativeLuminance(t) < relativeLuminance(b) ? [255, 255, 255] : [0, 0, 0];
-  return toHex(blend(away, b, SOFT).map(Math.round) as unknown as Rgb);
+  for (let pct = Math.round(SOFT * 100); pct <= 30; pct++) {
+    const s = blend(t, b, pct / 100).map(Math.round) as unknown as Rgb;
+    if (contrastRatio(s, b) >= SOFT_MIN) return toHex(s);
+  }
+  return toHex(blend(t, b, 0.3).map(Math.round) as unknown as Rgb);
 }
 
 /** Porcentaje para color-mix, redondeado HACIA ARRIBA (nunca por debajo del mínimo calculado). */
@@ -151,6 +154,10 @@ export function atelier2Colors(c: Atelier2ColorsInput) {
   const panelToo = bgRgb && panel && contrastRatio(bgRgb, panel) < PANEL_TINT_MAX ? [secondary] : [];
   const text = parseHex(c.colorText) ? readableOn(c.colorText, bg, panelToo) : contrastColor(bg);
   const soft = softSurface(text, bg);
+  // Texto sobre la superficie suave: el mismo texto si llega a 4,5:1 (Rosario, desdeabajo);
+  // si no (paletas muy claras o de tono medio, donde el texto llega justo sobre el fondo),
+  // ese tono llevado lo mínimo hacia el polo. El fondo de la etiqueta no se toca.
+  const onSoft = textOn(soft, text);
   const primary = readableFill(c.colorPrimary);
   const accent = readableFill(c.colorAccent);
   const onSecondary = textOn(secondary, text);
@@ -163,12 +170,12 @@ export function atelier2Colors(c: Atelier2ColorsInput) {
   const edge = fg && bgRgb ? minAlphaForContrast(fg, [bgRgb], 0.13, UI_MARGIN) : 1;
   const pf = parseHex(primary.fill);
   const primaryEdge = pf && bgRgb && contrastRatio(pf, bgRgb) < UI ? shiftTo(primary.fill, [bg], UI_MARGIN) : primary.fill;
-  return { bg, text, soft, primary, accent, secondary, onSecondary, muted, subtle, header, headerText, headerMuted, footMuted, edge, primaryEdge };
+  return { bg, text, soft, onSoft, primary, accent, secondary, onSecondary, muted, subtle, header, headerText, headerMuted, footMuted, edge, primaryEdge };
 }
 
 /** Variables CSS del kit (prefijo --a2-). */
 export function atelier2Vars(c: Atelier2ColorsInput): Record<string, string> {
-  const { bg, text, soft, primary, accent, secondary, onSecondary, muted, subtle, header, headerText, headerMuted, footMuted, edge, primaryEdge } = atelier2Colors(c);
+  const { bg, text, soft, onSoft, primary, accent, secondary, onSecondary, muted, subtle, header, headerText, headerMuted, footMuted, edge, primaryEdge } = atelier2Colors(c);
   const pct = (a: number) => `${Math.round(Math.min(1, Math.max(0, a)) * 100)}%`;
   return {
     '--a2-bg': bg,
@@ -182,8 +189,8 @@ export function atelier2Vars(c: Atelier2ColorsInput): Record<string, string> {
     '--a2-on-secondary': onSecondary,
     '--a2-muted': `color-mix(in srgb, ${text} ${pct(muted)}, ${bg})`,
     '--a2-subtle': `color-mix(in srgb, ${text} ${pct(subtle)}, ${bg})`,
-    // Reemplaza la del CSS (mismo valor salvo en fondos de tono medio; ver softSurface).
     '--a2-line-soft': soft,
+    '--a2-on-soft': onSoft,
     '--a2-header-bg': header,
     '--a2-header-text': headerText,
     '--a2-header-muted': `color-mix(in srgb, ${headerText} ${pctUp(headerMuted)}, ${header})`,

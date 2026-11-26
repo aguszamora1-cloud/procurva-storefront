@@ -51,7 +51,7 @@ async function load(name, contents) {
 }
 const M = await load(
   'kit',
-  `export { atelier2Colors, atelier2Vars, shiftTo } from './src/templates/atelier2/colors.ts';
+  `export { atelier2Colors, atelier2Vars, shiftTo, SOFT_MIN } from './src/templates/atelier2/colors.ts';
    export { contrastRatio, parseHex, blend } from './src/lib/contrast.ts';`,
 );
 
@@ -92,7 +92,10 @@ test('paleta: texto, grises, encabezado, pie y botones a 4,5:1; bordes y contorn
     const check = (what, ratio, min) => { if (!(ratio >= min)) fails.push(`${name} · ${what}: ${ratio.toFixed(2)} < ${min}`); };
     check('texto / fondo', cr(v['--a2-text'], v['--a2-bg']), 4.5);
     // Etiquetas, filtros activos y guía de talles: texto sobre --a2-line-soft (7 % del texto sobre el fondo).
-    check('texto / superficie suave', cr(v['--a2-text'], v['--a2-line-soft']), 4.5);
+    // Etiquetas («NUEVO», promociones), filtros activos y guía de talles: texto propio sobre --a2-line-soft,
+    // y la superficie se distingue del fondo (si no, la etiqueta se vería como texto suelto).
+    check('texto de etiqueta / etiqueta', cr(v['--a2-on-soft'], v['--a2-line-soft']), 4.5);
+    check('etiqueta / fondo', cr(v['--a2-line-soft'], v['--a2-bg']), 1.08);
     check('texto secundario / fondo', cr(mix(v['--a2-muted']), v['--a2-bg']), 4.5);
     check('texto tenue / fondo', cr(mix(v['--a2-subtle']), v['--a2-bg']), 4.5);
     check('encabezado / su fondo', cr(v['--a2-header-text'], v['--a2-header-bg']), 4.5);
@@ -113,6 +116,17 @@ test('paleta: no toca lo que ya cumple y conserva el tono de lo que no cumple', 
   // Ya cumple: el texto y el contorno quedan iguales (Rosario y desdeabajo no cambian).
   assert.equal(M.atelier2Colors(PALETTES.rosario).text, '#000000');
   assert.equal(M.atelier2Colors(PALETTES.desdeabajo).text, '#ffffff');
+  // Etiquetas de Rosario y desdeabajo: la superficie de la hoja de estilos (7 %) y el mismo texto.
+  for (const [name, soft] of [['rosario', '#ededed'], ['desdeabajo', '#151515']]) {
+    const c = M.atelier2Colors(PALETTES[name]);
+    assert.equal(c.soft, soft, name);
+    assert.equal(c.onSoft, c.text, name);
+  }
+  // Paleta muy clara: la etiqueta conserva su fondo y el texto se oscurece apenas, en el mismo tono.
+  const light = M.atelier2Colors(PALETTES['amarillo claro']);
+  assert.ok(cr(light.soft, PALETTES['amarillo claro'].colorBackground) >= M.SOFT_MIN, 'la etiqueta se distingue');
+  const [lr, lg, lb] = M.parseHex(light.onSoft);
+  assert.ok(lr === lg && lg === lb && cr(light.onSoft, light.soft) >= 4.5, `texto de etiqueta gris y legible: ${light.onSoft}`);
   assert.equal(M.atelier2Colors(PALETTES.rosario).primaryEdge, M.atelier2Colors(PALETTES.rosario).primary.fill);
   // No cumple: se corrige hacia el polo, sin terminar en blanco o negro puros.
   const grey = M.atelier2Colors(PALETTES['amarillo claro']).text;
@@ -198,6 +212,11 @@ test('CSS del kit: todo limitado a Atelier 2 y reglas de 44 px', () => {
   const loose = topSelectors(css).filter((s) => !/\.a2(?![\w-])|\.a2-[\w-]|\.tpl-atelier2(?![\w-])/.test(s));
   assert.deepEqual(loose, [], `selectores que alcanzan otras plantillas: ${loose.join(' | ')}`);
   for (const rule of [/\.a2-logo \{[^}]*min-width: 44px/, /\.a2-skip \{[^}]*min-height: 44px/, /\.a2-card__n::after \{ content: ''; position: absolute; inset: 0; \}/, /\.a2-card \{ position: relative;/]) assert.match(css, rule);
+  // Texto sobre la superficie suave: su propio color legible (--a2-on-soft).
+  for (const sel of ['.a2-flags li', '.a2-chip--x', '.a2-guide__p']) {
+    const rule = css.split(`${sel} {`)[1];
+    assert.ok(rule && /^[^}]*color: var\(--a2-on-soft\)/.test(rule), `${sel} usa --a2-on-soft`);
+  }
 });
 
 test('aislamiento: sólo TemplateApp monta Atelier 2 y el kit no usa otras plantillas', () => {
@@ -313,7 +332,16 @@ function measure([mobile, scope]) {
       if (r.height < 43.5 || r.width < 43.5) small.push(`${el.tagName.toLowerCase()}.${String(el.className).split(' ')[0]} ${Math.round(r.width)}x${Math.round(r.height)} «${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 20)}»`);
     }
   }
-  return { overflow, low: [...new Set(low)], small: [...new Set(small)] };
+  const tags = [];
+  for (const el of document.querySelectorAll(`${scope} .a2-flags li, ${scope} .a2-chip--x`)) {
+    if (!el.getBoundingClientRect().width) continue;
+    const own = parse(getComputedStyle(el).backgroundColor);
+    const behind = backdrop(el.parentElement);
+    if (!behind) continue;
+    const k = ratio(over(own, behind, own[3]), behind);
+    if (k < 1.08) tags.push(`«${el.textContent.trim().slice(0, 16)}» ${k.toFixed(3)}`);
+  }
+  return { overflow, low: [...new Set(low)], small: [...new Set(small)], tags };
 }
 
 test('navegador: escenarios × páginas × anchos sin desbordes, con contraste y controles de 44 px', { skip: browserSkip, timeout: 30 * 60 * 1000 }, async () => {
@@ -383,6 +411,7 @@ test('navegador: escenarios × páginas × anchos sin desbordes, con contraste y
           if (errors.length) fails.push(`${name}: errores ${errors.join(' | ')}`);
           if (r.low.length) fails.push(`${name}: contraste bajo ${r.low.slice(0, 4).join(' | ')}`);
           if (r.small.length) fails.push(`${name}: controles de menos de 44 px ${r.small.slice(0, 4).join(' | ')}`);
+          if (r.tags.length) fails.push(`${name}: etiquetas que no se distinguen del fondo ${r.tags.slice(0, 4).join(' | ')}`);
           checked++;
           await ctx.close();
         }
