@@ -17,11 +17,11 @@
  * «Comprar ahora»: lo mismo que Classic (pages/ProductDetail.tsx, handleBuyNow):
  * la acción de agregar, cerrar la bolsa y /checkout. Sólo si se puede agregar.
  *
- * Diseño de la ficha del editor (product_layout): se respeta la VISIBILIDAD de
- * cada bloque; color, talle y agregar no se ocultan (CORE_RIGHT_IDS, como en
- * Classic). La zona «debajo del producto» sigue el orden del editor. La columna
- * de compra usa el orden fijo de Atelier v2.1: el orden configurable de esa
- * columna queda pendiente (bloqueo documentado para publicar, A4_ENTREGA.md).
+ * Diseño de la ficha del editor (product_layout): el MISMO orden que Classic,
+ * con el mismo código (lib/productLayoutPlan.ts): la columna de compra y la zona
+ * «debajo del producto» siguen lo que el comercio arma en el editor, con los
+ * mismos grupos, bloques fijos anclados y filas por unidad. Atelier 2 sólo
+ * decide cómo se ve cada bloque.
  *
  * Valores por defecto (facts.ts): las cuotas, la promesa de envío y las
  * insignias de confianza se muestran sólo cuando se distinguen de lo que
@@ -29,7 +29,7 @@
  * calcula ese número a partir del id del producto, no es un dato real.
  */
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronDown, Ruler, Tag, Truck } from 'lucide-react';
 import { useStore } from '@/context/StoreProvider';
@@ -40,6 +40,7 @@ import { useProduct } from '@/hooks/useProduct';
 import { useProductBadges } from '@/hooks/useProductBadges';
 import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSections';
 import { useRelatedProducts } from '@/hooks/useRelatedProducts';
+import { useProductReviews } from '@/hooks/useProductReviews';
 import { Seo } from '@/components/Seo';
 import { StoreImage } from '@/components/StoreImage';
 import { ProductJsonLd } from '@/components/ProductJsonLd';
@@ -52,11 +53,13 @@ import { ComplementaryBlock } from '@/components/ComplementaryBlock';
 import { OutfitForProductBlock } from '@/components/OutfitForProductBlock';
 import { ShippingCalculator } from '@/components/ShippingCalculator';
 import { ProductReels } from '@/components/ProductReels';
+import { ProductReviews } from '@/components/ProductReviews';
 import { TrustBadges } from '@/components/TrustBadges';
 import { CustomSectionNode, ProductDetailCustomSlot } from '@/components/ProductDetailCustomSlot';
 import { buildWhatsappInquiry } from '@/lib/checkout';
 import { formatPrice, productCategories } from '@/lib/utils';
-import { CORE_RIGHT_IDS, DEFAULT_PRODUCT_LAYOUT, customTokenId, isCustomToken, resolveProductLayoutOrNull, type ProductLayout } from '@/lib/productLayout';
+import { DEFAULT_PRODUCT_LAYOUT, resolveProductLayoutOrNull, type ProductLayout } from '@/lib/productLayout';
+import { planBelowProduct, planRightColumn, type RightAnchor, type RightStep } from '@/lib/productLayoutPlan';
 import type { CustomSection, Product, ProductDetailSlot, StoreConfig } from '@/lib/types';
 import {
   buyAction,
@@ -80,16 +83,6 @@ import { installmentsBacked, shippingPromiseBacked, trustBadgesBacked } from './
 import { useAtelier2Palette } from './palette';
 
 const ROOT = '.a2-pdp';
-
-type Zone = 'right' | 'below' | null;
-
-/** Dónde puso el comercio un bloque del editor (o el diseño por defecto, si no armó uno). */
-function zoneOf(layout: ProductLayout | null, token: string): Zone {
-  const l = layout ?? DEFAULT_PRODUCT_LAYOUT;
-  if (l.right_column.includes(token)) return 'right';
-  if (l.below_product.includes(token)) return 'below';
-  return CORE_RIGHT_IDS.includes(token) ? 'right' : null;
-}
 
 /** Pieza de Classic con la paleta y la tipografía de Atelier 2. */
 function Surface({ ink, children }: { ink: TemplateInk; children: ReactNode }) {
@@ -180,6 +173,40 @@ function Related({ product }: { product: Product }) {
   );
 }
 
+/** Relacionados en la COLUMNA (el comercio los puso ahí): dos, como la variante de columna de Classic. */
+function ColumnRelated({ product }: { product: Product }) {
+  const { related } = useRelatedProducts(product, 2);
+  if (related.length < 2) return null;
+  return (
+    <section className="a2-relc" aria-labelledby="a2-relc-t">
+      <h2 id="a2-relc-t" className="a2-blk__t">
+        También te puede gustar
+      </h2>
+      <div className="a2-relc__g">
+        {related.map((p) => (
+          <Atelier2Card key={p.card_key ?? p.id} product={p} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Reseñas en la COLUMNA: la variante de columna de Classic, con el criterio de
+ * FIN0 (TemplatePdpReviews): sólo si hay reseñas verificadas de este producto.
+ */
+function ColumnReviews({ product, ink }: { product: Product; ink: TemplateInk }) {
+  const config = useStore();
+  const allowed = config.isPro && config.sections.productReviews;
+  const { reviews } = useProductReviews(allowed ? product.id : undefined);
+  if (!allowed || reviews.length === 0) return null;
+  return (
+    <Surface ink={ink}>
+      <ProductReviews productId={product.id} variant="column" display={config.reviewsDisplayMode ?? undefined} />
+    </Surface>
+  );
+}
+
 /** «Así funciona tu compra»: sólo los pasos que escribió el comercio (FIN0, merchantPurchaseSteps), sin estado. */
 function Steps({ steps }: { steps: StoreConfig['purchaseFlowSteps'] }) {
   if (steps.length === 0) return null;
@@ -206,12 +233,8 @@ function Steps({ steps }: { steps: StoreConfig['purchaseFlowSteps'] }) {
 }
 
 /**
- * Zona «debajo del producto» en el orden del editor (mismo contrato que
- * BelowProductBlocks de Classic): bloques conocidos y secciones `custom:<id>`;
- * las secciones de esta zona que el diseño no nombra van al final. Sin diseño
- * guardado: el orden fijo de Classic. Videos, reseñas y relacionados que el
- * comercio dejó en la COLUMNA se dibujan acá, primero (la columna de Atelier 2
- * no tiene su variante angosta; ver A4_ENTREGA.md).
+ * Zona «debajo del producto»: el orden de BelowProductBlocks de Classic
+ * (planBelowProduct). Sin diseño guardado, el orden fijo de Classic.
  */
 function BelowZone({ product, layout, sections, ink }: { product: Product; layout: ProductLayout | null; sections: CustomSection[]; ink: TemplateInk }) {
   const config = useStore();
@@ -250,21 +273,13 @@ function BelowZone({ product, layout, sections, ink }: { product: Product; layou
     below.forEach((s) => nodes.push(custom(s, s.id)));
     nodes.push(block('reviews'), block('related'));
   } else {
-    const fromColumn = layout.right_column.filter((t) => ['reels', 'reviews', 'related'].includes(t));
     const byId = new Map(below.map((s) => [s.id, s]));
-    const used = new Set<string>();
-    for (const token of [...fromColumn, ...layout.below_product]) {
-      if (isCustomToken(token)) {
-        const s = byId.get(customTokenId(token));
-        if (s && !used.has(s.id)) {
-          used.add(s.id);
-          nodes.push(custom(s, token));
-        }
-        continue;
-      }
-      nodes.push(block(token));
+    for (const step of planBelowProduct(
+      layout.below_product,
+      below.map((s) => s.id),
+    )) {
+      nodes.push(step.kind === 'custom' ? custom(byId.get(step.id) as CustomSection, step.key) : block(step.token));
     }
-    below.filter((s) => !used.has(s.id)).forEach((s) => nodes.push(custom(s, `sin-orden-${s.id}`)));
   }
   return <div className="a2-below">{nodes}</div>;
 }
@@ -289,15 +304,14 @@ function ProductView({ product }: { product: Product }) {
   const [finder, setFinder] = useState(false);
 
   const layout = resolveProductLayoutOrNull(product.product_layout) ?? config.productLayout;
-  const shows = (token: string) => zoneOf(layout, token) !== null;
-  const inColumn = (token: string) => zoneOf(layout, token) === 'right';
+  // Orden de la columna: el mismo plan que Classic (lib/productLayoutPlan.ts).
+  const plan = planRightColumn((layout ?? DEFAULT_PRODUCT_LAYOUT).right_column);
 
   const cats = productCategories(product);
   const description = product.description?.trim() ?? '';
-  const inquiry = shows('whatsapp') ? buildWhatsappInquiry(config, product.name) : '';
-  const tryOn = shows('virtual_try') && config.isPro && config.sections.virtualTryon && pdp.images[0] && config.slug && config.companyId;
-  const sizeGuide = shows('size_guide') && pdp.allSizes.length > 0 && config.isPaid && config.sections.probador;
-  const steps = inColumn('purchase_flow') ? merchantPurchaseSteps(config) : [];
+  const inquiry = buildWhatsappInquiry(config, product.name);
+  const tryOn = config.isPro && config.sections.virtualTryon && pdp.images[0] && config.slug && config.companyId;
+  const sizeGuide = pdp.allSizes.length > 0 && config.isPaid && config.sections.probador;
   const videos: Media[] = (product.product_media ?? [])
     .filter((m) => m.type === 'video' && m.url)
     .sort((a, b) => a.sort_order - b.sort_order)
@@ -358,6 +372,224 @@ function ProductView({ product }: { product: Product }) {
       window.removeEventListener('resize', check);
     };
   }, []);
+
+  // ── Cada bloque del editor, con el diseño de Atelier 2 (null = no hay nada que mostrar) ──
+  const tierShown = tier.hasTiers && !pdp.soldOut;
+  const qtyNote = (inside: boolean) =>
+    qtyPromo && qtyMsg ? (
+      <div className={inside ? 'a2-qpromo a2-qpromo--in' : 'a2-qpromo'}>
+        <p>
+          <Tag aria-hidden="true" />
+          <span>{qtyMsg}</span>
+        </p>
+        {qtyPromo.show_countdown && (
+          <Surface ink={ink}>
+            <PromoCountdown endsAt={qtyPromo.ends_at} color={qtyPromo.badge_color} />
+          </Surface>
+        )}
+      </div>
+    ) : null;
+  const choices = (colors: string[], sizes: string[]) => (
+    <Atelier2Choices
+      colors={colors}
+      sizes={sizes}
+      color={pdp.color}
+      size={pdp.size}
+      onColor={pdp.setColor}
+      onSize={pdp.setSize}
+      colorDisabled={pdp.colorDisabled}
+      sizeDisabled={pdp.sizeDisabled}
+    />
+  );
+  const block = (token: string): ReactNode => {
+    switch (token) {
+      // Con escalones, el texto de la promoción va dentro de su bloque (ancla de quantity_promo).
+      case 'quantity_promo':
+        return tierShown ? null : qtyNote(false);
+      case 'colors':
+        return !tier.perUnitOpen && pdp.colors.length > 0 ? choices(pdp.colors, []) : null;
+      case 'sizes':
+        return !tier.perUnitOpen && pdp.sizes.length > 0 ? choices([], pdp.sizes) : null;
+      case 'size_guide':
+        return sizeGuide ? (
+          <div className="a2-guide">
+            <button type="button" className="a2-lnk" aria-expanded={finder} aria-controls="a2-finder" onClick={() => setFinder((v) => !v)}>
+              <Ruler aria-hidden="true" />
+              ¿Cuál es mi talle?
+              <ChevronDown aria-hidden="true" className="a2-lnk__c" />
+            </button>
+            {finder && (
+              <div id="a2-finder" className="a2-guide__p">
+                <Surface ink={ink}>
+                  <SizeFinder
+                    sizes={pdp.allSizes}
+                    onSelect={(s) => {
+                      pdp.setSize(s);
+                      if (tier.perUnitOpen) tier.setAllUnitSizes(s);
+                    }}
+                  />
+                </Surface>
+              </div>
+            )}
+          </div>
+        ) : null;
+      case 'shipping_promise':
+        return shippingPromiseBacked(config) ? (
+          <p className="a2-promise">
+            <Truck aria-hidden="true" />
+            <span>
+              {config.shippingPromiseTitle && <b>{config.shippingPromiseTitle}</b>}
+              {config.shippingPromiseSubtitle && <span>{config.shippingPromiseSubtitle}</span>}
+            </span>
+          </p>
+        ) : null;
+      case 'add_to_cart':
+        return (
+          <>
+            <button type="button" ref={buyRef} className="a2-btn a2-btn--buy" onClick={primary} disabled={primaryDisabled}>
+              {tier.inTierMode ? tierCta : cta}
+            </button>
+            <button type="button" className="a2-btn a2-btn--line" onClick={buyNow} disabled={!ready}>
+              Comprar ahora
+            </button>
+          </>
+        );
+      case 'whatsapp':
+        return inquiry ? (
+          <a href={inquiry} target="_blank" rel="noreferrer" className="a2-btn a2-btn--line a2-btn--wa">
+            Consultar por WhatsApp
+          </a>
+        ) : null;
+      case 'virtual_try':
+        return tryOn ? (
+          <Surface ink={ink}>
+            <VirtualTryOn
+              garmentImageUrl={pdp.images[0]}
+              garmentName={product.name}
+              garmentCategory={mapFashnCategory(cats)}
+              storeSlug={config.slug}
+              productId={product.id}
+              companyId={config.companyId as string}
+            />
+          </Surface>
+        ) : null;
+      case 'upsells':
+        return (
+          <Surface ink={ink}>
+            <ComplementaryBlock contexto="ficha" product={product} preferredSize={pdp.size} />
+          </Surface>
+        );
+      case 'purchase_flow':
+        return <Steps steps={merchantPurchaseSteps(config)} />;
+      case 'reels':
+        return (
+          <Surface ink={ink}>
+            <ProductReels productId={product.id} variant="column" />
+          </Surface>
+        );
+      case 'reviews':
+        return <ColumnReviews product={product} ink={ink} />;
+      case 'related':
+        return config.isPro && config.sections.upsell ? <ColumnRelated product={product} /> : null;
+      default:
+        return null;
+    }
+  };
+  /** Bloques fijos anclados (rightPins de Classic). «N personas viendo» no va: es un número inventado. */
+  const pin = (anchor: RightAnchor, anchorVisible: boolean): ReactNode => {
+    switch (anchor) {
+      case 'quantity_promo':
+        return tierShown ? (
+          <div className="a2-blk a2-blk--tier">
+            {anchorVisible && qtyNote(true)}
+            <TierPicker tier={tier} prefix="a2" />
+          </div>
+        ) : null;
+      case 'shipping_promise':
+        return null;
+      case 'upsells':
+        return (
+          <>
+            {config.complementaryBlock.mostrarOutfit && (
+              <Surface ink={ink}>
+                <OutfitForProductBlock product={product} />
+              </Surface>
+            )}
+            <Surface ink={ink}>
+              <ProductDetailCustomSlot sections={sections} slot="right_column" variant="column" />
+            </Surface>
+            {config.showShippingCalculator !== false && (
+              <Surface ink={ink}>
+                <ShippingCalculator productId={product.id} />
+              </Surface>
+            )}
+            {trustBadgesBacked(config) && (
+              <Surface ink={ink}>
+                <TrustBadges />
+              </Surface>
+            )}
+          </>
+        );
+    }
+  };
+  const notes =
+    notice || (!tier.perUnitOpen && pdp.lowStock != null) ? (
+      <div className="a2-notes">
+        {notice && (
+          <p className="a2-note" role="status">
+            {notice}
+          </p>
+        )}
+        {!tier.perUnitOpen && pdp.lowStock != null && <p className="a2-low">{pdp.lowStock === 1 ? 'Queda 1 en este talle.' : `Quedan ${pdp.lowStock} en este talle.`}</p>}
+      </div>
+    ) : null;
+  /** Un paso del plan: mismas reglas que buildRightColumn de Classic (grupo vacío no se emite). */
+  const renderStep = (step: RightStep): ReactNode => {
+    if (step.kind === 'group') {
+      const rows = step.unitRows && tier.perUnitOpen;
+      const inner = step.tokens.map((t) => [t, block(t)] as const).filter(([, node]) => node !== null);
+      // Los avisos de stock van al final de la primera corrida de variantes.
+      const extra = step.unitRows ? notes : null;
+      if (!rows && inner.length === 0 && !extra) return null;
+      const content = (
+        <>
+          {rows && (
+            <>
+              <p className="a2-blk__t">Elegí cada unidad</p>
+              <TierUnits tier={tier} pdp={pdp} prefix="a2" Choices={Atelier2Choices} />
+            </>
+          )}
+          {inner.map(([t, node]) => (
+            <Fragment key={t}>{node}</Fragment>
+          ))}
+          {extra}
+        </>
+      );
+      return step.group === 'variant' ? (
+        <div key={`grupo-${step.tokens[0]}`} className="a2-blk a2-blk--pick" data-block={step.tokens.join(' ')} data-next={tier.tierIssue?.kind === 'unit' ? tier.tierIssue.unit : undefined}>
+          {content}
+        </div>
+      ) : (
+        <div key={`grupo-${step.tokens[0]}`} className="a2-blk a2-blk--cta" data-block={step.tokens.join(' ')}>
+          {content}
+        </div>
+      );
+    }
+    return (
+      <Fragment key={step.token}>
+        {step.visible && (
+          <div className="a2-step" data-block={step.token}>
+            {block(step.token)}
+          </div>
+        )}
+        {step.anchor && (
+          <div className="a2-step" data-pin={step.token}>
+            {pin(step.token as RightAnchor, step.visible)}
+          </div>
+        )}
+      </Fragment>
+    );
+  };
 
   const activeTier = tier.inTierMode ? tier.tierOptions.find((o) => o.isActive) : undefined;
   const barPrice = activeTier ? `${formatPrice(activeTier.unitPrice)} c/u` : price ? formatPrice(price.big) : 'Consultar precio';
@@ -420,154 +652,7 @@ function ProductView({ product }: { product: Product }) {
               </Surface>
             </div>
 
-            {shows('quantity_promo') && qtyPromo && qtyMsg && !tier.hasTiers && (
-              <div className="a2-qpromo">
-                <p>
-                  <Tag aria-hidden="true" />
-                  <span>{qtyMsg}</span>
-                </p>
-                {qtyPromo.show_countdown && (
-                  <Surface ink={ink}>
-                    <PromoCountdown endsAt={qtyPromo.ends_at} color={qtyPromo.badge_color} />
-                  </Surface>
-                )}
-              </div>
-            )}
-
-            {tier.hasTiers && !pdp.soldOut && (
-              <div className="a2-blk a2-blk--tier">
-                {shows('quantity_promo') && qtyPromo && qtyMsg && (
-                  <div className="a2-qpromo a2-qpromo--in">
-                    <p>
-                      <Tag aria-hidden="true" />
-                      <span>{qtyMsg}</span>
-                    </p>
-                    {qtyPromo.show_countdown && (
-                      <Surface ink={ink}>
-                        <PromoCountdown endsAt={qtyPromo.ends_at} color={qtyPromo.badge_color} />
-                      </Surface>
-                    )}
-                  </div>
-                )}
-                <TierPicker tier={tier} prefix="a2" />
-              </div>
-            )}
-
-            {(pdp.colors.length > 0 || pdp.sizes.length > 0 || tier.perUnitOpen) && (
-              <div className="a2-blk a2-blk--pick" data-next={tier.tierIssue?.kind === 'unit' ? tier.tierIssue.unit : undefined}>
-                {tier.perUnitOpen && <p className="a2-blk__t">Elegí cada unidad</p>}
-                {!tier.perUnitOpen && (
-                  <Atelier2Choices
-                    colors={pdp.colors}
-                    sizes={pdp.sizes}
-                    color={pdp.color}
-                    size={pdp.size}
-                    onColor={pdp.setColor}
-                    onSize={pdp.setSize}
-                    colorDisabled={pdp.colorDisabled}
-                    sizeDisabled={pdp.sizeDisabled}
-                  />
-                )}
-                <TierUnits tier={tier} pdp={pdp} prefix="a2" Choices={Atelier2Choices} />
-                {sizeGuide && (
-                  <div className="a2-guide">
-                    <button type="button" className="a2-lnk" aria-expanded={finder} aria-controls="a2-finder" onClick={() => setFinder((v) => !v)}>
-                      <Ruler aria-hidden="true" />
-                      ¿Cuál es mi talle?
-                      <ChevronDown aria-hidden="true" className="a2-lnk__c" />
-                    </button>
-                    {finder && (
-                      <div id="a2-finder" className="a2-guide__p">
-                        <Surface ink={ink}>
-                          <SizeFinder
-                            sizes={pdp.allSizes}
-                            onSelect={(s) => {
-                              pdp.setSize(s);
-                              if (tier.perUnitOpen) tier.setAllUnitSizes(s);
-                            }}
-                          />
-                        </Surface>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {(notice || (!tier.perUnitOpen && pdp.lowStock != null)) && (
-              <div className="a2-notes">
-                {notice && (
-                  <p className="a2-note" role="status">
-                    {notice}
-                  </p>
-                )}
-                {!tier.perUnitOpen && pdp.lowStock != null && (
-                  <p className="a2-low">{pdp.lowStock === 1 ? 'Queda 1 en este talle.' : `Quedan ${pdp.lowStock} en este talle.`}</p>
-                )}
-              </div>
-            )}
-
-            <div className="a2-blk a2-blk--cta">
-              <button type="button" ref={buyRef} className="a2-btn a2-btn--buy" onClick={primary} disabled={primaryDisabled}>
-                {tier.inTierMode ? tierCta : cta}
-              </button>
-              <button type="button" className="a2-btn a2-btn--line" onClick={buyNow} disabled={!ready}>
-                Comprar ahora
-              </button>
-              {inquiry && (
-                <a href={inquiry} target="_blank" rel="noreferrer" className="a2-btn a2-btn--line a2-btn--wa">
-                  Consultar por WhatsApp
-                </a>
-              )}
-            </div>
-
-            {shows('shipping_promise') && shippingPromiseBacked(config) && (
-              <p className="a2-promise">
-                <Truck aria-hidden="true" />
-                <span>
-                  {config.shippingPromiseTitle && <b>{config.shippingPromiseTitle}</b>}
-                  {config.shippingPromiseSubtitle && <span>{config.shippingPromiseSubtitle}</span>}
-                </span>
-              </p>
-            )}
-
-            {tryOn && (
-              <Surface ink={ink}>
-                <VirtualTryOn
-                  garmentImageUrl={pdp.images[0]}
-                  garmentName={product.name}
-                  garmentCategory={mapFashnCategory(cats)}
-                  storeSlug={config.slug}
-                  productId={product.id}
-                  companyId={config.companyId as string}
-                />
-              </Surface>
-            )}
-
-            {shows('upsells') && (
-              <Surface ink={ink}>
-                <ComplementaryBlock contexto="ficha" product={product} preferredSize={pdp.size} />
-              </Surface>
-            )}
-            {config.complementaryBlock.mostrarOutfit && (
-              <Surface ink={ink}>
-                <OutfitForProductBlock product={product} />
-              </Surface>
-            )}
-            <Surface ink={ink}>
-              <ProductDetailCustomSlot sections={sections} slot="right_column" variant="column" />
-            </Surface>
-            {config.showShippingCalculator !== false && (
-              <Surface ink={ink}>
-                <ShippingCalculator productId={product.id} />
-              </Surface>
-            )}
-            {trustBadgesBacked(config) && (
-              <Surface ink={ink}>
-                <TrustBadges />
-              </Surface>
-            )}
-            <Steps steps={steps} />
+            {plan.map(renderStep)}
 
             <Surface ink={ink}>
               <ProductDetailCustomSlot sections={sections} slot="above_description" />

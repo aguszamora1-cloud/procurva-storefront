@@ -619,3 +619,11 @@ span.a2-logo__mark { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
   .a2-cartp .a2-line { grid-template-columns: 84px minmax(0, 1fr); gap: 14px; padding: 18px 0; }
   .a2-cartp__s { position: static; padding: 20px 16px; }
 }
+
+/* ══ Orden del editor en la columna (lib/productLayoutPlan) ══════════════ */
+/* Relacionados puestos por el comercio en la columna: dos tarjetas. */
+.a2-relc { display: grid; gap: 14px; padding-top: 20px; border-top: 1px solid var(--a2-line); }
+.a2-relc__g { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.a2-relc .a2-card__n { font-size: 13.5px; }
+/* Marca de cada paso del plan (data-block / data-pin): no es una caja, no cambia el espaciado. */
+.a2-step { display: contents; }
