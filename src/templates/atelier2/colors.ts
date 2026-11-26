@@ -17,6 +17,7 @@ import {
   minAlphaForContrast,
   parseHex,
   readableFill,
+  relativeLuminance,
   type Rgb,
 } from '@/lib/contrast';
 import { contrastColor, luminance } from '@/lib/theme';
@@ -26,13 +27,20 @@ export const AA = 4.5;
 const UI = 3;
 /** Margen sobre 3:1, igual que AA_MARGIN sobre 4,5:1: lo que se pinta pasa por mezcla y redondeo. */
 const UI_MARGIN = 3.1;
+/** Proporción de texto en --a2-line-soft (atelier2.css: color-mix(in srgb, texto 7%, fondo)). */
+export const SOFT = 0.07;
 
-/** Texto legible sobre `surface`: el preferido si llega a 4,5:1; si no, el que usa ProCurva sobre ese relleno. */
+/**
+ * Texto legible sobre `surface`: el preferido si llega a 4,5:1; si no, el mismo color
+ * llevado hacia el polo hasta 4,5:1 (readableOn). Antes caía a legacyTextOn, que elige
+ * por luminancia aparente y en tonos medios podía quedar en 2,2:1.
+ */
 function textOn(surface: string, preferred: string): string {
   const s = parseHex(surface);
   const p = parseHex(preferred);
   if (s && p && contrastRatio(s, p) >= AA) return preferred;
-  return legacyTextOn(surface);
+  if (!s) return preferred;
+  return readableOn(p ? preferred : legacyTextOn(surface), surface);
 }
 
 /**
@@ -78,6 +86,41 @@ export function shiftTo(color: string, surfaces: readonly string[], target: numb
   return toHex(pole);
 }
 
+/**
+ * `color` legible sobre `main` (4,5:1 garantizado) y, si se puede a la vez, sobre
+ * `extra`. Orden: contra las dos superficies; si no alcanza, sólo contra la principal;
+ * si la principal es un tono medio donde ningún color llega al margen, el negro o el
+ * blanco, el que más contrasta (con cualquier fondo, uno de los dos supera 4,5:1).
+ */
+export function readableOn(color: string, main: string, extra: readonly string[] = []): string {
+  const m = parseHex(main);
+  if (!m) return color;
+  const ok = (c: string) => { const x = parseHex(c); return x !== null && contrastRatio(x, m) >= AA; };
+  if (extra.length > 0) {
+    const both = shiftTo(color, [main, ...extra], AA_MARGIN);
+    if (ok(both) && extra.every((e) => { const x = parseHex(both); const y = parseHex(e); return !x || !y || contrastRatio(x, y) >= AA; })) return both;
+  }
+  const alone = shiftTo(color, [main], AA_MARGIN);
+  if (ok(alone)) return alone;
+  return contrastRatio([0, 0, 0], m) >= contrastRatio([255, 255, 255], m) ? '#000000' : '#ffffff';
+}
+
+/**
+ * Superficie suave (--a2-line-soft: etiquetas, filtros activos, guía de talles, estados
+ * deshabilitados). Por defecto, la de siempre: 7 % del texto sobre el fondo. Si así el
+ * texto queda por debajo de 4,5:1 (fondos de tono medio, donde el texto llega justo), el
+ * tinte va hacia el polo opuesto al texto: se sigue viendo la superficie y el contraste sube.
+ */
+export function softSurface(text: string, bg: string): string {
+  const t = parseHex(text);
+  const b = parseHex(bg);
+  if (!t || !b) return bg;
+  const usual = blend(t, b, SOFT).map(Math.round) as unknown as Rgb;
+  if (contrastRatio(t, usual) >= AA) return toHex(usual);
+  const away: Rgb = relativeLuminance(t) < relativeLuminance(b) ? [255, 255, 255] : [0, 0, 0];
+  return toHex(blend(away, b, SOFT).map(Math.round) as unknown as Rgb);
+}
+
 /** Porcentaje para color-mix, redondeado HACIA ARRIBA (nunca por debajo del mínimo calculado). */
 const pctUp = (a: number) => `${Math.ceil(Math.min(1, Math.max(0, a)) * 100)}%`;
 
@@ -105,8 +148,9 @@ export function atelier2Colors(c: Atelier2ColorsInput) {
   const bgRgb = parseHex(bg);
   const panel = parseHex(secondary);
   // Panel: el secundario sólo cuenta como superficie del texto si casi no se distingue del fondo (mismo criterio que greyAlphas).
-  const textSurfaces = bgRgb && panel && contrastRatio(bgRgb, panel) < PANEL_TINT_MAX ? [bg, secondary] : [bg];
-  const text = parseHex(c.colorText) ? shiftTo(c.colorText, textSurfaces, AA_MARGIN) : contrastColor(bg);
+  const panelToo = bgRgb && panel && contrastRatio(bgRgb, panel) < PANEL_TINT_MAX ? [secondary] : [];
+  const text = parseHex(c.colorText) ? readableOn(c.colorText, bg, panelToo) : contrastColor(bg);
+  const soft = softSurface(text, bg);
   const primary = readableFill(c.colorPrimary);
   const accent = readableFill(c.colorAccent);
   const onSecondary = textOn(secondary, text);
@@ -119,12 +163,12 @@ export function atelier2Colors(c: Atelier2ColorsInput) {
   const edge = fg && bgRgb ? minAlphaForContrast(fg, [bgRgb], 0.13, UI_MARGIN) : 1;
   const pf = parseHex(primary.fill);
   const primaryEdge = pf && bgRgb && contrastRatio(pf, bgRgb) < UI ? shiftTo(primary.fill, [bg], UI_MARGIN) : primary.fill;
-  return { bg, text, primary, accent, secondary, onSecondary, muted, subtle, header, headerText, headerMuted, footMuted, edge, primaryEdge };
+  return { bg, text, soft, primary, accent, secondary, onSecondary, muted, subtle, header, headerText, headerMuted, footMuted, edge, primaryEdge };
 }
 
 /** Variables CSS del kit (prefijo --a2-). */
 export function atelier2Vars(c: Atelier2ColorsInput): Record<string, string> {
-  const { bg, text, primary, accent, secondary, onSecondary, muted, subtle, header, headerText, headerMuted, footMuted, edge, primaryEdge } = atelier2Colors(c);
+  const { bg, text, soft, primary, accent, secondary, onSecondary, muted, subtle, header, headerText, headerMuted, footMuted, edge, primaryEdge } = atelier2Colors(c);
   const pct = (a: number) => `${Math.round(Math.min(1, Math.max(0, a)) * 100)}%`;
   return {
     '--a2-bg': bg,
@@ -138,6 +182,8 @@ export function atelier2Vars(c: Atelier2ColorsInput): Record<string, string> {
     '--a2-on-secondary': onSecondary,
     '--a2-muted': `color-mix(in srgb, ${text} ${pct(muted)}, ${bg})`,
     '--a2-subtle': `color-mix(in srgb, ${text} ${pct(subtle)}, ${bg})`,
+    // Reemplaza la del CSS (mismo valor salvo en fondos de tono medio; ver softSurface).
+    '--a2-line-soft': soft,
     '--a2-header-bg': header,
     '--a2-header-text': headerText,
     '--a2-header-muted': `color-mix(in srgb, ${headerText} ${pctUp(headerMuted)}, ${header})`,
