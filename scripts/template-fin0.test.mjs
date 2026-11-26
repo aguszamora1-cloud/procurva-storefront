@@ -120,11 +120,16 @@ test('testimonios de las plantillas: sin avance automático ni estrellas inventa
  * cualquier cambio en estos, vuelve a fallar. No excluye carpetas.
  *  - Orden de la ficha compartido con las plantillas (lib/productLayoutPlan.ts):
  *    ProductDetail.tsx recorre el plan; el comportamiento es idéntico
- *    (scripts/product-layout-plan.test.mjs). Aprobación pendiente de Agus.
+ *    (scripts/product-layout-plan.test.mjs). Aprobado por Agus el 26/11.
+ *  - Cuotas confirmadas (installmentsExplicit): storeConfig agrega un campo;
+ *    installmentsCount y el resto de la configuración son idénticos a la base
+ *    (scripts/installments-explicit.test.mjs). Aprobado por Agus el 26/11.
  */
 const CLASSIC_APPROVED = {
   'src/pages/ProductDetail.tsx': '9dd70f91b2bf7395b3e821d52db3a604450ec8801dd766af031f1d71701a0cff',
   'src/lib/productLayoutPlan.ts': '73978dd8a5bfc76a4ccc60d32bec893d4bed1d514b1271f1d5628a93ecd87617',
+  'src/lib/types.ts': '763d8e6e6d48457058b0b9ea1e3ffe98b5a731f947b313a6938f85c9db56111d',
+  'src/lib/storeConfig.ts': '15fbad07a376927fb60c9115e9a98a7610b9165f78a64853057af1ec62504e0a',
 };
 const contentHash = (file) =>
   createHash('sha256').update(readFileSync(resolve(repoRoot, file), 'utf8').replace(/\r\n/g, '\n')).digest('hex');
