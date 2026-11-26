@@ -9,7 +9,7 @@
  * (atelier2-guards.test.mjs).
  *
  * Piezas de Classic, sin cambios, dentro de StoreSurface:
- *  - avisos de ahorro por cantidad (TemplateCartNudges, de useCartPromos);
+ *  - avisos de ahorro por cantidad (useCartPromos().nudges, el mismo texto que TemplateCartNudges);
  *  - «Ahorrás $X»: quantitySavings de useCartPromos, igual que la bolsa de Classic;
  *  - progreso de envío gratis (FreeShippingProgress, base freeShippingBase);
  *  - cupón con validación real (CouponCartBox), con los ítems con precio de
@@ -31,7 +31,6 @@ import { CouponCartBox } from '@/components/CouponCartBox';
 import { ComplementaryBlock } from '@/components/ComplementaryBlock';
 import { freeShippingBase } from '@/lib/cartAmounts';
 import { formatPrice } from '@/lib/utils';
-import { TemplateCartNudges } from '../shared/ClassicExtras';
 import { StoreSurface } from '../shared/StoreContent';
 import { unitsLabel, useCartView, useCloseOnRoute, useOverlay } from '../shared/ui';
 import { useAtelier2Palette } from './palette';
@@ -99,6 +98,28 @@ function BagLines() {
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * Avisos de ahorro por cantidad: el mismo dato (useCartPromos().nudges) y la misma
+ * frase que TemplateCartNudges. Única diferencia, de presentación: entre el número y
+ * el «%» va un espacio no separable, para que el «%» nunca quede solo en el renglón
+ * siguiente (text-wrap: pretty no lo evita en Firefox ni a mitad del texto).
+ */
+export const keepPercent = (s: string) => s.replace(/(\d)[ \u00a0\u202f]+%/g, '$1\u00a0%');
+
+function Nudges() {
+  const { nudges } = useCartPromos();
+  if (nudges.length === 0) return null;
+  return (
+    <>
+      {nudges.map((n) => (
+        <p key={n.key} className="a2-nudge">
+          Agregá {n.missing} más y ahorrá — {keepPercent(n.message)}
+        </p>
+      ))}
+    </>
   );
 }
 
@@ -213,7 +234,7 @@ export function Atelier2Bag() {
             <Empty onClose={close} />
           ) : (
             <>
-              <TemplateCartNudges className="a2-nudge" />
+              <Nudges />
               <BagLines />
               <BagTools />
               <BagExtras />
@@ -256,7 +277,7 @@ export function Atelier2CartPage() {
           </div>
           <div className="a2-cartp__s">
             <div className="a2-sum">
-              <TemplateCartNudges className="a2-nudge" />
+              <Nudges />
               <BagTotals />
               <BagTools />
               <p className="a2-sum__note">El envío y los descuentos por medio de pago se calculan en el checkout.</p>
