@@ -9,13 +9,16 @@
  *   A0  esqueleto del kit.
  *   A1  base visual (Chrome.tsx): encabezado, menú de celular, buscador, pie,
  *       paleta del comercio legible (palette.ts) e Inter.
- *   A2–A7  inicio, catálogo, ficha, bolsa: todavía páginas provisorias.
+ *   A2  inicio (Home.tsx, Hero.tsx, Card.tsx): portada a ancho completo y
+ *       secciones con la visibilidad y el orden del editor.
+ *   A3–A6  catálogo, ficha, bolsa: todavía páginas provisorias.
  * Sin lógica comercial propia: todo sale de los hooks compartidos.
  */
 
 import type { ReactNode } from 'react';
 import type { TemplateKit } from '../TemplateApp';
 import { Atelier2Shell } from './Chrome';
+import { Atelier2Home } from './Home';
 import './atelier2.css';
 
 function Atelier2Notice({ title, children }: { title: string; children?: ReactNode }) {
@@ -40,7 +43,7 @@ function pending(title: string, block: string) {
 
 export const atelier2Kit: TemplateKit = {
   Shell: Atelier2Shell,
-  Home: pending('Inicio', 'A2'),
+  Home: Atelier2Home,
   Catalog: pending('Productos', 'A3'),
   Product: pending('Ficha de producto', 'A4 y A5'),
   Cart: pending('Bolsa', 'A6'),
