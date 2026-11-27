@@ -46,15 +46,27 @@
  *   admitido pinta Classic (ver resolveTemplateHeader). No hay tonos ni más
  *   variantes: sumar una es un cambio de contrato y de esquema.
  *
- * F0 / P0-2: el registro está VACÍO. Ninguna tienda puede cambiar.
+ * APLICACIONES (`components.app`, esquema 3)
+ *   Una plantilla puede ser una tienda completa con armado propio (encabezado,
+ *   portada, listado, ficha, carrito): `components.app.kit` nombra el kit de
+ *   código que la pinta (atelier | distrito | momentum). Igual que el encabezado,
+ *   se resuelve al pintar por id + versión y no es una clave de `settings`. Que
+ *   una referencia resuelva a un kit NO alcanza para montarlo: la tienda además
+ *   exige el build con las aplicaciones habilitadas, canal minorista, sin outfits
+ *   activos y la validación del servidor (ver lib/templateApp). Todo lo demás
+ *   pinta Classic.
+ *
+ * T6 (23/11/2026): Atelier, Distrito y Momentum v1. Mientras el build no prenda
+ * las aplicaciones y el servidor no valide la activación, ninguna tienda cambia.
  */
 
 /**
  * Versión del formato de este archivo (no de una plantilla).
  *   1: id, version, name, patch.
  *   2: + `components.header` (armado del encabezado: classic | inline | stacked).
+ *   3: + `components.app` (tienda completa con kit propio: atelier | distrito | momentum).
  */
-export const STORE_TEMPLATES_SCHEMA = 2;
+export const STORE_TEMPLATES_SCHEMA = 3;
 
 /** Lo que se guarda en `settings.template` (puede traer campos extra, que se ignoran). */
 export interface StoreTemplateRef {
@@ -112,6 +124,19 @@ export interface TemplateHeader {
 }
 
 /**
+ * Kits de tienda completa (`components.app.kit`, esquema 3). Cada uno es código
+ * del storefront (src/templates/<kit>). Sumar uno es un cambio de contrato y de
+ * esquema, igual que un armado de encabezado.
+ */
+export const APP_KITS = ['atelier', 'distrito', 'momentum'] as const;
+export type AppKit = (typeof APP_KITS)[number];
+
+/** Tienda completa que fija una plantilla. Sólo `kit`; ninguna otra clave. */
+export interface TemplateAppComponent {
+  kit: AppKit;
+}
+
+/**
  * Armados estructurales de una plantilla. Van FUERA de `patch` porque no son
  * claves de `settings`: el comercio no los edita sueltos, vienen con la versión
  * de la plantilla y quedan cubiertos por el lock de versiones publicadas (el
@@ -119,6 +144,8 @@ export interface TemplateHeader {
  */
 export interface TemplateComponents {
   header?: TemplateHeader;
+  /** Esquema 3. Ausente = la tienda se pinta con Classic (más el encabezado, si hay). */
+  app?: TemplateAppComponent;
 }
 
 export interface StoreTemplateDefinition {
@@ -127,12 +154,19 @@ export interface StoreTemplateDefinition {
   /** Nombre que ve el comercio en la galería. */
   name: string;
   patch: TemplatePatch;
-  /** Esquema 2. Ausente = definición del esquema 1: encabezado Classic. */
+  /** Esquemas 2 y 3. Ausente = definición del esquema 1: encabezado Classic. */
   components?: TemplateComponents;
 }
 
-/** Plantillas publicadas. F0: vacío. */
-export const STORE_TEMPLATES: readonly StoreTemplateDefinition[] = [];
+/**
+ * Plantillas publicadas. Cada versión es inmutable (scripts/store-templates.lock.json).
+ * Las tres v1 son tiendas completas: no pisan ninguna clave de `settings`.
+ */
+export const STORE_TEMPLATES: readonly StoreTemplateDefinition[] = [
+  { id: 'atelier', version: 1, name: 'Atelier', patch: {}, components: { app: { kit: 'atelier' } } },
+  { id: 'distrito', version: 1, name: 'Distrito', patch: {}, components: { app: { kit: 'distrito' } } },
+  { id: 'momentum', version: 1, name: 'Momentum', patch: {}, components: { app: { kit: 'momentum' } } },
+];
 
 const ID_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 const MAX_VERSION = 999;
@@ -196,14 +230,19 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === 'object' && !Array.isArray(v);
 }
 
-const COMPONENT_KEYS: readonly string[] = ['header'];
+export function isAppKit(v: unknown): v is AppKit {
+  return typeof v === 'string' && (APP_KITS as readonly string[]).includes(v);
+}
+
+const COMPONENT_KEYS: readonly string[] = ['header', 'app'];
 const HEADER_KEYS: readonly string[] = ['layout'];
+const APP_KEYS: readonly string[] = ['kit'];
 /** Sólo propiedades PROPIAS: nada heredado por prototipo cuenta como parte del contrato. */
 const own = (o: Record<string, unknown>, k: string): unknown =>
   Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined;
 
 /**
- * ¿`components` tiene exactamente la forma del esquema 2? Estricto a propósito:
+ * ¿`components` tiene exactamente la forma de los esquemas 2 y 3? Estricto a propósito:
  * las definiciones son código nuestro, así que una clave de más (un tono, un
  * armado futuro) es un error de contrato, no una opción que se tolera.
  * `undefined` (definición del esquema 1) es válido.
@@ -218,11 +257,17 @@ export function isValidTemplateComponents(raw: unknown): raw is TemplateComponen
     for (const k of Object.keys(h)) if (!HEADER_KEYS.includes(k)) return false;
     if (!isHeaderLayout(own(h, 'layout'))) return false;
   }
+  const a = own(raw, 'app');
+  if (a !== undefined) {
+    if (!isPlainObject(a)) return false;
+    for (const k of Object.keys(a)) if (!APP_KEYS.includes(k)) return false;
+    if (!isAppKit(own(a, 'kit'))) return false;
+  }
   return true;
 }
 
 /**
- * ¿`def` es una definición completa y bien formada (esquemas 1 y 2)? Id y
+ * ¿`def` es una definición completa y bien formada (esquemas 1, 2 y 3)? Id y
  * versión válidos, nombre, `patch` con sólo claves permitidas y `components`
  * ausente o válido. No mira si está publicada: eso es findTemplate.
  */
@@ -244,7 +289,30 @@ export function isValidTemplateDefinition(def: unknown): def is StoreTemplateDef
 export function normalizeTemplateComponents(raw: unknown): TemplateComponents {
   if (raw === undefined || !isValidTemplateComponents(raw)) return {};
   const h = own(raw as Record<string, unknown>, 'header') as TemplateHeader | undefined;
-  return h ? { header: { layout: h.layout } } : {};
+  const a = own(raw as Record<string, unknown>, 'app') as TemplateAppComponent | undefined;
+  const out: TemplateComponents = {};
+  if (h) out.header = { layout: h.layout };
+  if (a) out.app = { kit: a.kit };
+  return out;
+}
+
+/** Kit de tienda completa de una definición válida, o null (= Classic). */
+export function templateAppKit(def: StoreTemplateDefinition | null | undefined): AppKit | null {
+  if (!isValidTemplateDefinition(def)) return null;
+  return normalizeTemplateComponents(def.components).app?.kit ?? null;
+}
+
+/**
+ * Kit que corresponde a una referencia guardada (`settings.template` o la ya
+ * resuelta de la config). Necesita versión exacta y una definición válida del
+ * registro; cualquier otra cosa da null (= Classic). Pura. Que dé un kit NO
+ * autoriza a montarlo: eso lo decide el storefront (lib/templateApp).
+ */
+export function resolveTemplateApp(
+  raw: unknown,
+  registry: readonly StoreTemplateDefinition[] = STORE_TEMPLATES,
+): AppKit | null {
+  return templateAppKit(findTemplate(parseTemplateRef(raw), registry));
 }
 
 /** Encabezado de una definición: el que pide si la definición es válida; si no, Classic. */

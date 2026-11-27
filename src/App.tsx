@@ -1,11 +1,12 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { StoreProvider, useStoreStatus } from '@/context/StoreProvider';
+import { StoreProvider, useStore, useStoreStatus, useStoreType } from '@/context/StoreProvider';
 import { WholesalePricingProvider } from '@/context/WholesalePricingContext';
 import { PromotionsProvider } from '@/context/PromotionsContext';
 import { CategoryTiersProvider } from '@/context/CategoryTiersContext';
 import { CartProvider } from '@/context/CartContext';
 import { CouponProvider } from '@/context/CouponContext';
+import { CartCashRecoveryProvider } from '@/context/CartCashRecovery';
 import { FirstPaintProvider, RouteGate, useFirstPaintGate } from '@/context/FirstPaintContext';
 import { Layout } from '@/components/Layout';
 import { ScrollToTop } from '@/components/ScrollToTop';
@@ -20,6 +21,9 @@ import { StoreNotFound } from '@/pages/StoreNotFound';
 import { RouteNotFound } from '@/pages/RouteNotFound';
 import { WholesalePasswordGate } from '@/pages/WholesalePasswordGate';
 import { PaginaEnConstruccion } from '@/pages/PaginaEnConstruccion';
+import { devTemplate } from '@/lib/devTemplate';
+import { TEMPLATE_APPS_ENABLED, decideTemplateApp, needsOutfitsProbe } from '@/lib/templateApp';
+import { useTemplateOutfitsProbe } from '@/hooks/useTemplateOutfitsProbe';
 
 // Code-splitting: cada página se carga bajo demanda (lazy) para reducir el
 // bundle inicial. La navegación dispara la descarga del chunk de la página.
@@ -37,6 +41,45 @@ const CustomPage = lazy(() => import('@/pages/CustomPage').then((m) => ({ defaul
 const PromoPage = lazy(() => import('@/pages/PromoPage').then((m) => ({ default: m.PromoPage })));
 const Resena = lazy(() => import('@/pages/Resena').then((m) => ({ default: m.Resena })));
 
+/**
+ * Plantillas P1.1: vista previa de plantillas comerciales SÓLO en vite DEV
+ * (`?pc_dev_tpl=`, lib/devTemplate). En producción `import.meta.env.DEV` es
+ * `false` literal: el import diferido desaparece del bundle y toda tienda ve
+ * Classic, sin cambios.
+ */
+const TemplateApp = import.meta.env.DEV || TEMPLATE_APPS_ENABLED
+  ? lazy(() => import('@/templates/TemplateApp').then((m) => ({ default: m.TemplateApp })))
+  : null;
+
+/**
+ * T6: plantilla completa activada (o en vista previa autorizada desde el
+ * diseñador), sólo con el build habilitado. Todas las condiciones en
+ * lib/templateApp; cualquier otra cosa pinta Classic exacto.
+ */
+function StoreSurface() {
+  const config = useStore();
+  const storeType = useStoreType();
+  const { companyId } = useStoreStatus();
+  const gate = {
+    enabled: TEMPLATE_APPS_ENABLED,
+    template: config.template,
+    storeType,
+    outfitsSection: config.sections.outfits,
+    mostrarOutfit: config.complementaryBlock.mostrarOutfit,
+  };
+  // Outfits activos: se leen SÓLO si todo lo demás ya da plantilla (ver lib/templateApp).
+  const outfits = useTemplateOutfitsProbe(companyId, needsOutfitsProbe(gate));
+  const { kit, block } = decideTemplateApp({ ...gate, outfits });
+  if (block === 'verificando') return <LoadingScreen />;
+  if (TemplateApp && kit)
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <TemplateApp id={kit} />
+      </Suspense>
+    );
+  return <StoreRoutes />;
+}
+
 /** Fallback liviano mientras se descarga el chunk de la página. */
 function PageFallback() {
   // Mientras baja el chunk, la página todavía no montó y por lo tanto no anotó
@@ -53,6 +96,7 @@ function StoreRoutes() {
       <WholesalePricingProvider>
       <PromotionsProvider>
       <CategoryTiersProvider>
+      <CartCashRecoveryProvider>
       <BrowserRouter>
       <FirstPaintProvider>
         <ScrollToTop />
@@ -89,6 +133,7 @@ function StoreRoutes() {
         </Layout>
       </FirstPaintProvider>
       </BrowserRouter>
+      </CartCashRecoveryProvider>
       </CategoryTiersProvider>
       </PromotionsProvider>
       </WholesalePricingProvider>
@@ -110,6 +155,13 @@ function Gate() {
       />
     );
   if (status === 'needs-password') return <WholesalePasswordGate />;
+  if (TemplateApp && devTemplate)
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <TemplateApp id={devTemplate} devPreview />
+      </Suspense>
+    );
+  if (TEMPLATE_APPS_ENABLED) return <StoreSurface />;
   return <StoreRoutes />;
 }
 

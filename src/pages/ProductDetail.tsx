@@ -7,8 +7,8 @@ import { useStore, useStoreType } from '@/context/StoreProvider';
 import { useFirstPaintGate } from '@/context/FirstPaintContext';
 import { useCart } from '@/context/CartContext';
 import { usePromotions } from '@/context/PromotionsContext';
-import { useCategoryTiers } from '@/context/CategoryTiersContext';
-import { tierUnitPrices } from '@/lib/categoryTiers';
+import { useTierPurchase } from '@/hooks/useTierPurchase';
+import { buildSingleCartItem } from '@/lib/tierPurchase';
 import { Seo } from '@/components/Seo';
 import { ProductGallery, type GalleryItem } from '@/components/ProductGallery';
 import { ColorSelector } from '@/components/ColorSelector';
@@ -20,7 +20,7 @@ import { PriceStack } from '@/components/PriceStack';
 import { CouponPdpChip } from '@/components/CouponChip';
 import { WholesalePurchasePanel } from '@/components/WholesalePurchasePanel';
 import { PromoCountdown } from '@/components/PromoCountdown';
-import { QuantityTierSelector, tierTotalSavings, type QuantityTierOption } from '@/components/QuantityTierSelector';
+import { QuantityTierSelector } from '@/components/QuantityTierSelector';
 import { CardBadge } from '@/components/CardBadge';
 import { ProductDetailCustomSlot, CustomSectionNode } from '@/components/ProductDetailCustomSlot';
 import { RelatedProducts } from '@/components/RelatedProducts';
@@ -33,7 +33,7 @@ import { RatingLine } from '@/components/RatingLine';
 import { ProductJsonLd } from '@/components/ProductJsonLd';
 import { ProductReels } from '@/components/ProductReels';
 import { PurchaseFlow } from '@/components/PurchaseFlow';
-import { UnitVariantRows, type UnitSelection } from '@/components/UnitVariantRows';
+import { UnitVariantRows } from '@/components/UnitVariantRows';
 import { VirtualTryOn, mapFashnCategory } from '@/components/VirtualTryOn';
 import { useProductDetailCustomSections } from '@/hooks/useProductDetailCustomSections';
 import { useProductBadges } from '@/hooks/useProductBadges';
@@ -187,7 +187,6 @@ export function ProductDetail() {
   const navigate = useNavigate();
   const { trackViewContent, trackAddToCart } = useMetaPixel();
   const { priceFor, promoForProduct, quantityPromoFor, quantityMessageFor } = usePromotions();
-  const { tiersForProduct } = useCategoryTiers();
   const { sections: pdSections } = useProductDetailCustomSections(id);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -198,10 +197,6 @@ export function ProductDetail() {
   const { badges: detailBadges, style: badgeStyle, showIcons: badgeShowIcons } = useProductBadges(product, {
     color: selectedColor,
   });
-  // PROTOTIPO volume tiers: cantidad de unidades del escalón elegido (1 = flujo
-  // normal suelto) y la variante elegida por cada unidad (talle + color).
-  const [tierUnits, setTierUnits] = useState(1);
-  const [tierSelections, setTierSelections] = useState<UnitSelection[]>([]);
   const [showSticky, setShowSticky] = useState(false);
   const [showSizeFinder, setShowSizeFinder] = useState(false);
   const addBtnRef = useRef<HTMLButtonElement>(null);
@@ -343,37 +338,36 @@ export function ProductDetail() {
     if (onlySize && !selectedSize) setSelectedSize(onlySize);
   }, [onlySize, selectedSize]);
 
-  // Volume tiers: mantener `tierSelections` con exactamente `tierUnits` slots (uno
-  // por unidad), preservando lo ya elegido al cambiar de escalón.
-  //
-  // Las unidades NUEVAS arrancan con lo que ya eligió arriba (selectedSize/Color),
-  // no vacías: pasar de "Lleva 1" a "Lleva 3" con el color y el talle ya puestos
-  // tiene que llegar a las tres unidades, si no las filas abren en blanco y el
-  // comprador vuelve a elegir lo mismo tres veces.
-  // Devuelve `prev` cuando el largo ya coincide, para que re-correr por un cambio
-  // de color no pise las filas por unidad ni fuerce un render de más.
-  useEffect(() => {
-    setTierSelections((prev) => {
-      // Fuera del modo escalón el array se vacía. Si se mantuviera un slot en
-      // "Lleva 1", quedaría congelado con lo que hubiera al momento de crearlo
-      // —típicamente color sí, talle todavía no— y al pasar a "Lleva 3" la
-      // unidad 1 heredaría ESO mientras las otras dos arrancan con la elección
-      // actual: el comprador ya eligió talle arriba y la primera fila igual le
-      // aparece vacía. Antes lo tapaba el check, que reconstruía el array entero
-      // al abrir las filas.
-      if (tierUnits <= 1) return prev.length === 0 ? prev : [];
-      if (prev.length === tierUnits) return prev;
-      const next = prev.slice(0, tierUnits);
-      while (next.length < tierUnits) next.push({ size: selectedSize, color: selectedColor });
-      return next;
-    });
-  }, [tierUnits, selectedSize, selectedColor]);
-
-  // Al cambiar de producto (la ruta reusa el componente), volver al escalón base.
-  useEffect(() => {
-    setTierUnits(1);
-    setTierSelections([]);
-  }, [product?.id]);
+  // Compra por escalones «Lleva N» (category_volume_tiers): estado, validación y
+  // agregado en hooks/useTierPurchase.ts, compartido con las plantillas. Va acá,
+  // antes de los returns tempranos, en el lugar de sus dos efectos.
+  const {
+    tierUnits,
+    setTierUnits,
+    tierSelections,
+    hasTiers,
+    tierOptions,
+    inTierMode,
+    perUnitOpen,
+    tierVariantLabel,
+    tierValid,
+    tierCtaLabel,
+    sizeDisabledFor,
+    updateTierUnit,
+    setAllUnitSizes,
+    handleAddTier,
+  } = useTierPurchase({
+    product,
+    variants,
+    colors,
+    sizes,
+    selectedSize,
+    selectedColor,
+    setSelectedSize,
+    setSelectedColor,
+    images,
+    trackAddToCart,
+  });
 
   // Color pre-seleccionado vía ?color= (lo setean las "cards por color" del
   // catálogo). Sólo aplica si el color existe en el producto y el usuario todavía
@@ -480,30 +474,21 @@ export function ProductDetail() {
 
   const handleAdd = () => {
     if (!variant || !canAdd) return;
-    addItem({
-      product_id: product.id,
-      variant_id: variant.id,
-      name: product.name,
-      categories: cats,
-      size: variant.size,
-      color: variant.color,
-      // Precio ya con la promo aplicada (finalPrice). El cliente paga lo que ve.
-      unit_price: finalPrice,
-      // Precio de contado (efectivo/transferencia) si hay descuento, para que el
-      // checkout pueda ajustar el total según el método de pago elegido.
-      ...(finalCash != null && finalCash < finalPrice ? { unit_price_cash: finalCash } : {}),
-      // Datos de la promo aplicada (para el tachado en el carrito y el tracking).
-      ...(promo
-        ? {
-            promo_id: promo.id,
-            promo_name: promo.name,
-            unit_price_original: mainPrice,
-            promo_stackable: promo.stackable_with_coupons !== false,
-          }
-        : {}),
-      qty: 1,
-      image_url: variant.image_url ?? images[0] ?? null,
-    });
+    // Precio ya con la promo aplicada (el cliente paga lo que ve), contado si hay
+    // descuento y datos de la promo: lib/tierPurchase.ts buildSingleCartItem.
+    addItem(
+      buildSingleCartItem({
+        product,
+        categories: cats,
+        variant,
+        finalPrice,
+        finalCash,
+        mainPrice,
+        cashPrice,
+        promo,
+        fallbackImage: images[0] ?? null,
+      }),
+    );
     // Meta Pixel: AddToCart con el precio efectivamente agregado (ya con promo).
     trackAddToCart({ contentId: product.id, name: product.name, value: finalPrice });
   };
@@ -511,168 +496,7 @@ export function ProductDetail() {
   const inquiry = buildWhatsappInquiry(config, product.name);
   const cats = Array.isArray(product.categories) ? product.categories.filter(Boolean) : [];
 
-  // ── Volume tiers por categoría (category_volume_tiers, motor real) ──────────
-  // Config de escalones de la categoría del producto (precedencia por sort_order,
-  // ver categoryTiers.ts). null = el producto no tiene escalones -> no se muestran.
-  const tierConfig = tiersForProduct(product);
-  const variantPerUnit = tierConfig?.variantPerUnit ?? true;
-  // Tarjetas a mostrar: baseline "Lleva 1" (precio normal) + los escalones de la DB.
-  const tierCards = tierConfig
-    ? [
-        { units: 1, discountPct: 0, isFeatured: false },
-        ...tierConfig.tiers.map((t) => ({ units: t.minQuantity, discountPct: t.discountPct, isFeatured: t.isFeatured })),
-      ]
-    : [];
-  const hasTiers = tierCards.length > 1;
-  const selectedTier =
-    tierCards.find((t) => t.units === tierUnits) ?? tierCards[0] ?? { units: 1, discountPct: 0, isFeatured: false };
-
-  // Precio por unidad de un escalón (tarjeta y efectivo por separado). El % sale
-  // de la DB; las bases son finalPrice/finalCash (ya con promo automática).
-  const tierPrices = (discountPct: number) => tierUnitPrices(finalPrice, finalCash, discountPct);
-  // Escalones ya calculados para QuantityTierSelector (el componente no calcula).
-  // Protagonista = contado si hay; la línea "tarjeta" sólo si es más caro.
-  // El ahorro sale del MISMO precio que se muestra en el baseline "Lleva 1" (que
-  // ya tiene la promo automática aplicada), no del precio de lista.
-  const baselineUnitPrice = (() => {
-    const p = tierPrices(0);
-    return p.cash ?? p.card;
-  })();
-  const tierOptions: QuantityTierOption[] = tierCards.map((t) => {
-    const p = tierPrices(t.discountPct);
-    const unitPrice = p.cash ?? p.card;
-    return {
-      units: t.units,
-      discountPct: t.discountPct,
-      unitPrice,
-      cardPrice: p.cash != null && p.cash < p.card ? p.card : null,
-      // Tachado sólo en 'list' y sólo con descuento: ahí cada fila se lee sola y
-      // necesita contra qué comparar. En 'cards' la comparación la da la tarjeta
-      // "Lleva 1" de al lado, así que sumarlo sería ruido. El baseline no lleva.
-      strikePrice:
-        config.quantityTiersLayout === 'list' && t.discountPct > 0 ? baselineUnitPrice : null,
-      savings: tierTotalSavings(baselineUnitPrice, unitPrice, t.units),
-      isFeatured: t.isFeatured,
-      isActive: tierUnits === t.units,
-    };
-  });
-  // Resuelve la variante (fila product_variants) de un talle+color.
-  const variantFor = (size: string | null, color: string | null): Variant | null =>
-    variants.find((v) => (colors.length === 0 || v.color === color) && (sizes.length === 0 || v.size === size)) ?? null;
-  // Talles sin stock para el color de esa unidad (deshabilitados en su SizeSelector).
-  const sizeDisabledFor = (color: string | null) => (size: string) =>
-    !variants.some((v) => v.size === size && (colors.length === 0 || !color || v.color === color) && (v.stock ?? 0) > 0);
-  const updateTierUnit = (i: number, patch: Partial<UnitSelection>) => {
-    setTierSelections((prev) => prev.map((u, idx) => (idx === i ? { ...u, ...patch } : u)));
-    // Las filas por unidad no tocan selectedColor/selectedSize, así que espejamos
-    // la PRIMERA unidad en ellos. Dos razones: la galería salta a la foto de la
-    // variante por `selectedColor` (sin esto la foto se queda en el color
-    // anterior), y al volver a "Lleva 1" el flujo suelto aparece con lo último
-    // que el comprador eligió y no con algo viejo.
-    if (i === 0) {
-      if (patch.color !== undefined) setSelectedColor(patch.color);
-      if (patch.size !== undefined) setSelectedSize(patch.size);
-    }
-  };
-
-  // Modo escalón activo: hay escalones y el comprador eligió N>1.
-  const inTierMode = hasTiers && tierUnits > 1;
-  // Filas por unidad: se muestran siempre que haya más de una unidad, que la
-  // categoría pida variante por unidad y que haya ALGO que elegir. Sin ese último
-  // guard, un producto de un solo color y un solo talle sacaría N filas idénticas
-  // de una sola opción cada una.
-  const perUnitOpen = inTierMode && variantPerUnit && (colors.length > 1 || sizes.length > 1);
-  // Selecciones efectivas por unidad:
-  //  - filas por unidad -> cada unidad su variante (tierSelections).
-  //  - si no (categoría con variantPerUnit=false, o nada que elegir) -> las N
-  //    comparten la variante del selector único. Es el mecanismo que ya existía
-  //    para variantPerUnit=false, que sigue siendo un flag real de la categoría
-  //    (`category_volume_tiers.variant_per_unit`), no código muerto.
-  const effectiveTierSelections: UnitSelection[] = !inTierMode
-    ? []
-    : perUnitOpen
-      ? tierSelections
-      : Array.from({ length: tierUnits }, () => ({ size: selectedSize, color: selectedColor }));
-
-  // Resumen de la variante para la barra sticky mobile. Cuando las N unidades
-  // comparten variante se puede nombrar de verdad; con las filas por unidad puede
-  // haber cualquier combinación.
-  const tierVariantLabel = (() => {
-    const sel = effectiveTierSelections;
-    if (sel.length === 0) return null;
-    const [first] = sel;
-    if (!sel.every((s) => s.size === first.size && s.color === first.color)) return 'surtido';
-    const parts = [first.color, first.size].filter(Boolean);
-    return parts.length > 0 ? parts.join(' · ') : null;
-  })();
-
-  // ¿Todas las N unidades tienen una variante válida y con stock suficiente?
-  // (Respeta el stock agregado: si dos unidades eligen la misma variante, exige
-  // stock >= 2 para esa variante.)
-  const tierValid = (() => {
-    if (!inTierMode || effectiveTierSelections.length !== tierUnits || !(finalPrice > 0)) return false;
-    const counts = new Map<string, number>();
-    for (const sel of effectiveTierSelections) {
-      const v = variantFor(sel.size, sel.color);
-      if (!v) return false;
-      counts.set(v.id, (counts.get(v.id) ?? 0) + 1);
-    }
-    for (const [vid, n] of counts) {
-      const v = variants.find((x) => x.id === vid);
-      if (!v || (v.stock ?? 0) < n) return false;
-    }
-    return true;
-  })();
-
-  // Precios del escalón para UN talle. En un escalón "Lleva 3" el cliente puede
-  // elegir tres talles distintos, y con precio por talle cada uno vale lo suyo:
-  // por eso se resuelve por línea y no una sola vez para todas. El color sigue
-  // saliendo de `selectedColor` para las promos, igual que antes.
-  const tierPricesForSize = (size: string | null, discountPct: number) => {
-    const info = getPriceInfo(product, size);
-    const listPrice = priceFor(info.mainPrice, product, selectedColor).finalPrice;
-    const listCash = info.cashPrice != null ? priceFor(info.cashPrice, product, selectedColor).finalPrice : null;
-    return { ...tierUnitPrices(listPrice, listCash, discountPct), listPrice };
-  };
-
-  const handleAddTier = () => {
-    if (!tierValid) return;
-    const groupId = `tier-${product.id}-${selectedTier.units}-${Date.now()}`;
-    const label = `Lleva ${selectedTier.units}${selectedTier.discountPct > 0 ? ` — ${selectedTier.discountPct}% OFF` : ''}`;
-    let trackedValue = 0;
-    for (const sel of effectiveTierSelections) {
-      const v = variantFor(sel.size, sel.color);
-      if (!v) continue;
-      const { card: unitPrice, cash: unitCash, listPrice } = tierPricesForSize(v.size, selectedTier.discountPct);
-      trackedValue += unitPrice;
-      addItem({
-        product_id: product.id,
-        variant_id: v.id,
-        name: product.name,
-        categories: cats,
-        size: v.size,
-        color: v.color,
-        // El descuento del escalón (de la DB) ya viene aplicado en unit_price (tarjeta).
-        unit_price: unitPrice,
-        // Precio de lista SIN el descuento del escalón, para el tachado del carrito.
-        unit_price_original: listPrice,
-        // Precio de efectivo/transferencia ya con el descuento del escalón aplicado.
-        ...(unitCash != null ? { unit_price_cash: unitCash } : {}),
-        qty: 1,
-        image_url: v.image_url ?? images[0] ?? null,
-        source: 'tier',
-        tierGroupId: groupId,
-        tierLabel: label,
-      });
-    }
-    trackAddToCart({ contentId: product.id, name: product.name, value: trackedValue });
-    // Reset al flujo normal (Lleva 1).
-    setTierUnits(1);
-    setTierSelections([]);
-  };
-
   // CTA unificado: en modo escalón (N>1) usa el flujo tier; si no, el suelto normal.
-  const tierCtaLabel = tierValid ? `AGREGAR ${tierUnits} AL CARRITO` : 'ELEGÍ LAS VARIANTES';
   const primaryAdd = inTierMode ? handleAddTier : handleAdd;
   const primaryDisabled = inTierMode ? !tierValid : !canAdd;
   const primaryLabel = inTierMode ? tierCtaLabel : ctaLabel;
@@ -797,7 +621,7 @@ export function ProductDetail() {
                   sizes={sizes}
                   onSelect={(s) => {
                     setSelectedSize(s);
-                    if (perUnitOpen) setTierSelections((prev) => prev.map((u) => ({ ...u, size: s })));
+                    if (perUnitOpen) setAllUnitSizes(s);
                   }}
                 />
               </div>

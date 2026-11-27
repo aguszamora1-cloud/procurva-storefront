@@ -24,6 +24,13 @@ export function cartLineKey(
  * serializa en la orden). Las líneas activas bajan unit_price/unit_price_cash y
  * guardan el tracking en los campos promo_* existentes (sin migración). Lo usan
  * el checkout y el carrito (total con cupón), para que den el mismo número.
+ *
+ * La promo por cantidad NO se acumula con un descuento que la línea ya trae
+ * (promo automática, combo de outfit): en cada medio de pago queda el precio más
+ * conveniente entre el que ya tenía y la promo por cantidad calculada sobre la
+ * lista de ESE medio (tarjeta: unit_price_original; contado:
+ * unit_price_cash_original). Si la de cantidad no mejora nada, la línea queda
+ * igual, con los datos de su promo.
  */
 export function priceCartItems(
   items: CartItem[],
@@ -36,8 +43,18 @@ export function priceCartItems(
     const cardBase = it.unit_price_original ?? it.unit_price;
     const newCard = Math.min(it.unit_price, applyPromoToPrice(cardBase, r.promo, storeType));
     const hasCash = typeof it.unit_price_cash === 'number';
-    const cashBase = hasCash ? (it.unit_price_cash as number) : cardBase;
-    const newCash = Math.min(cashBase, applyPromoToPrice(cashBase, r.promo, storeType));
+    const cash = it.unit_price_cash as number;
+    // ¿La línea ya viene rebajada? Entonces su contado no es el de lista.
+    const preDiscounted = it.unit_price_original != null && it.unit_price_original > it.unit_price;
+    const cashBase = preDiscounted ? it.unit_price_cash_original : cash;
+    // Sin contado de lista (carritos guardados antes, combos de outfit) no hay
+    // base para la promo en contado: conserva su precio, con tope en la tarjeta.
+    const newCash = !hasCash
+      ? cash
+      : typeof cashBase === 'number'
+        ? Math.min(cash, applyPromoToPrice(cashBase, r.promo, storeType))
+        : Math.min(cash, newCard);
+    if (newCard >= it.unit_price && (!hasCash || newCash >= cash)) return it;
     return {
       ...it,
       unit_price: newCard,

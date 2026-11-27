@@ -9,30 +9,20 @@ import { ComplementaryBlock } from './ComplementaryBlock';
 import { FreeShippingProgress } from './FreeShippingProgress';
 import { CouponCartBox } from './CouponCartBox';
 import { useStore, useStoreType } from '@/context/StoreProvider';
-import { formatPrice, resolvePricePair } from '@/lib/utils';
-import { groupCartItems } from '@/lib/cart';
+import { formatPrice } from '@/lib/utils';
+import { cartAmountRows, cartSubtotalAmount, freeShippingBase } from '@/lib/cartAmounts';
 
 export function CartDrawer() {
   const { items, isOpen, close, updateQty, removeItem, itemCount } = useCart();
-  const { byLine, adjustedSubtotal, quantitySavings, nudges } = useCartPromos();
-  const rows = groupCartItems(items);
-  // Subtotal de contado (efectivo/transferencia): usa unit_price_cash si existe.
-  // Sólo para la JERARQUÍA visual del subtotal (contado protagonista, tarjeta
-  // secundaria); el total real que se cobra sigue dependiendo del método en el
-  // checkout (esa es la inconsistencia previa a mirar aparte).
-  const cashSubtotal = items.reduce((s, i) => s + (typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price) * i.qty, 0);
-  const hasCashSubtotal = cashSubtotal > 0 && cashSubtotal < adjustedSubtotal;
+  const { byLine, quantitySavings, nudges } = useCartPromos();
   const config = useStore();
   const storeType = useStoreType() ?? 'retail';
-  // Subtotal según lo que la tienda muestra (contado, tarjeta o los dos).
-  const subtotalPair = resolvePricePair(config, hasCashSubtotal ? cashSubtotal : null, adjustedSubtotal);
-  // Cupón aplicado: el subtotal se muestra con el descuento (mismo cálculo que el
-  // checkout) y el de antes queda tachado.
+  // Filas, subtotal y envío gratis con los MISMOS precios que cobra el checkout
+  // (priceCartItems + cupón, ver lib/cartAmounts.ts). Con cupón aplicado, el
+  // subtotal se muestra con el descuento y el de antes queda tachado.
   const coupon = useCartCoupon();
-  const couponActive = coupon.discountCash > 0 || coupon.discountCard > 0;
-  const beforeCoupon = resolvePricePair(config, coupon.cashSubtotal, coupon.cardSubtotal);
-  const withCoupon = resolvePricePair(config, coupon.cashSubtotal - coupon.discountCash, coupon.cardSubtotal - coupon.discountCard);
-  const shownPair = couponActive ? withCoupon : subtotalPair;
+  const rows = cartAmountRows(items, coupon.pricedItems, byLine, config);
+  const shownPair = cartSubtotalAmount(coupon, config);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -81,7 +71,7 @@ export function CartDrawer() {
               </Link>
             </div>
           ) : (
-            rows.map((row) => (
+            rows.map(({ row, price }) => (
               <div key={row.key} className="flex gap-3 border-b border-line py-4">
                 <div className="h-24 w-20 shrink-0 overflow-hidden bg-secondary">
                   {row.image && (
@@ -110,51 +100,34 @@ export function CartDrawer() {
                     ) : (
                       <span className="text-[calc(12px_*_var(--font-scale,1))] font-semibold uppercase tracking-wide text-subtle">{row.units} u.</span>
                     )}
-                    {(() => {
-                      // Volume tiers: contado protagonista, tarjeta secundaria; tachado = lista.
-                      if (row.source === 'tier') {
-                        const showStrike = row.originalTotal != null && row.originalTotal > row.lineTotal;
-                        const { big, small, smallLabel } = resolvePricePair(config, row.cashTotal, row.lineTotal);
-                        return (
-                          <div className="text-right">
-                            <span className="flex items-baseline justify-end gap-1.5">
-                              {showStrike && <span className="text-[calc(12px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(row.originalTotal as number)}</span>}
-                              <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(big)}</span>
-                            </span>
-                            {small != null && (
-                              <span className="mt-0.5 block text-[calc(11px_*_var(--font-scale,1))] text-subtle">
-                                <span className="font-semibold">{formatPrice(small)}</span> {smallLabel}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      }
-                      const r = byLine.get(row.removeKeys[0]);
-                      if (r?.active) {
-                        return (
-                          <span className="flex items-baseline gap-1.5">
-                            <span className="text-[calc(12px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(row.lineTotal)}</span>
-                            <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(r.unitPriceFinal * row.units)}</span>
+                    {/* Escalones, promo por cantidad y línea normal con el precio que
+                        cobra el checkout: contado protagonista y tarjeta secundaria (si
+                        la tienda muestra las dos); tachado sólo con un descuento real. */}
+                    {row.source !== 'tier' && price.strike == null && price.isCash ? (
+                      // Línea normal sin descuento: igual que siempre.
+                      <div className="text-right">
+                        <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(price.big)}</span>
+                        {price.small != null && (
+                          <span className="mt-0.5 block text-[calc(11px_*_var(--font-scale,1))] text-subtle">
+                            <span className="font-semibold">{formatPrice(price.small)}</span> {price.smallLabel}
                           </span>
-                        );
-                      }
-                      // Línea normal: contado protagonista + tarjeta secundaria (si hay descuento
-                      // y si la tienda muestra las dos).
-                      const line = resolvePricePair(config, row.cashTotal, row.lineTotal);
-                      if (line.isCash) {
-                        return (
-                          <div className="text-right">
-                            <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(line.big)}</span>
-                            {line.small != null && (
-                              <span className="mt-0.5 block text-[calc(11px_*_var(--font-scale,1))] text-subtle">
-                                <span className="font-semibold">{formatPrice(line.small)}</span> {line.smallLabel}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      }
-                      return <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-text">{formatPrice(line.big)}</span>;
-                    })()}
+                        )}
+                      </div>
+                    ) : row.source === 'tier' || price.strike != null ? (
+                      <div className="text-right">
+                        <span className="flex items-baseline justify-end gap-1.5">
+                          {price.strike != null && <span className="text-[calc(12px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(price.strike)}</span>}
+                          <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-accent">{formatPrice(price.big)}</span>
+                        </span>
+                        {price.small != null && (
+                          <span className="mt-0.5 block text-[calc(11px_*_var(--font-scale,1))] text-subtle">
+                            <span className="font-semibold">{formatPrice(price.small)}</span> {price.smallLabel}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[calc(14px_*_var(--font-scale,1))] font-bold text-text">{formatPrice(price.big)}</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -178,8 +151,8 @@ export function CartDrawer() {
               <span className="mt-1 text-[calc(11px_*_var(--font-scale,1))] font-semibold uppercase tracking-[1.5px] text-muted">Subtotal</span>
               <div className="text-right">
                 <span className="flex items-baseline justify-end gap-2">
-                  {couponActive && (
-                    <span className="text-[calc(13px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(beforeCoupon.big)}</span>
+                  {shownPair.strike != null && (
+                    <span className="text-[calc(13px_*_var(--font-scale,1))] text-subtle line-through">{formatPrice(shownPair.strike)}</span>
                   )}
                   <span className="text-[calc(20px_*_var(--font-scale,1))] font-extrabold text-accent">{formatPrice(shownPair.big)}</span>
                 </span>
@@ -195,7 +168,7 @@ export function CartDrawer() {
             )}
             {/* Cuánto falta para el envío gratis: acá es donde el cliente decide
                 si suma una prenda más o si cierra el pedido. */}
-            <FreeShippingProgress subtotal={subtotalPair.primary} className="mb-4" />
+            <FreeShippingProgress subtotal={freeShippingBase(coupon)} className="mb-4" />
             {/* Cupón: se puede cargar acá y llega aplicado al checkout. */}
             <CouponCartBox
               items={coupon.pricedItems}

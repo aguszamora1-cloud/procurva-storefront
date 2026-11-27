@@ -114,7 +114,12 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 // v23: suma `showShippingCalculator`. Se lee con guarda (`!== false`), así que
 // una entrada v22 no la oculta; el bump es para que no PARPADEE: una tienda que
 // la apagó pintaría el primer frame con la calculadora y la sacaría al resolver.
-const cacheKey = (slug: string) => `procurva_store_config_v23:${slug}`;
+// v24 (T6): primeras plantillas publicadas (Atelier, Distrito, Momentum). Una
+// entrada v23 se guardó con el registro vacío y trae `template: null` aunque la
+// tienda ya tenga una activada: pintaría el primer frame en Classic y saltaría a
+// la plantilla al resolver el fetch. Para las tiendas sin plantilla, la entrada
+// nueva pinta igual que la vieja.
+const cacheKey = (slug: string) => `procurva_store_config_v24:${slug}`;
 // Flag por sesión: la tienda mayorista protegida ya fue desbloqueada con el código.
 const unlockKey = (slug: string) => `procurva_wholesale_unlock:${slug}`;
 
@@ -462,4 +467,20 @@ export function useProductFilter(): ProductFilter {
   const ctx = useContext(StoreContext);
   if (!ctx) throw new Error('useProductFilter must be used within StoreProvider');
   return ctx.productFilter;
+}
+
+/**
+ * Plantillas (T5): re-provee la MISMA tienda con algunos campos de presentación
+ * cambiados (colores, tipografías, esquinas) sólo para lo que va adentro. Lo usan
+ * las plantillas para que los componentes de Classic que muestran el contenido
+ * del comercio (secciones personalizadas, reseñas, newsletter) calculen sus
+ * colores en código (useInk, popup) con la paleta de la plantilla, igual que las
+ * variables CSS del contenedor. No cambia datos, estado ni tienda: Classic no lo
+ * usa.
+ */
+export function StoreConfigOverride({ patch, children }: { patch: Partial<StoreConfig>; children: ReactNode }) {
+  const ctx = useContext(StoreContext);
+  if (!ctx) throw new Error('StoreConfigOverride must be used within StoreProvider');
+  const value = ctx.config ? { ...ctx, config: { ...ctx.config, ...patch } } : ctx;
+  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

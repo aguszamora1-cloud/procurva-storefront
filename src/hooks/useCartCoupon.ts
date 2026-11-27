@@ -4,6 +4,7 @@ import { useCoupon } from '@/context/CouponContext';
 import { useStoreType } from '@/context/StoreProvider';
 import { useCartPromos } from '@/hooks/useCartPromos';
 import { priceCartItems } from '@/lib/cart';
+import { sumCartSubtotals } from '@/lib/cartAmounts';
 import { evaluateCouponForCart } from '@/lib/coupons';
 import type { CartItem } from '@/lib/types';
 
@@ -34,11 +35,7 @@ export function useCartCoupon(): CartCouponValue {
   return useMemo(() => {
     const pricedItems = priceCartItems(items, byLine, storeType);
     const hasNonStackablePromo = pricedItems.some((i) => i.promo_id && i.promo_stackable === false);
-    const cardSubtotal = pricedItems.reduce((s, i) => s + i.unit_price * i.qty, 0);
-    const cashSubtotal = pricedItems.reduce(
-      (s, i) => s + (typeof i.unit_price_cash === 'number' ? i.unit_price_cash : i.unit_price) * i.qty,
-      0,
-    );
+    const { cashSubtotal, cardSubtotal } = sumCartSubtotals(pricedItems);
     let discountCash = 0;
     let discountCard = 0;
     if (savedCoupon?.applied && couponRecord) {
