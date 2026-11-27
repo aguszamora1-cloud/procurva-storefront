@@ -16,6 +16,7 @@ import { StorefrontAnalytics } from '@/components/StorefrontAnalytics';
 import { useStoreType } from '@/context/StoreProvider';
 import type { DevTemplateId } from '@/lib/devTemplate';
 import { PreviewSwitcher } from './shared/PreviewSwitcher';
+import { devAtelier2 } from './shared/devAtelier2';
 import './shared/shared.css';
 
 /**
@@ -59,6 +60,15 @@ const KITS: Record<DevTemplateId, ComponentType> = {
   distrito: lazy(() => import('./distrito/Distrito').then((m) => ({ default: () => <KitRoutes kit={m.distritoKit} id="distrito" /> }))),
   momentum: lazy(() => import('./momentum/Momentum').then((m) => ({ default: () => <KitRoutes kit={m.momentumKit} id="momentum" /> }))),
 };
+
+/**
+ * Atelier 2 (A0): sólo en vite DEV y sólo en la vista previa de desarrollo de
+ * Atelier con ?pc_dev_atelier=2 (shared/devAtelier2). En producción es null:
+ * el import desaparece del build y Atelier 1 sigue siendo el único Atelier.
+ */
+const ATELIER2_DEV: ComponentType | null = import.meta.env.DEV
+  ? lazy(() => import('./atelier2/Atelier2').then((m) => ({ default: () => <KitRoutes kit={m.atelier2Kit} id="atelier" /> })))
+  : null;
 
 const ClassicCustomPage = lazy(() => import('@/pages/CustomPage').then((m) => ({ default: m.CustomPage })));
 const ClassicProductDetail = lazy(() => import('@/pages/ProductDetail').then((m) => ({ default: m.ProductDetail })));
@@ -150,7 +160,7 @@ function KitRoutes({ kit, id }: { kit: TemplateKit; id: DevTemplateId }) {
  * false: selector afuera y la misma analítica que Classic.
  */
 export function TemplateApp({ id, devPreview = false }: { id: DevTemplateId; devPreview?: boolean }) {
-  const Kit = KITS[id];
+  const Kit = ATELIER2_DEV && devPreview && id === 'atelier' && devAtelier2 ? ATELIER2_DEV : KITS[id];
   return (
     <CartProvider>
       <CouponProvider>

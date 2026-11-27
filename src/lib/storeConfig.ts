@@ -433,6 +433,10 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
       typeof s.card_installments === 'number' && Number.isFinite(s.card_installments) && s.card_installments >= 0
         ? Math.floor(s.card_installments)
         : 3,
+    // Mismo criterio que arriba: ¿el número sale de lo que guardó el comercio, o
+    // es el 3 por defecto? No cambia installmentsCount ni lo que muestra Classic.
+    installmentsExplicit:
+      typeof s.card_installments === 'number' && Number.isFinite(s.card_installments) && s.card_installments >= 0,
 
     // Qué precios se muestran. Clave NUEVA (`price_display`) a propósito: la vieja
     // `price_mode` la escribía el editor desde hace rato pero no la leía NADIE en
@@ -561,6 +565,9 @@ export function normalizeStoreConfig(resolved: ResolvedStorefront): StoreConfig 
 
     shippingPromiseEnabled: bool(s.shipping_promise_enabled, true),
     shippingPromiseTitle: shippingTitle,
+    // ¿Título guardado por el comercio o «Envío rápido» por defecto? No cambia
+    // shippingPromiseTitle ni lo que muestra Classic.
+    shippingPromiseTitleExplicit: typeof s.shipping_promise_title === 'string',
     // Subtítulo: SOLO lo que el comercio cargó. Sin fallback a shipping_message
     // (duplicaba el título cuando coincidían) ni al default: vacío → no se
     // renderiza el "· subtítulo", solo el título.
