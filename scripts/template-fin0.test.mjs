@@ -125,10 +125,18 @@ test('testimonios de las plantillas: sin avance automático ni estrellas inventa
  *  - Orden de la ficha compartido con las plantillas (lib/productLayoutPlan.ts):
  *    ProductDetail.tsx recorre el plan; el comportamiento es idéntico
  *    (scripts/product-layout-plan.test.mjs). Aprobado por Agus el 26/11/2026.
+ *  - Cuotas confirmadas (installmentsExplicit): storeConfig agrega un campo;
+ *    installmentsCount y el resto de la configuración son idénticos a la base
+ *    (scripts/installments-explicit.test.mjs). Aprobado por Agus el 26/11/2026.
+ *  - Promesa de envío guardada (shippingPromiseTitleExplicit): otro campo, con
+ *    el mismo criterio (scripts/shipping-promise-explicit.test.mjs). Aprobado
+ *    por Agus el 26/11/2026.
+ *  storeConfig.ts y types.ts llevan a la vez PR #28 y los dos campos de las
+ *  plantillas: su diff contra main es exactamente el de Atelier 2 (7 y 16 líneas).
  */
 const CLASSIC_APPROVED = {
-  'src/lib/storeConfig.ts': '474df7a16f7026a31219132172c683a6ee095a8362d109a2f5772ef01786fd2a',
-  'src/lib/types.ts': '8d1229437a473383c2e50164c6b50d0e163e16fe46c3d51b866d57674f4bf1c8',
+  'src/lib/storeConfig.ts': '3d9d840f1aa37c52d4ade7ee7ec3cf33d532854190263c00622743f94da53bde',
+  'src/lib/types.ts': '6fbc53d5a7dba1389cf5cfc8ce1f9633b97655adeb1a5cf4af34c38b5fa079d2',
   'src/pages/Checkout.tsx': '7181a252783e2ac8d20373c222a0cc1e068d692fdca0936201c2eebbd8519324',
   'src/pages/ProductDetail.tsx': '9dd70f91b2bf7395b3e821d52db3a604450ec8801dd766af031f1d71701a0cff',
   'src/lib/productLayoutPlan.ts': '73978dd8a5bfc76a4ccc60d32bec893d4bed1d514b1271f1d5628a93ecd87617',
