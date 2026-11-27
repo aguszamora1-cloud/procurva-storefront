@@ -122,11 +122,16 @@ test('testimonios de las plantillas: sin avance automático ni estrellas inventa
  *    integrar P1.1 sobre main. El diff de cada archivo desde la base es
  *    idéntico, línea por línea, al de PR #28 (storeConfig.ts +3, types.ts +8,
  *    Checkout.tsx +7/−4). Aprobado por Agus el 26/11/2026.
+ *  - Orden de la ficha compartido con las plantillas (lib/productLayoutPlan.ts):
+ *    ProductDetail.tsx recorre el plan; el comportamiento es idéntico
+ *    (scripts/product-layout-plan.test.mjs). Aprobado por Agus el 26/11/2026.
  */
 const CLASSIC_APPROVED = {
   'src/lib/storeConfig.ts': '474df7a16f7026a31219132172c683a6ee095a8362d109a2f5772ef01786fd2a',
   'src/lib/types.ts': '8d1229437a473383c2e50164c6b50d0e163e16fe46c3d51b866d57674f4bf1c8',
   'src/pages/Checkout.tsx': '7181a252783e2ac8d20373c222a0cc1e068d692fdca0936201c2eebbd8519324',
+  'src/pages/ProductDetail.tsx': '9dd70f91b2bf7395b3e821d52db3a604450ec8801dd766af031f1d71701a0cff',
+  'src/lib/productLayoutPlan.ts': '73978dd8a5bfc76a4ccc60d32bec893d4bed1d514b1271f1d5628a93ecd87617',
 };
 const contentHash = (file) =>
   createHash('sha256').update(readFileSync(resolve(repoRoot, file), 'utf8').replace(/\r\n/g, '\n')).digest('hex');
